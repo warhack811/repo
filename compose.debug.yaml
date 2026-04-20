@@ -1,0 +1,6 @@
+services:
+  runa:
+    image: runa
+    build:
+      context: .
+      dockerfile: ./Dockerfile

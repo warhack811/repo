@@ -1,0 +1,231 @@
+:root {
+	--font-body: "Inter", "Segoe UI", sans-serif;
+	--font-heading: "Outfit", "Inter", "Segoe UI", sans-serif;
+	--color-bg: 221 39% 8%;
+	--color-bg-elevated: 222 33% 12%;
+	--color-bg-soft: 217 28% 17%;
+	--color-surface: 222 31% 15%;
+	--color-surface-strong: 222 31% 18%;
+	--color-border: 215 20% 65%;
+	--color-border-soft: 215 18% 30%;
+	--color-text: 210 40% 96%;
+	--color-text-muted: 215 20% 75%;
+	--color-text-soft: 215 16% 60%;
+	--color-accent: 38 92% 50%;
+	--color-accent-strong: 32 95% 44%;
+	--color-accent-foreground: 222 47% 11%;
+	--color-success: 142 71% 45%;
+	--color-danger: 0 84% 67%;
+	--shadow-panel: 0 24px 60px rgba(2, 6, 23, 0.42);
+	--shadow-glow: 0 0 0 1px rgba(245, 158, 11, 0.12), 0 24px 80px rgba(245, 158, 11, 0.1);
+	--radius-panel: 24px;
+	--radius-soft: 18px;
+	--page-background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.12), transparent 24%),
+		radial-gradient(circle at top right, rgba(148, 163, 184, 0.1), transparent 28%),
+		radial-gradient(circle at bottom center, rgba(120, 113, 108, 0.12), transparent 30%),
+		linear-gradient(180deg, hsl(var(--color-bg)) 0%, #090d16 100%);
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	color-scheme: dark;
+	scroll-behavior: smooth;
+}
+
+body {
+	margin: 0;
+	min-width: 320px;
+	min-height: 100vh;
+	background: var(--page-background);
+	color: hsl(var(--color-text));
+	font-family: var(--font-body);
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	background: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+	background-size: 72px 72px;
+	mask-image: radial-gradient(circle at center, black 45%, transparent 95%);
+	opacity: 0.22;
+}
+
+#root {
+	min-height: 100vh;
+	isolation: isolate;
+}
+
+img,
+picture,
+svg,
+canvas {
+	display: block;
+	max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+}
+
+button {
+	color: inherit;
+}
+
+textarea {
+	line-height: 1.6;
+}
+
+a {
+	color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0;
+	font-family: var(--font-heading);
+	letter-spacing: -0.03em;
+}
+
+p {
+	margin: 0;
+}
+
+code,
+pre {
+	font-family: "Consolas", "SFMono-Regular", monospace;
+}
+
+::selection {
+	background: rgba(245, 158, 11, 0.28);
+	color: hsl(var(--color-text));
+}
+
+:focus-visible {
+	outline: 2px solid rgba(245, 158, 11, 0.9);
+	outline-offset: 3px;
+	box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16);
+}
+
+.runa-ambient-panel {
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-ambient-panel::before {
+	content: "";
+	position: absolute;
+	inset: -35% auto auto -10%;
+	width: 240px;
+	height: 240px;
+	border-radius: 999px;
+	background: radial-gradient(circle, rgba(245, 158, 11, 0.18), transparent 70%);
+	filter: blur(8px);
+	pointer-events: none;
+}
+
+.runa-chat-surface {
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-chat-surface::after {
+	content: "";
+	position: absolute;
+	inset: auto -60px -90px auto;
+	width: 240px;
+	height: 240px;
+	border-radius: 999px;
+	background: radial-gradient(circle, rgba(148, 163, 184, 0.12), transparent 70%);
+	pointer-events: none;
+}
+
+.runa-nav-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.runa-developer-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border-radius: 999px;
+	border: 1px solid rgba(148, 163, 184, 0.24);
+	background: rgba(9, 14, 25, 0.82);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.runa-developer-toggle__switch {
+	position: relative;
+	width: 42px;
+	height: 24px;
+	border-radius: 999px;
+	background: rgba(71, 85, 105, 0.8);
+	transition: background-color 180ms ease;
+}
+
+.runa-developer-toggle__switch::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: white;
+	box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28);
+	transition: transform 180ms ease;
+}
+
+.runa-developer-toggle--active {
+	border-color: rgba(245, 158, 11, 0.45);
+	background: rgba(38, 26, 8, 0.78);
+	color: #fde68a;
+	box-shadow: var(--shadow-glow);
+}
+
+.runa-developer-toggle--active .runa-developer-toggle__switch {
+	background: linear-gradient(135deg, #f59e0b, #ea580c);
+}
+
+.runa-developer-toggle--active .runa-developer-toggle__switch::after {
+	transform: translateX(18px);
+}
+
+.runa-eyebrow {
+	font-size: 12px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: #fbbf24;
+}
+
+.runa-subtle-copy {
+	color: hsl(var(--color-text-muted));
+	line-height: 1.7;
+}

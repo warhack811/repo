@@ -1,0 +1,21 @@
+{
+	"name": "runa",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Runa — AI çalışma ortağı. Her seferinde sıfırdan başlamaz.",
+	"packageManager": "pnpm@9.15.4",
+	"scripts": {
+		"dev": "turbo run dev --filter=@runa/server --filter=@runa/web",
+		"build": "turbo run build",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"typecheck": "turbo run typecheck",
+		"test": "turbo run test"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.0",
+		"turbo": "^2.4.0",
+		"typescript": "^5.7.0",
+		"vitest": "^3.0.0"
+	}
+}

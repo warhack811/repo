@@ -1,0 +1,26 @@
+{
+	"name": "@runa/db",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Database schema, migrations and client — Drizzle ORM",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run --passWithNoTests"
+	},
+	"dependencies": {
+		"@runa/types": "workspace:*",
+		"drizzle-orm": "^0.45.2",
+		"postgres": "^3.4.9"
+	},
+	"devDependencies": {
+		"typescript": "^5.7.0"
+	}
+}

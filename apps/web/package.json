@@ -1,0 +1,27 @@
+{
+	"name": "@runa/web",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Runa frontend — React + Vite SPA",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"lint": "biome check src vite.config.ts index.html",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run --config ./vitest.config.mjs --configLoader runner"
+	},
+	"dependencies": {
+		"@runa/types": "workspace:*",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"react-router-dom": "^7.14.1"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.14",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^6.0.1",
+		"typescript": "^5.7.0",
+		"vite": "^8.0.8"
+	}
+}

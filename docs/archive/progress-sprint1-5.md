@@ -1,0 +1,130 @@
+# Progress Archive - Sprint 1-5
+
+Bu dosya, `PROGRESS.md` icindeki Sprint 1-5 `Completed Tasks` detaylarinin arsividir.
+Aktif sprint/faz takibi icin `PROGRESS.md` dosyasini kullanin.
+
+## Sprint 1-5 Completed Tasks
+
+- Sprint 1 / Gorev 1 - Monorepo scaffold (cleanup + Vitest correction sonrasi tamamlandi)
+- Sprint 1 / Gorev 2 - `packages/types` contract foundation
+- Sprint 1 / Gorev 3 - `apps/server` Fastify scaffold + WebSocket setup
+- Sprint 1 / Ara Gorev - `@runa/types` runtime-consumable package surface
+- Sprint 1 / Gorev 4 - Minimal runtime state transition foundation + `PROGRESS.md` olusturma
+- Sprint 1 / Gorev 5 - ModelGateway consumer foundation + Groq/Claude adapter skeleton
+- Sprint 1 / Gorev 6 - Runtime -> Gateway minimal orchestration foundation
+- Sprint 1 / Gorev 7 - Groq + Claude real request/response mapping foundation
+- Sprint 1 / Gorev 8 - Runtime model step -> real gateway wiring
+- Sprint 1 / Gorev 9 - Runtime event list -> WebSocket transport wiring
+- Sprint 1 / Gorev 10 - Minimal web chat skeleton + ws client
+- Sprint 1 / Ara Gorev - Shared WebSocket transport contract foundation
+- Sprint 1 / Ara Gorev 11 - Shared render block type foundation
+- Sprint 1 / Gorev 12 - Server-side presentation mapper foundation
+- Sprint 1 / Gorev 13 - WS transport -> presentation blocks additive bridge
+- Sprint 1 / Gorev 14 - Web additive presentation.blocks consumer
+- Sprint 1 / Smoke Demo Dogrulamasi - PASS WITH SMALL FIXES
+- Sprint 1 / Gorev 15 - Tek komutlu `pnpm dev` bootstrap kapanisi
+- Sprint 1 / Kapanis - Event stream DB persistence kapanisi
+- Sprint 1 / Ops-Dogrulama - Local PostgreSQL setup + live DB smoke verification (PASS)
+- Sprint 2 / Gorev 16 - `packages/types/tools.ts` contract foundation
+- Sprint 2 / Gorev 17 - `apps/server/src/tools/registry.ts` central registry foundation
+- Sprint 2 / Gorev 18 - `apps/server/src/tools/file-read.ts` ilk semantic tool implementasyonu
+- Sprint 2 / Gorev 19 - `apps/server/src/tools/file-write.ts` ikinci semantic tool implementasyonu
+- Sprint 2 / Gorev 20 - `apps/server/src/tools/file-list.ts` ucuncu semantic tool implementasyonu
+- Sprint 2 / Gorev 21 - `apps/server/src/tools/search-grep.ts` dorduncu semantic tool implementasyonu
+- Sprint 2 / Gorev 22 - `apps/server/src/tools/shell-exec.ts` besinci semantic tool implementasyonu
+- Sprint 2 / Gorev 23 - runtime state machine'e `TOOL_EXECUTING` ve `TOOL_RESULT_INGESTING` state'lerini ekle
+- Sprint 2 / Gorev 24 - runtime ile registry arasinda ilk tool execution orchestration helper'ini ac
+- Sprint 2 / Gorev 25 - model response -> registry dispatch foundation
+- Sprint 2 / Gorev 26 - tool result ingestion foundation
+- Sprint 2 / Gorev 27 - Context Composer foundation (Core Rules + Run Layer)
+- Sprint 2 / Gorev 28 - composed context artifact'ini model request zeminine baglayan provider-agnostic adapter helper'ini ac
+- Sprint 2 / Gorev 29 - `compiled_context` gateway consumption foundation
+- Sprint 2 / Gorev 30 - `packages/types/src/blocks.ts` icinde `tool_result_block` foundation
+- Sprint 2 / Repair - `tool_result` exhaustive render repair
+- Sprint 2 / Gorev 31 - `apps/server/src/presentation` icinde tool result mapper foundation
+- Sprint 2 / Gorev 32 - ws transport icinde `tool_result_block` additive visibility foundation
+- Sprint 2 / Gorev 33 - gercek runtime tool result -> ws `presentation.blocks` visibility integration
+- Sprint 2 / Gorev 34 - model-driven continuation foundation
+- Sprint 2 / Gorev 35 - provider response -> local `ModelTurnOutcome` adapter foundation
+- Sprint 2 / Gorev 36 - generate() sonucu -> local outcome adapter -> continuation helper zinciri
+- Sprint 2 / Gorev 37 - real provider output -> `tool_call_candidate` parsing tightening
+- Sprint 2 / Gorev 38 - provider request side tool-calling enablement foundation
+- Sprint 2 / Gorev 39 - runtime registry -> `ModelRequest.available_tools` binding foundation
+- Sprint 2 / Repair - registry single-source-of-truth repair for request-side callable schema
+- Sprint 2 / Gorev 40 - `bindAvailableTools(...)` -> `runModelTurn(...)` integration foundation
+- Sprint 2 / Gorev 41 - provider request/response continuation tightening
+- Sprint 2 / Gorev 42 - additive tool visibility polish
+- Sprint 2 / Ops-Dogrulama - gercek provider smoke dogrulamasi (PASS)
+- Sprint 2 / Closure - `tool_calls` DB persistence + run state persistence foundation
+- Sprint 2 / Closure - `code_block` / diff demo yolu
+- Sprint 2 / Closure - durum yeniden degerlendirme (SPRINT 2 COMPLETE WITH KNOWN OPS GAP)
+- Sprint 2 / Closure - final durum (SPRINT 2 COMPLETE WITH KNOWN OPS GAP)
+- Sprint 2 / Checkpoint - degerlendirme (SPRINT 2 NOT READY TO CLOSE)
+- Sprint 3 / Gorev 43 - `packages/types/src/policy.ts` icinde approval contract foundation
+- Sprint 3 / Gorev 44 - runtime approval state / event foundation
+- Sprint 3 / Gorev 45 - approval request orchestration helper
+- Sprint 3 / Gorev 46 - approval resolution helper
+- Sprint 3 / Gorev 47 - ws approval visibility foundation
+- Sprint 3 / Gorev 48 - gercek runtime approval -> ws approval_block visibility integration
+- Sprint 3 / Gorev 49 - ws bidirectional approval interaction foundation
+- Sprint 3 / Gorev 50 - approval persistence foundation
+- Sprint 3 / Gorev 51 - approval gate runtime integration
+- Sprint 3 / Gorev 52 - approved pending tool call resume/replay foundation
+- Sprint 3 / Gorev 53 - `approval.resolve` sonrasi automatic replay/resume orchestration integration
+- Sprint 3 / Gorev 54 - memory foundation
+- Sprint 3 / Gorev 55 - memory write candidate orchestration helper
+- Sprint 3 / Gorev 56 - memory persistence write integration
+- Sprint 3 / Gorev 57 - memory context injection foundation
+- Sprint 3 / Gorev 58 - memory selection policy helper
+- Sprint 3 / Gorev 59 - memory write/read orchestration refinement
+- Sprint 3 / Gorev 60 - memory prompt strategy foundation
+- Sprint 3 / Gorev 61 - memory lifecycle refinement
+- Sprint 3 / Gorev 62 - memory prompt strategy validation/smoke (PASS)
+- Sprint 3 / Checkpoint - degerlendirme (SPRINT 3 NOT READY TO CLOSE)
+- Sprint 3 / Closure - `git.status`, `git.diff`, `edit.patch` tool surface foundation
+- Sprint 3 / Closure - `diff_block` shared/render foundation
+- Sprint 3 / Closure - final closure smoke / checkpoint refresh (SPRINT 3 NOT READY TO CLOSE)
+- Sprint 3 / Closure - live `run.request` -> tool-aware runtime integration
+- Sprint 3 / Closure - default registry genisletmesi (`git.status`, `git.diff`, `edit.patch`)
+- Sprint 3 / Closure - final closure smoke / checkpoint refresh rerun (SPRINT 3 NOT READY TO CLOSE)
+- Sprint 3 / Closure - live `run.request` -> memory orchestration integration
+- Sprint 3 / Closure - final closure smoke / checkpoint refresh rerun (SPRINT 3 COMPLETE WITH KNOWN GAPS)
+- Sprint 3 / Closure - final durum (SPRINT 3 COMPLETE WITH KNOWN GAPS)
+- Sprint 4 / Kickoff - hazirlik ve dokumantasyon senkronizasyonu
+- Sprint 4 / Gorev 63 - workspace/project context foundation
+- Sprint 4 / Gorev 64 - workspace context refinement
+- Sprint 4 / Gorev 65 - search.codebase foundation
+- Sprint 4 / Gorev 66 - search.codebase live integration
+- Sprint 4 / Gorev 67 - search.codebase refinement
+- Sprint 4 / Gorev 68 - search.codebase result-block foundation
+- Sprint 4 / Gorev 69 - workspace/run inspection foundation
+- Sprint 4 / Gorev 70 - run timeline / trace visibility foundation
+- Sprint 4 / Gorev 71 - run timeline refinement
+- Sprint 4 / Gorev 72 - trace/debug inspection foundation
+- Sprint 4 / Gorev 73 - trace/debug inspection refinement
+- Sprint 4 / Gorev 74 - workspace/run inspection correlation refinement
+- Sprint 4 / Gorev 75 - run inspection interaction foundation
+- Sprint 4 / Gorev 76 - run inspection detail refinement
+- Sprint 4 / Gorev 77 - trace/debug + inspection interaction polish
+- Sprint 4 / Gorev 78 - run inspection interaction refinement
+- Sprint 4 / Gorev 79 - run inspection UX polish
+- Sprint 4 / Gorev 80 - run inspection state/interaction hardening
+- Sprint 4 / Gorev 81 - inspection accessibility/polish refinement
+- Sprint 4 / Gorev 82 - run inspection logging/correlation polish
+- Sprint 4 / Gorev 83 - inspection surface closure check (`SPRINT 4 INSPECTION SURFACE READY WITH SMALL GAPS`)
+- Sprint 4 / Gorev 84 - past-run inspection visibility closure
+- Sprint 4 / Gorev 85 - inspection surface final closure check (`SPRINT 4 INSPECTION SURFACE COMPLETE`)
+- Sprint 4 / Gorev 86 - run inspection closure polish
+- Sprint 4 / Repair - git-diff test flake stabilization (PASS WITH SMALL FIX)
+- Sprint 5 / Gorev 87 - kickoff hazirligi
+- Sprint 5 / Gorev 88 - UI polish: streaming kalitesi, loading states, responsive layout
+- Sprint 5 / Gorev 89 - README / kurulum rehberi / gelistirici dokumantasyonu
+- Sprint 5 / Gorev 90 - Test suite guclendirme: runtime + tool + context coverage toplama ve gap temizligi
+- Sprint 5 / Gorev 91 - Integration test zemini: Sprint 5 demo cumlesini otomatik ve tekrar edilebilir hale getirecek ilk dar senaryo
+- Sprint 5 / Gorev 92 - Performans review hazirligi: latency, streaming kalitesi ve memory kullanimina dair olcum notlari
+- Sprint 5 / Gorev 93 - Basit fast-path: tool gerektirmeyen kisa mesajlar icin dar hizli yol
+- Sprint 5 / Gorev 94 - Idempotency key altyapisi: ozellikle `file.write` / edit path'i icin temel tekrar korumasi
+- Sprint 5 / Gorev 95 - Basic token accounting: per-layer kullanim loglamasi
+- Sprint 5 / Gorev 96 - final demo repeatability + Definition of Done checkpoint refresh (`SPRINT 5 READY TO CLOSE WITH SMALL GAPS`)
+- Sprint 5 / Gorev 97 - formal 5x demo repeatability kaydi + coverage metric capture
+- Sprint 5 / Gorev 98 - final closure rerun (`SPRINT 5 COMPLETE WITH KNOWN OPS GAPS`)

@@ -1,0 +1,33 @@
+{
+	"name": "@runa/server",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Runa backend — Fastify + WebSocket runtime",
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"dev": "node scripts/dev.mjs",
+		"lint": "biome check src",
+		"test:approval-browser-authority-check": "pnpm --filter @runa/db build && pnpm exec tsc && node scripts/approval-browser-authority-check.mjs",
+		"test:approval-persistence-live-smoke": "pnpm --filter @runa/db build && pnpm exec tsc && node scripts/approval-persistence-live-smoke.mjs",
+		"test:anthropic-live-smoke": "pnpm exec tsc && node scripts/anthropic-live-smoke.mjs",
+		"test:core-coverage": "node scripts/capture-core-coverage.mjs",
+		"test:formal-repeatability": "node scripts/formal-demo-repeatability.mjs",
+		"test:groq-demo-rehearsal": "node scripts/groq-demo-rehearsal.mjs",
+		"test:groq-live-smoke": "pnpm exec tsc && node scripts/groq-live-smoke.mjs",
+		"typecheck": "tsc --noEmit",
+		"test": "pnpm exec tsc && node scripts/copy-test-fixtures.mjs && vitest run --config ./vitest.config.mjs --configLoader runner"
+	},
+	"dependencies": {
+		"@fastify/websocket": "^11.2.0",
+		"@runa/db": "workspace:*",
+		"@runa/types": "workspace:*",
+		"@runa/utils": "workspace:*",
+		"fastify": "^5.8.4",
+		"screenshot-desktop": "^1.15.3"
+	},
+	"devDependencies": {
+		"@types/node": "^25.6.0",
+		"typescript": "^5.7.0"
+	}
+}
