@@ -144,6 +144,26 @@ function validateScreenshotBuffer(buffer: Buffer): void {
 	}
 }
 
+function isDesktopScreenshotSuccessData(value: unknown): value is DesktopScreenshotSuccessData {
+	if (typeof value !== 'object' || value === null) {
+		return false;
+	}
+
+	const candidate = value as {
+		readonly base64_data?: unknown;
+		readonly byte_length?: unknown;
+		readonly format?: unknown;
+		readonly mime_type?: unknown;
+	};
+
+	return (
+		typeof candidate.base64_data === 'string' &&
+		typeof candidate.byte_length === 'number' &&
+		candidate.format === 'png' &&
+		candidate.mime_type === 'image/png'
+	);
+}
+
 export function createDesktopScreenshotTool(
 	dependencies: Partial<DesktopScreenshotDependencies> = {},
 ): ToolDefinition<DesktopScreenshotInput, DesktopScreenshotResult> {
@@ -181,6 +201,39 @@ export function createDesktopScreenshotTool(
 					},
 					true,
 				);
+			}
+
+			if (context.desktop_bridge) {
+				if (!context.desktop_bridge.supports('desktop.screenshot')) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Connected desktop agent does not advertise desktop.screenshot support.',
+						{
+							reason: 'desktop_agent_capability_unavailable',
+						},
+						false,
+					);
+				}
+
+				const bridgeResult = await context.desktop_bridge.invoke(input, context);
+
+				if (
+					bridgeResult.status === 'success' &&
+					!isDesktopScreenshotSuccessData(bridgeResult.output)
+				) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Desktop agent returned an invalid screenshot payload.',
+						{
+							reason: 'desktop_agent_invalid_result',
+						},
+						false,
+					);
+				}
+
+				return bridgeResult as DesktopScreenshotResult;
 			}
 
 			try {

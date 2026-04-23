@@ -35,3 +35,4 @@ export * from './tools.js';
 export * from './mcp.js';
 export * from './memory.js';
 export * from './policy.js';
+export * from './desktop.js';

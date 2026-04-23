@@ -1,5 +1,10 @@
 import type { RuntimeEvent } from './events.js';
-import type { ApprovalActionKind, ApprovalDecisionKind, ApprovalStatus } from './policy.js';
+import type {
+	ApprovalActionKind,
+	ApprovalDecisionKind,
+	ApprovalStatus,
+	ApprovalTargetKind,
+} from './policy.js';
 import type { RuntimeState } from './state.js';
 import type { ToolErrorCode, ToolName } from './tools.js';
 
@@ -199,6 +204,8 @@ export interface ApprovalBlockPayload {
 	readonly call_id?: string;
 	readonly decision?: ApprovalDecisionKind;
 	readonly note?: string;
+	readonly target_kind?: ApprovalTargetKind;
+	readonly target_label?: string;
 	readonly tool_name?: ToolName;
 }
 

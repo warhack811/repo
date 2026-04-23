@@ -61,8 +61,8 @@ Bu iki katman birbirine karistirilmamalidir.
 | Realtime | WebSocket (Fastify native) | Render block streaming ve approval interaction |
 | State Machine | Custom minimal + async generator | Agentic loop, checkpoint, stop conditions |
 | LLM Entegrasyon | `ModelGateway` -> provider adapter | Provider-agnostic soyutlama, adapter eklemeyi kolaylastirir |
-| Desktop Agent | Node.js + native bindings | robotjs/nut.js, Windows-first, macOS-ready altyapi |
-| Deployment | Cloud-first hybrid | Server + DB bulutta, desktop agent local'de |
+| Desktop Companion | Node.js-first local bridge/runtime, user-facing desktop shell asamali | Windows-first signed-in desktop app, online device presence ve remote control icin kontrollu rollout |
+| Deployment | Cloud-first hybrid | Server + DB bulutta, desktop companion local'de |
 
 ### Provider Stratejisi
 
@@ -119,7 +119,7 @@ runa/
 |  |  |  |- hooks/         <- useAgentLoop, useAuth, useSubscription
 |  |  |  `- lib/           <- ws-client, auth-client
 |  |  `- ...
-|  `- desktop-agent/       <- Node.js desktop daemon (Windows-first, macOS-ready)
+|  `- desktop-agent/       <- bugunku local desktop bridge/runtime foundation; gelecekteki desktop companion shell ile ayni contract ailesinde
 |     `- src/
 |        |- screenshot.ts
 |        |- input-injector.ts
@@ -157,9 +157,9 @@ runa/
 
 - `packages/types` = anayasal contract'larin TypeScript karsiligi
 - `apps/server/src/` altindaki klasorler = karar maddelerinin implementasyon yuzleri
-- `apps/desktop-agent/` = cloud server ile WSS uzerinden iletisim kuran local daemon
+- `apps/desktop-agent/` = cloud server ile WSS uzerinden iletisim kuran local bridge/runtime foundation; signed-in desktop companion ve online device presence yolunun bugunku teknik zemini
 - Moduller arasi iletisim typed interface'ler uzerinden kurulur
-- Frontend, backend ve desktop agent ayni shared contract'lari tuketir
+- Frontend, backend ve desktop runtime ayni shared contract'lari tuketir
 
 ---
 
@@ -477,7 +477,7 @@ Core Hardening, MVP omurgasini production-grade autonomous agent runtime'a tasir
 | --- | --- | --- |
 | **A: Core Engine** | Agentic loop, checkpoint, compaction, permission, WS refactor | Bagimsiz; mevcut runtime uzerine insa |
 | **B: Cloud Infra** | Supabase Auth, cloud DB, object storage, secure WS, subscription | Bagimsiz; mevcut persistence uzerine insa |
-| **C: UI + Desktop** | UI decomposition, chat-first consumer surface, desktop agent | Track A + B temellerine ihtiyac duyar |
+| **C: UI + Desktop** | UI decomposition, chat-first consumer surface, signed-in desktop companion + local bridge | Track A + B temellerine ihtiyac duyar |
 
 ### Track C Icin Baglayici UI Manifestosu
 
@@ -756,37 +756,38 @@ Definition of Done:
 
 ---
 
-### Sprint 11 / Track C - Desktop Agent + Consumer Surface Alignment
+### Sprint 11 / Track C - Desktop Companion + Consumer Surface Alignment
 
-**Hedef:** Windows desktop agent kurulumunu, chat-first consumer yuzeyi bozmadan planlamak ve UI'yi manifesto ile daha hizali hale getirmek.
+**Hedef:** Windows desktop companion yolunu, chat-first consumer yuzeyi bozmadan planlamak; local bridge/runtime foundation'i user-facing desktop app, online device presence ve kontrollu remote execution hedefiyle hizalamak.
 
 **Onkosul:** Track A Sprint 9 ve Track B Sprint 9B tamamlanmis olmali.
 
 Yapilacaklar:
 
-- `apps/desktop-agent/` package kurulumu
-- Screenshot capture (robotjs/nut.js)
+- `apps/desktop-agent/` package'inin local bridge/runtime zemini olarak olgunlastirilmasi
+- Screenshot capture
 - Input injection (klavye/mouse)
 - WSS bridge: server ile guvenli iletisim
-- Desktop agent auth: JWT ile kullanici dogrulama
+- Desktop companion auth: kullanici/device baglama ve guvenli oturum
 - Desktop tool'lari: `desktop.screenshot`, `desktop.click`, `desktop.type`
 - Tool metadata'larina desktop risk profilleri
-- Desktop capability'lerini ana chat yuzeyine operator paneli gibi yigmadan urunlestirme
-- Desktop agent status indicator (tray icon / system notification)
+- Web tarafinda online device presence ve desktop capability gorunurlugunu operator paneline donusturmeden urunlestirme
+- Desktop companion status indicator (tray icon / system notification)
 
 Non-goals:
 
 - macOS destegi (yayin sonrasi, talebe gore)
-- Electron wrapper (ilk versiyon headless daemon)
+- Full polished desktop app packaging / installer rollout
 - Full remote desktop (yalnizca tool-tabanli kontrol)
 
 Definition of Done:
 
-- Desktop agent Windows'ta calisir
+- Desktop bridge/runtime Windows'ta calisir
 - Screenshot alip server'a gonderebilir
 - Klavye/mouse input inject edebilir
 - WSS uzerinden server ile guvenli iletisim
 - Desktop tool'lari registry'ye kayitli ve test edilmis
+- User-facing desktop companion yolunun auth/device-presence kontrati netlesmistir
 - Ana urun deneyimi chat-first kalir; desktop capability gorunurlugu manifesto ile uyumlu ikinci katman mantigina tasinabilir
 
 ---
@@ -799,7 +800,7 @@ Definition of Done:
 | P1 | MCP tool entegrasyonu | Tool registry + policy genisletme |
 | P2 | Execution profiles | Runtime + provider routing |
 | P2 | Multi-user / kucuk ekip | Principal model + tenant izolasyonu |
-| P2 | macOS desktop agent | Desktop agent altyapisi |
+| P2 | macOS desktop companion | Desktop bridge/runtime altyapisi |
 | P3 | Neo4j / knowledge graph | Memory + retrieval pipeline |
 | P3 | Extension marketplace | Tool registry + capability packs |
 | P3 | Full daemon mode | Runtime + policy seam'leri |

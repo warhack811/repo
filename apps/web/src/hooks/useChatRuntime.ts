@@ -67,6 +67,7 @@ export interface UseChatRuntimeResult {
 	readonly currentRunFeedback: RunFeedbackState | null;
 	readonly currentStreamingRunId: string | null;
 	readonly currentStreamingText: string;
+	readonly desktopTargetConnectionId: string | null;
 	readonly expandedPastRunIds: readonly string[];
 	readonly includePresentationBlocks: boolean;
 	readonly inspectionAnchorIdsByDetailId: ReadonlyMap<string, string | undefined>;
@@ -86,6 +87,7 @@ export interface UseChatRuntimeResult {
 	readonly staleInspectionRequestKeys: readonly string[];
 	setApiKey: (value: string) => void;
 	setAttachments: (value: readonly ModelAttachment[]) => void;
+	setDesktopTargetConnectionId: (value: string | null) => void;
 	setIncludePresentationBlocks: (value: boolean) => void;
 	setModel: (value: string) => void;
 	setPastRunExpanded: (runId: string, isExpanded: boolean) => void;
@@ -100,6 +102,7 @@ export interface UseChatRuntimeOptions {
 	readonly accessToken?: string | null;
 	readonly activeConversationId?: string | null;
 	readonly buildRequestMessages?: (prompt: string) => readonly ModelMessage[];
+	readonly desktopTargetConnectionId?: string | null;
 	readonly onRunAccepted?: (input: {
 		readonly conversationId?: string;
 		readonly prompt: string;
@@ -227,6 +230,16 @@ function getPresentationBlockDomId(blockId: string): string {
 	return `presentation-block:${encodeURIComponent(blockId)}`;
 }
 
+function normalizeDesktopTargetConnectionId(value: string | null | undefined): string | null {
+	if (typeof value !== 'string') {
+		return null;
+	}
+
+	const trimmedValue = value.trim();
+
+	return trimmedValue.length > 0 ? trimmedValue : null;
+}
+
 function scrollToPresentationBlock(blockId: string): void {
 	const blockElement = document.getElementById(getPresentationBlockDomId(blockId));
 
@@ -241,8 +254,14 @@ function scrollToPresentationBlock(blockId: string): void {
 }
 
 export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRuntimeResult {
-	const { accessToken, activeConversationId, buildRequestMessages, onRunAccepted, onRunFinished } =
-		options;
+	const {
+		accessToken,
+		activeConversationId,
+		buildRequestMessages,
+		desktopTargetConnectionId,
+		onRunAccepted,
+		onRunFinished,
+	} = options;
 	const chatStoreRef = useRef<ChatStore | null>(null);
 
 	if (chatStoreRef.current === null) {
@@ -293,6 +312,9 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const onRunFinishedRef = useRef(onRunFinished);
 	const submittedPromptByRunIdRef = useRef<Map<string, string>>(new Map());
 	const [attachments, setAttachments] = useState<readonly ModelAttachment[]>([]);
+	const [selectedDesktopTargetConnectionId, setSelectedDesktopTargetConnectionId] = useState<
+		string | null
+	>(() => normalizeDesktopTargetConnectionId(desktopTargetConnectionId));
 	const [prompt, setPrompt] = useState('');
 
 	const runtimeConfig = useChatStoreSelector(chatStore, selectRuntimeConfigState);
@@ -325,6 +347,12 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	useEffect(() => {
 		onRunFinishedRef.current = onRunFinished;
 	}, [onRunFinished]);
+
+	useEffect(() => {
+		setSelectedDesktopTargetConnectionId(
+			normalizeDesktopTargetConnectionId(desktopTargetConnectionId),
+		);
+	}, [desktopTargetConnectionId]);
 
 	function setApiKey(value: string): void {
 		chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
@@ -797,6 +825,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				apiKey,
 				attachments,
 				conversationId: activeConversationId,
+				desktopTargetConnectionId: selectedDesktopTargetConnectionId,
 				includePresentationBlocks,
 				model,
 				messages: buildRequestMessages?.(prompt),
@@ -993,6 +1022,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		currentRunFeedback,
 		currentStreamingRunId,
 		currentStreamingText,
+		desktopTargetConnectionId: selectedDesktopTargetConnectionId,
 		expandedPastRunIds,
 		includePresentationBlocks,
 		inspectionAnchorIdsByDetailId: inspectionAnchorIdsByDetailIdRef.current,
@@ -1013,6 +1043,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		store: chatStore,
 		setApiKey,
 		setAttachments,
+		setDesktopTargetConnectionId: setSelectedDesktopTargetConnectionId,
 		setIncludePresentationBlocks,
 		setModel,
 		setPastRunExpanded,

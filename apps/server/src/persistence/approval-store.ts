@@ -47,6 +47,7 @@ export interface PendingApprovalEntry {
 }
 
 export interface PendingApprovalToolCall {
+	readonly desktop_target_connection_id?: string;
 	readonly tool_input: ToolCallInput['arguments'];
 	readonly working_directory?: string;
 }
@@ -95,6 +96,10 @@ export interface ApprovalStore {
 
 interface PersistOptions {
 	readonly writer?: ApprovalRecordWriter;
+}
+
+interface PersistedDesktopTargetMetadata {
+	readonly desktop_target_connection_id?: unknown;
 }
 
 class DatabaseApprovalRecordWriter implements ApprovalRecordWriter {
@@ -228,6 +233,16 @@ function toNullableScopeValue(value: string | undefined): string | null {
 	return value?.trim() ? value : null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function sanitizeDesktopTargetConnectionId(value: string | undefined): string | undefined {
+	const trimmedValue = value?.trim();
+
+	return trimmedValue && trimmedValue.length > 0 ? trimmedValue : undefined;
+}
+
 function isToolResult(value: unknown): value is ToolResult {
 	if (typeof value !== 'object' || value === null) {
 		return false;
@@ -269,6 +284,26 @@ function isPendingApprovalContinuationContext(
 		typeof candidate.working_directory === 'string' &&
 		candidate.working_directory.trim().length > 0
 	);
+}
+
+function isPersistedDesktopTargetMetadata(value: unknown): value is PersistedDesktopTargetMetadata {
+	return isRecord(value);
+}
+
+function extractDesktopTargetConnectionId(
+	value: unknown,
+): PendingApprovalToolCall['desktop_target_connection_id'] {
+	if (isPendingApprovalContinuationContext(value)) {
+		return sanitizeDesktopTargetConnectionId(value.payload.desktop_target_connection_id);
+	}
+
+	if (!isPersistedDesktopTargetMetadata(value)) {
+		return undefined;
+	}
+
+	return typeof value.desktop_target_connection_id === 'string'
+		? sanitizeDesktopTargetConnectionId(value.desktop_target_connection_id)
+		: undefined;
 }
 
 function getProviderApiKeyEnvironmentVariableName(provider: RunRequestPayload['provider']): string {
@@ -338,6 +373,30 @@ function sanitizeContinuationContextForPersistence(
 	};
 }
 
+function buildContinuationContextForPersistence(
+	context: PendingApprovalContinuationContext | undefined,
+	pendingToolCall: PendingApprovalToolCall | undefined,
+):
+	| PendingApprovalContinuationContext
+	| Readonly<{ desktop_target_connection_id: string }>
+	| undefined {
+	const sanitizedContext = sanitizeContinuationContextForPersistence(context);
+
+	if (sanitizedContext !== undefined) {
+		return sanitizedContext;
+	}
+
+	const desktopTargetConnectionId = sanitizeDesktopTargetConnectionId(
+		pendingToolCall?.desktop_target_connection_id,
+	);
+
+	return desktopTargetConnectionId === undefined
+		? undefined
+		: {
+				desktop_target_connection_id: desktopTargetConnectionId,
+			};
+}
+
 function getPrincipalSessionId(authContext: AuthContext): string | undefined {
 	if (authContext.session?.session_id) {
 		return authContext.session.session_id;
@@ -381,6 +440,7 @@ function toPendingApprovalEntry(record: ApprovalRecord): PendingApprovalEntry {
 	const continuationContext = isPendingApprovalContinuationContext(record.continuation_context)
 		? sanitizeContinuationContextForPersistence(record.continuation_context)
 		: undefined;
+	const desktopTargetConnectionId = extractDesktopTargetConnectionId(record.continuation_context);
 
 	return {
 		approval_request: {
@@ -403,6 +463,7 @@ function toPendingApprovalEntry(record: ApprovalRecord): PendingApprovalEntry {
 		pending_tool_call:
 			record.tool_input !== null
 				? {
+						desktop_target_connection_id: desktopTargetConnectionId,
 						tool_input: record.tool_input,
 						working_directory: record.working_directory ?? undefined,
 					}
@@ -412,8 +473,9 @@ function toPendingApprovalEntry(record: ApprovalRecord): PendingApprovalEntry {
 
 function toApprovalRequestRecord(input: PersistApprovalRequestInput): NewApprovalRecord {
 	const requestedAt = input.approval_request.requested_at;
-	const sanitizedContinuationContext = sanitizeContinuationContextForPersistence(
+	const sanitizedContinuationContext = buildContinuationContextForPersistence(
 		input.auto_continue_context,
+		input.pending_tool_call,
 	);
 
 	return {
@@ -449,8 +511,9 @@ function toApprovalRequestRecord(input: PersistApprovalRequestInput): NewApprova
 
 function toApprovalResolutionRecord(input: PersistApprovalResolutionInput): NewApprovalRecord {
 	const resolvedAt = input.approval_resolution.decision.resolved_at;
-	const sanitizedContinuationContext = sanitizeContinuationContextForPersistence(
+	const sanitizedContinuationContext = buildContinuationContextForPersistence(
 		input.auto_continue_context,
+		input.pending_tool_call,
 	);
 
 	return {

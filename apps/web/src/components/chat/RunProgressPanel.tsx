@@ -140,6 +140,15 @@ export function RunProgressPanel({
 				<RunStatusChips ariaLabel="Current run context" items={progress.meta_items} />
 			</div>
 
+			{progress.approval_block?.payload.target_label ? (
+				<div style={{ display: 'grid', gap: '8px' }}>
+					<div style={sectionLabelStyle}>Hedef cihaz</div>
+					<div style={{ ...chipStyle, width: 'fit-content', color: '#f8fafc' }}>
+						{progress.approval_block.payload.target_label}
+					</div>
+				</div>
+			) : null}
+
 			{progress.step_items.length > 0 ? (
 				<div style={{ display: 'grid', gap: '10px' }}>
 					<div

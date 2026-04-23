@@ -1,6 +1,6 @@
-import type { CSSProperties, ReactElement } from 'react';
+import { type CSSProperties, type ReactElement, useEffect, useEffectEvent, useState } from 'react';
 
-import type { AuthContext } from '@runa/types';
+import type { AuthContext, DesktopDevicePresenceSnapshot } from '@runa/types';
 
 import {
 	appShellButtonRowStyle,
@@ -13,7 +13,12 @@ import { ProfileCard } from '../components/auth/ProfileCard.js';
 import { SessionCard } from '../components/auth/SessionCard.js';
 import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
+import { readStoredBearerToken } from '../lib/auth-client.js';
 import { pillStyle } from '../lib/chat-styles.js';
+import {
+	DesktopDevicesResponseValidationError,
+	fetchDesktopDevices,
+} from '../lib/desktop-devices.js';
 import { uiCopy } from '../localization/copy.js';
 
 const sectionGridStyle: CSSProperties = {
@@ -35,6 +40,28 @@ const destructiveButtonStyle: CSSProperties = {
 	color: '#fecaca',
 };
 
+const deviceCardStyle: CSSProperties = {
+	display: 'grid',
+	gap: '10px',
+	padding: '14px 16px',
+	borderRadius: '18px',
+	border: '1px solid rgba(148, 163, 184, 0.16)',
+	background: 'rgba(9, 14, 25, 0.68)',
+};
+
+type DesktopDevicesState =
+	| {
+			readonly status: 'idle' | 'loading';
+	  }
+	| {
+			readonly devices: readonly DesktopDevicePresenceSnapshot[];
+			readonly status: 'success';
+	  }
+	| {
+			readonly message: string;
+			readonly status: 'error';
+	  };
+
 type SettingsPageProps = Readonly<{
 	authContext: AuthContext;
 	authError: string | null;
@@ -48,6 +75,9 @@ export function SettingsPage({
 	isAuthPending,
 	onLogout,
 }: SettingsPageProps): ReactElement {
+	const [desktopDevicesState, setDesktopDevicesState] = useState<DesktopDevicesState>({
+		status: 'idle',
+	});
 	const {
 		autoReadEnabled,
 		cancel: cancelTextToSpeech,
@@ -57,6 +87,78 @@ export function SettingsPage({
 		setAutoReadEnabled,
 	} = useTextToSpeech();
 	const voiceInput = useVoiceInput();
+	const loadDesktopDevices = useEffectEvent(async (signal: AbortSignal) => {
+		if (authContext.principal.kind !== 'authenticated') {
+			setDesktopDevicesState({
+				status: 'success',
+				devices: [],
+			});
+			return;
+		}
+
+		setDesktopDevicesState({
+			status: 'loading',
+		});
+
+		try {
+			const response = await fetchDesktopDevices({
+				bearerToken: readStoredBearerToken() ?? undefined,
+				signal,
+			});
+
+			if (signal.aborted) {
+				return;
+			}
+
+			setDesktopDevicesState({
+				devices: response.devices,
+				status: 'success',
+			});
+		} catch (error) {
+			if (signal.aborted) {
+				return;
+			}
+
+			if (error instanceof DesktopDevicesResponseValidationError) {
+				setDesktopDevicesState({
+					message:
+						'Online cihaz listesi beklendigi sekilde donmedi. Lutfen daha sonra yeniden dene.',
+					status: 'error',
+				});
+				return;
+			}
+
+			setDesktopDevicesState({
+				message:
+					error instanceof Error
+						? error.message
+						: 'Online cihazlar su anda yuklenemedi. Lutfen daha sonra yeniden dene.',
+				status: 'error',
+			});
+		}
+	});
+
+	useEffect(() => {
+		const abortController = new AbortController();
+		void loadDesktopDevices(abortController.signal);
+
+		return () => {
+			abortController.abort();
+		};
+	}, [loadDesktopDevices]);
+
+	function formatConnectedAt(connectedAt: string): string {
+		const parsed = new Date(connectedAt);
+
+		if (Number.isNaN(parsed.getTime())) {
+			return connectedAt;
+		}
+
+		return new Intl.DateTimeFormat(undefined, {
+			dateStyle: 'medium',
+			timeStyle: 'short',
+		}).format(parsed);
+	}
 
 	return (
 		<>
@@ -118,6 +220,98 @@ export function SettingsPage({
 			<section style={sectionGridStyle}>
 				<ProfileCard authContext={authContext} />
 				<SessionCard authContext={authContext} />
+				<section
+					style={appShellPanelStyle}
+					className="runa-card runa-card--subtle"
+					aria-labelledby="online-devices-heading"
+				>
+					<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
+						<div style={appShellSecondaryLabelStyle}>Devices</div>
+						<h2 id="online-devices-heading" style={{ margin: 0, fontSize: '20px' }}>
+							Online devices
+						</h2>
+						<p style={appShellMutedTextStyle}>
+							Giris yaptigin acik bir desktop companion varsa burada gorunur. Bu yuzey simdilik
+							yalniz gorunurluk saglar; cihaz secimi veya uzaktan aksiyon baslatma bu turda acilmaz.
+						</p>
+					</div>
+
+					<div style={{ display: 'grid', gap: '14px' }}>
+						{desktopDevicesState.status === 'idle' || desktopDevicesState.status === 'loading' ? (
+							<div style={deviceCardStyle}>
+								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Cihazlar kontrol ediliyor</div>
+								<div style={appShellMutedTextStyle}>
+									Hesabina bagli acik desktop companion oturumlari taraniyor.
+								</div>
+							</div>
+						) : null}
+
+						{desktopDevicesState.status === 'error' ? (
+							<div role="alert" className="runa-alert runa-alert--warning">
+								<strong>Online cihazlar su anda gosterilemiyor. </strong>
+								{desktopDevicesState.message}
+							</div>
+						) : null}
+
+						{desktopDevicesState.status === 'success' &&
+						desktopDevicesState.devices.length === 0 ? (
+							<div style={deviceCardStyle}>
+								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Henuz gorunen cihaz yok</div>
+								<div style={appShellMutedTextStyle}>
+									Bu hesapla giris yapmis acik bir desktop companion bulunmadiginda burada cihaz
+									listelenmez.
+								</div>
+							</div>
+						) : null}
+
+						{desktopDevicesState.status === 'success'
+							? desktopDevicesState.devices.map((device) => (
+									<article key={device.connection_id} style={deviceCardStyle}>
+										<div
+											style={{
+												display: 'flex',
+												flexWrap: 'wrap',
+												alignItems: 'center',
+												justifyContent: 'space-between',
+												gap: '12px',
+											}}
+										>
+											<div style={{ display: 'grid', gap: '6px' }}>
+												<div style={{ color: '#f8fafc', fontWeight: 700 }}>
+													{device.machine_label?.trim().length
+														? device.machine_label
+														: `Desktop ${device.agent_id.slice(0, 8)}`}
+												</div>
+												<div style={appShellMutedTextStyle}>
+													Baglanti: {formatConnectedAt(device.connected_at)}
+												</div>
+											</div>
+											<span
+												style={{
+													...pillStyle,
+													borderColor: 'rgba(74, 222, 128, 0.24)',
+													color: '#bbf7d0',
+												}}
+											>
+												{device.status}
+											</span>
+										</div>
+
+										<div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+											{device.capabilities.map((capability) => (
+												<span
+													key={`${device.connection_id}-${capability.tool_name}`}
+													style={pillStyle}
+												>
+													{capability.tool_name}
+												</span>
+											))}
+										</div>
+									</article>
+								))
+							: null}
+					</div>
+				</section>
 				<section
 					style={appShellPanelStyle}
 					className="runa-card runa-card--subtle"

@@ -7,11 +7,42 @@
 
 ## Mevcut Durum Ozeti
 
-- **Tarih:** 19 Nisan 2026
-- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, acik ana gap GAP-12
+- **Tarih:** 23 Nisan 2026
+- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, GAP-12 ilk secure bridge slice'i acildi
 - **Vizyon:** Basit kullanicidan teknik uzmana kadar herkesin kullanabilecegi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI calisma ortagi.
-- **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu ve desktop-agent oncesi net backlog ayrimi.
-- **Son Onemli Olay:** 2026-04-19 tarihinde ust seviye UI/UX manifesto belgelere baglayici cerceve olarak eklendi; chat-first consumer surface, Developer Mode izolasyonu ve natural-language-first presentation sonraki planlama icin netlestirildi.
+- **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
+- **Son Onemli Olay:** 2026-04-23 tarihinde desktop tarafi icin "local daemon" anlatimi, bugunku secure bridge gercegi ile toplantida netlesen "desktop app + signed-in device presence + secure remote control" hedefi arasindaki ayrimi koruyacak sekilde ana dokumanlarda hizalandi.
+
+### Docs Governance / Track C - Desktop Companion + Device Presence Dokuman Hizalamasi - 23 Nisan 2026
+
+- `AGENTS.md`, `README.md`, `implementation-blueprint.md`, `docs/technical-architecture.md` ve `docs/post-mvp-strategy.md` desktop tarafi icin ayni authoritative dilde hizalandi. Eski "desktop-agent repoda yok / hala planli" anlatimi temizlenirken bugunku repo gercegi olarak secure bridge/runtime foundation ve `desktop.screenshot` vertical slice'i korunmus sekilde yazildi.
+- Dokumanlarda urun hedefi yalniz local daemon degil, `desktop companion + signed-in device presence + approval-gated remote computer control` olarak netlestirildi. Kullaniciya gorunen desktop app shell, web tarafinda online cihaz gorunurlugu ve release-grade packaging'in henuz kapanmamis alanlar oldugu acikca ayrildi.
+- `implementation-blueprint.md` Track C ve Sprint 11 anlatimi, mevcut `apps/desktop-agent/` foundation'i ile gelecekteki user-facing desktop companion yolunu ayni belgede birlestirecek sekilde guncellendi; "bugunku teknik zemin" ile "hedef urun sekli" birbirine karistirilmadi.
+- `docs/technical-architecture.md` artik `apps/desktop-agent/` paketinin repoda oldugunu, ancak bugunku halinin user-facing desktop app degil secure bridge/runtime foundation oldugunu soyluyor; frontend sinirlari da buna uygun dilde revize edildi.
+- Task-local dogrulama:
+- `rg -n "desktop-agent|desktop agent|desktop daemon|repoda yok|planli|online device|device presence|remote control|desktop app" AGENTS.md implementation-blueprint.md README.md docs/technical-architecture.md docs/post-mvp-strategy.md PROGRESS.md`
+- Durust kalan durum: bu tur yalnizca dokuman hizalamasi yapti; kod implementasyonu, packaging, desktop app shell, web online-device UI'si veya yeni desktop capability wiring'i acilmadi.
+- Sonraki onerilen gorev: signed-in device presence icin shared contract + minimum server registry seami acan dar bir implementasyon gorevi yazmak ve buradan user-facing desktop companion yolunu kod tarafinda baslatmak.
+
+### Sprint 11 Hazirlik / GAP-12 / KONU 22 - Desktop Agent Foundation + Secure WSS Bridge - 23 Nisan 2026
+
+- `apps/desktop-agent/` ilk kez repoya eklendi. Package su an build/typecheck alabilen minimal bir local daemon kutuphanesi olarak duruyor; `src/auth.ts` environment tabanli config/url normalizasyonunu, `src/ws-bridge.ts` secure websocket handshake + execute/result dongusunu, `src/screenshot.ts` ise yeni native dependency acmadan Windows-first PowerShell screenshot capture yolunu sagliyor.
+- `packages/types/src/ws.ts` ve `ws-guards.ts` additive desktop-agent protocol kontratlariyla genisletildi. Yeni typed mesaj ailesi `desktop-agent.connection.ready`, `desktop-agent.hello`, `desktop-agent.session.accepted`, `desktop-agent.execute`, `desktop-agent.result` ve `desktop-agent.rejected` seklinde acildi; mevcut user-facing `/ws` kontrati redesign edilmedi.
+- `packages/types/src/tools.ts` icinde `ToolExecutionContext.desktop_bridge` optional seam'i eklendi. Bu sayede runtime, tool registry veya approval contract'i bozulmadan desktop tool execution'i icin ayri bir bridge invoker tasiyabiliyor.
+- `apps/server/src/ws/desktop-agent-bridge.ts` secure bridge registry olarak eklendi. Authenticated user scope icin tekil desktop-agent session tutuyor, invalid hello/result mesajlarini typed reject diliyle cevapliyor, stale request ve disconnect durumlarini acik typed error sonucuna ceviriyor.
+- `apps/server/src/ws/register-ws.ts` yeni `/ws/desktop-agent` endpoint'ini aciyor. Mevcut websocket auth seami korunarak yalniz authenticated user session'lari bridge endpoint'ine kabul ediliyor; anonymous veya invalid handshake acik close-reason ile reddediliyor.
+- `apps/server/src/tools/desktop-screenshot.ts` bridge-aware hale getirildi. Onay gerektiren mevcut desktop screenshot boundary korunuyor; bridge bagliysa screenshot execution desktop-agent uzerinden gidiyor, bridge yoksa eski server-host fallback davranisi task-disi regressione yol acmadan korunuyor.
+- Approval replay yolu da bridge-aware hale getirildi. `apps/server/src/ws/approval-handlers.ts` ve `run-execution.ts` execution_context icine ayni desktop bridge handle'ini tasiyor; boylece `approval.resolve` sonrasi replay edilen `desktop.screenshot` da local fallback'e dusmeden desktop-agent uzerinden tamamlanabiliyor.
+- Task-local kanit:
+- `pnpm.cmd --filter @runa/types build` PASS
+- `pnpm.cmd install` PASS (`apps/desktop-agent` workspace linklerinin olusmasi icin gerekti; yeni external dependency acilmadi)
+- `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+- `pnpm.cmd --filter @runa/desktop-agent build` PASS
+- `pnpm.cmd --filter @runa/server typecheck` PASS
+- `pnpm.cmd --filter @runa/server lint` PASS
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/desktop-screenshot.test.ts src/ws/desktop-agent-bridge.test.ts src/ws/ws-auth.test.ts src/app.test.ts src/ws/register-ws.test.ts -t desktop` PASS
+- Durust kalan durum: secure desktop bridge zemini ve `desktop.screenshot` vertical slice'i artik repoda gercek. Ancak `desktop.click` / `desktop.type` / `desktop.keypress` / `desktop.scroll` routing'i henuz bridge'e tasinmadi; browser.interact ve daha ileri liveness/reconnect ergonomisi de bu turda acilmadi.
+- Sonraki onerilen gorev: mevcut typed bridge uzerinden kalan desktop input tool ailesini additive olarak migrate etmek ve agent liveness/heartbeat + stale session cleanup davranisini release-grade hale getirmek.
 
 ### Release-Readiness / Track A / KONU 21 - Approval / Policy Persistence Hardening - 23 Nisan 2026
 
@@ -917,11 +948,11 @@
 ### P3 - Acik Gaplar
 
 #### [GAP-12] Eksik Desktop Yetenekler (screen.capture, browser.interact, semantic search)
-- **Mevcut:** Sprint 11 blueprint'inde tanimli `apps/desktop-agent/` package'i ve desktop tool yuzeyleri repoda henuz yok.
-- **Etki:** Desktop kabuk, uzaktan etkilesim ve semantic search odakli Phase 3 capabilities devreye alinamiyor.
-- **Hedef:** `apps/desktop-agent` kurulumu, `desktop.screenshot` / `desktop.click` / `desktop.type` tool'lari ve secure WSS bridge/auth akisinin eklenmesi.
+- **Mevcut:** `apps/desktop-agent/` package'i, typed `/ws/desktop-agent` secure bridge'i ve `desktop.screenshot` icin ilk end-to-end approval-gated proof artik repoda mevcut. Kalan eksik alanlar: `desktop.click` / `desktop.type` / `desktop.keypress` / `desktop.scroll` bridge migration'i, browser interaction capability'leri ve daha olgun liveness/reconnect ergonomisi.
+- **Etki:** Trust boundary icin ilk authority ayrimi acildi, ancak desktop capability ailesi henuz tamamen local daemon'a tasinmadigi icin cloud-first hybrid vaadin butunu tamamlanmis degil.
+- **Hedef:** Mevcut bridge kontratini bozmadan kalan desktop input tool ailesini agente tasimak, stale/lost desktop-agent session davranisini daha da sertlestirmek ve sonraki fazda browser.interact benzeri capability'lere zemin hazirlamak.
 - **Tetikleyici:** Sprint 11 (Desktop Agent) ve Phase 3.
-- **Ilgili dosyalar:** `implementation-blueprint.md`, `apps/desktop-agent/` (planlanan), `apps/server/src/tools/`, `packages/types/src/`
+- **Ilgili dosyalar:** `implementation-blueprint.md`, `apps/desktop-agent/`, `apps/server/src/tools/desktop-*.ts`, `apps/server/src/ws/*`, `packages/types/src/`
 
 ### Arsivlenen Audit Gaplari (18 Nisan 2026)
 

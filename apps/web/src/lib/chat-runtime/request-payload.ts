@@ -6,6 +6,7 @@ export interface CreateRunRequestPayloadInput {
 	readonly apiKey: string;
 	readonly attachments?: readonly ModelAttachment[];
 	readonly conversationId?: string | null;
+	readonly desktopTargetConnectionId?: string | null;
 	readonly includePresentationBlocks: boolean;
 	readonly model: string;
 	readonly messages?: readonly ModelMessage[];
@@ -34,6 +35,7 @@ export function createRunRequestPayload(input: CreateRunRequestPayloadInput): Ru
 		attachments: attachments.length > 0 ? attachments : undefined,
 		include_presentation_blocks: input.includePresentationBlocks,
 		conversation_id: input.conversationId?.trim() || undefined,
+		desktop_target_connection_id: input.desktopTargetConnectionId?.trim() || undefined,
 		provider: input.provider,
 		provider_config: {
 			apiKey: apiKeyValue,

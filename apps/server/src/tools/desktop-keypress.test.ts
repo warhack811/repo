@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+	DesktopBridgeInvoker,
+	ToolCallInput,
+	ToolExecutionContext,
+	ToolResult,
+} from '@runa/types';
+
 import { createDesktopKeypressTool, desktopKeypressTool } from './desktop-keypress.js';
 import { ToolRegistry, createBuiltInToolRegistry } from './registry.js';
 
@@ -106,6 +113,104 @@ describe('desktopKeypressTool', () => {
 			),
 		).resolves.toMatchObject({
 			error_code: 'INVALID_INPUT',
+			status: 'error',
+			tool_name: 'desktop.keypress',
+		});
+	});
+
+	it('prefers a connected desktop bridge result over local host keypress execution', async () => {
+		const execFileMock = vi.fn<ExecFileStub>((_file, _args, _options, callback) => {
+			callback(null, '', '');
+			return {} as ReturnType<ExecFileFn>;
+		});
+		const invokeSpy = vi.fn();
+		const desktopBridge: DesktopBridgeInvoker = {
+			agent_id: 'desktop-agent-1',
+			capabilities: ['desktop.keypress'],
+			async invoke<TName extends Extract<ToolCallInput['tool_name'], `desktop.${string}`>>(
+				_input: ToolCallInput<TName>,
+				_context: Pick<ToolExecutionContext, 'run_id' | 'signal' | 'trace_id'>,
+			): Promise<ToolResult<TName>> {
+				invokeSpy();
+				return {
+					call_id: 'call_desktop_keypress',
+					output: {
+						key: 'tab',
+						modifiers: ['alt'],
+					},
+					status: 'success',
+					tool_name: 'desktop.keypress',
+				} as unknown as ToolResult<TName>;
+			},
+			supports: () => true,
+		};
+		const tool = createDesktopKeypressTool({
+			execFile: asExecFile(execFileMock),
+			platform: 'linux',
+		});
+
+		const result = await tool.execute(
+			createInput({
+				key: 'enter',
+			}),
+			{
+				...createContext(),
+				desktop_bridge: desktopBridge,
+			},
+		);
+
+		expect(execFileMock).not.toHaveBeenCalled();
+		expect(invokeSpy).toHaveBeenCalledTimes(1);
+		expect(result).toMatchObject({
+			output: {
+				key: 'tab',
+				modifiers: ['alt'],
+			},
+			status: 'success',
+			tool_name: 'desktop.keypress',
+		});
+	});
+
+	it('returns a typed error when a connected desktop bridge lacks keypress capability', async () => {
+		const execFileMock = vi.fn<ExecFileStub>((_file, _args, _options, callback) => {
+			callback(null, '', '');
+			return {} as ReturnType<ExecFileFn>;
+		});
+		const invokeSpy = vi.fn();
+		const desktopBridge: DesktopBridgeInvoker = {
+			agent_id: 'desktop-agent-1',
+			capabilities: [],
+			async invoke<TName extends Extract<ToolCallInput['tool_name'], `desktop.${string}`>>(
+				_input: ToolCallInput<TName>,
+				_context: Pick<ToolExecutionContext, 'run_id' | 'signal' | 'trace_id'>,
+			): Promise<ToolResult<TName>> {
+				invokeSpy();
+				throw new Error('Bridge invoke should not run when capability is missing.');
+			},
+			supports: () => false,
+		};
+		const tool = createDesktopKeypressTool({
+			execFile: asExecFile(execFileMock),
+			platform: 'win32',
+		});
+
+		const result = await tool.execute(
+			createInput({
+				key: 'enter',
+			}),
+			{
+				...createContext(),
+				desktop_bridge: desktopBridge,
+			},
+		);
+
+		expect(execFileMock).not.toHaveBeenCalled();
+		expect(invokeSpy).not.toHaveBeenCalled();
+		expect(result).toMatchObject({
+			details: {
+				reason: 'desktop_agent_capability_unavailable',
+			},
+			error_code: 'EXECUTION_FAILED',
 			status: 'error',
 			tool_name: 'desktop.keypress',
 		});

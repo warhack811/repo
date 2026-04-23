@@ -18,6 +18,7 @@ import type {
 import type { MemoryStore } from '../persistence/memory-store.js';
 import type { PersistRunStateInput } from '../persistence/run-store.js';
 import type { ToolRegistry } from '../tools/registry.js';
+import type { DesktopAgentBridgeRegistry } from './desktop-agent-bridge.js';
 import type { WebSocketPolicyWiring } from './policy-wiring.js';
 import type { PresentationCompatibleRunResult, RuntimePresentationHooks } from './presentation.js';
 
@@ -58,6 +59,7 @@ export interface RuntimeWebSocketHandlerOptions extends RuntimePresentationHooks
 	readonly approvalStore?: ApprovalStore;
 	readonly auth_context?: AuthContext;
 	readonly conversationStore?: ConversationOrchestrationStore;
+	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 	readonly memoryStore?: MemoryOrchestrationStore;
 	readonly persistEvents?: (events: readonly RuntimeEvent[]) => Promise<void>;
 	readonly persistRunState?: (input: PersistRunStateInput) => Promise<void>;

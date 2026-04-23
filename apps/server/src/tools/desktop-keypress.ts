@@ -130,6 +130,27 @@ function extractStderr(error: unknown): string {
 	return '';
 }
 
+function isDesktopKeypressModifier(value: unknown): value is DesktopKeypressModifier {
+	return value === 'alt' || value === 'ctrl' || value === 'shift';
+}
+
+function isDesktopKeypressSuccessData(value: unknown): value is DesktopKeypressSuccessData {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as {
+		readonly key?: unknown;
+		readonly modifiers?: unknown;
+	};
+
+	return (
+		typeof candidate.key === 'string' &&
+		Array.isArray(candidate.modifiers) &&
+		candidate.modifiers.every((modifier) => isDesktopKeypressModifier(modifier))
+	);
+}
+
 function toPowerShellSingleQuoted(value: string): string {
 	return `'${value.replaceAll("'", "''")}'`;
 }
@@ -432,6 +453,39 @@ export function createDesktopKeypressTool(
 					},
 					true,
 				);
+			}
+
+			if (context.desktop_bridge) {
+				if (!context.desktop_bridge.supports('desktop.keypress')) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Connected desktop agent does not advertise desktop.keypress support.',
+						{
+							reason: 'desktop_agent_capability_unavailable',
+						},
+						false,
+					);
+				}
+
+				const bridgeResult = await context.desktop_bridge.invoke(input, context);
+
+				if (
+					bridgeResult.status === 'success' &&
+					!isDesktopKeypressSuccessData(bridgeResult.output)
+				) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Desktop agent returned an invalid keypress payload.',
+						{
+							reason: 'desktop_agent_invalid_result',
+						},
+						false,
+					);
+				}
+
+				return bridgeResult as DesktopKeypressResult;
 			}
 
 			if (resolvedDependencies.platform !== 'win32') {

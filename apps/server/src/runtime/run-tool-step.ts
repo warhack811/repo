@@ -1,5 +1,6 @@
 import type {
 	ApprovalRequest,
+	ApprovalTarget,
 	EventActor,
 	EventSource,
 	RuntimeState,
@@ -54,6 +55,7 @@ interface RunToolStepFailure {
 }
 
 export interface RunToolStepInput {
+	readonly approval_target?: ApprovalTarget;
 	readonly bypass_approval_gate?: boolean;
 	readonly current_state: RuntimeState;
 	readonly event_context?: RunToolStepEventContext;
@@ -418,6 +420,7 @@ export async function runToolStep(input: RunToolStepInput): Promise<RunToolStepR
 				timestamp: startedAt,
 			},
 			run_id: input.run_id,
+			target: input.approval_target,
 			tool_definition: registeredTool,
 			trace_id: input.trace_id,
 		});

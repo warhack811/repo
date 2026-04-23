@@ -3,6 +3,13 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+	DesktopBridgeInvoker,
+	ToolCallInput,
+	ToolExecutionContext,
+	ToolResult,
+} from '@runa/types';
+
 import { createDesktopScreenshotTool, desktopScreenshotTool } from './desktop-screenshot.js';
 import { ToolRegistry, createBuiltInToolRegistry } from './registry.js';
 
@@ -127,6 +134,52 @@ describe('desktopScreenshotTool', () => {
 			requires_approval: true,
 			risk_level: 'high',
 			side_effect_level: 'read',
+		});
+	});
+
+	it('prefers a connected desktop bridge result over local host capture', async () => {
+		const capture = vi.fn(async () =>
+			Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 108, 111, 99, 97, 108]),
+		);
+		const invokeSpy = vi.fn();
+		const desktopBridge: DesktopBridgeInvoker = {
+			agent_id: 'desktop-agent-1',
+			capabilities: ['desktop.screenshot'],
+			async invoke<TName extends Extract<ToolCallInput['tool_name'], `desktop.${string}`>>(
+				_input: ToolCallInput<TName>,
+				_context: Pick<ToolExecutionContext, 'run_id' | 'signal' | 'trace_id'>,
+			): Promise<ToolResult<TName>> {
+				invokeSpy();
+				return {
+					call_id: 'call_desktop_screenshot',
+					output: {
+						base64_data: Buffer.from([
+							137, 80, 78, 71, 13, 10, 26, 10, 114, 101, 109, 111, 116, 101,
+						]).toString('base64'),
+						byte_length: 14,
+						format: 'png',
+						mime_type: 'image/png',
+					},
+					status: 'success',
+					tool_name: 'desktop.screenshot',
+				} as unknown as ToolResult<TName>;
+			},
+			supports: () => true,
+		};
+		const tool = createDesktopScreenshotTool({
+			capture,
+		});
+
+		const result = await tool.execute(createInput(), {
+			...createContext(),
+			desktop_bridge: desktopBridge,
+		});
+
+		expect(capture).not.toHaveBeenCalled();
+		expect(invokeSpy).toHaveBeenCalledTimes(1);
+		expect(result).toMatchObject({
+			status: 'success',
+			tool_name: 'desktop.screenshot',
 		});
 	});
 });

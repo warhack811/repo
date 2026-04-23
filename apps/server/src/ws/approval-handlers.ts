@@ -8,6 +8,7 @@ import {
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
 import { resolveApproval } from '../runtime/resolve-approval.js';
 import { resumeApprovedToolCall } from '../runtime/resume-approved-tool-call.js';
+import { defaultDesktopAgentBridgeRegistry } from './desktop-agent-bridge.js';
 import type { RuntimeWebSocketHandlerOptions } from './orchestration-types.js';
 import {
 	createApprovalPresentationBlocks,
@@ -142,6 +143,12 @@ export async function handleApprovalResolveMessage(
 			call_id: replayToolInput.call_id,
 			current_state: resolvedApprovalResult.final_state,
 			execution_context: {
+				desktop_bridge: (
+					options.desktopAgentBridgeRegistry ?? defaultDesktopAgentBridgeRegistry
+				).createInvoker(
+					options.auth_context,
+					pendingApprovalEntry.pending_tool_call?.desktop_target_connection_id,
+				),
 				run_id: pendingApprovalEntry.approval_request.run_id,
 				trace_id: pendingApprovalEntry.approval_request.trace_id,
 				working_directory: pendingApprovalEntry.pending_tool_call.working_directory,

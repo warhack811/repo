@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+	DesktopBridgeInvoker,
+	ToolCallInput,
+	ToolExecutionContext,
+	ToolResult,
+} from '@runa/types';
+
 import { createDesktopClickTool, desktopClickTool } from './desktop-click.js';
 import { ToolRegistry, createBuiltInToolRegistry } from './registry.js';
 
@@ -151,6 +158,112 @@ describe('desktopClickTool', () => {
 			),
 		).resolves.toMatchObject({
 			error_code: 'PERMISSION_DENIED',
+			status: 'error',
+			tool_name: 'desktop.click',
+		});
+	});
+
+	it('prefers a connected desktop bridge result over local host click execution', async () => {
+		const execFileMock = vi.fn<ExecFileStub>((_file, _args, _options, callback) => {
+			callback(null, '', '');
+			return {} as ReturnType<ExecFileFn>;
+		});
+		const invokeSpy = vi.fn();
+		const desktopBridge: DesktopBridgeInvoker = {
+			agent_id: 'desktop-agent-1',
+			capabilities: ['desktop.click'],
+			async invoke<TName extends Extract<ToolCallInput['tool_name'], `desktop.${string}`>>(
+				_input: ToolCallInput<TName>,
+				_context: Pick<ToolExecutionContext, 'run_id' | 'signal' | 'trace_id'>,
+			): Promise<ToolResult<TName>> {
+				invokeSpy();
+				return {
+					call_id: 'call_desktop_click',
+					output: {
+						button: 'left',
+						click_count: 1,
+						position: {
+							x: 144,
+							y: 288,
+						},
+					},
+					status: 'success',
+					tool_name: 'desktop.click',
+				} as unknown as ToolResult<TName>;
+			},
+			supports: () => true,
+		};
+		const tool = createDesktopClickTool({
+			execFile: asExecFile(execFileMock),
+			platform: 'linux',
+		});
+
+		const result = await tool.execute(
+			createInput({
+				x: 10,
+				y: 20,
+			}),
+			{
+				...createContext(),
+				desktop_bridge: desktopBridge,
+			},
+		);
+
+		expect(execFileMock).not.toHaveBeenCalled();
+		expect(invokeSpy).toHaveBeenCalledTimes(1);
+		expect(result).toMatchObject({
+			output: {
+				position: {
+					x: 144,
+					y: 288,
+				},
+			},
+			status: 'success',
+			tool_name: 'desktop.click',
+		});
+	});
+
+	it('returns a typed error when a connected desktop bridge lacks click capability', async () => {
+		const execFileMock = vi.fn<ExecFileStub>((_file, _args, _options, callback) => {
+			callback(null, '', '');
+			return {} as ReturnType<ExecFileFn>;
+		});
+		const invokeSpy = vi.fn();
+		const desktopBridge: DesktopBridgeInvoker = {
+			agent_id: 'desktop-agent-1',
+			capabilities: [],
+			async invoke<TName extends Extract<ToolCallInput['tool_name'], `desktop.${string}`>>(
+				_input: ToolCallInput<TName>,
+				_context: Pick<ToolExecutionContext, 'run_id' | 'signal' | 'trace_id'>,
+			): Promise<ToolResult<TName>> {
+				invokeSpy();
+				throw new Error('Bridge invoke should not run when capability is missing.');
+			},
+			supports: () => false,
+		};
+		const tool = createDesktopClickTool({
+			execFile: asExecFile(execFileMock),
+			platform: 'win32',
+		});
+
+		const result = await tool.execute(
+			createInput({
+				x: 10,
+				y: 20,
+			}),
+			{
+				...createContext(),
+				desktop_bridge: desktopBridge,
+			},
+		);
+
+		expect(execFileMock).not.toHaveBeenCalled();
+		expect(invokeSpy).not.toHaveBeenCalled();
+		expect(result).toMatchObject({
+			details: {
+				reason: 'desktop_agent_capability_unavailable',
+			},
+			error_code: 'EXECUTION_FAILED',
 			status: 'error',
 			tool_name: 'desktop.click',
 		});

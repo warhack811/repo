@@ -63,6 +63,7 @@ function createApprovalResolution(): ApprovalResolution {
 
 function createPendingToolCall() {
 	return {
+		desktop_target_connection_id: 'desktop-connection-1',
 		tool_input: {
 			command: 'npm test',
 		},
@@ -84,6 +85,7 @@ function createToolResult(): ToolResult {
 function createAutoContinueContext() {
 	return {
 		payload: {
+			desktop_target_connection_id: 'desktop-connection-1',
 			include_presentation_blocks: true,
 			provider: 'groq' as const,
 			provider_config: {
@@ -316,6 +318,98 @@ describe('approval-store', () => {
 			auto_continue_context: createSanitizedAutoContinueContext(),
 			next_sequence_no: 12,
 			pending_tool_call: createPendingToolCall(),
+		});
+	});
+
+	it('persists desktop target metadata when no auto-continue context exists', async () => {
+		const upsertApproval: ApprovalRecordWriter['upsertApproval'] = vi
+			.fn()
+			.mockResolvedValue(undefined);
+
+		await persistApprovalRequest(
+			{
+				approval_request: createApprovalRequest(),
+				pending_tool_call: createPendingToolCall(),
+			},
+			{
+				writer: {
+					async getPendingApprovalById() {
+						return null;
+					},
+					upsertApproval,
+				},
+			},
+		);
+
+		expect(upsertApproval).toHaveBeenCalledWith(
+			expect.objectContaining({
+				continuation_context: {
+					desktop_target_connection_id: 'desktop-connection-1',
+				},
+				tool_input: {
+					command: 'npm test',
+				},
+				working_directory: 'd:\\ai\\Runa',
+			}),
+		);
+	});
+
+	it('hydrates persisted desktop target metadata into pending tool replay context', async () => {
+		const entry = await getPendingApprovalById('approval_store_target_1', {
+			writer: {
+				async getPendingApprovalById() {
+					return {
+						action_kind: 'shell_execution',
+						approval_id: 'approval_store_target_1',
+						call_id: 'call_approval_store_1',
+						created_at: '2026-04-11T10:00:00.000Z',
+						continuation_context: {
+							desktop_target_connection_id: 'desktop-connection-2',
+						},
+						decision: null,
+						next_sequence_no: 3,
+						note: null,
+						requested_at: '2026-04-11T10:00:00.000Z',
+						requires_reason: true,
+						resolved_at: null,
+						risk_level: 'high',
+						run_id: 'run_approval_store_1',
+						session_id: null,
+						status: 'pending',
+						summary: 'Run shell command in workspace root.',
+						target_kind: 'tool_call',
+						target_label: 'shell.exec',
+						tenant_id: null,
+						title: 'Approve shell command',
+						tool_input: {
+							command: 'npm test',
+						},
+						tool_name: 'shell.exec',
+						trace_id: 'trace_approval_store_1',
+						updated_at: '2026-04-11T10:00:00.000Z',
+						user_id: null,
+						workspace_id: null,
+						working_directory: 'd:\\ai\\Runa',
+					};
+				},
+				async upsertApproval() {},
+			},
+		});
+
+		expect(entry).toEqual({
+			approval_request: {
+				...createApprovalRequest(),
+				approval_id: 'approval_store_target_1',
+			},
+			auto_continue_context: undefined,
+			next_sequence_no: 3,
+			pending_tool_call: {
+				desktop_target_connection_id: 'desktop-connection-2',
+				tool_input: {
+					command: 'npm test',
+				},
+				working_directory: 'd:\\ai\\Runa',
+			},
 		});
 	});
 

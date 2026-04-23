@@ -20,6 +20,7 @@ import {
 	type RegisterConversationRoutesOptions,
 	registerConversationRoutes,
 } from './routes/conversations.js';
+import { registerDesktopDeviceRoutes } from './routes/desktop-devices.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerUploadRoutes } from './routes/upload.js';
 import { registerStorageRoutes } from './storage/storage-routes.js';
@@ -158,6 +159,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 		verify_token: resolvedVerifyToken,
 	});
 	await registerHealthRoutes(server);
+	await registerDesktopDeviceRoutes(server);
 	await registerConversationRoutes(server, conversations);
 	await registerUploadRoutes(server, storageService);
 	serverLogger.info('server.storage_routes.registering');

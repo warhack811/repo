@@ -2,6 +2,7 @@ import type { InspectionDetailLevel, InspectionTargetKind, RenderBlock } from '.
 import type { RuntimeEvent } from './events.js';
 import type { ModelAttachment, ModelRequest } from './gateway.js';
 import type { ApprovalDecisionKind, UsageLimitRejection } from './policy.js';
+import type { ToolArguments, ToolErrorCode } from './tools.js';
 
 export const gatewayProviders = ['claude', 'gemini', 'groq', 'openai'] as const;
 
@@ -26,6 +27,7 @@ export type RunRequestModelRequest = Omit<ModelRequest, 'run_id' | 'trace_id'> &
 export interface RunRequestPayload {
 	readonly attachments?: readonly ModelAttachment[];
 	readonly conversation_id?: string;
+	readonly desktop_target_connection_id?: string;
 	readonly include_presentation_blocks?: boolean;
 	readonly provider: GatewayProvider;
 	readonly provider_config: GatewayProviderConfig;
@@ -63,6 +65,80 @@ export interface InspectionRequestClientMessage {
 	readonly payload: InspectionRequestPayload;
 	readonly type: 'inspection.request';
 }
+
+export const desktopAgentProtocolVersion = 1 as const;
+
+export type DesktopAgentProtocolVersion = typeof desktopAgentProtocolVersion;
+
+export const desktopAgentToolNames = [
+	'desktop.click',
+	'desktop.keypress',
+	'desktop.scroll',
+	'desktop.screenshot',
+	'desktop.type',
+] as const;
+
+export type DesktopAgentToolName = (typeof desktopAgentToolNames)[number];
+
+export interface DesktopAgentCapability {
+	readonly tool_name: DesktopAgentToolName;
+}
+
+export interface DesktopAgentHelloPayload {
+	readonly agent_id: string;
+	readonly capabilities: readonly DesktopAgentCapability[];
+	readonly machine_label?: string;
+	readonly protocol_version: DesktopAgentProtocolVersion;
+}
+
+export interface DesktopAgentHelloClientMessage {
+	readonly payload: DesktopAgentHelloPayload;
+	readonly type: 'desktop-agent.hello';
+}
+
+export interface DesktopAgentResultSuccessPayload {
+	readonly call_id: string;
+	readonly metadata?: Readonly<Record<string, unknown>>;
+	readonly output: unknown;
+	readonly request_id: string;
+	readonly status: 'success';
+	readonly tool_name: DesktopAgentToolName;
+}
+
+export interface DesktopAgentResultErrorPayload {
+	readonly call_id: string;
+	readonly details?: Readonly<Record<string, unknown>>;
+	readonly error_code: ToolErrorCode;
+	readonly error_message: string;
+	readonly request_id: string;
+	readonly retryable?: boolean;
+	readonly status: 'error';
+	readonly tool_name: DesktopAgentToolName;
+}
+
+export type DesktopAgentResultPayload =
+	| DesktopAgentResultSuccessPayload
+	| DesktopAgentResultErrorPayload;
+
+export interface DesktopAgentResultClientMessage {
+	readonly payload: DesktopAgentResultPayload;
+	readonly type: 'desktop-agent.result';
+}
+
+export interface DesktopAgentHeartbeatPongPayload {
+	readonly ping_id: string;
+	readonly received_at: string;
+}
+
+export interface DesktopAgentHeartbeatPongClientMessage {
+	readonly payload: DesktopAgentHeartbeatPongPayload;
+	readonly type: 'desktop-agent.heartbeat.pong';
+}
+
+export type DesktopAgentClientMessage =
+	| DesktopAgentHelloClientMessage
+	| DesktopAgentHeartbeatPongClientMessage
+	| DesktopAgentResultClientMessage;
 
 export type WebSocketClientMessage =
 	| RunRequestClientMessage
@@ -134,6 +210,61 @@ export interface RunFinishedServerMessage {
 	readonly type: 'run.finished';
 }
 
+export interface DesktopAgentConnectionReadyServerMessage {
+	readonly message: 'ready';
+	readonly transport: 'desktop_bridge';
+	readonly type: 'desktop-agent.connection.ready';
+}
+
+export interface DesktopAgentSessionAcceptedServerMessage {
+	readonly payload: {
+		readonly agent_id: string;
+		readonly capabilities: readonly DesktopAgentCapability[];
+		readonly connection_id: string;
+		readonly user_id: string;
+	};
+	readonly type: 'desktop-agent.session.accepted';
+}
+
+export interface DesktopAgentHeartbeatPingPayload {
+	readonly ping_id: string;
+	readonly sent_at: string;
+}
+
+export interface DesktopAgentHeartbeatPingServerMessage {
+	readonly payload: DesktopAgentHeartbeatPingPayload;
+	readonly type: 'desktop-agent.heartbeat.ping';
+}
+
+export interface DesktopAgentExecuteServerMessage {
+	readonly payload: {
+		readonly arguments: ToolArguments;
+		readonly call_id: string;
+		readonly request_id: string;
+		readonly run_id: string;
+		readonly tool_name: DesktopAgentToolName;
+		readonly trace_id: string;
+	};
+	readonly type: 'desktop-agent.execute';
+}
+
+export const desktopAgentRejectCodes = [
+	'INVALID_MESSAGE',
+	'STALE_REQUEST',
+	'UNAUTHORIZED',
+	'UNSUPPORTED_PROTOCOL',
+] as const;
+
+export type DesktopAgentRejectCode = (typeof desktopAgentRejectCodes)[number];
+
+export interface DesktopAgentRejectedServerMessage {
+	readonly payload: {
+		readonly error_code: DesktopAgentRejectCode;
+		readonly error_message: string;
+	};
+	readonly type: 'desktop-agent.rejected';
+}
+
 export type WebSocketServerMessage =
 	| ConnectionReadyServerMessage
 	| RunAcceptedServerMessage
@@ -143,3 +274,10 @@ export type WebSocketServerMessage =
 	| RunFinishedServerMessage;
 
 export type WebSocketServerBridgeMessage = WebSocketServerMessage | PresentationBlocksServerMessage;
+
+export type DesktopAgentServerMessage =
+	| DesktopAgentConnectionReadyServerMessage
+	| DesktopAgentSessionAcceptedServerMessage
+	| DesktopAgentHeartbeatPingServerMessage
+	| DesktopAgentExecuteServerMessage
+	| DesktopAgentRejectedServerMessage;

@@ -398,4 +398,13 @@ describe('websocket auth integration', () => {
 		expect(invalidTokenClose.code).toBe(WEBSOCKET_AUTH_CLOSE_CODE);
 		expect(invalidTokenClose.reason).toBe('Invalid or expired bearer token.');
 	});
+
+	it('rejects missing desktop-agent websocket auth before the desktop bridge handshake starts', async () => {
+		const { wsUrl } = await startWebSocketServer(async () => createAuthVerificationResult());
+		const desktopAgentSocket = await connectWebSocket(`${wsUrl}/desktop-agent`);
+		const closeResult = await waitForSocketClose(desktopAgentSocket);
+
+		expect(closeResult.code).toBe(WEBSOCKET_AUTH_CLOSE_CODE);
+		expect(closeResult.reason).toBe('Authenticated WebSocket connection required.');
+	});
 });

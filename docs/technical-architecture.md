@@ -4,9 +4,9 @@
 > Amaci, okuyan kisinin Runa'nin teknik olarak nasil calistigini tek belge uzerinden anlayabilmesidir.
 > Burada yer alan her ifade mevcut kodla desteklenir. Kodda olmayan bir yetenek veya akis varmis gibi anlatilmaz.
 
-> Snapshot notu (2026-04-18):
+> Snapshot notu (2026-04-23):
 > Sprint 9 ile WS akisinin ana sorumluluklari `register-ws.ts` disina tasinmis, Sprint 10 ile web UI `App.tsx` tek dosya modelinden page/shell/hook ayrimina gecmistir.
-> `apps/desktop-agent/` blueprint'te yer alsa da bugun repoda bulunmaz.
+> `apps/desktop-agent/` artik repodadir; ancak bugunku hali user-facing desktop app shell degil, secure desktop bridge/runtime foundation'idir.
 >
 > UI manifesto sinir notu (2026-04-19):
 > Bu belge bugunku repo snapshot'ini anlatir; hedef urun yuzunu normatif olarak tanimlayan belge degildir.
@@ -69,7 +69,7 @@ Bu nedenle bu ilk ozet bolumu, MVP kapanis snapshot'indaki "baglamli tek tur + t
 
 Mimarinin guncel (Phase 2) durumu assagidaki gibidir:
 - **Buluta gecis:** Auth, PostgreSQL ve Storage seams'leri Supabase hizasina alinmistir; local/dev yollar additive korunur.
-- **Desktop Agent:** Blueprint hedefidir; `apps/desktop-agent` bugun repoda yoktur.
+- **Desktop Runtime:** `apps/desktop-agent` repodadir; secure `/ws/desktop-agent` bridge'i ve bugunku `desktop.screenshot` proof'unu tasiyan local bridge/runtime foundation'i olarak durur. User-facing desktop app shell ve online device presence henuz tamamlanmis degildir.
 - **Agentic Loop:** Async generator loop, stop conditions ve auto-continue gate repodadir.
 - **WS Parcalanma:** `register-ws.ts` ince composition katmanidir; asil akis split dosyalara dagilmistir.
 
@@ -93,7 +93,9 @@ Runa bir `pnpm` + `Turborepo` monorepo'sudur.
 - `apps/web`
   - React + Vite SPA istemcisi
 
-Not: `apps/desktop-agent` blueprint'te tanimlidir, fakat bugunku repo snapshot'inda bulunmaz.
+- `apps/desktop-agent`
+  - secure desktop bridge/runtime foundation
+  - bugunku snapshot'ta user-facing desktop app shell degil, local handshake + execute/result dongusu ve screenshot capability zemini
 
 ### 3.3 Paylasilan paketler
 
@@ -921,11 +923,11 @@ Bu sayede detay acmak, canli runtime'i tekrar calistirmadan olur.
 
 Koddan gorulen sinirlar:
 
-- desktop agent surface'i yoktur
+- user-facing desktop app surface'i yoktur
 - UI halen inline-style agirlikli ve daha ileri design-system katmanina tasinmamistir
 - operator/detail yuzeyleri tamamen kaybolmus degildir; premium consumer polish tamamlanmamis durumdadir
 - ana chat deneyimi manifesto ile tam hizali hale gelmemistir; operator/debug yuzeylerinin izolasyonu halen eksiktir
-- semantic search ve Phase 3 desktop capabilities yoktur
+- web tarafinda online device presence surface'i ve daha genis desktop capabilities yoktur
 
 ## 7. Validation, rehearsal ve smoke scriptleri
 
@@ -1133,7 +1135,7 @@ Runa'nin bugunku teknik gercegi sunudur:
 - monorepo icinde calisan bir Fastify + WebSocket backend ve React SPA frontend vardir
 - backend, context + memory + provider gateway + tool dispatch + approval + persistence + presentation zinciri kurar
 - frontend bu zincirin sonucunu auth-aware shell, current-run surface ve operator/detail gorunumleri olarak gosterir
-- sistem Core Hardening snapshot'indadir; Sprint 9/10 sonrasi loop, WS split ve UI split repoda, desktop-agent ise henuz planli durumdadir
+- sistem Core Hardening snapshot'indadir; Sprint 9/10 sonrasi loop, WS split ve UI split repoda, `apps/desktop-agent` secure bridge/runtime foundation'i de mevcuttur; ancak tam desktop app shell ve online device presence henuz yoktur
 - Groq canli smoke ile dogrulanmis ana development/readiness provider cizgisidir
 
 Bu belgeyi okuyan bir LLM veya gelistirici, kodu acmadan once su resmi gormelidir:

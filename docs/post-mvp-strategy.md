@@ -39,9 +39,17 @@ Bu yeni yonun ana eksenleri:
 
 - **Cloud Infrastructure Strategy:** Supabase ile guvenli auth, veritabani ve storage. Hybrid deployment.
 - **Agentic Runtime Strategy:** Async generator loop ile otonom, max 200 turn atan auto-continue calisma.
-- **Desktop Agent Strategy:** Buluttan yonetilen ama local bilgisayarda Windows-first desktop daemon.
+- **Desktop Companion Strategy:** Buluttan yonetilen ama kullanicinin bilgisayarinda signed-in desktop companion olarak calisan, local bridge/runtime tasiyan Windows-first masaustu yuzeyi.
 - **Authentication & Subscription Model:** Free/Pro/Business tier'larla feature gating.
 - **Product/UI Strategy:** Dashboard-first olmayan, sade ama yetenekli, consumer-grade bir calisma ortagi yuzeyi.
+
+Desktop companion stratejisinin urun seviyesi anlami:
+
+- kullanici `exe` indirip kurdugunda Runa'yi desktop uygulamasi olarak gorebilir
+- desktop uygulamasi icinden hesabina girer
+- uygulama acik ve oturum aktifken ilgili bilgisayar kullanicinin hesabina bagli online cihaz olarak gorunur
+- kullanici web arayuzunden normal chat/research akisina devam eder
+- gerekli auth/policy/approval kosullari altinda ayni web akisinden o online bilgisayarda agent aksiyonlari baslatabilir
 
 Onemli sinir:
 
@@ -133,4 +141,4 @@ Bugun claim edilmeyen alanlar:
 
 Eger tek cumleyle devredilecekse:
 
-`Runa, MVP closure sonrasi cloud-first hybrid mimaride ilerleyen; arkada guclu, onde ise chat-first ve consumer-grade kalan bir AI calisma ortagi olarak Phase 2 Core Hardening yonune girdi.`
+`Runa, MVP closure sonrasi cloud-first hybrid mimaride ilerleyen; web ve signed-in desktop companion uzerinden kullanilan, arkada guclu ama onde chat-first ve consumer-grade kalan bir AI calisma ortagi olarak Phase 2 Core Hardening yonune girdi.`

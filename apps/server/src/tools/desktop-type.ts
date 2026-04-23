@@ -223,6 +223,19 @@ function extractStderr(error: unknown): string {
 	return '';
 }
 
+function isDesktopTypeSuccessData(value: unknown): value is DesktopTypeSuccessData {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as {
+		readonly character_count?: unknown;
+		readonly delay_ms?: unknown;
+	};
+
+	return isFiniteInteger(candidate.character_count) && isFiniteInteger(candidate.delay_ms);
+}
+
 function runPowerShell(dependencies: DesktopTypeDependencies, script: string): Promise<void> {
 	return new Promise((resolvePromise, rejectPromise) => {
 		dependencies.execFile(
@@ -358,6 +371,36 @@ export function createDesktopTypeTool(
 					},
 					true,
 				);
+			}
+
+			if (context.desktop_bridge) {
+				if (!context.desktop_bridge.supports('desktop.type')) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Connected desktop agent does not advertise desktop.type support.',
+						{
+							reason: 'desktop_agent_capability_unavailable',
+						},
+						false,
+					);
+				}
+
+				const bridgeResult = await context.desktop_bridge.invoke(input, context);
+
+				if (bridgeResult.status === 'success' && !isDesktopTypeSuccessData(bridgeResult.output)) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Desktop agent returned an invalid typing payload.',
+						{
+							reason: 'desktop_agent_invalid_result',
+						},
+						false,
+					);
+				}
+
+				return bridgeResult as DesktopTypeResult;
 			}
 
 			if (resolvedDependencies.platform !== 'win32') {

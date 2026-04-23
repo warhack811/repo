@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthClaims, AuthSession, AuthUser } from '@runa/types';
-import type { FastifyInstance } from 'fastify';
+import type { AuthClaims, AuthContext, AuthSession, AuthUser } from '@runa/types';
+import Fastify, { type FastifyInstance } from 'fastify';
 
 import { buildServer } from './app.js';
 import { createLocalDevSessionToken } from './auth/supabase-auth.js';
 import { ConversationStoreWriteError } from './persistence/conversation-store.js';
+import { registerDesktopDeviceRoutes } from './routes/desktop-devices.js';
 import type { StorageObject, StorageProviderAdapter } from './storage/storage-service.js';
+import { DesktopAgentBridgeRegistry } from './ws/desktop-agent-bridge.js';
 
 function createClaims(overrides: Partial<AuthClaims> = {}): AuthClaims {
 	return {
@@ -67,6 +69,79 @@ function createSupabaseJwt(overrides: Partial<AuthClaims> = {}): string {
 	return `${header}.${payload}.signature`;
 }
 
+class MockDesktopSocket {
+	readonly sentMessages: string[] = [];
+	#closeListener?: () => void;
+	#messageListener?: (message: unknown) => void;
+
+	on(event: 'close' | 'message', listener: (message?: unknown) => void): void {
+		if (event === 'close') {
+			this.#closeListener = listener as () => void;
+			return;
+		}
+
+		this.#messageListener = listener as (message: unknown) => void;
+	}
+
+	send(message: string): void {
+		this.sentMessages.push(message);
+	}
+
+	close(): void {
+		this.#closeListener?.();
+	}
+
+	emitMessage(message: unknown): void {
+		this.#messageListener?.(message);
+	}
+}
+
+function createDesktopRouteAuthContext(
+	overrides: Partial<Extract<AuthContext['principal'], { readonly kind: 'authenticated' }>> = {},
+): AuthContext {
+	return {
+		bearer_token_present: true,
+		principal: {
+			email: 'dev@runa.local',
+			kind: 'authenticated',
+			provider: 'internal',
+			role: 'authenticated',
+			scope: {
+				workspace_id: 'workspace_1',
+			},
+			session_id: 'session_1',
+			user_id: 'user_1',
+			...overrides,
+		},
+		request_id: 'req_desktop_devices_test',
+		transport: 'http',
+	};
+}
+
+function sendDesktopAgentHello(
+	socket: MockDesktopSocket,
+	input: Readonly<{
+		agentId: string;
+		machineLabel: string;
+	}>,
+): void {
+	socket.emitMessage(
+		JSON.stringify({
+			payload: {
+				agent_id: input.agentId,
+				capabilities: [
+					{
+						tool_name: 'desktop.screenshot',
+					},
+				],
+				machine_label: input.machineLabel,
+				protocol_version: 1,
+			},
+			type: 'desktop-agent.hello',
+		}),
+	);
+}
+
 const serversToClose: FastifyInstance[] = [];
 
 afterEach(async () => {
@@ -79,6 +154,7 @@ afterEach(async () => {
 	}
 
 	vi.restoreAllMocks();
+	vi.useRealTimers();
 });
 
 async function startListeningServer(server: FastifyInstance): Promise<number> {
@@ -102,6 +178,15 @@ async function connectWebSocket(url: string): Promise<WebSocket> {
 
 		socket.addEventListener('open', () => resolve(socket), { once: true });
 		socket.addEventListener('error', () => reject(new Error('WebSocket connection failed.')), {
+			once: true,
+		});
+	});
+}
+
+async function waitForSocketMessage(socket: WebSocket): Promise<string> {
+	return await new Promise((resolve, reject) => {
+		socket.addEventListener('message', (event) => resolve(String(event.data)), { once: true });
+		socket.addEventListener('error', () => reject(new Error('WebSocket message failed.')), {
 			once: true,
 		});
 	});
@@ -953,6 +1038,7 @@ describe('buildServer auth wiring', () => {
 		const token = createLocalDevSessionToken({
 			email: 'dev@runa.local',
 			secret,
+			user_id: 'user_1',
 		}).access_token;
 		const server = await buildServer({
 			auth: {
@@ -1024,6 +1110,214 @@ describe('buildServer auth wiring', () => {
 		expect(readyMessage).toContain('"type":"connection.ready"');
 		socket.close();
 		await closePromise;
+	});
+
+	it('accepts local dev tokens on /ws/desktop-agent and emits the desktop bridge ready handshake', async () => {
+		const secret = 'local-dev-secret';
+		const token = createLocalDevSessionToken({
+			email: 'dev@runa.local',
+			secret,
+		}).access_token;
+		const server = await buildServer({
+			auth: {
+				supabase: {
+					environment: {
+						NODE_ENV: 'development',
+						RUNA_DEV_AUTH_ENABLED: '1',
+						RUNA_DEV_AUTH_SECRET: secret,
+						SUPABASE_ANON_KEY: 'anon-key',
+						SUPABASE_URL: 'https://project-ref.supabase.co',
+					},
+				},
+			},
+		});
+		serversToClose.push(server);
+
+		const port = await startListeningServer(server);
+		const socket = await connectWebSocket(
+			`ws://127.0.0.1:${port}/ws/desktop-agent?access_token=${token}`,
+		);
+		const closePromise = waitForSocketClose(socket);
+		const readyMessage = await new Promise<string>((resolve, reject) => {
+			socket.addEventListener('message', (event) => resolve(String(event.data)), { once: true });
+			socket.addEventListener('error', () => reject(new Error('WebSocket message failed.')), {
+				once: true,
+			});
+		});
+
+		expect(readyMessage).toContain('"type":"desktop-agent.connection.ready"');
+		expect(readyMessage).toContain('"transport":"desktop_bridge"');
+		socket.close();
+		await closePromise;
+	});
+
+	it('lists multiple authenticated desktop devices for the current user and clears only the disconnected snapshot', async () => {
+		const desktopAgentBridgeRegistry = new DesktopAgentBridgeRegistry();
+		const firstSocket = new MockDesktopSocket();
+		const secondSocket = new MockDesktopSocket();
+		const server = Fastify();
+
+		server.addHook('onRequest', async (request) => {
+			request.auth = createDesktopRouteAuthContext();
+		});
+		await registerDesktopDeviceRoutes(server, {
+			desktopAgentBridgeRegistry,
+		});
+		serversToClose.push(server);
+
+		desktopAgentBridgeRegistry.attach(firstSocket, createDesktopRouteAuthContext());
+		sendDesktopAgentHello(firstSocket, {
+			agentId: 'desktop-agent-1',
+			machineLabel: 'Workstation',
+		});
+		await new Promise((resolve) => setTimeout(resolve, 5));
+		desktopAgentBridgeRegistry.attach(secondSocket, createDesktopRouteAuthContext());
+		sendDesktopAgentHello(secondSocket, {
+			agentId: 'desktop-agent-2',
+			machineLabel: 'Travel Laptop',
+		});
+
+		const response = await server.inject({
+			method: 'GET',
+			url: '/desktop/devices',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual({
+			devices: [
+				expect.objectContaining({
+					agent_id: 'desktop-agent-2',
+					capabilities: [
+						{
+							tool_name: 'desktop.screenshot',
+						},
+					],
+					connection_id: expect.any(String),
+					connected_at: expect.any(String),
+					machine_label: 'Travel Laptop',
+					status: 'online',
+					transport: 'desktop_bridge',
+					user_id: 'user_1',
+				}),
+				expect.objectContaining({
+					agent_id: 'desktop-agent-1',
+					capabilities: [
+						{
+							tool_name: 'desktop.screenshot',
+						},
+					],
+					connection_id: expect.any(String),
+					connected_at: expect.any(String),
+					machine_label: 'Workstation',
+					status: 'online',
+					transport: 'desktop_bridge',
+					user_id: 'user_1',
+				}),
+			],
+		});
+
+		secondSocket.close();
+		const afterSecondDisconnectResponse = await server.inject({
+			method: 'GET',
+			url: '/desktop/devices',
+		});
+
+		expect(afterSecondDisconnectResponse.statusCode).toBe(200);
+		expect(afterSecondDisconnectResponse.json()).toEqual({
+			devices: [
+				expect.objectContaining({
+					agent_id: 'desktop-agent-1',
+					machine_label: 'Workstation',
+				}),
+			],
+		});
+
+		firstSocket.close();
+		const afterAllDisconnectResponse = await server.inject({
+			method: 'GET',
+			url: '/desktop/devices',
+		});
+
+		expect(afterAllDisconnectResponse.statusCode).toBe(200);
+		expect(afterAllDisconnectResponse.json()).toEqual({
+			devices: [],
+		});
+	});
+
+	it('does not list stale desktop sessions on /desktop/devices after heartbeat timeout and allows reconnect', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-04-24T13:00:00.000Z'));
+		const desktopAgentBridgeRegistry = new DesktopAgentBridgeRegistry({
+			heartbeat_interval_ms: 1_000,
+			stale_timeout_ms: 2_500,
+		});
+		const staleSocket = new MockDesktopSocket();
+		const reconnectSocket = new MockDesktopSocket();
+		const server = Fastify();
+
+		server.addHook('onRequest', async (request) => {
+			request.auth = createDesktopRouteAuthContext();
+		});
+		await registerDesktopDeviceRoutes(server, {
+			desktopAgentBridgeRegistry,
+		});
+		serversToClose.push(server);
+
+		desktopAgentBridgeRegistry.attach(staleSocket, createDesktopRouteAuthContext());
+		sendDesktopAgentHello(staleSocket, {
+			agentId: 'desktop-agent-1',
+			machineLabel: 'Workstation',
+		});
+
+		await vi.advanceTimersByTimeAsync(2_600);
+
+		const staleResponse = await server.inject({
+			method: 'GET',
+			url: '/desktop/devices',
+		});
+
+		expect(staleResponse.statusCode).toBe(200);
+		expect(staleResponse.json()).toEqual({
+			devices: [],
+		});
+
+		desktopAgentBridgeRegistry.attach(reconnectSocket, createDesktopRouteAuthContext());
+		sendDesktopAgentHello(reconnectSocket, {
+			agentId: 'desktop-agent-1',
+			machineLabel: 'Workstation',
+		});
+
+		const reconnectResponse = await server.inject({
+			method: 'GET',
+			url: '/desktop/devices',
+		});
+
+		expect(reconnectResponse.statusCode).toBe(200);
+		expect(reconnectResponse.json()).toEqual({
+			devices: [
+				expect.objectContaining({
+					agent_id: 'desktop-agent-1',
+					machine_label: 'Workstation',
+				}),
+			],
+		});
+	});
+
+	it('rejects anonymous desktop device listing requests', async () => {
+		const server = await buildServer();
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			method: 'GET',
+			url: '/desktop/devices',
+		});
+
+		expect(response.statusCode).toBe(401);
+		expect(response.json()).toMatchObject({
+			error: 'Unauthorized',
+			message: 'Desktop device listing requires an authenticated user session.',
+			statusCode: 401,
+		});
 	});
 
 	it('lists authenticated conversations through the injected conversation route seam', async () => {

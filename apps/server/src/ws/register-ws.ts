@@ -1,8 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 
-import type { AuthTokenVerifier } from '../auth/supabase-auth.js';
+import { type AuthTokenVerifier, SupabaseAuthError } from '../auth/supabase-auth.js';
 import type { SubscriptionContextResolver } from '../policy/subscription-context.js';
 import { registerConversationCollaborationSocket } from './conversation-collaboration.js';
+import {
+	type DesktopAgentBridgeRegistry,
+	defaultDesktopAgentBridgeRegistry,
+} from './desktop-agent-bridge.js';
 import { type RuntimeWebSocketHandlerOptions, handleWebSocketMessage } from './orchestration.js';
 import {
 	type WebSocketConnection,
@@ -33,6 +37,21 @@ export function attachRuntimeWebSocketHandler(
 	});
 }
 
+export interface AttachDesktopAgentWebSocketHandlerOptions {
+	readonly auth_context: NonNullable<RuntimeWebSocketHandlerOptions['auth_context']>;
+	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
+}
+
+export function attachDesktopAgentWebSocketHandler(
+	socket: WebSocketConnection,
+	options: AttachDesktopAgentWebSocketHandlerOptions,
+): void {
+	(options.desktopAgentBridgeRegistry ?? defaultDesktopAgentBridgeRegistry).attach(
+		socket,
+		options.auth_context,
+	);
+}
+
 export interface RegisterWebSocketRoutesOptions {
 	readonly allow_service_principal?: boolean;
 	readonly feature_gate?: VerifyWebSocketSubscriptionAccessInput['feature_gate'];
@@ -60,6 +79,28 @@ export async function registerWebSocketRoutes(
 			attachRuntimeWebSocketHandler(socket, {
 				auth_context: subscriptionAccess.auth,
 				subscription_context: subscriptionAccess.subscription,
+			});
+		} catch (error: unknown) {
+			rejectWebSocketConnection(socket, error);
+		}
+	});
+
+	server.get('/ws/desktop-agent', { websocket: true }, async (socket, request) => {
+		try {
+			const authContext = await verifyWebSocketHandshake({
+				request,
+				verify_token: options.verify_token,
+			});
+
+			if (authContext.principal.kind !== 'authenticated') {
+				throw new SupabaseAuthError(
+					'SUPABASE_AUTH_REQUIRED',
+					'Desktop agent bridge requires an authenticated user session.',
+				);
+			}
+
+			attachDesktopAgentWebSocketHandler(socket, {
+				auth_context: authContext,
 			});
 		} catch (error: unknown) {
 			rejectWebSocketConnection(socket, error);

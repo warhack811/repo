@@ -30,7 +30,7 @@ Her seferinde sifirdan baslamaz.
 - Lint: Biome
 - LLM: `ModelGateway` -> provider adapters
 - Runtime modeli: async generator agentic loop
-- Desktop agent: planli, henuz repoda yok
+- Desktop tarafi: Windows-first signed-in desktop companion hedefi; bugun repoda secure bridge foundation var, tam desktop app shell ve online device surface henuz yok
 
 ## Klasor Yapisi
 
@@ -52,13 +52,14 @@ runa/
 |     |- hooks/         <- useAuth, useChatRuntime, useChatRuntimeView
 |     |- lib/           <- ws client, auth client, chat-runtime helpers
 |     `- pages/         <- LoginPage, DashboardPage, ChatPage, SettingsPage
+|  `- desktop-agent/    <- local desktop bridge/runtime foundation; bugunku repo snapshot'inda user-facing desktop app shell henuz yok
 `- packages/
    |- types/            <- ws, blocks, auth, subscription, agent-loop contracts
    |- db/               <- Drizzle schema ve DB helpers
    `- utils/            <- paylasilan utility katmani
 ```
 
-Not: `apps/desktop-agent/` Sprint 11 hedefidir; bugun repoda yoktur.
+Not: `apps/desktop-agent/` artik repodadir; bugun secure desktop bridge/runtime foundation'i temsil eder. Son kullaniciya gorunen tam desktop app shell, online device presence ve release-grade deployment ise henuz tamamlanmamis durumdadir.
 
 ## Kirmizi Cizgiler
 
@@ -103,7 +104,7 @@ Not: `apps/desktop-agent/` Sprint 11 hedefidir; bugun repoda yoktur.
 
 ## Baglayici Urun/UI Manifestosu
 
-Bu manifesto Sprint 10/11 ve sonrasi icin baglayicidir. Frontend, UI polish ve gelecekteki `apps/desktop-agent/` planlamasi bu cerceveyi ihlal etmez.
+Bu manifesto Sprint 10/11 ve sonrasi icin baglayicidir. Frontend, UI polish ve bugunku `apps/desktop-agent/` foundation'i uzerine insa edilecek desktop companion planlamasi bu cerceveyi ihlal etmez.
 
 - Dashboard-first urun mantigina gidilmez; hedef yuzey consumer-grade, chat-first bir "calisma ortagi" deneyimidir.
 - Referans hissi: Claude Cowork / Dispatch / sade ChatGPT benzeri sakin, korkutmayan, esnek ama guclu bir sohbet yuzeyi.
@@ -127,10 +128,11 @@ Durust repo notu:
 **Bugun implement edilmis ana ilerleme:**
 - **Track A:** agentic loop, stop conditions, realtime streaming, incremental presentation, prompt-injection guardrails, WS split, permission engine, auto-continue gate
 - **Track B:** Supabase auth seams, authenticated storage, secure WS handshake, subscription gating, WSS/TLS config
-- **Track C:** App/page decomposition, auth UI, authenticated shell, mevcut Dashboard/Chat/Settings ayrimi, responsive/a11y hardening, current-run progress polish, React Router entegrasyonu
+- **Track C:** App/page decomposition, auth UI, authenticated shell, mevcut Dashboard/Chat/Settings ayrimi, responsive/a11y hardening, current-run progress polish, React Router entegrasyonu ve ilk secure desktop bridge foundation
 
-**Henuz planli ama repoda olmayan ana alanlar:**
-- `apps/desktop-agent/` package'i ve desktop tool ailesi
+**Henuz planli ama closure seviyesinde olmayan ana alanlar:**
+- user-facing desktop app shell, signed-in device presence surface'i ve web tarafinda online cihaz gorunurlugu
+- desktop capability ailesinin tamaminin release-grade local bridge/runtime uzerine tasinmasi
 - GAP-11 kapsamindaki approval/policy state persistence hardening'i
 
 **Uzun vadeli yon:** cloud-first hybrid mimari uzerinde otonom runtime + consumer-grade chat-first UI + desktop kontrol.
@@ -148,7 +150,7 @@ Durust repo notu:
 |---|---|---|---|
 | A: Core Engine | Sprint 11 bandi | Ilerliyor | WS/runtime hardening ve kalan persistence gap'leri |
 | B: Cloud Infra | Sprint 9B bandi | Temel implementasyon repoda | Auth, storage, secure WS ve subscription seams mevcut |
-| C: UI + Desktop | Sprint 10 bandi | Ilerliyor | Mevcut web shell repoda; hedef yon chat-first consumer surface, desktop agent hala planli |
+| C: UI + Desktop | Sprint 11 bandi | Ilerliyor | Mevcut web shell repoda; secure desktop bridge foundation var, ancak user-facing desktop app shell ve online device surface henuz tamamlanmadi |
 
 ## Kilitlenmis Teknik Kararlar
 
@@ -168,7 +170,7 @@ Durust repo notu:
 | Dev provider | Groq |
 | Prod provider | Claude / Gemini (yayin oncesi sabitlenecek) |
 | UI framework | React + Vite |
-| Desktop platform | Windows-first, agent henuz planli |
+| Desktop platform | Windows-first, signed-in desktop companion + local bridge hedefi |
 
 ## Kod Giris Noktalari
 
@@ -180,6 +182,7 @@ Durust repo notu:
 - Web entry: `apps/web/src/App.tsx`
 - App shell ve pages: `apps/web/src/components/app/AppShell.tsx`, `apps/web/src/pages/*.tsx`
 - Frontend orchestration: `apps/web/src/hooks/useAuth.ts`, `apps/web/src/hooks/useChatRuntime.ts`
+- Desktop bridge foundation: `apps/desktop-agent/src/auth.ts`, `apps/desktop-agent/src/ws-bridge.ts`, `apps/desktop-agent/src/screenshot.ts`
 - Shared render contracts: `packages/types/src/blocks.ts`
 
 ## Core Hardening Notlari
@@ -188,7 +191,7 @@ Durust repo notu:
 - `register-ws.ts` artik ince composition katmanidir; yeni WS davranisini once split dosyalarda konumlandir.
 - Agent loop artik gercek koddadir; yeni isler mevcut stop-condition ve policy sinirlarini korumali.
 - Cloud migration additive ilerler; local/dev seams korunur.
-- Desktop agent hedefi gecerlidir ama package henuz repoda yoktur.
+- Desktop companion hedefi gecerlidir; bugun repoda local bridge/runtime foundation vardir, ancak tam desktop app shell ve online device presence henuz yoktur.
 - Track C isleri Track A/B kontratlarini bypass etmeden ilerlemelidir.
 - Ana chat yuzeyi operator/debug yuzeyleriyle doldurulmaz; gerekiyorsa ayri `Developer Mode` dusunulur.
 - Approval, heavy diff/log ve benzeri detaylar varsayilan ekran yogunlugu yaratmadan, talep-uzerine ikinci katmanda sunulur.

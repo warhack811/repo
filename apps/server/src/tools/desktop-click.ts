@@ -221,6 +221,37 @@ function extractStderr(error: unknown): string {
 	return '';
 }
 
+function isDesktopClickSuccessData(value: unknown): value is DesktopClickSuccessData {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as {
+		readonly button?: unknown;
+		readonly click_count?: unknown;
+		readonly position?: unknown;
+	};
+	const position = candidate.position;
+
+	if (!isRecord(position)) {
+		return false;
+	}
+
+	const positionCandidate = position as {
+		readonly x?: unknown;
+		readonly y?: unknown;
+	};
+
+	return (
+		(candidate.button === 'left' ||
+			candidate.button === 'middle' ||
+			candidate.button === 'right') &&
+		isFiniteInteger(candidate.click_count) &&
+		isFiniteInteger(positionCandidate.x) &&
+		isFiniteInteger(positionCandidate.y)
+	);
+}
+
 function runPowerShell(dependencies: DesktopClickDependencies, script: string): Promise<void> {
 	return new Promise((resolvePromise, rejectPromise) => {
 		dependencies.execFile(
@@ -392,6 +423,36 @@ export function createDesktopClickTool(
 					},
 					true,
 				);
+			}
+
+			if (context.desktop_bridge) {
+				if (!context.desktop_bridge.supports('desktop.click')) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Connected desktop agent does not advertise desktop.click support.',
+						{
+							reason: 'desktop_agent_capability_unavailable',
+						},
+						false,
+					);
+				}
+
+				const bridgeResult = await context.desktop_bridge.invoke(input, context);
+
+				if (bridgeResult.status === 'success' && !isDesktopClickSuccessData(bridgeResult.output)) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Desktop agent returned an invalid click payload.',
+						{
+							reason: 'desktop_agent_invalid_result',
+						},
+						false,
+					);
+				}
+
+				return bridgeResult as DesktopClickResult;
 			}
 
 			if (resolvedDependencies.platform !== 'win32') {

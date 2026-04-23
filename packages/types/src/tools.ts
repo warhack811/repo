@@ -77,6 +77,7 @@ export interface ToolExecutionSignal {
 }
 
 export interface ToolExecutionContext {
+	readonly desktop_bridge?: DesktopBridgeInvoker;
 	readonly run_id: string;
 	readonly signal?: ToolExecutionSignal;
 	readonly trace_id: string;
@@ -124,6 +125,16 @@ export interface ToolResultError<TName extends ToolName = ToolName> extends Tool
 export type ToolResult<TName extends ToolName = ToolName, TOutput = unknown> =
 	| ToolResultSuccess<TName, TOutput>
 	| ToolResultError<TName>;
+
+export interface DesktopBridgeInvoker {
+	readonly agent_id: string;
+	readonly capabilities: readonly Extract<ToolName, `desktop.${string}`>[];
+	invoke<TName extends Extract<ToolName, `desktop.${string}`>>(
+		input: ToolCallInput<TName>,
+		context: Pick<ToolExecutionContext, 'run_id' | 'signal' | 'trace_id'>,
+	): Promise<ToolResult<TName>>;
+	supports(tool_name: Extract<ToolName, `desktop.${string}`>): boolean;
+}
 
 export interface ToolDefinition<
 	TCall extends ToolCallInput = ToolCallInput,

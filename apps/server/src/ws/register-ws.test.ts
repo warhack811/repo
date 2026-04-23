@@ -5,6 +5,7 @@ import { join, relative } from 'node:path';
 import { promisify } from 'node:util';
 
 import type {
+	AuthContext,
 	MemoryRecord,
 	RenderBlock,
 	RuntimeEvent,
@@ -45,8 +46,13 @@ import {
 	resetConversationCollaborationHub,
 	setConversationCollaborationAccessResolver,
 } from './conversation-collaboration.js';
+import { DesktopAgentBridgeRegistry } from './desktop-agent-bridge.js';
 import { createWebSocketPolicyWiring } from './policy-wiring.js';
-import { attachRuntimeWebSocketHandler, handleWebSocketMessage } from './register-ws.js';
+import {
+	attachDesktopAgentWebSocketHandler,
+	attachRuntimeWebSocketHandler,
+	handleWebSocketMessage,
+} from './register-ws.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -100,6 +106,80 @@ function parseMessages(socket: MockSocket): WebSocketServerBridgeMessage[] {
 	return socket.sentMessages.map((message) => JSON.parse(message) as WebSocketServerBridgeMessage);
 }
 
+function getLatestDesktopAgentConnectionId(socket: MockSocket): string {
+	const sessionAcceptedMessage = socket.sentMessages
+		.map(
+			(message) =>
+				JSON.parse(message) as {
+					readonly payload?: {
+						readonly connection_id?: unknown;
+					};
+					readonly type?: unknown;
+				},
+		)
+		.filter((message) => message.type === 'desktop-agent.session.accepted')
+		.at(-1);
+
+	if (typeof sessionAcceptedMessage?.payload?.connection_id !== 'string') {
+		throw new Error('Expected desktop-agent.session.accepted to include a connection_id.');
+	}
+
+	return sessionAcceptedMessage.payload.connection_id;
+}
+
+function getLatestDesktopAgentHeartbeatPing(socket: MockSocket): {
+	readonly payload: {
+		readonly ping_id: string;
+		readonly sent_at: string;
+	};
+	readonly type: 'desktop-agent.heartbeat.ping';
+} {
+	const heartbeatMessage = socket.sentMessages
+		.map(
+			(message) =>
+				JSON.parse(message) as {
+					readonly payload?: {
+						readonly ping_id?: unknown;
+						readonly sent_at?: unknown;
+					};
+					readonly type?: unknown;
+				},
+		)
+		.reverse()
+		.find((message) => message.type === 'desktop-agent.heartbeat.ping');
+
+	if (
+		heartbeatMessage?.type !== 'desktop-agent.heartbeat.ping' ||
+		typeof heartbeatMessage.payload?.ping_id !== 'string' ||
+		typeof heartbeatMessage.payload?.sent_at !== 'string'
+	) {
+		throw new Error('Expected desktop-agent.heartbeat.ping to be emitted.');
+	}
+
+	return {
+		payload: {
+			ping_id: heartbeatMessage.payload.ping_id,
+			sent_at: heartbeatMessage.payload.sent_at,
+		},
+		type: 'desktop-agent.heartbeat.ping',
+	};
+}
+
+function sendDesktopAgentHeartbeatPong(
+	socket: MockSocket,
+	ping: ReturnType<typeof getLatestDesktopAgentHeartbeatPing>,
+): void {
+	socket.emitMessage(
+		JSON.stringify({
+			payload: {
+				ping_id: ping.payload.ping_id,
+				received_at: new Date().toISOString(),
+			},
+			type: 'desktop-agent.heartbeat.pong',
+		}),
+	);
+}
+
 function createFakeTool(
 	name: ToolCallInput['tool_name'],
 	execute: (input: ToolCallInput, context: ToolExecutionContext) => Promise<ToolResult>,
@@ -130,6 +210,27 @@ function createExecutionContext(
 		trace_id: 'trace_ws_tool_context',
 		working_directory: 'd:\\ai\\Runa',
 		...overrides,
+	};
+}
+
+function createAuthenticatedAuthContext(): AuthContext {
+	return {
+		bearer_token_present: true,
+		principal: {
+			email: 'dev@runa.local',
+			kind: 'authenticated',
+			provider: 'internal',
+			role: 'authenticated',
+			scope: {
+				tenant_id: 'tenant_1',
+				workspace_id: 'workspace_1',
+				workspace_ids: ['workspace_1'],
+			},
+			session_id: 'session_1',
+			user_id: 'user_1',
+		},
+		request_id: 'req_ws_runtime_1',
+		transport: 'websocket',
 	};
 }
 
@@ -259,6 +360,7 @@ async function enableAutoContinueForSocket(
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	vi.useRealTimers();
 	vi.unstubAllGlobals();
 	resetConversationCollaborationHub();
 	resetDefaultToolEffectIdempotencyStore();
@@ -6055,6 +6157,872 @@ describe('register-ws', () => {
 			},
 			type: 'tool_result',
 		});
+	});
+
+	it('replays an approved desktop screenshot through the desktop-agent bridge without breaking approval gating', async () => {
+		const runtimeSocket = new MockSocket();
+		const desktopAgentSocketA = new MockSocket();
+		const desktopAgentSocketB = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const approvalStore = createApprovalStore();
+		const desktopAgentBridgeRegistry = new DesktopAgentBridgeRegistry();
+		const authContext = createAuthenticatedAuthContext();
+
+		attachDesktopAgentWebSocketHandler(desktopAgentSocketA, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+		desktopAgentSocketA.emitMessage(
+			JSON.stringify({
+				payload: {
+					agent_id: 'desktop-agent-a',
+					capabilities: [
+						{
+							tool_name: 'desktop.screenshot',
+						},
+					],
+					machine_label: 'Dev Workstation',
+					protocol_version: 1,
+				},
+				type: 'desktop-agent.hello',
+			}),
+		);
+		attachDesktopAgentWebSocketHandler(desktopAgentSocketB, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+		desktopAgentSocketB.emitMessage(
+			JSON.stringify({
+				payload: {
+					agent_id: 'desktop-agent-b',
+					capabilities: [
+						{
+							tool_name: 'desktop.screenshot',
+						},
+					],
+					machine_label: 'Target Workstation',
+					protocol_version: 1,
+				},
+				type: 'desktop-agent.hello',
+			}),
+		);
+		const targetConnectionId = getLatestDesktopAgentConnectionId(desktopAgentSocketB);
+
+		attachRuntimeWebSocketHandler(runtimeSocket, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							choices: [
+								{
+									finish_reason: 'tool_calls',
+									message: {
+										role: 'assistant',
+										tool_calls: [
+											{
+												function: {
+													arguments: {},
+													name: 'desktop.screenshot',
+												},
+												id: 'call_ws_desktop_bridge_1',
+												type: 'function',
+											},
+										],
+									},
+								},
+							],
+							id: 'chatcmpl_ws_desktop_bridge_1',
+							model: 'llama-3.3-70b-versatile',
+							usage: {
+								completion_tokens: 12,
+								prompt_tokens: 8,
+								total_tokens: 20,
+							},
+						}),
+						{
+							headers: {
+								'content-type': 'application/json',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		await handleWebSocketMessage(
+			runtimeSocket,
+			JSON.stringify({
+				payload: {
+					desktop_target_connection_id: targetConnectionId,
+					include_presentation_blocks: true,
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Take a screenshot from my desktop agent', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_desktop_bridge_1',
+					trace_id: 'trace_ws_desktop_bridge_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				auth_context: authContext,
+				desktopAgentBridgeRegistry,
+				persistEvents,
+			},
+		);
+
+		const initialApprovalMessage = parseMessages(runtimeSocket)
+			.filter(
+				(
+					message,
+				): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+					message.type === 'presentation.blocks',
+			)
+			.at(-1);
+
+		if (initialApprovalMessage?.type !== 'presentation.blocks') {
+			throw new Error('Expected desktop screenshot approval blocks before bridge replay.');
+		}
+
+		const approvalBlock = initialApprovalMessage.payload.blocks.find(
+			(block): block is Extract<RenderBlock, { type: 'approval_block' }> =>
+				block.type === 'approval_block',
+		);
+
+		if (!approvalBlock) {
+			throw new Error('Expected a desktop screenshot approval block before bridge replay.');
+		}
+
+		expect(approvalBlock.payload).toMatchObject({
+			target_kind: 'tool_call',
+			target_label: 'Target Workstation',
+		});
+
+		expect(approvalStore.persistApprovalRequestMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pending_tool_call: expect.objectContaining({
+					desktop_target_connection_id: targetConnectionId,
+				}),
+			}),
+		);
+		expect(desktopAgentSocketA.sentMessages.map((message) => JSON.parse(message).type)).toEqual([
+			'desktop-agent.connection.ready',
+			'desktop-agent.session.accepted',
+		]);
+		expect(desktopAgentSocketB.sentMessages.map((message) => JSON.parse(message).type)).toEqual([
+			'desktop-agent.connection.ready',
+			'desktop-agent.session.accepted',
+		]);
+
+		const approvalReplayPromise = handleWebSocketMessage(
+			runtimeSocket,
+			JSON.stringify({
+				payload: {
+					approval_id: approvalBlock.payload.approval_id,
+					decision: 'approved',
+					note: 'Bridge replay approved',
+				},
+				type: 'approval.resolve',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				auth_context: authContext,
+				desktopAgentBridgeRegistry,
+				persistEvents,
+			},
+		);
+
+		let desktopAgentExecuteMessage:
+			| {
+					readonly payload?: {
+						readonly request_id?: string;
+						readonly [key: string]: unknown;
+					};
+					readonly type?: string;
+			  }
+			| undefined;
+
+		for (let attempt = 0; attempt < 5; attempt += 1) {
+			desktopAgentExecuteMessage = desktopAgentSocketB.sentMessages
+				.map(
+					(message) =>
+						JSON.parse(message) as {
+							readonly payload?: {
+								readonly request_id?: string;
+								readonly [key: string]: unknown;
+							};
+							readonly type?: string;
+						},
+				)
+				.find((message) => message.type === 'desktop-agent.execute');
+
+			if (desktopAgentExecuteMessage) {
+				break;
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
+
+		expect(desktopAgentExecuteMessage).toBeDefined();
+		expect(desktopAgentExecuteMessage).toMatchObject({
+			payload: {
+				call_id: 'call_ws_desktop_bridge_1',
+				run_id: 'run_ws_desktop_bridge_1',
+				tool_name: 'desktop.screenshot',
+				trace_id: 'trace_ws_desktop_bridge_1',
+			},
+			type: 'desktop-agent.execute',
+		});
+		expect(
+			desktopAgentSocketA.sentMessages
+				.map((message) => JSON.parse(message) as { readonly type?: string })
+				.some((message) => message.type === 'desktop-agent.execute'),
+		).toBe(false);
+
+		const requestId = desktopAgentExecuteMessage?.payload?.request_id;
+
+		if (typeof requestId !== 'string') {
+			throw new Error('Expected desktop-agent.execute to carry a request_id.');
+		}
+
+		desktopAgentSocketB.emitMessage(
+			JSON.stringify({
+				payload: {
+					call_id: 'call_ws_desktop_bridge_1',
+					output: {
+						base64_data: Buffer.from([
+							137, 80, 78, 71, 13, 10, 26, 10, 98, 114, 105, 100, 103, 101,
+						]).toString('base64'),
+						byte_length: 14,
+						format: 'png',
+						mime_type: 'image/png',
+					},
+					request_id: requestId,
+					status: 'success',
+					tool_name: 'desktop.screenshot',
+				},
+				type: 'desktop-agent.result',
+			}),
+		);
+
+		await approvalReplayPromise;
+
+		const resolvedPresentationMessage = parseMessages(runtimeSocket)
+			.filter(
+				(
+					message,
+				): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+					message.type === 'presentation.blocks',
+			)
+			.at(-1);
+
+		if (resolvedPresentationMessage?.type !== 'presentation.blocks') {
+			throw new Error('Expected bridge-backed desktop screenshot presentation blocks.');
+		}
+
+		expect(resolvedPresentationMessage.payload.blocks).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					payload: expect.objectContaining({
+						target_kind: 'tool_call',
+						target_label: 'Target Workstation',
+					}),
+					type: 'approval_block',
+				}),
+				expect.objectContaining({
+					payload: expect.objectContaining({
+						call_id: 'call_ws_desktop_bridge_1',
+						status: 'success',
+						tool_name: 'desktop.screenshot',
+					}),
+					type: 'tool_result',
+				}),
+			]),
+		);
+	});
+
+	it('routes a targeted desktop click approval replay to the selected desktop agent session', async () => {
+		const runtimeSocket = new MockSocket();
+		const desktopAgentSocketA = new MockSocket();
+		const desktopAgentSocketB = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const approvalStore = createApprovalStore();
+		const desktopAgentBridgeRegistry = new DesktopAgentBridgeRegistry();
+		const authContext = createAuthenticatedAuthContext();
+
+		attachDesktopAgentWebSocketHandler(desktopAgentSocketA, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+		desktopAgentSocketA.emitMessage(
+			JSON.stringify({
+				payload: {
+					agent_id: 'desktop-agent-a',
+					capabilities: [
+						{
+							tool_name: 'desktop.click',
+						},
+					],
+					machine_label: 'Background Workstation',
+					protocol_version: 1,
+				},
+				type: 'desktop-agent.hello',
+			}),
+		);
+
+		attachDesktopAgentWebSocketHandler(desktopAgentSocketB, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+		desktopAgentSocketB.emitMessage(
+			JSON.stringify({
+				payload: {
+					agent_id: 'desktop-agent-b',
+					capabilities: [
+						{
+							tool_name: 'desktop.click',
+						},
+					],
+					machine_label: 'Target Workstation',
+					protocol_version: 1,
+				},
+				type: 'desktop-agent.hello',
+			}),
+		);
+
+		const targetConnectionId = getLatestDesktopAgentConnectionId(desktopAgentSocketB);
+
+		attachRuntimeWebSocketHandler(runtimeSocket, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							choices: [
+								{
+									finish_reason: 'tool_calls',
+									message: {
+										role: 'assistant',
+										tool_calls: [
+											{
+												function: {
+													arguments: {
+														x: 320,
+														y: 240,
+													},
+													name: 'desktop.click',
+												},
+												id: 'call_ws_desktop_bridge_click_1',
+												type: 'function',
+											},
+										],
+									},
+								},
+							],
+							id: 'chatcmpl_ws_desktop_bridge_click_1',
+							model: 'llama-3.3-70b-versatile',
+							usage: {
+								completion_tokens: 12,
+								prompt_tokens: 8,
+								total_tokens: 20,
+							},
+						}),
+						{
+							headers: {
+								'content-type': 'application/json',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		await handleWebSocketMessage(
+			runtimeSocket,
+			JSON.stringify({
+				payload: {
+					desktop_target_connection_id: targetConnectionId,
+					include_presentation_blocks: true,
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Click on my selected desktop', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_desktop_bridge_click_1',
+					trace_id: 'trace_ws_desktop_bridge_click_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				auth_context: authContext,
+				desktopAgentBridgeRegistry,
+				persistEvents,
+			},
+		);
+
+		const approvalMessage = parseMessages(runtimeSocket)
+			.filter(
+				(
+					message,
+				): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+					message.type === 'presentation.blocks',
+			)
+			.at(-1);
+
+		if (approvalMessage?.type !== 'presentation.blocks') {
+			throw new Error('Expected desktop click approval blocks before bridge replay.');
+		}
+
+		const approvalBlock = approvalMessage.payload.blocks.find(
+			(block): block is Extract<RenderBlock, { type: 'approval_block' }> =>
+				block.type === 'approval_block',
+		);
+
+		if (!approvalBlock) {
+			throw new Error('Expected a desktop click approval block before bridge replay.');
+		}
+
+		expect(approvalBlock.payload).toMatchObject({
+			target_kind: 'tool_call',
+			target_label: 'Target Workstation',
+		});
+
+		const approvalReplayPromise = handleWebSocketMessage(
+			runtimeSocket,
+			JSON.stringify({
+				payload: {
+					approval_id: approvalBlock.payload.approval_id,
+					decision: 'approved',
+					note: 'Desktop click approved',
+				},
+				type: 'approval.resolve',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				auth_context: authContext,
+				desktopAgentBridgeRegistry,
+				persistEvents,
+			},
+		);
+
+		let desktopAgentExecuteMessage:
+			| {
+					readonly payload?: {
+						readonly arguments?: unknown;
+						readonly request_id?: string;
+						readonly [key: string]: unknown;
+					};
+					readonly type?: string;
+			  }
+			| undefined;
+
+		for (let attempt = 0; attempt < 5; attempt += 1) {
+			desktopAgentExecuteMessage = desktopAgentSocketB.sentMessages
+				.map(
+					(message) =>
+						JSON.parse(message) as {
+							readonly payload?: {
+								readonly arguments?: unknown;
+								readonly request_id?: string;
+								readonly [key: string]: unknown;
+							};
+							readonly type?: string;
+						},
+				)
+				.find((message) => message.type === 'desktop-agent.execute');
+
+			if (desktopAgentExecuteMessage) {
+				break;
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
+
+		expect(desktopAgentExecuteMessage).toBeDefined();
+		expect(desktopAgentExecuteMessage).toMatchObject({
+			payload: {
+				arguments: {
+					x: 320,
+					y: 240,
+				},
+				call_id: 'call_ws_desktop_bridge_click_1',
+				run_id: 'run_ws_desktop_bridge_click_1',
+				tool_name: 'desktop.click',
+				trace_id: 'trace_ws_desktop_bridge_click_1',
+			},
+			type: 'desktop-agent.execute',
+		});
+		expect(
+			desktopAgentSocketA.sentMessages
+				.map((message) => JSON.parse(message) as { readonly type?: string })
+				.some((message) => message.type === 'desktop-agent.execute'),
+		).toBe(false);
+
+		const requestId = desktopAgentExecuteMessage?.payload?.request_id;
+
+		if (typeof requestId !== 'string') {
+			throw new Error('Expected desktop-agent.execute to carry a request_id.');
+		}
+
+		desktopAgentSocketB.emitMessage(
+			JSON.stringify({
+				payload: {
+					call_id: 'call_ws_desktop_bridge_click_1',
+					output: {
+						button: 'left',
+						click_count: 1,
+						position: {
+							x: 320,
+							y: 240,
+						},
+					},
+					request_id: requestId,
+					status: 'success',
+					tool_name: 'desktop.click',
+				},
+				type: 'desktop-agent.result',
+			}),
+		);
+
+		await approvalReplayPromise;
+
+		const resolvedPresentationMessage = parseMessages(runtimeSocket)
+			.filter(
+				(
+					message,
+				): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+					message.type === 'presentation.blocks',
+			)
+			.at(-1);
+
+		if (resolvedPresentationMessage?.type !== 'presentation.blocks') {
+			throw new Error('Expected bridge-backed desktop click presentation blocks.');
+		}
+
+		expect(resolvedPresentationMessage.payload.blocks).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					payload: expect.objectContaining({
+						target_kind: 'tool_call',
+						target_label: 'Target Workstation',
+					}),
+					type: 'approval_block',
+				}),
+				expect.objectContaining({
+					payload: expect.objectContaining({
+						call_id: 'call_ws_desktop_bridge_click_1',
+						status: 'success',
+						tool_name: 'desktop.click',
+					}),
+					type: 'tool_result',
+				}),
+			]),
+		);
+	});
+
+	it('keeps a desktop bridge target available when heartbeat ping receives a typed pong reply', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-04-24T14:00:00.000Z'));
+		const desktopAgentSocket = new MockSocket();
+		const desktopAgentBridgeRegistry = new DesktopAgentBridgeRegistry({
+			heartbeat_interval_ms: 1_000,
+			stale_timeout_ms: 2_500,
+		});
+		const authContext = createAuthenticatedAuthContext();
+
+		attachDesktopAgentWebSocketHandler(desktopAgentSocket, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+		desktopAgentSocket.emitMessage(
+			JSON.stringify({
+				payload: {
+					agent_id: 'desktop-agent-1',
+					capabilities: [
+						{
+							tool_name: 'desktop.screenshot',
+						},
+					],
+					machine_label: 'Heartbeat Workstation',
+					protocol_version: 1,
+				},
+				type: 'desktop-agent.hello',
+			}),
+		);
+
+		await vi.advanceTimersByTimeAsync(1_000);
+		sendDesktopAgentHeartbeatPong(
+			desktopAgentSocket,
+			getLatestDesktopAgentHeartbeatPing(desktopAgentSocket),
+		);
+
+		const targetConnectionId = getLatestDesktopAgentConnectionId(desktopAgentSocket);
+		const targetedInvoker = desktopAgentBridgeRegistry.createInvoker(
+			authContext,
+			targetConnectionId,
+		);
+
+		const invokePromise = targetedInvoker?.invoke(
+			{
+				arguments: {},
+				call_id: 'call_ws_desktop_heartbeat_1',
+				tool_name: 'desktop.screenshot',
+			},
+			{
+				run_id: 'run_ws_desktop_heartbeat_1',
+				trace_id: 'trace_ws_desktop_heartbeat_1',
+			},
+		);
+
+		const executeMessage = desktopAgentSocket.sentMessages
+			.map(
+				(message) =>
+					JSON.parse(message) as {
+						readonly payload?: {
+							readonly request_id?: string;
+						};
+						readonly type?: string;
+					},
+			)
+			.reverse()
+			.find((message) => message.type === 'desktop-agent.execute');
+
+		if (typeof executeMessage?.payload?.request_id !== 'string') {
+			throw new Error('Expected desktop-agent.execute after heartbeat pong.');
+		}
+
+		desktopAgentSocket.emitMessage(
+			JSON.stringify({
+				payload: {
+					call_id: 'call_ws_desktop_heartbeat_1',
+					output: {
+						base64_data: Buffer.from([
+							137, 80, 78, 71, 13, 10, 26, 10, 112, 111, 110, 103,
+						]).toString('base64'),
+						byte_length: 12,
+						format: 'png',
+						mime_type: 'image/png',
+					},
+					request_id: executeMessage.payload.request_id,
+					status: 'success',
+					tool_name: 'desktop.screenshot',
+				},
+				type: 'desktop-agent.result',
+			}),
+		);
+
+		await expect(invokePromise).resolves.toMatchObject({
+			call_id: 'call_ws_desktop_heartbeat_1',
+			status: 'success',
+			tool_name: 'desktop.screenshot',
+		});
+		expect(desktopAgentBridgeRegistry.listPresenceSnapshotsForUserId('user_1')).toEqual([
+			expect.objectContaining({
+				agent_id: 'desktop-agent-1',
+				machine_label: 'Heartbeat Workstation',
+			}),
+		]);
+	});
+
+	it('rejects desktop approval replay when desktop_target_connection_id does not match an active session', async () => {
+		const runtimeSocket = new MockSocket();
+		const desktopAgentSocket = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const approvalStore = createApprovalStore();
+		const desktopAgentBridgeRegistry = new DesktopAgentBridgeRegistry();
+		const authContext = createAuthenticatedAuthContext();
+
+		attachDesktopAgentWebSocketHandler(desktopAgentSocket, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+		desktopAgentSocket.emitMessage(
+			JSON.stringify({
+				payload: {
+					agent_id: 'desktop-agent-1',
+					capabilities: [
+						{
+							tool_name: 'desktop.screenshot',
+						},
+					],
+					machine_label: 'Only Workstation',
+					protocol_version: 1,
+				},
+				type: 'desktop-agent.hello',
+			}),
+		);
+
+		attachRuntimeWebSocketHandler(runtimeSocket, {
+			auth_context: authContext,
+			desktopAgentBridgeRegistry,
+		});
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							choices: [
+								{
+									finish_reason: 'tool_calls',
+									message: {
+										role: 'assistant',
+										tool_calls: [
+											{
+												function: {
+													arguments: {},
+													name: 'desktop.screenshot',
+												},
+												id: 'call_ws_desktop_bridge_invalid_target_1',
+												type: 'function',
+											},
+										],
+									},
+								},
+							],
+							id: 'chatcmpl_ws_desktop_bridge_invalid_target_1',
+							model: 'llama-3.3-70b-versatile',
+							usage: {
+								completion_tokens: 12,
+								prompt_tokens: 8,
+								total_tokens: 20,
+							},
+						}),
+						{
+							headers: {
+								'content-type': 'application/json',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		await handleWebSocketMessage(
+			runtimeSocket,
+			JSON.stringify({
+				payload: {
+					desktop_target_connection_id: 'desktop-connection-missing',
+					include_presentation_blocks: true,
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Take a screenshot from a missing desktop agent', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_desktop_bridge_invalid_target_1',
+					trace_id: 'trace_ws_desktop_bridge_invalid_target_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				auth_context: authContext,
+				desktopAgentBridgeRegistry,
+				persistEvents,
+			},
+		);
+
+		const approvalMessage = parseMessages(runtimeSocket)
+			.filter(
+				(
+					message,
+				): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+					message.type === 'presentation.blocks',
+			)
+			.at(-1);
+
+		if (approvalMessage?.type !== 'presentation.blocks') {
+			throw new Error('Expected desktop screenshot approval blocks before invalid target replay.');
+		}
+
+		const approvalBlock = approvalMessage.payload.blocks.find(
+			(block): block is Extract<RenderBlock, { type: 'approval_block' }> =>
+				block.type === 'approval_block',
+		);
+
+		if (!approvalBlock) {
+			throw new Error('Expected a desktop screenshot approval block before invalid target replay.');
+		}
+
+		await handleWebSocketMessage(
+			runtimeSocket,
+			JSON.stringify({
+				payload: {
+					approval_id: approvalBlock.payload.approval_id,
+					decision: 'approved',
+				},
+				type: 'approval.resolve',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				auth_context: authContext,
+				desktopAgentBridgeRegistry,
+				persistEvents,
+			},
+		);
+
+		expect(
+			desktopAgentSocket.sentMessages
+				.map((message) => JSON.parse(message) as { readonly type?: string })
+				.some((message) => message.type === 'desktop-agent.execute'),
+		).toBe(false);
+
+		const resolvedPresentationMessage = parseMessages(runtimeSocket)
+			.filter(
+				(
+					message,
+				): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+					message.type === 'presentation.blocks',
+			)
+			.at(-1);
+
+		if (resolvedPresentationMessage?.type !== 'presentation.blocks') {
+			throw new Error('Expected desktop invalid target replay to emit presentation blocks.');
+		}
+
+		expect(resolvedPresentationMessage.payload.blocks).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					type: 'approval_block',
+				}),
+				expect.objectContaining({
+					payload: expect.objectContaining({
+						call_id: 'call_ws_desktop_bridge_invalid_target_1',
+						error_code: 'EXECUTION_FAILED',
+						status: 'error',
+						tool_name: 'desktop.screenshot',
+					}),
+					type: 'tool_result',
+				}),
+			]),
+		);
 	});
 
 	it('does not replay a rejected pending tool call after approval.resolve', async () => {

@@ -45,6 +45,18 @@ const detailsCardStyle: CSSProperties = {
 	transition: 'opacity 220ms ease, transform 220ms ease, border-color 220ms ease',
 };
 
+const targetBadgeStyle: CSSProperties = {
+	display: 'inline-flex',
+	alignItems: 'center',
+	padding: '6px 10px',
+	borderRadius: '999px',
+	border: '1px solid rgba(148, 163, 184, 0.2)',
+	background: 'rgba(10, 16, 28, 0.72)',
+	color: '#e2e8f0',
+	fontSize: '12px',
+	fontWeight: 600,
+};
+
 function getApprovalAccent(status: ApprovalBlock['payload']['status']): {
 	readonly borderColor: string;
 	readonly chipBackground: string;
@@ -181,6 +193,13 @@ export function ApprovalSummaryCard({
 			<div style={{ color: 'hsl(var(--color-text))', lineHeight: 1.7 }}>
 				{block.payload.summary}
 			</div>
+
+			{block.payload.target_label ? (
+				<div style={{ display: 'grid', gap: '8px' }}>
+					<div style={secondaryLabelStyle}>Hedef cihaz</div>
+					<div style={targetBadgeStyle}>{block.payload.target_label}</div>
+				</div>
+			) : null}
 
 			<div
 				style={{

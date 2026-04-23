@@ -1,0 +1,18 @@
+{
+	"name": "@runa/desktop-agent",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Runa desktop agent - secure desktop bridge foundation",
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@runa/types": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^25.6.0",
+		"typescript": "^5.7.0"
+	}
+}

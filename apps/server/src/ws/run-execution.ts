@@ -1,5 +1,6 @@
 import type {
 	AnyRuntimeEvent,
+	ApprovalTarget,
 	ModelRequest,
 	ModelResponse,
 	RuntimeEvent,
@@ -54,6 +55,10 @@ import {
 	broadcastConversationRunAccepted,
 	broadcastConversationRunFinished,
 } from './conversation-collaboration.js';
+import {
+	type DesktopAgentBridgeRegistry,
+	defaultDesktopAgentBridgeRegistry,
+} from './desktop-agent-bridge.js';
 import {
 	buildLiveModelRequest,
 	buildLiveWorkspaceLayer,
@@ -235,6 +240,76 @@ function hasRuntimeEventType(
 	return events.some((event) => event.event_type === eventType);
 }
 
+function isDesktopToolName(
+	toolName: string,
+): toolName is Extract<ToolDefinition['name'], `desktop.${string}`> {
+	return toolName.startsWith('desktop.');
+}
+
+function formatDesktopTargetLabel(input: {
+	readonly agent_id: string;
+	readonly machine_label?: string;
+}): string {
+	const machineLabel = input.machine_label?.trim();
+
+	if (machineLabel && machineLabel.length > 0) {
+		return machineLabel;
+	}
+
+	return `Cihaz ${input.agent_id.slice(0, 8)}`;
+}
+
+function resolveDesktopApprovalTarget(
+	input: Readonly<{
+		readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
+		readonly call_id: string;
+		readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
+		readonly target_connection_id?: string;
+		readonly tool_name: ToolDefinition['name'];
+	}>,
+): ApprovalTarget | undefined {
+	if (
+		!isDesktopToolName(input.tool_name) ||
+		typeof input.target_connection_id !== 'string' ||
+		input.target_connection_id.trim().length === 0 ||
+		input.auth_context?.principal.kind !== 'authenticated'
+	) {
+		return undefined;
+	}
+
+	const bridgeRegistry = input.desktopAgentBridgeRegistry ?? defaultDesktopAgentBridgeRegistry;
+	const matchingSnapshot = bridgeRegistry
+		.listPresenceSnapshotsForUserId(input.auth_context.principal.user_id)
+		.find((snapshot) => snapshot.connection_id === input.target_connection_id);
+
+	if (!matchingSnapshot) {
+		return undefined;
+	}
+
+	return {
+		call_id: input.call_id,
+		kind: 'tool_call',
+		label: formatDesktopTargetLabel(matchingSnapshot),
+		tool_name: input.tool_name,
+	};
+}
+
+function withPendingDesktopTargetConnectionId(
+	pendingToolCall: RunToolWebSocketResult['pending_tool_call'],
+	payload: Pick<RunRequestPayload, 'desktop_target_connection_id'>,
+): RunToolWebSocketResult['pending_tool_call'] {
+	const desktopTargetConnectionId = payload.desktop_target_connection_id?.trim();
+
+	if (!pendingToolCall || !desktopTargetConnectionId) {
+		return pendingToolCall;
+	}
+
+	return {
+		...pendingToolCall,
+		desktop_target_connection_id: desktopTargetConnectionId,
+	};
+}
+
 function getNextRuntimeSequenceNo(events: readonly RuntimeEvent[]): number {
 	const lastEvent = events[events.length - 1];
 
@@ -317,6 +392,8 @@ interface FinalizeLiveRunResultOptions {
 }
 
 interface ExecuteLiveRunOptions {
+	readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
+	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 	readonly initial_runtime_state?: RuntimeState;
 	readonly initial_tool_result?: ToolResult;
 	readonly initial_turn_count?: number;
@@ -469,6 +546,11 @@ async function runPolicyAwareModelTurn(
 	socket: WebSocketConnection,
 	input: RunModelTurnInput,
 	policyWiring: WebSocketPolicyWiring,
+	options: Readonly<{
+		readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
+		readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
+		readonly desktop_target_connection_id?: string;
+	}> = {},
 ): Promise<RunModelTurnResult> {
 	const turnLogger = runExecutionLogger.child({
 		model: input.model_request.model,
@@ -701,6 +783,13 @@ async function runPolicyAwareModelTurn(
 				current_state: input.current_state,
 				requires_reason: permissionEvaluation.decision.approval_requirement.requires_reason,
 				run_id: input.run_id,
+				target: resolveDesktopApprovalTarget({
+					auth_context: options.auth_context,
+					call_id: adaptedOutcomeResult.outcome.call_id,
+					desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
+					target_connection_id: options.desktop_target_connection_id,
+					tool_name: adaptedOutcomeResult.outcome.tool_name,
+				}),
 				tool_definition:
 					permissionEvaluation.decision.reason === 'approval_required_by_policy'
 						? cloneToolDefinitionWithApprovalRequired(toolDefinition)
@@ -847,6 +936,9 @@ async function executeLiveRun(
 		},
 		continue_gate: continueGate,
 		execution_context: {
+			desktop_bridge: (
+				options.desktopAgentBridgeRegistry ?? defaultDesktopAgentBridgeRegistry
+			).createInvoker(options.auth_context, payload.desktop_target_connection_id),
 			working_directory: options.workingDirectory,
 		},
 		initial_runtime_state: options.initial_runtime_state,
@@ -855,7 +947,12 @@ async function executeLiveRun(
 		model_gateway: gateway,
 		registry: runtimeRegistry,
 		run_id: payload.run_id,
-		run_model_turn: (input) => runPolicyAwareModelTurn(socket, input, policyWiring),
+		run_model_turn: (input) =>
+			runPolicyAwareModelTurn(socket, input, policyWiring, {
+				auth_context: options.auth_context,
+				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
+				desktop_target_connection_id: payload.desktop_target_connection_id,
+			}),
 		on_yield: ({ snapshot, yield: loopYield }) => {
 			if (
 				payload.include_presentation_blocks !== true ||
@@ -879,7 +976,10 @@ async function executeLiveRun(
 			const turnPresentationBlocks = createAutomaticTurnPresentationBlocks({
 				approval_request: hasNewApproval ? snapshot.approval_request : undefined,
 				created_at: events[events.length - 1]?.timestamp ?? new Date().toISOString(),
-				pending_tool_call: snapshot.pending_tool_call,
+				pending_tool_call: withPendingDesktopTargetConnectionId(
+					snapshot.pending_tool_call,
+					payload,
+				),
 				tool_arguments: snapshot.tool_arguments,
 				tool_result: hasNewToolResult ? snapshot.tool_result : undefined,
 				working_directory: options.workingDirectory,
@@ -938,7 +1038,10 @@ async function executeLiveRun(
 						: undefined),
 				events,
 				final_state: toLoopFinalRuntimeState(finalSnapshot),
-				pending_tool_call: finalSnapshot.pending_tool_call,
+				pending_tool_call: withPendingDesktopTargetConnectionId(
+					finalSnapshot.pending_tool_call,
+					payload,
+				),
 				runtime_events: runtimeEvents,
 				status: toLoopRunStatus(finalSnapshot),
 				tool_arguments: finalSnapshot.tool_arguments,
@@ -1116,6 +1219,8 @@ export async function resumeApprovedAutoContinue(
 	const pendingContext = pendingApproval.auto_continue_context;
 	const toolRegistry = options.toolRegistry ?? getDefaultToolRegistry();
 	const continuationResult = await executeLiveRun(_socket, pendingContext.payload, {
+		auth_context: options.auth_context,
+		desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 		initial_runtime_state: 'TOOL_RESULT_INGESTING',
 		initial_tool_result: pendingContext.tool_result,
 		initial_turn_count: pendingContext.turn_count,
@@ -1270,6 +1375,8 @@ export async function handleRunRequestMessage(
 
 	try {
 		result = await executeLiveRun(socket, resolvedPayload, {
+			auth_context: options.auth_context,
+			desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 			memoryStore: options.memoryStore,
 			policy_wiring: options.policy_wiring,
 			registry: toolRegistry,

@@ -4,6 +4,16 @@ import type {
 	ApprovalResolveClientMessage,
 	ApprovalResolvePayload,
 	ConnectionReadyServerMessage,
+	DesktopAgentClientMessage,
+	DesktopAgentConnectionReadyServerMessage,
+	DesktopAgentExecuteServerMessage,
+	DesktopAgentHeartbeatPingServerMessage,
+	DesktopAgentHeartbeatPongClientMessage,
+	DesktopAgentHelloClientMessage,
+	DesktopAgentRejectedServerMessage,
+	DesktopAgentResultClientMessage,
+	DesktopAgentServerMessage,
+	DesktopAgentSessionAcceptedServerMessage,
 	InspectionRequestClientMessage,
 	InspectionRequestPayload,
 	PresentationBlocksServerMessage,
@@ -17,7 +27,12 @@ import type {
 	WebSocketClientMessage,
 	WebSocketServerBridgeMessage,
 } from './ws.js';
-import { gatewayProviders } from './ws.js';
+import {
+	desktopAgentProtocolVersion,
+	desktopAgentRejectCodes,
+	desktopAgentToolNames,
+	gatewayProviders,
+} from './ws.js';
 
 interface MessageCandidate {
 	readonly content?: unknown;
@@ -51,6 +66,7 @@ interface RequestCandidate {
 interface RunRequestPayloadCandidate {
 	readonly attachments?: unknown;
 	readonly conversation_id?: unknown;
+	readonly desktop_target_connection_id?: unknown;
 	readonly include_presentation_blocks?: unknown;
 	readonly provider?: unknown;
 	readonly provider_config?: unknown;
@@ -87,9 +103,99 @@ interface InspectionRequestMessageCandidate {
 	readonly type?: unknown;
 }
 
+interface DesktopAgentCapabilityCandidate {
+	readonly tool_name?: unknown;
+}
+
+interface DesktopAgentHelloPayloadCandidate {
+	readonly agent_id?: unknown;
+	readonly capabilities?: unknown;
+	readonly machine_label?: unknown;
+	readonly protocol_version?: unknown;
+}
+
+interface DesktopAgentHelloMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface DesktopAgentResultPayloadCandidate {
+	readonly call_id?: unknown;
+	readonly details?: unknown;
+	readonly error_code?: unknown;
+	readonly error_message?: unknown;
+	readonly metadata?: unknown;
+	readonly output?: unknown;
+	readonly request_id?: unknown;
+	readonly retryable?: unknown;
+	readonly status?: unknown;
+	readonly tool_name?: unknown;
+}
+
+interface DesktopAgentResultMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
 interface ConnectionReadyMessageCandidate {
 	readonly message?: unknown;
 	readonly transport?: unknown;
+	readonly type?: unknown;
+}
+
+interface DesktopAgentSessionAcceptedPayloadCandidate {
+	readonly agent_id?: unknown;
+	readonly capabilities?: unknown;
+	readonly connection_id?: unknown;
+	readonly user_id?: unknown;
+}
+
+interface DesktopAgentSessionAcceptedMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface DesktopAgentExecutePayloadCandidate {
+	readonly arguments?: unknown;
+	readonly call_id?: unknown;
+	readonly request_id?: unknown;
+	readonly run_id?: unknown;
+	readonly tool_name?: unknown;
+	readonly trace_id?: unknown;
+}
+
+interface DesktopAgentExecuteMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface DesktopAgentHeartbeatPingPayloadCandidate {
+	readonly ping_id?: unknown;
+	readonly sent_at?: unknown;
+}
+
+interface DesktopAgentHeartbeatPingMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface DesktopAgentHeartbeatPongPayloadCandidate {
+	readonly ping_id?: unknown;
+	readonly received_at?: unknown;
+}
+
+interface DesktopAgentHeartbeatPongMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface DesktopAgentRejectedPayloadCandidate {
+	readonly error_code?: unknown;
+	readonly error_message?: unknown;
+}
+
+interface DesktopAgentRejectedMessageCandidate {
+	readonly payload?: unknown;
 	readonly type?: unknown;
 }
 
@@ -371,9 +477,99 @@ function isInspectionRequestMessageCandidate(
 	return isRecord(value);
 }
 
+function isDesktopAgentCapabilityCandidate(
+	value: unknown,
+): value is DesktopAgentCapabilityCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentHelloPayloadCandidate(
+	value: unknown,
+): value is DesktopAgentHelloPayloadCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentHelloMessageCandidate(
+	value: unknown,
+): value is DesktopAgentHelloMessageCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentResultPayloadCandidate(
+	value: unknown,
+): value is DesktopAgentResultPayloadCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentResultMessageCandidate(
+	value: unknown,
+): value is DesktopAgentResultMessageCandidate {
+	return isRecord(value);
+}
+
 function isConnectionReadyMessageCandidate(
 	value: unknown,
 ): value is ConnectionReadyMessageCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentSessionAcceptedPayloadCandidate(
+	value: unknown,
+): value is DesktopAgentSessionAcceptedPayloadCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentSessionAcceptedMessageCandidate(
+	value: unknown,
+): value is DesktopAgentSessionAcceptedMessageCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentExecutePayloadCandidate(
+	value: unknown,
+): value is DesktopAgentExecutePayloadCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentExecuteMessageCandidate(
+	value: unknown,
+): value is DesktopAgentExecuteMessageCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentHeartbeatPingPayloadCandidate(
+	value: unknown,
+): value is DesktopAgentHeartbeatPingPayloadCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentHeartbeatPingMessageCandidate(
+	value: unknown,
+): value is DesktopAgentHeartbeatPingMessageCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentHeartbeatPongPayloadCandidate(
+	value: unknown,
+): value is DesktopAgentHeartbeatPongPayloadCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentHeartbeatPongMessageCandidate(
+	value: unknown,
+): value is DesktopAgentHeartbeatPongMessageCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentRejectedPayloadCandidate(
+	value: unknown,
+): value is DesktopAgentRejectedPayloadCandidate {
+	return isRecord(value);
+}
+
+function isDesktopAgentRejectedMessageCandidate(
+	value: unknown,
+): value is DesktopAgentRejectedMessageCandidate {
 	return isRecord(value);
 }
 
@@ -473,6 +669,27 @@ function isInspectionDetailLevel(
 	return value === 'standard' || value === 'expanded';
 }
 
+function isDesktopAgentToolName(
+	value: unknown,
+): value is DesktopAgentHelloClientMessage['payload']['capabilities'][number]['tool_name'] {
+	return (
+		typeof value === 'string' &&
+		desktopAgentToolNames.includes(value as (typeof desktopAgentToolNames)[number])
+	);
+}
+
+function isDesktopAgentCapability(
+	value: unknown,
+): value is DesktopAgentHelloClientMessage['payload']['capabilities'][number] {
+	return isDesktopAgentCapabilityCandidate(value) && isDesktopAgentToolName(value.tool_name);
+}
+
+function isDesktopAgentCapabilities(
+	value: unknown,
+): value is DesktopAgentHelloClientMessage['payload']['capabilities'] {
+	return Array.isArray(value) && value.every((capability) => isDesktopAgentCapability(capability));
+}
+
 function isMessageArray(value: unknown): value is RunRequestPayload['request']['messages'] {
 	return (
 		Array.isArray(value) &&
@@ -560,6 +777,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 	const {
 		attachments,
 		conversation_id: conversationId,
+		desktop_target_connection_id: desktopTargetConnectionId,
 		include_presentation_blocks: includePresentationBlocks,
 		provider,
 		provider_config: providerConfig,
@@ -577,6 +795,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 	return (
 		(attachments === undefined || isAttachmentArray(attachments)) &&
 		(conversationId === undefined || typeof conversationId === 'string') &&
+		(desktopTargetConnectionId === undefined || typeof desktopTargetConnectionId === 'string') &&
 		(includePresentationBlocks === undefined || typeof includePresentationBlocks === 'boolean') &&
 		isGatewayProvider(provider) &&
 		isProviderConfig(providerConfig) &&
@@ -634,6 +853,88 @@ export function isInspectionRequestClientMessage(
 		isInspectionRequestMessageCandidate(value) &&
 		value.type === 'inspection.request' &&
 		isInspectionRequestPayload(value.payload)
+	);
+}
+
+export function isDesktopAgentHelloPayload(
+	value: unknown,
+): value is DesktopAgentHelloClientMessage['payload'] {
+	return (
+		isDesktopAgentHelloPayloadCandidate(value) &&
+		typeof value.agent_id === 'string' &&
+		isDesktopAgentCapabilities(value.capabilities) &&
+		(value.machine_label === undefined || typeof value.machine_label === 'string') &&
+		value.protocol_version === desktopAgentProtocolVersion
+	);
+}
+
+export function isDesktopAgentHelloClientMessage(
+	value: unknown,
+): value is DesktopAgentHelloClientMessage {
+	return (
+		isDesktopAgentHelloMessageCandidate(value) &&
+		value.type === 'desktop-agent.hello' &&
+		isDesktopAgentHelloPayload(value.payload)
+	);
+}
+
+export function isDesktopAgentResultPayload(
+	value: unknown,
+): value is DesktopAgentResultClientMessage['payload'] {
+	if (
+		!isDesktopAgentResultPayloadCandidate(value) ||
+		typeof value.request_id !== 'string' ||
+		typeof value.call_id !== 'string' ||
+		!isDesktopAgentToolName(value.tool_name)
+	) {
+		return false;
+	}
+
+	if (value.status === 'success') {
+		return (
+			value.error_code === undefined &&
+			value.error_message === undefined &&
+			value.retryable === undefined &&
+			(value.metadata === undefined || isRecord(value.metadata))
+		);
+	}
+
+	return (
+		value.status === 'error' &&
+		typeof value.error_code === 'string' &&
+		typeof value.error_message === 'string' &&
+		(value.retryable === undefined || typeof value.retryable === 'boolean') &&
+		(value.details === undefined || isRecord(value.details))
+	);
+}
+
+export function isDesktopAgentResultClientMessage(
+	value: unknown,
+): value is DesktopAgentResultClientMessage {
+	return (
+		isDesktopAgentResultMessageCandidate(value) &&
+		value.type === 'desktop-agent.result' &&
+		isDesktopAgentResultPayload(value.payload)
+	);
+}
+
+export function isDesktopAgentHeartbeatPongClientMessage(
+	value: unknown,
+): value is DesktopAgentHeartbeatPongClientMessage {
+	return (
+		isDesktopAgentHeartbeatPongMessageCandidate(value) &&
+		value.type === 'desktop-agent.heartbeat.pong' &&
+		isDesktopAgentHeartbeatPongPayloadCandidate(value.payload) &&
+		typeof value.payload.ping_id === 'string' &&
+		typeof value.payload.received_at === 'string'
+	);
+}
+
+export function isDesktopAgentClientMessage(value: unknown): value is DesktopAgentClientMessage {
+	return (
+		isDesktopAgentHelloClientMessage(value) ||
+		isDesktopAgentHeartbeatPongClientMessage(value) ||
+		isDesktopAgentResultClientMessage(value)
 	);
 }
 
@@ -931,6 +1232,17 @@ export function isTextDeltaServerMessage(value: unknown): value is TextDeltaServ
 	);
 }
 
+export function isDesktopAgentConnectionReadyServerMessage(
+	value: unknown,
+): value is DesktopAgentConnectionReadyServerMessage {
+	return (
+		isConnectionReadyMessageCandidate(value) &&
+		value.type === 'desktop-agent.connection.ready' &&
+		value.message === 'ready' &&
+		value.transport === 'desktop_bridge'
+	);
+}
+
 export function isConnectionReadyServerMessage(
 	value: unknown,
 ): value is ConnectionReadyServerMessage {
@@ -939,6 +1251,63 @@ export function isConnectionReadyServerMessage(
 		value.type === 'connection.ready' &&
 		value.message === 'ready' &&
 		value.transport === 'websocket'
+	);
+}
+
+export function isDesktopAgentSessionAcceptedServerMessage(
+	value: unknown,
+): value is DesktopAgentSessionAcceptedServerMessage {
+	return (
+		isDesktopAgentSessionAcceptedMessageCandidate(value) &&
+		value.type === 'desktop-agent.session.accepted' &&
+		isDesktopAgentSessionAcceptedPayloadCandidate(value.payload) &&
+		typeof value.payload.agent_id === 'string' &&
+		isDesktopAgentCapabilities(value.payload.capabilities) &&
+		typeof value.payload.connection_id === 'string' &&
+		typeof value.payload.user_id === 'string'
+	);
+}
+
+export function isDesktopAgentHeartbeatPingServerMessage(
+	value: unknown,
+): value is DesktopAgentHeartbeatPingServerMessage {
+	return (
+		isDesktopAgentHeartbeatPingMessageCandidate(value) &&
+		value.type === 'desktop-agent.heartbeat.ping' &&
+		isDesktopAgentHeartbeatPingPayloadCandidate(value.payload) &&
+		typeof value.payload.ping_id === 'string' &&
+		typeof value.payload.sent_at === 'string'
+	);
+}
+
+export function isDesktopAgentExecuteServerMessage(
+	value: unknown,
+): value is DesktopAgentExecuteServerMessage {
+	return (
+		isDesktopAgentExecuteMessageCandidate(value) &&
+		value.type === 'desktop-agent.execute' &&
+		isDesktopAgentExecutePayloadCandidate(value.payload) &&
+		isRecord(value.payload.arguments) &&
+		typeof value.payload.call_id === 'string' &&
+		typeof value.payload.request_id === 'string' &&
+		typeof value.payload.run_id === 'string' &&
+		isDesktopAgentToolName(value.payload.tool_name) &&
+		typeof value.payload.trace_id === 'string'
+	);
+}
+
+export function isDesktopAgentRejectedServerMessage(
+	value: unknown,
+): value is DesktopAgentRejectedServerMessage {
+	return (
+		isDesktopAgentRejectedMessageCandidate(value) &&
+		value.type === 'desktop-agent.rejected' &&
+		isDesktopAgentRejectedPayloadCandidate(value.payload) &&
+		typeof value.payload.error_message === 'string' &&
+		typeof value.payload.error_code === 'string' &&
+		desktopAgentRejectCodes.includes(
+			value.payload.error_code as (typeof desktopAgentRejectCodes)[number],
+		)
 	);
 }
 
@@ -1023,5 +1392,15 @@ export function isWebSocketServerBridgeMessage(
 		isRunRejectedServerMessage(value) ||
 		isRunFinishedServerMessage(value) ||
 		isPresentationBlocksServerMessage(value)
+	);
+}
+
+export function isDesktopAgentServerMessage(value: unknown): value is DesktopAgentServerMessage {
+	return (
+		isDesktopAgentConnectionReadyServerMessage(value) ||
+		isDesktopAgentSessionAcceptedServerMessage(value) ||
+		isDesktopAgentHeartbeatPingServerMessage(value) ||
+		isDesktopAgentExecuteServerMessage(value) ||
+		isDesktopAgentRejectedServerMessage(value)
 	);
 }

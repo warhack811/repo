@@ -197,6 +197,19 @@ function extractStderr(error: unknown): string {
 	return '';
 }
 
+function isDesktopScrollSuccessData(value: unknown): value is DesktopScrollSuccessData {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as {
+		readonly delta_x?: unknown;
+		readonly delta_y?: unknown;
+	};
+
+	return isFiniteInteger(candidate.delta_x) && isFiniteInteger(candidate.delta_y);
+}
+
 function runPowerShell(dependencies: DesktopScrollDependencies, script: string): Promise<void> {
 	return new Promise((resolvePromise, rejectPromise) => {
 		dependencies.execFile(
@@ -335,6 +348,36 @@ export function createDesktopScrollTool(
 					},
 					true,
 				);
+			}
+
+			if (context.desktop_bridge) {
+				if (!context.desktop_bridge.supports('desktop.scroll')) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Connected desktop agent does not advertise desktop.scroll support.',
+						{
+							reason: 'desktop_agent_capability_unavailable',
+						},
+						false,
+					);
+				}
+
+				const bridgeResult = await context.desktop_bridge.invoke(input, context);
+
+				if (bridgeResult.status === 'success' && !isDesktopScrollSuccessData(bridgeResult.output)) {
+					return createErrorResult(
+						input,
+						'EXECUTION_FAILED',
+						'Desktop agent returned an invalid scroll payload.',
+						{
+							reason: 'desktop_agent_invalid_result',
+						},
+						false,
+					);
+				}
+
+				return bridgeResult as DesktopScrollResult;
 			}
 
 			if (resolvedDependencies.platform !== 'win32') {

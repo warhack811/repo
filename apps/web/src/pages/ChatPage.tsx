@@ -1,9 +1,11 @@
+import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ChatShell } from '../components/chat/ChatShell.js';
 import { ConversationSidebar } from '../components/chat/ConversationSidebar.js';
+import { DesktopTargetSelector } from '../components/chat/DesktopTargetSelector.js';
 import { FileUploadButton } from '../components/chat/FileUploadButton.js';
 import { MarkdownRenderer } from '../components/chat/MarkdownRenderer.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
@@ -27,6 +29,7 @@ import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { deriveCurrentRunProgressSurface } from '../lib/chat-runtime/current-run-progress.js';
 import { DEFAULT_INSPECTION_DETAIL_LEVEL } from '../lib/chat-runtime/types.js';
 import { heroPanelStyle, secondaryLabelStyle } from '../lib/chat-styles.js';
+import { fetchDesktopDevices } from '../lib/desktop-devices.js';
 import { uiCopy } from '../localization/copy.js';
 import {
 	selectConnectionState,
@@ -163,10 +166,12 @@ export function ChatPage({
 	const {
 		accessToken,
 		attachments,
+		desktopTargetConnectionId: runtimeDesktopTargetConnectionId,
 		inspectionAnchorIdsByDetailId,
 		prompt,
 		requestInspection,
 		resolveApproval,
+		setDesktopTargetConnectionId,
 		setPastRunExpanded,
 		setPrompt,
 		setAttachments,
@@ -184,7 +189,16 @@ export function ChatPage({
 	} = conversations;
 	const [showRecentSessionRuns, setShowRecentSessionRuns] = useState(false);
 	const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
+	const [desktopDeviceError, setDesktopDeviceError] = useState<string | null>(null);
+	const [desktopDevices, setDesktopDevices] = useState<readonly DesktopDevicePresenceSnapshot[]>(
+		[],
+	);
+	const [desktopDevicesReloadKey, setDesktopDevicesReloadKey] = useState(0);
+	const [isDesktopDevicesLoading, setIsDesktopDevicesLoading] = useState(false);
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+	const [selectedDesktopTargetConnectionId, setSelectedDesktopTargetConnectionId] = useState<
+		string | null
+	>(runtimeDesktopTargetConnectionId);
 	const promptRef = useRef(prompt);
 	const lastSeenAssistantMessageIdRef = useRef<string | null>(null);
 
@@ -216,6 +230,68 @@ export function ChatPage({
 	useEffect(() => {
 		promptRef.current = prompt;
 	}, [prompt]);
+
+	useEffect(() => {
+		const normalizedAccessToken = accessToken?.trim() ?? '';
+		const currentDesktopDevicesReloadKey = desktopDevicesReloadKey;
+		void currentDesktopDevicesReloadKey;
+
+		if (normalizedAccessToken.length === 0) {
+			setDesktopDevices([]);
+			setDesktopDeviceError(null);
+			setIsDesktopDevicesLoading(false);
+			return;
+		}
+
+		const abortController = new AbortController();
+		setIsDesktopDevicesLoading(true);
+
+		void fetchDesktopDevices({
+			bearerToken: normalizedAccessToken,
+			signal: abortController.signal,
+		})
+			.then((response) => {
+				setDesktopDevices(response.devices);
+				setDesktopDeviceError(null);
+			})
+			.catch((error: unknown) => {
+				if (abortController.signal.aborted) {
+					return;
+				}
+
+				setDesktopDeviceError(
+					error instanceof Error ? error.message : 'Desktop availability could not be loaded.',
+				);
+			})
+			.finally(() => {
+				if (!abortController.signal.aborted) {
+					setIsDesktopDevicesLoading(false);
+				}
+			});
+
+		return () => {
+			abortController.abort();
+		};
+	}, [accessToken, desktopDevicesReloadKey]);
+
+	useEffect(() => {
+		if (
+			selectedDesktopTargetConnectionId !== null &&
+			desktopDevices.every((device) => device.connection_id !== selectedDesktopTargetConnectionId)
+		) {
+			setSelectedDesktopTargetConnectionId(null);
+		}
+	}, [desktopDevices, selectedDesktopTargetConnectionId]);
+
+	useEffect(() => {
+		if (runtimeDesktopTargetConnectionId !== selectedDesktopTargetConnectionId) {
+			setDesktopTargetConnectionId(selectedDesktopTargetConnectionId);
+		}
+	}, [
+		runtimeDesktopTargetConnectionId,
+		selectedDesktopTargetConnectionId,
+		setDesktopTargetConnectionId,
+	]);
 
 	useEffect(() => {
 		lastSeenAssistantMessageIdRef.current = latestAssistantMessage?.message_id ?? null;
@@ -591,6 +667,16 @@ export function ChatPage({
 						/>
 					</label>
 
+					<DesktopTargetSelector
+						devices={desktopDevices}
+						errorMessage={desktopDeviceError}
+						isLoading={isDesktopDevicesLoading}
+						onClear={() => setSelectedDesktopTargetConnectionId(null)}
+						onRetry={() => setDesktopDevicesReloadKey((current) => current + 1)}
+						onSelect={setSelectedDesktopTargetConnectionId}
+						selectedConnectionId={selectedDesktopTargetConnectionId}
+					/>
+
 					<VoiceComposerControls
 						canReadLatestResponse={latestReadableResponse.length > 0}
 						isListening={voiceInput.isListening}
@@ -659,7 +745,8 @@ export function ChatPage({
 													{attachment.filename ?? attachment.blob_id}
 												</strong>
 												<div className="runa-subtle-copy">
-													{attachment.kind} • {attachment.media_type} • {attachment.size_bytes} bytes
+													{attachment.kind} • {attachment.media_type} • {attachment.size_bytes}{' '}
+													bytes
 												</div>
 											</div>
 											<button

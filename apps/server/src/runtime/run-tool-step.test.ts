@@ -390,6 +390,63 @@ describe('runToolStep', () => {
 		expect(persistence.toolCallRecords).toEqual([]);
 	});
 
+	it('threads an explicit approval target into the approval request when provided', async () => {
+		const registry = new ToolRegistry();
+
+		registry.register(
+			createFakeTool(
+				'desktop.screenshot',
+				async () => ({
+					call_id: 'call_tool_step_desktop_target',
+					output: {
+						ok: true,
+					},
+					status: 'success',
+					tool_name: 'desktop.screenshot',
+				}),
+				{
+					capability_class: 'desktop',
+					requires_approval: true,
+					risk_level: 'high',
+					side_effect_level: 'execute',
+				},
+			),
+		);
+
+		const result = await runToolStep({
+			approval_target: {
+				call_id: 'call_tool_step_desktop_target',
+				kind: 'tool_call',
+				label: 'Target Workstation',
+				tool_name: 'desktop.screenshot',
+			},
+			current_state: 'MODEL_THINKING',
+			execution_context: createExecutionContext(),
+			registry,
+			run_id: 'run_tool_step_desktop_target',
+			tool_input: {
+				arguments: {},
+				call_id: 'call_tool_step_desktop_target',
+				tool_name: 'desktop.screenshot',
+			},
+			tool_name: 'desktop.screenshot',
+			trace_id: 'trace_tool_step_desktop_target',
+		});
+
+		expect(result.status).toBe('approval_required');
+
+		if (result.status !== 'approval_required') {
+			throw new Error('Expected approval-required result for desktop target propagation.');
+		}
+
+		expect(result.approval_request.target).toEqual({
+			call_id: 'call_tool_step_desktop_target',
+			kind: 'tool_call',
+			label: 'Target Workstation',
+			tool_name: 'desktop.screenshot',
+		});
+	});
+
 	it('executes an approval-gated tool when bypass_approval_gate is explicitly enabled', async () => {
 		const registry = new ToolRegistry();
 		const persistence = createPersistenceRecorder();

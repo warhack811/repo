@@ -42,11 +42,14 @@ Yeni bir oturumda okuma sirasi:
 - Auth UI, authenticated shell, logout/profile surface, responsive/a11y hardening, current-run progress polish ve router entegrasyonu uygulanmis durumda
 - Ana urun hedefi artik chat-first consumer surface'tir; mevcut dashboard/operator agirlikli parcalar gecis snapshot'i olarak okunmalidir
 - Shared WS payload validation mantigi `packages/types/src/ws-guards.ts` altinda ortaklastirildi
+- `apps/desktop-agent/` package'i, typed `/ws/desktop-agent` secure bridge'i ve `desktop.screenshot` icin ilk approval-gated vertical slice repoda gercektir
+- Hedef urun dili yalniz local daemon degil; signed-in desktop companion + online device presence + approval-gated remote computer control yonundedir
 
-Henuz repoda olmayan buyuk planli alanlar:
+Henuz closure seviyesinde olmayan buyuk alanlar:
 
-- `apps/desktop-agent/`
-- desktop tool ailesi (`desktop.screenshot`, `desktop.click`, `desktop.type`)
+- user-facing desktop app shell
+- web tarafinda online device presence gorunurlugu
+- desktop capability ailesinin release-grade local bridge'e tam tasinmasi (`desktop.click`, `desktop.type`, `desktop.keypress`, `desktop.scroll`)
 - approval/policy state icin process-disi persistence hardening'i
 
 ## Monorepo Ozeti
@@ -55,11 +58,10 @@ Henuz repoda olmayan buyuk planli alanlar:
 | --- | --- |
 | `apps/server` | Fastify backend, runtime, policy, auth, storage, WS split katmanlari |
 | `apps/web` | React + Vite istemcisi, auth shell, chat runtime ve page surface'leri |
+| `apps/desktop-agent` | Local desktop bridge/runtime foundation, secure `/ws/desktop-agent` handshake ve bugunku `desktop.screenshot` proof seami |
 | `packages/types` | Tum sistemin ortak kontrat omurgasi |
 | `packages/db` | Drizzle schema, DB config ve persistence yardimcilari |
 | `packages/utils` | Paylasilan kucuk utility katmani |
-
-Not: `apps/desktop-agent` blueprint'te vardir ama bugun repoda yoktur.
 
 ## Ilk Bakilacak Kod Noktalari
 
@@ -202,7 +204,7 @@ pnpm.cmd --dir apps/server run test:groq-live-smoke
 
 Bu repo bugun sunlari claim etmez:
 
-- desktop agent'in implement edilmis oldugu
+- full user-facing desktop app experience'inin hazir oldugu
 - full remote desktop kontrolunun hazir oldugu
 - premium consumer UI'nin closure seviyesinde tamamlandigi
 - ana chat yuzeyinin manifesto ile tamamen hizalandigi
@@ -211,7 +213,7 @@ Bu repo bugun sunlari claim etmez:
 
 Durust notlar:
 
-- Track C tarafinda auth UI ve app shell gercektir; desktop agent hala planlidir
+- Track C tarafinda auth UI ve web app shell gercektir; `apps/desktop-agent/` secure bridge foundation'i de repodadir, ancak desktop app shell + online device presence henuz tamamlanmamistir
 - Ana chat deneyiminde operator/debug yuzeylerinin tam izolasyonu hedefi henuz closure seviyesinde tamamlanmamis durumdadir
 - Web search varsayilan truth kaynagi degildir
 - README onboarding rehberidir; runbook veya docs portal yerine gecmez
