@@ -5,6 +5,10 @@ import type { MemoryRecordWriter } from './memory-store.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+	buildMemoryEmbeddingMetadata,
+	buildMemoryRetrievalText,
+} from '../memory/semantic-profile.js';
+import {
 	MemoryStoreConfigurationError,
 	MemoryStoreReadError,
 	MemoryStoreWriteError,
@@ -41,18 +45,28 @@ function getMutableEnvironment(): NodeJS.ProcessEnv & {
 function createDatabaseMemoryRecord(
 	overrides: Partial<DatabaseMemoryRecord> = {},
 ): DatabaseMemoryRecord {
+	const content = overrides.content ?? 'User prefers concise code review summaries.';
+	const summary = overrides.summary ?? 'User prefers concise summaries.';
+
 	return {
 		archived_at: null,
-		content: 'User prefers concise code review summaries.',
+		content,
 		created_at: '2026-04-11T12:00:00.000Z',
+		embedding_metadata:
+			overrides.embedding_metadata ??
+			buildMemoryEmbeddingMetadata({
+				content,
+				summary,
+			}),
 		memory_id: 'memory_store_record_1',
+		retrieval_text: overrides.retrieval_text ?? buildMemoryRetrievalText({ content, summary }),
 		scope: 'user',
 		scope_id: 'user_1',
 		source_kind: 'user_explicit',
 		source_run_id: 'run_memory_store_1',
 		source_trace_id: 'trace_memory_store_1',
 		status: 'active',
-		summary: 'User prefers concise summaries.',
+		summary,
 		tenant_id: null,
 		updated_at: '2026-04-11T12:00:00.000Z',
 		user_id: null,
@@ -107,28 +121,38 @@ describe('memory-store', () => {
 			},
 		);
 
-		expect(upsertMemory).toHaveBeenCalledWith({
-			archived_at: null,
-			content: 'Use pnpm in this workspace.',
-			created_at: '2026-04-11T12:10:00.000Z',
-			memory_id: 'memory_store_created_1',
-			scope: 'workspace',
-			scope_id: 'workspace_1',
-			source_kind: 'system_inferred',
-			source_run_id: 'run_memory_store_created_1',
-			source_trace_id: 'trace_memory_store_created_1',
-			status: 'active',
-			summary: 'Workspace uses pnpm.',
-			tenant_id: null,
-			updated_at: '2026-04-11T12:10:00.000Z',
-			user_id: null,
-			workspace_id: null,
-		});
+		expect(upsertMemory).toHaveBeenCalledWith(
+			expect.objectContaining({
+				archived_at: null,
+				content: 'Use pnpm in this workspace.',
+				created_at: '2026-04-11T12:10:00.000Z',
+				embedding_metadata: expect.objectContaining({
+					profile: 'token_overlap_v1',
+				}),
+				memory_id: 'memory_store_created_1',
+				retrieval_text: 'Workspace uses pnpm.\nUse pnpm in this workspace.',
+				scope: 'workspace',
+				scope_id: 'workspace_1',
+				source_kind: 'system_inferred',
+				source_run_id: 'run_memory_store_created_1',
+				source_trace_id: 'trace_memory_store_created_1',
+				status: 'active',
+				summary: 'Workspace uses pnpm.',
+				tenant_id: null,
+				updated_at: '2026-04-11T12:10:00.000Z',
+				user_id: null,
+				workspace_id: null,
+			}),
+		);
 
-		expect(createdRecord).toEqual({
+		expect(createdRecord).toMatchObject({
 			content: 'Use pnpm in this workspace.',
 			created_at: '2026-04-11T12:10:00.000Z',
+			embedding_metadata: {
+				profile: 'token_overlap_v1',
+			},
 			memory_id: 'memory_store_created_1',
+			retrieval_text: 'Workspace uses pnpm.\nUse pnpm in this workspace.',
 			scope: 'workspace',
 			scope_id: 'workspace_1',
 			source_kind: 'system_inferred',
@@ -153,10 +177,15 @@ describe('memory-store', () => {
 			},
 		});
 
-		expect(record).toEqual({
+		expect(record).toMatchObject({
 			content: 'User prefers concise code review summaries.',
 			created_at: '2026-04-11T12:00:00.000Z',
+			embedding_metadata: {
+				profile: 'token_overlap_v1',
+			},
 			memory_id: 'memory_store_record_1',
+			retrieval_text:
+				'User prefers concise summaries.\nUser prefers concise code review summaries.',
 			scope: 'user',
 			scope_id: 'user_1',
 			source_kind: 'user_explicit',
@@ -189,11 +218,15 @@ describe('memory-store', () => {
 			},
 		});
 
-		expect(records).toEqual([
+		expect(records).toMatchObject([
 			{
 				content: 'User prefers concise code review summaries.',
 				created_at: '2026-04-11T12:20:00.000Z',
+				embedding_metadata: {
+					profile: 'token_overlap_v1',
+				},
 				memory_id: 'memory_store_record_2',
+				retrieval_text: 'Most recent memory.\nUser prefers concise code review summaries.',
 				scope: 'user',
 				scope_id: 'user_1',
 				source_kind: 'user_explicit',
@@ -206,7 +239,12 @@ describe('memory-store', () => {
 			{
 				content: 'User prefers concise code review summaries.',
 				created_at: '2026-04-11T12:00:00.000Z',
+				embedding_metadata: {
+					profile: 'token_overlap_v1',
+				},
 				memory_id: 'memory_store_record_1',
+				retrieval_text:
+					'User prefers concise summaries.\nUser prefers concise code review summaries.',
 				scope: 'user',
 				scope_id: 'user_1',
 				source_kind: 'user_explicit',
@@ -240,29 +278,41 @@ describe('memory-store', () => {
 			},
 		);
 
-		expect(upsertMemory).toHaveBeenCalledWith({
-			archived_at: '2026-04-11T12:40:00.000Z',
-			content: 'User prefers concise code review summaries.',
-			created_at: '2026-04-11T12:00:00.000Z',
-			memory_id: 'memory_store_record_1',
-			scope: 'user',
-			scope_id: 'user_1',
-			source_kind: 'user_explicit',
-			source_run_id: 'run_memory_store_1',
-			source_trace_id: 'trace_memory_store_1',
-			status: 'archived',
-			summary: 'User prefers concise summaries.',
-			tenant_id: null,
-			updated_at: '2026-04-11T12:40:00.000Z',
-			user_id: null,
-			workspace_id: null,
-		});
+		expect(upsertMemory).toHaveBeenCalledWith(
+			expect.objectContaining({
+				archived_at: '2026-04-11T12:40:00.000Z',
+				content: 'User prefers concise code review summaries.',
+				created_at: '2026-04-11T12:00:00.000Z',
+				embedding_metadata: expect.objectContaining({
+					profile: 'token_overlap_v1',
+				}),
+				memory_id: 'memory_store_record_1',
+				retrieval_text:
+					'User prefers concise summaries.\nUser prefers concise code review summaries.',
+				scope: 'user',
+				scope_id: 'user_1',
+				source_kind: 'user_explicit',
+				source_run_id: 'run_memory_store_1',
+				source_trace_id: 'trace_memory_store_1',
+				status: 'archived',
+				summary: 'User prefers concise summaries.',
+				tenant_id: null,
+				updated_at: '2026-04-11T12:40:00.000Z',
+				user_id: null,
+				workspace_id: null,
+			}),
+		);
 
-		expect(archivedRecord).toEqual({
+		expect(archivedRecord).toMatchObject({
 			archived_at: '2026-04-11T12:40:00.000Z',
 			content: 'User prefers concise code review summaries.',
 			created_at: '2026-04-11T12:00:00.000Z',
+			embedding_metadata: {
+				profile: 'token_overlap_v1',
+			},
 			memory_id: 'memory_store_record_1',
+			retrieval_text:
+				'User prefers concise summaries.\nUser prefers concise code review summaries.',
 			scope: 'user',
 			scope_id: 'user_1',
 			source_kind: 'user_explicit',
@@ -300,11 +350,16 @@ describe('memory-store', () => {
 		);
 
 		expect(upsertMemory).not.toHaveBeenCalled();
-		expect(archivedRecord).toEqual({
+		expect(archivedRecord).toMatchObject({
 			archived_at: '2026-04-11T12:45:00.000Z',
 			content: 'User prefers concise code review summaries.',
 			created_at: '2026-04-11T12:00:00.000Z',
+			embedding_metadata: {
+				profile: 'token_overlap_v1',
+			},
 			memory_id: 'memory_store_archived_1',
+			retrieval_text:
+				'User prefers concise summaries.\nUser prefers concise code review summaries.',
 			scope: 'user',
 			scope_id: 'user_1',
 			source_kind: 'user_explicit',
@@ -337,29 +392,41 @@ describe('memory-store', () => {
 			},
 		);
 
-		expect(upsertMemory).toHaveBeenCalledWith({
-			archived_at: '2026-04-11T12:50:00.000Z',
-			content: 'User prefers concise code review summaries.',
-			created_at: '2026-04-11T12:00:00.000Z',
-			memory_id: 'memory_store_record_1',
-			scope: 'user',
-			scope_id: 'user_1',
-			source_kind: 'user_explicit',
-			source_run_id: 'run_memory_store_1',
-			source_trace_id: 'trace_memory_store_1',
-			status: 'superseded',
-			summary: 'User prefers concise summaries.',
-			tenant_id: null,
-			updated_at: '2026-04-11T12:50:00.000Z',
-			user_id: null,
-			workspace_id: null,
-		});
+		expect(upsertMemory).toHaveBeenCalledWith(
+			expect.objectContaining({
+				archived_at: '2026-04-11T12:50:00.000Z',
+				content: 'User prefers concise code review summaries.',
+				created_at: '2026-04-11T12:00:00.000Z',
+				embedding_metadata: expect.objectContaining({
+					profile: 'token_overlap_v1',
+				}),
+				memory_id: 'memory_store_record_1',
+				retrieval_text:
+					'User prefers concise summaries.\nUser prefers concise code review summaries.',
+				scope: 'user',
+				scope_id: 'user_1',
+				source_kind: 'user_explicit',
+				source_run_id: 'run_memory_store_1',
+				source_trace_id: 'trace_memory_store_1',
+				status: 'superseded',
+				summary: 'User prefers concise summaries.',
+				tenant_id: null,
+				updated_at: '2026-04-11T12:50:00.000Z',
+				user_id: null,
+				workspace_id: null,
+			}),
+		);
 
-		expect(supersededRecord).toEqual({
+		expect(supersededRecord).toMatchObject({
 			archived_at: '2026-04-11T12:50:00.000Z',
 			content: 'User prefers concise code review summaries.',
 			created_at: '2026-04-11T12:00:00.000Z',
+			embedding_metadata: {
+				profile: 'token_overlap_v1',
+			},
 			memory_id: 'memory_store_record_1',
+			retrieval_text:
+				'User prefers concise summaries.\nUser prefers concise code review summaries.',
 			scope: 'user',
 			scope_id: 'user_1',
 			source_kind: 'user_explicit',
@@ -397,11 +464,16 @@ describe('memory-store', () => {
 		);
 
 		expect(upsertMemory).not.toHaveBeenCalled();
-		expect(supersededRecord).toEqual({
+		expect(supersededRecord).toMatchObject({
 			archived_at: '2026-04-11T12:55:00.000Z',
 			content: 'User prefers concise code review summaries.',
 			created_at: '2026-04-11T12:00:00.000Z',
+			embedding_metadata: {
+				profile: 'token_overlap_v1',
+			},
 			memory_id: 'memory_store_superseded_1',
+			retrieval_text:
+				'User prefers concise summaries.\nUser prefers concise code review summaries.',
 			scope: 'user',
 			scope_id: 'user_1',
 			source_kind: 'user_explicit',

@@ -10,6 +10,11 @@ import {
 import type { MemoryRecord, MemoryScope, MemoryWriteCandidate } from '@runa/types';
 
 import {
+	buildMemoryEmbeddingMetadata,
+	buildMemoryRetrievalText,
+} from '../memory/semantic-profile.js';
+
+import {
 	hasPersistenceDatabaseConfiguration,
 	logPersistenceDebugFailure,
 	resolvePersistenceDatabaseUrl,
@@ -93,6 +98,8 @@ class DatabaseMemoryRecordWriter implements MemoryRecordWriter {
 				source_kind,
 				summary,
 				content,
+				retrieval_text,
+				embedding_metadata,
 				source_run_id,
 				source_trace_id,
 				tenant_id,
@@ -121,6 +128,8 @@ class DatabaseMemoryRecordWriter implements MemoryRecordWriter {
 				source_kind,
 				summary,
 				content,
+				retrieval_text,
+				embedding_metadata,
 				source_run_id,
 				source_trace_id,
 				tenant_id,
@@ -146,6 +155,8 @@ class DatabaseMemoryRecordWriter implements MemoryRecordWriter {
 				set: {
 					archived_at: record.archived_at,
 					content: record.content,
+					embedding_metadata: record.embedding_metadata,
+					retrieval_text: record.retrieval_text,
 					scope: record.scope,
 					scope_id: record.scope_id,
 					source_kind: record.source_kind,
@@ -193,7 +204,9 @@ function toSharedMemoryRecord(
 		archived_at: record.archived_at ?? undefined,
 		content: record.content,
 		created_at: record.created_at,
+		embedding_metadata: record.embedding_metadata ?? undefined,
 		memory_id: record.memory_id,
+		retrieval_text: record.retrieval_text ?? undefined,
 		scope: record.scope,
 		scope_id: record.scope_id,
 		source_kind: record.source_kind,
@@ -207,12 +220,16 @@ function toSharedMemoryRecord(
 
 function toNewMemoryRecord(input: CreateMemoryInput): NewDatabaseMemoryRecord {
 	const createdAt = input.created_at ?? new Date().toISOString();
+	const retrievalText = buildMemoryRetrievalText(input);
+	const embeddingMetadata = buildMemoryEmbeddingMetadata(input);
 
 	return {
 		archived_at: null,
 		content: input.content,
 		created_at: createdAt,
+		embedding_metadata: embeddingMetadata,
 		memory_id: input.memory_id ?? randomUUID(),
+		retrieval_text: retrievalText,
 		scope: input.scope,
 		scope_id: input.scope_id,
 		source_kind: input.source_kind,
@@ -235,7 +252,9 @@ function toArchivedMemoryRecord(
 		archived_at: record.archived_at ?? archivedAt,
 		content: record.content,
 		created_at: record.created_at,
+		embedding_metadata: record.embedding_metadata,
 		memory_id: record.memory_id,
+		retrieval_text: record.retrieval_text,
 		scope: record.scope,
 		scope_id: record.scope_id,
 		source_kind: record.source_kind,
@@ -258,7 +277,9 @@ function toSupersededMemoryRecord(
 		archived_at: record.archived_at ?? supersededAt,
 		content: record.content,
 		created_at: record.created_at,
+		embedding_metadata: record.embedding_metadata,
 		memory_id: record.memory_id,
+		retrieval_text: record.retrieval_text,
 		scope: record.scope,
 		scope_id: record.scope_id,
 		source_kind: record.source_kind,

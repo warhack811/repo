@@ -26,6 +26,21 @@ export const memoryScopes = ['user', 'workspace'] as const;
 
 export type MemoryScope = (typeof memoryScopes)[number];
 
+export const memoryEmbeddingProfiles = ['token_overlap_v1'] as const;
+
+export type MemoryEmbeddingProfile = (typeof memoryEmbeddingProfiles)[number];
+
+export const memoryRetrievalReasons = ['recent_fallback', 'semantic_overlap'] as const;
+
+export type MemoryRetrievalReason = (typeof memoryRetrievalReasons)[number];
+
+export interface MemoryEmbeddingMetadata {
+	readonly content_fingerprint: string;
+	readonly profile: MemoryEmbeddingProfile;
+	readonly term_count: number;
+	readonly terms: readonly string[];
+}
+
 export interface UserPreferenceMemory {
 	readonly category: UserPreferenceCategory;
 	readonly instruction: string;
@@ -47,9 +62,17 @@ export interface MemoryWriteCandidate {
 export interface NewMemoryRecord extends MemoryWriteCandidate {
 	readonly archived_at?: string;
 	readonly created_at: string;
+	readonly embedding_metadata?: MemoryEmbeddingMetadata;
 	readonly memory_id: string;
+	readonly retrieval_text?: string;
 	readonly status: MemoryStatus;
 	readonly updated_at: string;
 }
 
 export interface MemoryRecord extends NewMemoryRecord {}
+
+export interface RetrievedMemoryRecord extends MemoryRecord {
+	readonly matched_terms: readonly string[];
+	readonly retrieval_reason: MemoryRetrievalReason;
+	readonly retrieval_score: number;
+}

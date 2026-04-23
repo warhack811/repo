@@ -20,6 +20,7 @@ interface OrchestrateMemoryReadFailure {
 export interface OrchestrateMemoryReadInput {
 	readonly limit?: number;
 	readonly memory_store?: ReadableMemoryStore;
+	readonly query?: string;
 	readonly scope: MemoryScope;
 	readonly scope_id: string;
 }
@@ -55,6 +56,7 @@ export async function orchestrateMemoryRead(
 	const composeResult = await composeMemoryContext({
 		limit: input.limit,
 		memory_store: input.memory_store,
+		query: input.query,
 		scope: input.scope,
 		scope_id: input.scope_id,
 	});

@@ -1,5 +1,6 @@
 import type { MemoryRecord, MemoryScope } from '@runa/types';
 
+import { retrieveSemanticMemories } from '../memory/retrieve-semantic-memories.js';
 import {
 	type MemoryStore,
 	MemoryStoreConfigurationError,
@@ -32,6 +33,7 @@ interface ComposeMemoryContextFailure {
 export interface ComposeMemoryContextInput {
 	readonly limit?: number;
 	readonly memory_store?: ReadableMemoryStore;
+	readonly query?: string;
 	readonly scope: MemoryScope;
 	readonly scope_id: string;
 }
@@ -78,18 +80,6 @@ function normalizeLimit(limit?: number): number | undefined {
 	return Math.trunc(limit);
 }
 
-function sortMemories(records: readonly MemoryRecord[]): readonly MemoryRecord[] {
-	return [...records].sort((left, right) => {
-		const updatedAtComparison = right.updated_at.localeCompare(left.updated_at);
-
-		if (updatedAtComparison !== 0) {
-			return updatedAtComparison;
-		}
-
-		return left.memory_id.localeCompare(right.memory_id);
-	});
-}
-
 function toMemoryPromptLayerItem(record: MemoryRecord): MemoryPromptLayerItemInput {
 	return {
 		content: record.content,
@@ -124,7 +114,13 @@ export async function composeMemoryContext(
 	let records: readonly MemoryRecord[];
 
 	try {
-		records = await memoryStore.listActiveMemories(input.scope, input.scope_id);
+		records = await retrieveSemanticMemories({
+			limit: input.limit,
+			memory_store: memoryStore,
+			query: input.query,
+			scope: input.scope,
+			scope_id: input.scope_id,
+		});
 	} catch (error) {
 		if (error instanceof MemoryStoreConfigurationError) {
 			return createFailure('MEMORY_STORE_CONFIGURATION_FAILED', error.message);
@@ -137,9 +133,8 @@ export async function composeMemoryContext(
 		return createFailure('MEMORY_STORE_READ_FAILED', 'Failed to list active memories.');
 	}
 
-	const sortedRecords = sortMemories(records);
 	const limit = normalizeLimit(input.limit);
-	const limitedRecords = limit !== undefined ? sortedRecords.slice(0, limit) : sortedRecords;
+	const limitedRecords = limit !== undefined ? records.slice(0, limit) : records;
 
 	if (limitedRecords.length === 0) {
 		return {

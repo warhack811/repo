@@ -1,8 +1,15 @@
-import type { CompiledContextArtifact, ModelMessage, ModelRequest } from '@runa/types';
+import type {
+	CompiledContextArtifact,
+	ModelCallableTool,
+	ModelMessage,
+	ModelRequest,
+} from '@runa/types';
 
 import type { ComposedContext } from './compose-context.js';
 
 export interface AdaptContextToModelRequestInput {
+	readonly attachments?: ModelRequest['attachments'];
+	readonly available_tools?: readonly ModelCallableTool[];
 	readonly composed_context: ComposedContext;
 	readonly max_output_tokens?: number;
 	readonly messages?: readonly ModelMessage[];
@@ -28,6 +35,8 @@ export function adaptContextToModelRequest(
 	input: AdaptContextToModelRequestInput,
 ): ModelRequest & { readonly compiled_context: CompiledContextArtifact } {
 	return {
+		attachments: input.attachments,
+		available_tools: input.available_tools,
 		compiled_context: toCompiledContextArtifact(input.composed_context),
 		max_output_tokens: input.max_output_tokens,
 		messages: [

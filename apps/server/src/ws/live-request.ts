@@ -100,6 +100,7 @@ export async function buildLiveWorkspaceLayer(
 async function buildLiveMemoryLayer(
 	payload: RunRequestPayload,
 	workingDirectory: string,
+	query: string | undefined,
 	memoryStore?: MemoryOrchestrationStore,
 ): Promise<Parameters<typeof composeContext>[0]['memory_layer']> {
 	if (!canUseMemoryOrchestration(memoryStore)) {
@@ -121,6 +122,7 @@ async function buildLiveMemoryLayer(
 
 	for (const memoryReadInput of memoryReadInputs) {
 		const memoryReadResult = await orchestrateMemoryRead({
+			query,
 			memory_store: orchestratedMemoryStore,
 			scope: memoryReadInput.scope,
 			scope_id: memoryReadInput.scope_id,
@@ -240,7 +242,12 @@ export async function buildLiveModelRequest(
 	}
 > {
 	const extractedUserTurn = extractUserTurn(payload.request.messages);
-	const memoryLayer = await buildLiveMemoryLayer(payload, workingDirectory, options.memoryStore);
+	const memoryLayer = await buildLiveMemoryLayer(
+		payload,
+		workingDirectory,
+		extractedUserTurn?.user_turn,
+		options.memoryStore,
+	);
 
 	if (!extractedUserTurn) {
 		return toModelRequest(payload);
@@ -285,6 +292,8 @@ export async function buildLiveModelRequest(
 	});
 
 	return adaptContextToModelRequest({
+		attachments: payload.attachments,
+		available_tools: payload.request.available_tools,
 		composed_context: composedContext,
 		max_output_tokens: payload.request.max_output_tokens,
 		messages: extractedUserTurn.history,

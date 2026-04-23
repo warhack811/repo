@@ -75,4 +75,158 @@ describe('buildLiveModelRequest', () => {
 			},
 		]);
 	});
+
+	it('preserves explicit available_tools from the live request payload', async () => {
+		const request = await buildLiveModelRequest(
+			{
+				...createRunRequestPayload(),
+				request: {
+					...createRunRequestPayload().request,
+					available_tools: [
+						{
+							description: 'Read a file.',
+							name: 'file.read',
+							parameters: {
+								path: {
+									required: true,
+									type: 'string',
+								},
+							},
+						},
+					],
+				},
+			},
+			'D:/ai/Runa',
+		);
+
+		expect(request.available_tools).toEqual([
+			{
+				description: 'Read a file.',
+				name: 'file.read',
+				parameters: {
+					path: {
+						required: true,
+						type: 'string',
+					},
+				},
+			},
+		]);
+	});
+
+	it('preserves additive attachments while composing the live model request', async () => {
+		const request = await buildLiveModelRequest(
+			{
+				...createRunRequestPayload(),
+				attachments: [
+					{
+						blob_id: 'blob_text_1',
+						filename: 'notes.txt',
+						kind: 'text',
+						media_type: 'text/plain',
+						size_bytes: 12,
+						text_content: 'Merhaba Runa',
+					},
+				],
+			},
+			'D:/ai/Runa',
+		);
+
+		expect(request.attachments).toEqual([
+			{
+				blob_id: 'blob_text_1',
+				filename: 'notes.txt',
+				kind: 'text',
+				media_type: 'text/plain',
+				size_bytes: 12,
+				text_content: 'Merhaba Runa',
+			},
+		]);
+	});
+
+	it('injects semantically relevant memory instead of only the newest unrelated note', async () => {
+		const request = await buildLiveModelRequest(
+			{
+				...createRunRequestPayload(),
+				request: {
+					...createRunRequestPayload().request,
+					messages: [
+						{
+							content: 'What is the project theme color?',
+							role: 'user',
+						},
+					],
+				},
+			},
+			'D:/ai/Runa',
+			{
+				memoryStore: {
+					async createMemory() {
+						throw new Error('not used');
+					},
+					async listActiveMemories(scope, scope_id) {
+						if (scope !== 'workspace' || scope_id !== 'D:/ai/Runa') {
+							return [];
+						}
+
+						return [
+							{
+								content: 'The websocket transport supports approval flow.',
+								created_at: '2026-04-11T12:20:00.000Z',
+								memory_id: 'memory_live_request_newer',
+								scope: 'workspace',
+								scope_id: 'D:/ai/Runa',
+								source_kind: 'tool_result',
+								source_run_id: 'run_live_request_newer',
+								source_trace_id: 'trace_live_request_newer',
+								status: 'active',
+								summary: 'Transport note',
+								updated_at: '2026-04-11T12:30:00.000Z',
+							},
+							{
+								content: 'The project theme is blue.',
+								created_at: '2026-04-11T12:00:00.000Z',
+								memory_id: 'memory_live_request_theme',
+								scope: 'workspace',
+								scope_id: 'D:/ai/Runa',
+								source_kind: 'tool_result',
+								source_run_id: 'run_live_request_theme',
+								source_trace_id: 'trace_live_request_theme',
+								status: 'active',
+								summary: 'Project theme is blue',
+								updated_at: '2026-04-11T12:10:00.000Z',
+							},
+						];
+					},
+					async supersedeMemory() {
+						return null;
+					},
+				},
+			},
+		);
+
+		const compiledContext = request.compiled_context;
+		expect(compiledContext).toBeDefined();
+
+		if (!compiledContext) {
+			throw new Error('Expected compiled_context to be present.');
+		}
+
+		const memoryLayer = compiledContext.layers.find((layer) => layer.name === 'memory_layer');
+		expect(memoryLayer).toBeDefined();
+
+		if (!memoryLayer || memoryLayer.kind !== 'memory') {
+			throw new Error('Expected memory layer in compiled_context.');
+		}
+
+		expect(memoryLayer).toMatchObject({
+			content: {
+				items: [
+					expect.objectContaining({
+						content: 'The project theme is blue.',
+						summary: 'Project theme is blue',
+					}),
+				],
+			},
+		});
+	});
 });

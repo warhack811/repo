@@ -12,12 +12,13 @@ Bu README, memory alaninin ne oldugunu ve hangi kontratlar uzerinden buyutuleceg
 
 ## Implement ettigi interface'ler
 
-Bu dizin altinda bugun concrete `.ts` implementasyonu yoktur.
+Bu dizin altinda artik retrieval ve semantic-profile seam'leri vardir.
 Memory alani su shared contract'lar uzerinden tanimlidir:
 
 - `MemoryRecord` - `packages/types/src/memory.ts`
 - `MemoryWriteCandidate` - `packages/types/src/memory.ts`
 - `UserPreferenceMemory` - `packages/types/src/memory.ts`
+- `RetrievedMemoryRecord` - `packages/types/src/memory.ts`
 
 Concrete davranis icin bakilacak yerler:
 
@@ -26,6 +27,9 @@ Concrete davranis icin bakilacak yerler:
 - `apps/server/src/context/orchestrate-memory-read.ts`
 - `apps/server/src/context/compose-memory-context.ts`
 - `apps/server/src/persistence/memory-store.ts`
+- `apps/server/src/memory/semantic-profile.ts`
+- `apps/server/src/memory/retrieve-semantic-memories.ts`
+- `apps/server/src/memory/search-memory-tool.ts`
 
 ## Yeni eleman eklerken takip edilecek pattern
 
@@ -38,11 +42,13 @@ Concrete davranis icin bakilacak yerler:
 ## Bu modul ne DEGILDIR
 
 - bugun icinde tum memory kodunun yasadigi concrete implementation klasoru degildir
-- semantic retrieval motoru degildir; Qdrant ve benzeri Phase 2 alanidir
+- full vector database veya knowledge graph motoru degildir; Qdrant ve benzeri Phase 3 alanlari ayri tutulur
 - prompt assembly modulu degildir; context composer'a tek basina donusmez
 - dogrudan UI state store'u degildir
 - policy veya approval sistemi degildir
 
 ## Aktif dosyalar
 
-- Bu dizin altinda aktif `.ts` dosyasi yok
+- `semantic-profile.ts`
+- `retrieve-semantic-memories.ts`
+- `search-memory-tool.ts`
