@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 import type { AuthContext } from '@runa/types';
 
-export const storageBlobKinds = ['screenshot', 'tool_output'] as const;
+export const storageBlobKinds = [
+	'attachment_image',
+	'attachment_text',
+	'screenshot',
+	'tool_output',
+] as const;
 
 export type StorageBlobKind = (typeof storageBlobKinds)[number];
 

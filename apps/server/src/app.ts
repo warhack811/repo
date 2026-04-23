@@ -16,7 +16,12 @@ import {
 	createSubscriptionContextMiddleware,
 } from './policy/subscription-context.js';
 import { type RegisterAuthRoutesOptions, registerAuthRoutes } from './routes/auth.js';
+import {
+	type RegisterConversationRoutesOptions,
+	registerConversationRoutes,
+} from './routes/conversations.js';
 import { registerHealthRoutes } from './routes/health.js';
+import { registerUploadRoutes } from './routes/upload.js';
 import { registerStorageRoutes } from './storage/storage-routes.js';
 import {
 	type StorageProviderAdapter,
@@ -28,6 +33,7 @@ import {
 	type SupabaseStorageFetch,
 	createSupabaseStorageAdapterFromEnvironment,
 } from './storage/supabase-storage-adapter.js';
+import { createLogger } from './utils/logger.js';
 import { registerWebSocketRoutes } from './ws/register-ws.js';
 
 export interface BuildServerOptions extends FastifyServerOptions {
@@ -42,6 +48,7 @@ export interface BuildServerOptions extends FastifyServerOptions {
 			readonly feature_gate?: FeatureGate;
 		};
 	};
+	readonly conversations?: RegisterConversationRoutesOptions;
 	readonly storage?: {
 		readonly adapter?: StorageProviderAdapter;
 		readonly supabase?: {
@@ -69,8 +76,14 @@ const defaultStorageAdapter: StorageProviderAdapter = {
 	},
 };
 
+const serverLogger = createLogger({
+	context: {
+		component: 'server.app',
+	},
+});
+
 export async function buildServer(options: BuildServerOptions = {}): Promise<FastifyInstance> {
-	const { auth, storage, subscription, ...fastifyOptions } = options;
+	const { auth, conversations, storage, subscription, ...fastifyOptions } = options;
 	const server = Fastify(fastifyOptions);
 	const authEnvironment =
 		auth?.supabase?.environment ??
@@ -132,9 +145,9 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 			resolve_context: subscription?.resolve_context,
 		}),
 	);
-	console.log('[server] Registering websocket plugin...');
+	serverLogger.info('server.websocket_plugin.registering');
 	await server.register(websocket);
-	console.log('[server] Registering auth routes...');
+	serverLogger.info('server.auth_routes.registering');
 	await registerAuthRoutes(server, {
 		supabase: {
 			environment: authEnvironment as NonNullable<
@@ -145,16 +158,18 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 		verify_token: resolvedVerifyToken,
 	});
 	await registerHealthRoutes(server);
-	console.log('[server] Registering storage routes...');
+	await registerConversationRoutes(server, conversations);
+	await registerUploadRoutes(server, storageService);
+	serverLogger.info('server.storage_routes.registering');
 	await registerStorageRoutes(server, storageService);
-	console.log('[server] Registering websocket routes...');
+	serverLogger.info('server.websocket_routes.registering');
 	await registerWebSocketRoutes(server, {
 		allow_service_principal: subscription?.websocket?.allow_service_principal,
 		feature_gate: subscription?.websocket?.feature_gate,
 		resolve_subscription_context: subscription?.resolve_context,
 		verify_token: resolvedVerifyToken,
 	});
-	console.log('[server] buildServer completed.');
+	serverLogger.info('server.build.completed');
 
 	return server;
 }

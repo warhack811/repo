@@ -12,6 +12,11 @@ import {
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
+	type AuthorizationRole,
+	requireAuthorizationRole,
+	resolveAuthorizationRole,
+} from '../auth/rbac.js';
+import {
 	type AuthTokenVerifier,
 	createAuthContextFromVerification,
 	createLocalDevSessionToken,
@@ -22,6 +27,9 @@ import {
 
 interface AuthContextResponse {
 	readonly auth: AuthContext;
+	readonly authorization: {
+		readonly role: AuthorizationRole;
+	};
 	readonly principal_kind: AuthContext['principal']['kind'];
 	readonly subscription?: SubscriptionContext;
 }
@@ -74,12 +82,30 @@ interface AuthRequestBodyCandidate {
 }
 
 interface OAuthStartQueryCandidate {
+	readonly code_challenge?: unknown;
+	readonly code_challenge_method?: unknown;
 	readonly provider?: unknown;
 	readonly redirect_to?: unknown;
 }
 
 interface LocalDevBootstrapQueryCandidate {
 	readonly redirect_to?: unknown;
+}
+
+interface OAuthCallbackQueryCandidate {
+	readonly code?: unknown;
+	readonly error?: unknown;
+	readonly error_description?: unknown;
+	readonly redirect_to?: unknown;
+}
+
+interface RefreshSessionBodyCandidate {
+	readonly refresh_token?: unknown;
+}
+
+interface OAuthCodeExchangeBodyCandidate {
+	readonly auth_code?: unknown;
+	readonly code_verifier?: unknown;
 }
 
 interface SupabaseSessionTokensCandidate {
@@ -116,6 +142,10 @@ function normalizeRequiredString(value: unknown, fieldName: string): string {
 	}
 
 	return normalizedValue;
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 }
 
 function parseEmailPasswordCredentials(body: unknown): AuthEmailPasswordCredentials {
@@ -213,6 +243,7 @@ async function callSupabaseAuthEndpoint(
 	client: SupabaseAuthActionClient,
 	input: Readonly<{
 		readonly authorizationToken?: string;
+		readonly method?: 'GET' | 'POST';
 		readonly pathname: string;
 		readonly payload?: Record<string, unknown>;
 	}>,
@@ -232,7 +263,7 @@ async function callSupabaseAuthEndpoint(
 	const response = await client.auth_fetch(`${client.supabase_url}${input.pathname}`, {
 		body: input.payload ? JSON.stringify(input.payload) : undefined,
 		headers,
-		method: 'POST',
+		method: input.method ?? 'POST',
 	});
 	const responsePayload = await readSupabaseActionPayload(response);
 
@@ -293,6 +324,124 @@ function resolveRedirectTarget(target: string): Parameters<FastifyReply['redirec
 	return target;
 }
 
+function resolveRequestOrigin(request: FastifyRequest): string {
+	const host = normalizeRequiredString(request.headers.host, 'host');
+	return `${request.protocol}://${host}`;
+}
+
+function resolveSameOriginRedirectTarget(
+	request: FastifyRequest,
+	value: string | undefined,
+): string {
+	const requestOrigin = resolveRequestOrigin(request);
+	const target = value?.trim().length ? value.trim() : `${requestOrigin}/`;
+
+	try {
+		const resolvedUrl = new URL(target, requestOrigin);
+
+		if (
+			(resolvedUrl.protocol !== 'http:' && resolvedUrl.protocol !== 'https:') ||
+			resolvedUrl.origin !== requestOrigin
+		) {
+			throw new AuthRouteError(
+				400,
+				'redirect_to must stay on the current app origin for OAuth flows.',
+			);
+		}
+
+		return resolvedUrl.toString();
+	} catch (error) {
+		if (error instanceof AuthRouteError) {
+			throw error;
+		}
+
+		throw new AuthRouteError(
+			400,
+			'redirect_to must stay on the current app origin for OAuth flows.',
+		);
+	}
+}
+
+function appendOAuthRelayParams(
+	redirectTarget: string,
+	query: OAuthCallbackQueryCandidate | undefined,
+): string {
+	const redirectUrl = new URL(redirectTarget);
+	const authCode = normalizeOptionalString(query?.code);
+	const authError = normalizeOptionalString(query?.error);
+	const authErrorDescription = normalizeOptionalString(query?.error_description);
+
+	if (authCode) {
+		redirectUrl.searchParams.set('auth_code', authCode);
+		redirectUrl.searchParams.delete('auth_error');
+		redirectUrl.searchParams.delete('auth_error_description');
+		return redirectUrl.toString();
+	}
+
+	redirectUrl.searchParams.set('auth_error', authError ?? 'missing_oauth_result');
+
+	if (authErrorDescription) {
+		redirectUrl.searchParams.set('auth_error_description', authErrorDescription);
+	}
+
+	return redirectUrl.toString();
+}
+
+function normalizePkceCodeChallenge(value: unknown): string | undefined {
+	const normalized = normalizeOptionalString(value);
+
+	if (!normalized) {
+		return undefined;
+	}
+
+	if (!/^[A-Za-z0-9._~-]{43,128}$/u.test(normalized)) {
+		throw new AuthRouteError(400, 'code_challenge must be a valid PKCE S256 code challenge.');
+	}
+
+	return normalized;
+}
+
+function normalizePkceCodeChallengeMethod(value: unknown): 'S256' | undefined {
+	const normalized = normalizeOptionalString(value);
+
+	if (!normalized) {
+		return undefined;
+	}
+
+	if (normalized !== 'S256') {
+		throw new AuthRouteError(400, 'code_challenge_method must be S256.');
+	}
+
+	return 'S256';
+}
+
+function parseRefreshToken(body: unknown): string {
+	if (!isRecord(body)) {
+		throw new AuthRouteError(400, 'Request body must be a JSON object.');
+	}
+
+	return normalizeRequiredString(
+		(body as RefreshSessionBodyCandidate).refresh_token,
+		'refresh_token',
+	);
+}
+
+function parseOAuthCodeExchangeBody(body: unknown): {
+	readonly auth_code: string;
+	readonly code_verifier: string;
+} {
+	if (!isRecord(body)) {
+		throw new AuthRouteError(400, 'Request body must be a JSON object.');
+	}
+
+	const bodyCandidate = body as OAuthCodeExchangeBodyCandidate;
+
+	return {
+		auth_code: normalizeRequiredString(bodyCandidate.auth_code, 'auth_code'),
+		code_verifier: normalizeRequiredString(bodyCandidate.code_verifier, 'code_verifier'),
+	};
+}
+
 function isLoopbackRedirectTarget(value: string): boolean {
 	try {
 		const candidateUrl = new URL(value);
@@ -348,12 +497,16 @@ export async function registerAuthRoutes(
 ): Promise<void> {
 	server.get<{ Reply: AuthContextResponse }>('/auth/context', async (request) => ({
 		auth: request.auth,
+		authorization: {
+			role: resolveAuthorizationRole(request.auth),
+		},
 		principal_kind: request.auth.principal.kind,
 		subscription: request.subscription,
 	}));
 
 	server.get<{ Reply: ProtectedAuthResponse }>('/auth/protected', async (request) => {
 		const principal = requireAuthenticatedRequest(request);
+		requireAuthorizationRole(request.auth, 'editor', 'Protected auth route');
 
 		if (principal.kind === 'service') {
 			return {
@@ -454,15 +607,89 @@ export async function registerAuthRoutes(
 			throw new AuthRouteError(400, 'Unsupported OAuth provider.');
 		}
 
-		const redirectToCandidate = queryCandidate?.redirect_to;
+		const redirectToCandidate = resolveSameOriginRedirectTarget(
+			request,
+			normalizeOptionalString(queryCandidate?.redirect_to),
+		);
+		const codeChallenge = normalizePkceCodeChallenge(queryCandidate?.code_challenge);
+		const codeChallengeMethod = normalizePkceCodeChallengeMethod(
+			queryCandidate?.code_challenge_method,
+		);
+
+		if ((codeChallenge && !codeChallengeMethod) || (!codeChallenge && codeChallengeMethod)) {
+			throw new AuthRouteError(
+				400,
+				'code_challenge and code_challenge_method must be provided together for PKCE.',
+			);
+		}
+
 		const authorizeUrl = new URL('/auth/v1/authorize', client.supabase_url);
 		authorizeUrl.searchParams.set('provider', providerValue);
+		authorizeUrl.searchParams.set('redirect_to', redirectToCandidate);
 
-		if (typeof redirectToCandidate === 'string' && redirectToCandidate.trim().length > 0) {
-			authorizeUrl.searchParams.set('redirect_to', redirectToCandidate.trim());
+		if (codeChallenge && codeChallengeMethod) {
+			authorizeUrl.searchParams.set('code_challenge', codeChallenge);
+			authorizeUrl.searchParams.set('code_challenge_method', codeChallengeMethod);
 		}
 
 		return reply.redirect(resolveRedirectTarget(authorizeUrl.toString()));
+	});
+
+	server.get('/auth/oauth/callback', async (request, reply) => {
+		const queryCandidate = isRecord(request.query)
+			? (request.query as OAuthCallbackQueryCandidate)
+			: undefined;
+		const redirectTarget = resolveSameOriginRedirectTarget(
+			request,
+			normalizeOptionalString(queryCandidate?.redirect_to),
+		);
+
+		return reply.redirect(
+			resolveRedirectTarget(appendOAuthRelayParams(redirectTarget, queryCandidate)),
+		);
+	});
+
+	server.post<{ Reply: AuthPasswordActionResponse }>(
+		'/auth/oauth/callback/exchange',
+		async (request) => {
+			const client = resolveSupabaseActionClientOrThrow(options.supabase);
+			const body = parseOAuthCodeExchangeBody(request.body);
+			const payload = await callSupabaseAuthEndpoint(client, {
+				pathname: '/auth/v1/token?grant_type=pkce',
+				payload: {
+					auth_code: body.auth_code,
+					code_verifier: body.code_verifier,
+				},
+			});
+			const session = readSupabaseSessionTokens(payload);
+
+			if (!session) {
+				throw new AuthRouteError(
+					502,
+					'OAuth callback code exchange succeeded but no access token was returned.',
+				);
+			}
+
+			return createAuthenticatedActionResponse(session, request.id, options.verify_token);
+		},
+	);
+
+	server.post<{ Reply: AuthPasswordActionResponse }>('/auth/session/refresh', async (request) => {
+		const client = resolveSupabaseActionClientOrThrow(options.supabase);
+		const refreshToken = parseRefreshToken(request.body);
+		const payload = await callSupabaseAuthEndpoint(client, {
+			pathname: '/auth/v1/token?grant_type=refresh_token',
+			payload: {
+				refresh_token: refreshToken,
+			},
+		});
+		const session = readSupabaseSessionTokens(payload);
+
+		if (!session) {
+			throw new AuthRouteError(502, 'Session refresh succeeded but no access token was returned.');
+		}
+
+		return createAuthenticatedActionResponse(session, request.id, options.verify_token);
 	});
 
 	const environment = options.supabase?.environment;

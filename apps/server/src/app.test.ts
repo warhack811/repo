@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { buildServer } from './app.js';
 import { createLocalDevSessionToken } from './auth/supabase-auth.js';
+import { ConversationStoreWriteError } from './persistence/conversation-store.js';
 import type { StorageObject, StorageProviderAdapter } from './storage/storage-service.js';
 
 function createClaims(overrides: Partial<AuthClaims> = {}): AuthClaims {
@@ -374,6 +375,38 @@ describe('buildServer auth wiring', () => {
 		});
 	});
 
+	it('rejects authenticated viewer-role users on the protected route with a clear authorization error', async () => {
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims({
+						app_metadata: {
+							runa_role: 'viewer',
+						},
+					}),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer viewer-token',
+			},
+			method: 'GET',
+			url: '/auth/protected',
+		});
+
+		expect(response.statusCode).toBe(403);
+		expect(response.json()).toMatchObject({
+			message: 'Protected auth route requires editor authorization. Current role: viewer.',
+			statusCode: 403,
+		});
+	});
+
 	it('exposes a real login action seam backed by the configured Supabase auth surface', async () => {
 		const authFetch = vi.fn<typeof fetch>().mockResolvedValue(
 			new Response(
@@ -526,6 +559,199 @@ describe('buildServer auth wiring', () => {
 			principal_kind: 'authenticated',
 			session: {
 				access_token: accessToken,
+			},
+		});
+	});
+
+	it('relays PKCE parameters through the OAuth start route and rejects cross-origin callback targets', async () => {
+		const server = await buildServer({
+			auth: {
+				supabase: {
+					environment: {
+						SUPABASE_ANON_KEY: 'anon-key',
+						SUPABASE_URL: 'https://project-ref.supabase.co',
+					},
+				},
+			},
+		});
+		serversToClose.push(server);
+
+		const okResponse = await server.inject({
+			headers: {
+				host: 'app.runa.test',
+			},
+			method: 'GET',
+			url: '/auth/oauth/start?provider=github&redirect_to=http%3A%2F%2Fapp.runa.test%2Fauth%2Foauth%2Fcallback&code_challenge=abcdefghijklmnopqrstuvwxyzABCDEFG1234567890-_&code_challenge_method=S256',
+		});
+
+		expect(okResponse.statusCode).toBe(302);
+		expect(okResponse.headers.location).toBe(
+			'https://project-ref.supabase.co/auth/v1/authorize?provider=github&redirect_to=http%3A%2F%2Fapp.runa.test%2Fauth%2Foauth%2Fcallback&code_challenge=abcdefghijklmnopqrstuvwxyzABCDEFG1234567890-_&code_challenge_method=S256',
+		);
+
+		const rejectedResponse = await server.inject({
+			headers: {
+				host: 'app.runa.test',
+			},
+			method: 'GET',
+			url: '/auth/oauth/start?provider=github&redirect_to=https%3A%2F%2Fevil.example%2Fcallback',
+		});
+
+		expect(rejectedResponse.statusCode).toBe(400);
+		expect(rejectedResponse.json()).toMatchObject({
+			message: 'redirect_to must stay on the current app origin for OAuth flows.',
+			statusCode: 400,
+		});
+	});
+
+	it('normalizes the OAuth callback back onto the current app origin before the SPA consumes it', async () => {
+		const server = await buildServer();
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				host: 'app.runa.test',
+			},
+			method: 'GET',
+			url: '/auth/oauth/callback?code=auth-code-1&redirect_to=http%3A%2F%2Fapp.runa.test%2Fchat',
+		});
+
+		expect(response.statusCode).toBe(302);
+		expect(response.headers.location).toBe('http://app.runa.test/chat?auth_code=auth-code-1');
+	});
+
+	it('exchanges an OAuth PKCE callback code through the configured Supabase auth surface', async () => {
+		const authFetch = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+			const url = String(input);
+
+			if (url.endsWith('/auth/v1/token?grant_type=pkce')) {
+				return new Response(
+					JSON.stringify({
+						access_token: 'oauth-access-token',
+						expires_in: 3600,
+						refresh_token: 'oauth-refresh-token',
+						token_type: 'bearer',
+					}),
+					{ status: 200 },
+				);
+			}
+
+			throw new Error(`Unexpected auth fetch URL: ${url}`);
+		});
+		const verifyToken = vi.fn().mockResolvedValue({
+			claims: createClaims(),
+			provider: 'supabase' as const,
+			session: createSession(),
+			user: createUser(),
+		});
+		const server = await buildServer({
+			auth: {
+				supabase: {
+					environment: {
+						SUPABASE_ANON_KEY: 'anon-key',
+						SUPABASE_URL: 'https://project-ref.supabase.co',
+					},
+					fetch: authFetch,
+				},
+				verify_token: verifyToken,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+			payload: {
+				auth_code: 'auth-code-1',
+				code_verifier: 'code-verifier-1',
+			},
+			url: '/auth/oauth/callback/exchange',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(authFetch).toHaveBeenCalledWith(
+			'https://project-ref.supabase.co/auth/v1/token?grant_type=pkce',
+			expect.objectContaining({
+				method: 'POST',
+			}),
+		);
+		expect(verifyToken).toHaveBeenCalledWith(
+			expect.objectContaining({
+				token: 'oauth-access-token',
+			}),
+		);
+		expect(response.json()).toMatchObject({
+			outcome: 'authenticated',
+			session: {
+				access_token: 'oauth-access-token',
+				refresh_token: 'oauth-refresh-token',
+			},
+		});
+	});
+
+	it('refreshes an expiring session through the Supabase refresh-token seam', async () => {
+		const authFetch = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+			const url = String(input);
+
+			if (url.endsWith('/auth/v1/token?grant_type=refresh_token')) {
+				return new Response(
+					JSON.stringify({
+						access_token: 'refreshed-access-token',
+						expires_in: 3600,
+						refresh_token: 'refreshed-refresh-token',
+						token_type: 'bearer',
+					}),
+					{ status: 200 },
+				);
+			}
+
+			throw new Error(`Unexpected auth fetch URL: ${url}`);
+		});
+		const verifyToken = vi.fn().mockResolvedValue({
+			claims: createClaims(),
+			provider: 'supabase' as const,
+			session: createSession(),
+			user: createUser(),
+		});
+		const server = await buildServer({
+			auth: {
+				supabase: {
+					environment: {
+						SUPABASE_ANON_KEY: 'anon-key',
+						SUPABASE_URL: 'https://project-ref.supabase.co',
+					},
+					fetch: authFetch,
+				},
+				verify_token: verifyToken,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+			payload: {
+				refresh_token: 'refresh-token-1',
+			},
+			url: '/auth/session/refresh',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(authFetch).toHaveBeenCalledWith(
+			'https://project-ref.supabase.co/auth/v1/token?grant_type=refresh_token',
+			expect.objectContaining({
+				method: 'POST',
+			}),
+		);
+		expect(response.json()).toMatchObject({
+			outcome: 'authenticated',
+			session: {
+				access_token: 'refreshed-access-token',
+				refresh_token: 'refreshed-refresh-token',
 			},
 		});
 	});
@@ -798,6 +1024,300 @@ describe('buildServer auth wiring', () => {
 		expect(readyMessage).toContain('"type":"connection.ready"');
 		socket.close();
 		await closePromise;
+	});
+
+	it('lists authenticated conversations through the injected conversation route seam', async () => {
+		const listConversations = vi.fn().mockResolvedValue([
+			{
+				access_role: 'owner',
+				conversation_id: 'conversation_1',
+				created_at: '2026-04-22T10:00:00.000Z',
+				last_message_at: '2026-04-22T10:05:00.000Z',
+				last_message_preview: 'Follow-up question',
+				owner_user_id: 'user_1',
+				title: 'First conversation',
+				updated_at: '2026-04-22T10:05:00.000Z',
+			},
+		]);
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			conversations: {
+				list_conversations: listConversations,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'GET',
+			url: '/conversations',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(listConversations).toHaveBeenCalledWith(
+			expect.objectContaining({
+				session_id: 'session_1',
+				tenant_id: 'tenant_1',
+				user_id: 'user_1',
+				workspace_id: 'workspace_1',
+			}),
+		);
+		expect(response.json()).toEqual({
+			conversations: [
+				{
+					access_role: 'owner',
+					conversation_id: 'conversation_1',
+					created_at: '2026-04-22T10:00:00.000Z',
+					last_message_at: '2026-04-22T10:05:00.000Z',
+					last_message_preview: 'Follow-up question',
+					owner_user_id: 'user_1',
+					title: 'First conversation',
+					updated_at: '2026-04-22T10:05:00.000Z',
+				},
+			],
+		});
+	});
+
+	it('returns persisted messages for the selected authenticated conversation', async () => {
+		const listConversationMessages = vi.fn().mockResolvedValue([
+			{
+				content: 'Hello again',
+				conversation_id: 'conversation_1',
+				created_at: '2026-04-22T10:05:00.000Z',
+				message_id: 'message_1',
+				role: 'user',
+				run_id: 'run_1',
+				sequence_no: 1,
+				trace_id: 'trace_1',
+			},
+			{
+				content: 'Merhaba, devam edelim.',
+				conversation_id: 'conversation_1',
+				created_at: '2026-04-22T10:05:10.000Z',
+				message_id: 'message_2',
+				role: 'assistant',
+				run_id: 'run_1',
+				sequence_no: 2,
+				trace_id: 'trace_1',
+			},
+		]);
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			conversations: {
+				list_conversation_messages: listConversationMessages,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'GET',
+			url: '/conversations/conversation_1/messages',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(listConversationMessages).toHaveBeenCalledWith(
+			'conversation_1',
+			expect.objectContaining({
+				session_id: 'session_1',
+				tenant_id: 'tenant_1',
+				user_id: 'user_1',
+				workspace_id: 'workspace_1',
+			}),
+		);
+		expect(response.json()).toEqual({
+			conversation_id: 'conversation_1',
+			messages: [
+				{
+					content: 'Hello again',
+					conversation_id: 'conversation_1',
+					created_at: '2026-04-22T10:05:00.000Z',
+					message_id: 'message_1',
+					role: 'user',
+					run_id: 'run_1',
+					sequence_no: 1,
+					trace_id: 'trace_1',
+				},
+				{
+					content: 'Merhaba, devam edelim.',
+					conversation_id: 'conversation_1',
+					created_at: '2026-04-22T10:05:10.000Z',
+					message_id: 'message_2',
+					role: 'assistant',
+					run_id: 'run_1',
+					sequence_no: 2,
+					trace_id: 'trace_1',
+				},
+			],
+		});
+	});
+
+	it('lists shared conversation members for authenticated viewers', async () => {
+		const listConversationMembers = vi.fn().mockResolvedValue([
+			{
+				added_by_user_id: 'owner_user',
+				conversation_id: 'conversation_1',
+				created_at: '2026-04-22T10:01:00.000Z',
+				member_role: 'viewer',
+				member_user_id: 'viewer_user',
+				updated_at: '2026-04-22T10:01:00.000Z',
+			},
+		]);
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			conversations: {
+				list_conversation_members: listConversationMembers,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'GET',
+			url: '/conversations/conversation_1/members',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(listConversationMembers).toHaveBeenCalledWith(
+			'conversation_1',
+			expect.objectContaining({
+				session_id: 'session_1',
+				tenant_id: 'tenant_1',
+				user_id: 'user_1',
+				workspace_id: 'workspace_1',
+			}),
+		);
+		expect(response.json()).toEqual({
+			conversation_id: 'conversation_1',
+			members: [
+				{
+					added_by_user_id: 'owner_user',
+					conversation_id: 'conversation_1',
+					created_at: '2026-04-22T10:01:00.000Z',
+					member_role: 'viewer',
+					member_user_id: 'viewer_user',
+					updated_at: '2026-04-22T10:01:00.000Z',
+				},
+			],
+		});
+	});
+
+	it('allows owners to share a conversation member through the route seam', async () => {
+		const shareConversationWithMember = vi.fn().mockResolvedValue({
+			added_by_user_id: 'user_1',
+			conversation_id: 'conversation_1',
+			created_at: '2026-04-22T10:01:00.000Z',
+			member_role: 'editor',
+			member_user_id: 'user_2',
+			updated_at: '2026-04-22T10:01:00.000Z',
+		});
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			conversations: {
+				share_conversation_with_member: shareConversationWithMember,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'POST',
+			payload: {
+				member_role: 'editor',
+				member_user_id: 'user_2',
+			},
+			url: '/conversations/conversation_1/members',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(shareConversationWithMember).toHaveBeenCalledWith({
+			conversation_id: 'conversation_1',
+			member_role: 'editor',
+			member_user_id: 'user_2',
+			scope: expect.objectContaining({
+				session_id: 'session_1',
+				tenant_id: 'tenant_1',
+				user_id: 'user_1',
+				workspace_id: 'workspace_1',
+			}),
+		});
+	});
+
+	it('surfaces viewer/editor sharing validation as a bad request', async () => {
+		const shareConversationWithMember = vi
+			.fn()
+			.mockRejectedValue(
+				new ConversationStoreWriteError('Conversation member user id is invalid.'),
+			);
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			conversations: {
+				share_conversation_with_member: shareConversationWithMember,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'POST',
+			payload: {
+				member_role: 'viewer',
+				member_user_id: '   ',
+			},
+			url: '/conversations/conversation_1/members',
+		});
+
+		expect(response.statusCode).toBe(400);
+		expect(response.json()).toEqual({
+			error: 'Bad Request',
+			message: 'Conversation member user id is invalid.',
+			statusCode: 400,
+		});
 	});
 
 	it('exposes a logout action seam that attempts remote Supabase sign-out before the client clears local state', async () => {

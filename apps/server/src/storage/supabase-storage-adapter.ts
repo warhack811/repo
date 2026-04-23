@@ -179,7 +179,12 @@ function parseStorageObjectPath(path: string, pathPrefix: string): ParsedStorage
 	const kind = decodeRequiredPathValue(getRequiredPathSegment(relativeSegments, 4, path));
 	const ownerKind = decodeRequiredPathValue(getRequiredPathSegment(relativeSegments, 6, path));
 
-	if (kind !== 'screenshot' && kind !== 'tool_output') {
+	if (
+		kind !== 'attachment_image' &&
+		kind !== 'attachment_text' &&
+		kind !== 'screenshot' &&
+		kind !== 'tool_output'
+	) {
 		throw new Error(`Unsupported Supabase storage blob kind: ${kind}`);
 	}
 
