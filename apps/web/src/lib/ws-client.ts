@@ -1,10 +1,8 @@
 import {
 	isConnectionReadyServerMessage,
-	isPresentationBlocksServerMessage,
 	isRunAcceptedServerMessage,
-	isRunFinishedServerMessage,
-	isRunRejectedServerMessage,
 	isRuntimeEventServerMessage,
+	isWebSocketServerBridgeMessage,
 } from '@runa/types';
 
 import { uiCopy } from '../localization/copy.js';
@@ -41,15 +39,7 @@ export function parseServerMessage(raw: string): WebSocketServerBridgeMessage {
 		return parsed;
 	}
 
-	if (isRunRejectedServerMessage(parsed)) {
-		return parsed;
-	}
-
-	if (isRunFinishedServerMessage(parsed)) {
-		return parsed;
-	}
-
-	if (isPresentationBlocksServerMessage(parsed)) {
+	if (isWebSocketServerBridgeMessage(parsed)) {
 		return parsed;
 	}
 

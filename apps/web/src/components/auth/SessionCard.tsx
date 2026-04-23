@@ -33,7 +33,7 @@ export function SessionCard({
 	const expiresAt = formatTimestamp(authContext.session?.expires_at ?? authContext.claims?.exp);
 
 	return (
-		<article style={appShellPanelStyle}>
+		<article style={appShellPanelStyle} className="runa-card">
 			<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
 				<div style={appShellSecondaryLabelStyle}>oturum</div>
 				<h3 style={{ margin: 0, fontSize: '22px' }}>Oturum durumu</h3>
@@ -61,6 +61,7 @@ export function SessionCard({
 						...appShellMetricCardStyle,
 						borderColor: 'rgba(245, 158, 11, 0.18)',
 					}}
+					className="runa-metric"
 				>
 					<div style={appShellSecondaryLabelStyle}>durum</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
@@ -82,6 +83,7 @@ export function SessionCard({
 						...appShellMetricCardStyle,
 						borderColor: 'rgba(96, 165, 250, 0.18)',
 					}}
+					className="runa-metric"
 				>
 					<div style={appShellSecondaryLabelStyle}>giris</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
@@ -98,6 +100,7 @@ export function SessionCard({
 						...appShellMetricCardStyle,
 						borderColor: 'rgba(148, 163, 184, 0.18)',
 					}}
+					className="runa-metric"
 				>
 					<div style={appShellSecondaryLabelStyle}>basladi</div>
 					<div style={{ color: '#f8fafc', fontSize: '15px', fontWeight: 700 }}>{issuedAt}</div>
@@ -108,6 +111,7 @@ export function SessionCard({
 						...appShellMetricCardStyle,
 						borderColor: 'rgba(148, 163, 184, 0.18)',
 					}}
+					className="runa-metric"
 				>
 					<div style={appShellSecondaryLabelStyle}>sona erer</div>
 					<div style={{ color: '#f8fafc', fontSize: '15px', fontWeight: 700 }}>{expiresAt}</div>

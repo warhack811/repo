@@ -1,3 +1,4 @@
+import { defaultGatewayModels, gatewayProviders } from '@runa/types';
 import type { CSSProperties, ReactElement } from 'react';
 
 import { uiCopy } from '../../localization/copy.js';
@@ -166,8 +167,11 @@ export function OperatorControlsPanel({
 						onChange={(event) => onProviderChange(event.target.value as GatewayProvider)}
 						style={inputStyle}
 					>
-						<option value="groq">groq</option>
-						<option value="claude">claude</option>
+						{gatewayProviders.map((providerOption) => (
+							<option key={providerOption} value={providerOption}>
+								{providerOption}
+							</option>
+						))}
 					</select>
 				</label>
 
@@ -176,7 +180,7 @@ export function OperatorControlsPanel({
 					<input
 						value={model}
 						onChange={(event) => onModelChange(event.target.value)}
-						placeholder="llama-3.3-70b-versatile"
+						placeholder={defaultGatewayModels[provider]}
 						style={inputStyle}
 					/>
 				</label>

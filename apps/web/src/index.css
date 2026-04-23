@@ -1,11 +1,12 @@
 :root {
-	--font-body: "Inter", "Segoe UI", sans-serif;
-	--font-heading: "Outfit", "Inter", "Segoe UI", sans-serif;
+	--font-body: "Outfit", "Segoe UI", sans-serif;
+	--font-heading: "Sora", "Outfit", "Segoe UI", sans-serif;
 	--color-bg: 221 39% 8%;
 	--color-bg-elevated: 222 33% 12%;
 	--color-bg-soft: 217 28% 17%;
 	--color-surface: 222 31% 15%;
 	--color-surface-strong: 222 31% 18%;
+	--color-surface-overlay: 222 27% 10%;
 	--color-border: 215 20% 65%;
 	--color-border-soft: 215 18% 30%;
 	--color-text: 210 40% 96%;
@@ -17,13 +18,44 @@
 	--color-success: 142 71% 45%;
 	--color-danger: 0 84% 67%;
 	--shadow-panel: 0 24px 60px rgba(2, 6, 23, 0.42);
+	--shadow-panel-soft: 0 18px 40px rgba(2, 6, 23, 0.28);
 	--shadow-glow: 0 0 0 1px rgba(245, 158, 11, 0.12), 0 24px 80px rgba(245, 158, 11, 0.1);
+	--shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 	--radius-panel: 24px;
 	--radius-soft: 18px;
+	--radius-pill: 999px;
+	--space-page-y: clamp(18px, 4vw, 32px);
+	--space-page-x: clamp(12px, 3vw, 16px);
+	--space-panel: clamp(18px, 3vw, 24px);
+	--space-subcard: 16px;
 	--page-background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.12), transparent 24%),
 		radial-gradient(circle at top right, rgba(148, 163, 184, 0.1), transparent 28%),
 		radial-gradient(circle at bottom center, rgba(120, 113, 108, 0.12), transparent 30%),
 		linear-gradient(180deg, hsl(var(--color-bg)) 0%, #090d16 100%);
+	--gradient-panel: linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 15, 27, 0.76) 100%);
+	--gradient-panel-strong: linear-gradient(
+		180deg,
+		rgba(12, 18, 31, 0.9) 0%,
+		rgba(9, 14, 25, 0.82) 100%
+	);
+	--gradient-subcard: linear-gradient(180deg, rgba(8, 13, 24, 0.78) 0%, rgba(4, 9, 19, 0.72) 100%);
+	--gradient-input: linear-gradient(180deg, rgba(8, 14, 24, 0.88) 0%, rgba(6, 11, 21, 0.78) 100%);
+	--gradient-primary-button: linear-gradient(135deg, #f59e0b, #ea580c);
+	--gradient-secondary-button: linear-gradient(
+		180deg,
+		rgba(15, 23, 42, 0.72) 0%,
+		rgba(9, 14, 25, 0.7) 100%
+	);
+	--gradient-secondary-button-active: radial-gradient(
+			circle at top right,
+			rgba(245, 158, 11, 0.12),
+			transparent 42%
+		), linear-gradient(180deg, rgba(46, 29, 8, 0.76) 0%, rgba(15, 23, 42, 0.82) 100%);
+	--safe-area-top: env(safe-area-inset-top, 0px);
+	--safe-area-right: env(safe-area-inset-right, 0px);
+	--safe-area-bottom: env(safe-area-inset-bottom, 0px);
+	--safe-area-left: env(safe-area-inset-left, 0px);
+	--app-shell-sticky-offset: calc(var(--safe-area-top) + 12px);
 }
 
 *,
@@ -35,18 +67,21 @@
 html {
 	color-scheme: dark;
 	scroll-behavior: smooth;
+	background: #090d16;
 }
 
 body {
 	margin: 0;
 	min-width: 320px;
 	min-height: 100vh;
+	min-height: 100dvh;
 	background: var(--page-background);
 	color: hsl(var(--color-text));
 	font-family: var(--font-body);
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	overscroll-behavior-y: none;
 }
 
 body::before {
@@ -63,7 +98,296 @@ body::before {
 
 #root {
 	min-height: 100vh;
+	min-height: 100dvh;
 	isolation: isolate;
+}
+
+.runa-page {
+	min-height: 100vh;
+	min-height: 100dvh;
+	background: var(--page-background);
+	color: hsl(var(--color-text));
+	font-family: var(--font-body);
+	padding: calc(var(--space-page-y) + var(--safe-area-top))
+		calc(var(--space-page-x) + var(--safe-area-right))
+		calc(var(--space-page-y) + var(--safe-area-bottom))
+		calc(var(--space-page-x) + var(--safe-area-left));
+}
+
+.runa-shell-frame {
+	margin: 0 auto;
+	width: min(100%, 1180px);
+	display: grid;
+	gap: clamp(16px, 3vw, 20px);
+	min-width: 0;
+}
+
+.runa-shell-frame--chat {
+	max-width: 1080px;
+	width: min(100%, 1080px);
+}
+
+.runa-page--app-shell {
+	scroll-padding-top: calc(var(--app-shell-sticky-offset) + 120px);
+}
+
+.runa-shell-frame--app {
+	width: min(100%, 1180px);
+}
+
+.runa-app-shell-header {
+	position: sticky;
+	top: var(--app-shell-sticky-offset);
+	z-index: 20;
+}
+
+.runa-app-shell-header__top {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin-bottom: 18px;
+}
+
+.runa-app-shell-header__copy {
+	display: grid;
+	gap: 10px;
+	max-width: min(760px, 100%);
+	min-width: 0;
+}
+
+.runa-app-shell-status-pill {
+	align-self: start;
+}
+
+.runa-app-shell-nav,
+.runa-app-shell-main {
+	display: grid;
+	gap: 20px;
+	min-width: 0;
+}
+
+.runa-card {
+	position: relative;
+	overflow: hidden;
+	display: grid;
+	gap: 16px;
+	padding: var(--space-panel);
+	border-radius: var(--radius-panel);
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	background: var(--gradient-panel);
+	box-shadow: var(--shadow-panel);
+	backdrop-filter: blur(12px);
+	transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms
+		ease, background 220ms ease;
+}
+
+.runa-card--hero {
+	border-color: rgba(245, 158, 11, 0.24);
+	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
+		linear-gradient(180deg, rgba(20, 26, 40, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%);
+}
+
+.runa-card--strong {
+	background: var(--gradient-panel-strong);
+}
+
+.runa-card--chat {
+	background: linear-gradient(180deg, rgba(12, 18, 31, 0.88) 0%, rgba(7, 11, 20, 0.74) 100%);
+}
+
+.runa-card--subtle {
+	padding: var(--space-subcard);
+	border-radius: var(--radius-soft);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: var(--gradient-subcard);
+	box-shadow: var(--shadow-panel-soft);
+}
+
+.runa-card--soft-grid {
+	display: grid;
+	gap: 12px;
+}
+
+.runa-card__header {
+	display: grid;
+	gap: 8px;
+}
+
+.runa-grid {
+	display: grid;
+	gap: 20px;
+}
+
+.runa-grid--two {
+	grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+	align-items: start;
+}
+
+.runa-grid--metrics {
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	gap: 12px;
+}
+
+.runa-grid--actions {
+	grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+	gap: 10px;
+}
+
+.runa-inline-cluster {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.runa-input {
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 10px 12px;
+	border-radius: 14px;
+	border: 1px solid rgba(148, 163, 184, 0.24);
+	background: var(--gradient-input);
+	color: hsl(var(--color-text));
+	font-size: 14px;
+	box-shadow: var(--shadow-inset);
+	transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease, transform 180ms
+		ease;
+}
+
+.runa-input::placeholder {
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-input:hover {
+	border-color: rgba(148, 163, 184, 0.36);
+}
+
+.runa-input--textarea {
+	padding: 14px 16px;
+	min-height: 140px;
+	resize: vertical;
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+.runa-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 12px 16px;
+	border-radius: 14px;
+	font-weight: 700;
+	cursor: pointer;
+	text-decoration: none;
+	transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease, border-color 180ms
+		ease, background 180ms ease;
+}
+
+.runa-button:hover:not(:disabled) {
+	transform: translateY(-1px);
+}
+
+.runa-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.runa-button--primary {
+	border: none;
+	background: var(--gradient-primary-button);
+	color: var(--color-accent-foreground);
+	box-shadow: 0 18px 32px rgba(234, 88, 12, 0.22);
+}
+
+.runa-button--secondary {
+	border: 1px solid rgba(148, 163, 184, 0.28);
+	background: var(--gradient-secondary-button);
+	color: hsl(var(--color-text));
+	box-shadow: var(--shadow-inset);
+}
+
+.runa-button--secondary-active {
+	border-color: rgba(245, 158, 11, 0.34);
+	background: var(--gradient-secondary-button-active);
+	color: hsl(var(--color-text));
+	box-shadow: var(--shadow-glow);
+}
+
+.runa-button--danger {
+	border-color: rgba(248, 113, 113, 0.36);
+	color: #fecaca;
+}
+
+.runa-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-radius: var(--radius-pill);
+	border: 1px solid rgba(245, 158, 11, 0.28);
+	background: rgba(36, 24, 8, 0.7);
+	color: #fde68a;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+
+.runa-alert {
+	padding: 12px 14px;
+	border-radius: 14px;
+	line-height: 1.5;
+}
+
+.runa-alert--info {
+	background: rgba(8, 47, 73, 0.28);
+	border: 1px solid rgba(56, 189, 248, 0.36);
+	color: #bae6fd;
+}
+
+.runa-alert--warning {
+	background: rgba(120, 53, 15, 0.16);
+	border: 1px solid rgba(250, 204, 21, 0.32);
+	color: #fde68a;
+}
+
+.runa-alert--danger {
+	background: rgba(127, 29, 29, 0.28);
+	border: 1px solid rgba(248, 113, 113, 0.36);
+	color: #fecaca;
+}
+
+.runa-metric {
+	display: grid;
+	gap: 8px;
+	padding: 14px 16px;
+	border-radius: 18px;
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.runa-muted {
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-muted--soft {
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-empty-state {
+	border-radius: 14px;
+	border: 1px dashed rgba(148, 163, 184, 0.24);
+	padding: 20px;
+	color: hsl(var(--color-text-soft));
 }
 
 img,
@@ -228,4 +552,221 @@ pre {
 .runa-subtle-copy {
 	color: hsl(var(--color-text-muted));
 	line-height: 1.7;
+}
+
+.runa-markdown {
+	display: grid;
+	gap: 12px;
+	color: hsl(var(--color-text));
+	line-height: 1.75;
+	word-break: break-word;
+}
+
+.runa-markdown__paragraph {
+	color: inherit;
+}
+
+.runa-markdown__heading {
+	color: hsl(var(--color-text));
+	font-size: clamp(1rem, 2vw, 1.125rem);
+}
+
+.runa-markdown__list {
+	display: grid;
+	gap: 8px;
+	padding-left: 1.25rem;
+	color: inherit;
+}
+
+.runa-markdown__list li {
+	padding-left: 0.15rem;
+}
+
+.runa-markdown__table-wrap {
+	width: 100%;
+	overflow-x: auto;
+	border-radius: 16px;
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	background: rgba(8, 14, 24, 0.56);
+}
+
+.runa-markdown__table {
+	width: 100%;
+	border-collapse: collapse;
+	min-width: 320px;
+}
+
+.runa-markdown__table th,
+.runa-markdown__table td {
+	padding: 10px 12px;
+	border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+	text-align: left;
+	vertical-align: top;
+}
+
+.runa-markdown__table th {
+	color: #f8fafc;
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	background: rgba(15, 23, 42, 0.6);
+}
+
+.runa-markdown__table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.runa-markdown__inline-code {
+	display: inline-block;
+	padding: 0.08rem 0.42rem;
+	margin: 0 0.1rem;
+	border-radius: 999px;
+	border: 1px solid rgba(148, 163, 184, 0.22);
+	background: rgba(15, 23, 42, 0.76);
+	color: #fde68a;
+	font-size: 0.92em;
+}
+
+.runa-markdown__code-block {
+	display: grid;
+	gap: 10px;
+	padding: 14px 16px;
+	border-radius: 18px;
+	border: 1px solid rgba(56, 189, 248, 0.2);
+	background: linear-gradient(180deg, rgba(8, 14, 24, 0.92) 0%, rgba(4, 9, 19, 0.88) 100%);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	overflow-x: auto;
+	white-space: pre-wrap;
+}
+
+.runa-markdown__code-block code {
+	color: #dbeafe;
+}
+
+.runa-markdown__code-label {
+	color: #7dd3fc;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.runa-markdown__link {
+	color: #7dd3fc;
+	text-decoration: underline;
+	text-decoration-color: rgba(125, 211, 252, 0.42);
+	text-underline-offset: 0.18rem;
+}
+
+.runa-markdown__link:hover {
+	color: #bae6fd;
+}
+
+.runa-streaming-response {
+	color: hsl(var(--color-text));
+	line-height: 1.75;
+	word-break: break-word;
+}
+
+.runa-markdown--streaming::after {
+	content: "";
+	display: inline-block;
+	width: 0.7ch;
+	height: 1.1em;
+	margin-left: 0.18rem;
+	vertical-align: -0.12em;
+	border-radius: 999px;
+	background: linear-gradient(180deg, rgba(251, 191, 36, 0.95), rgba(234, 88, 12, 0.95));
+	animation: runa-stream-caret 1s steps(1, end) infinite;
+}
+
+@keyframes runa-stream-caret {
+	0%,
+	49% {
+		opacity: 1;
+	}
+
+	50%,
+	100% {
+		opacity: 0.22;
+	}
+}
+
+@media (max-width: 1024px) {
+	.runa-shell-frame,
+	.runa-shell-frame--chat,
+	.runa-shell-frame--app {
+		width: 100%;
+	}
+
+	.runa-app-shell-header__top {
+		gap: 14px;
+	}
+}
+
+@media (max-width: 768px) {
+	body::before {
+		background-size: 56px 56px;
+		opacity: 0.16;
+	}
+
+	.runa-shell-frame,
+	.runa-shell-frame--chat,
+	.runa-shell-frame--app {
+		gap: 14px;
+	}
+
+	.runa-card {
+		border-radius: 20px;
+	}
+
+	.runa-app-shell-header {
+		top: calc(var(--safe-area-top) + 8px);
+	}
+
+	.runa-app-shell-header__top {
+		flex-direction: column;
+		align-items: stretch;
+		margin-bottom: 14px;
+	}
+
+	.runa-app-shell-status-pill {
+		width: fit-content;
+	}
+
+	.runa-nav-meta {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.runa-developer-toggle {
+		width: 100%;
+		justify-content: space-between;
+	}
+}
+
+@media (max-width: 480px) {
+	:root {
+		--space-page-y: 12px;
+		--space-page-x: 10px;
+		--space-panel: 16px;
+		--space-subcard: 14px;
+	}
+
+	.runa-card {
+		border-radius: 18px;
+	}
+
+	.runa-app-shell-header {
+		top: calc(var(--safe-area-top) + 6px);
+	}
+
+	.runa-button,
+	.runa-developer-toggle {
+		min-height: 46px;
+	}
+
+	.runa-markdown__table {
+		min-width: 280px;
+	}
 }

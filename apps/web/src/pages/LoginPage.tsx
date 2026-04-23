@@ -35,9 +35,6 @@ type LoginPageProps = Readonly<{
 }>;
 
 const shellStyle: CSSProperties = {
-	margin: '0 auto',
-	maxWidth: '1080px',
-	width: 'min(100%, 1080px)',
 	display: 'grid',
 	gap: '20px',
 	minWidth: 0,
@@ -165,15 +162,19 @@ export function LoginPage({
 	}, [shouldRenderCredentialFields]);
 
 	return (
-		<div style={pageStyle}>
-			<main style={shellStyle} aria-busy={isAuthPending}>
+		<div className="runa-page" style={pageStyle}>
+			<main
+				className="runa-shell-frame runa-shell-frame--chat"
+				style={shellStyle}
+				aria-busy={isAuthPending}
+			>
 				<header
 					style={{
 						...heroPanelStyle,
 						background:
 							'radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 32%), linear-gradient(180deg, rgba(20, 26, 40, 0.94) 0%, rgba(15, 23, 42, 0.84) 100%)',
 					}}
-					className="runa-ambient-panel"
+					className="runa-card runa-card--hero runa-ambient-panel"
 				>
 					<div
 						style={{
@@ -210,7 +211,7 @@ export function LoginPage({
 								'radial-gradient(circle at top left, rgba(96, 165, 250, 0.08), transparent 28%), linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 16, 28, 0.76) 100%)',
 						}}
 						aria-labelledby="login-bootstrap-heading"
-						className="runa-ambient-panel"
+						className="runa-card runa-ambient-panel"
 					>
 						<div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
 							<div style={secondaryLabelStyle}>{uiCopy.auth.statusBootstrapping}</div>
@@ -222,7 +223,7 @@ export function LoginPage({
 							</div>
 						</div>
 
-						<div style={{ ...subcardStyle, display: 'grid', gap: '12px' }}>
+						<div className="runa-card runa-card--subtle runa-card--soft-grid" style={subcardStyle}>
 							<div>
 								<div style={secondaryLabelStyle}>principal</div>
 								<div style={{ marginTop: '6px', fontSize: '16px', color: '#f8fafc' }}>
@@ -250,10 +251,8 @@ export function LoginPage({
 									...statusMessageStyle,
 									...subcardStyle,
 									marginTop: '16px',
-									background: 'rgba(8, 47, 73, 0.28)',
-									border: '1px solid rgba(56, 189, 248, 0.36)',
-									color: '#bae6fd',
 								}}
+								className="runa-alert runa-alert--info"
 							>
 								{authNotice}
 							</output>
@@ -266,10 +265,8 @@ export function LoginPage({
 									...statusMessageStyle,
 									...subcardStyle,
 									marginTop: '16px',
-									background: 'rgba(127, 29, 29, 0.28)',
-									border: '1px solid rgba(248, 113, 113, 0.36)',
-									color: '#fecaca',
 								}}
+								className="runa-alert runa-alert--danger"
 							>
 								{authError}
 							</div>
@@ -285,6 +282,7 @@ export function LoginPage({
 										...sharedSecondaryButtonStyle,
 										opacity: isAuthPending ? 0.6 : 1,
 									}}
+									className="runa-button runa-button--secondary"
 								>
 									{uiCopy.auth.devSession}
 								</button>
@@ -297,6 +295,7 @@ export function LoginPage({
 									...sharedSecondaryButtonStyle,
 									opacity: isAuthPending ? 0.6 : 1,
 								}}
+								className="runa-button runa-button--secondary"
 							>
 								{uiCopy.auth.refreshAuthContext}
 							</button>
@@ -308,6 +307,7 @@ export function LoginPage({
 									...sharedSecondaryButtonStyle,
 									opacity: isAuthPending || !hasStoredBearerToken ? 0.6 : 1,
 								}}
+								className="runa-button runa-button--secondary"
 							>
 								{uiCopy.auth.clearStoredToken}
 							</button>
@@ -322,7 +322,7 @@ export function LoginPage({
 						}}
 						aria-labelledby="login-auth-form-heading"
 						aria-describedby="login-auth-form-description"
-						className="runa-ambient-panel"
+						className="runa-card runa-ambient-panel"
 					>
 						<div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
 							<div style={secondaryLabelStyle}>{authCardLabel}</div>
@@ -364,6 +364,7 @@ export function LoginPage({
 												type="email"
 												autoComplete={authMode === 'login' ? 'email' : 'username'}
 												style={sharedInputStyle}
+												className="runa-input"
 											/>
 										</label>
 
@@ -380,6 +381,7 @@ export function LoginPage({
 												type="password"
 												autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
 												style={sharedInputStyle}
+												className="runa-input"
 											/>
 										</label>
 									</>
@@ -392,6 +394,7 @@ export function LoginPage({
 											placeholder={uiCopy.auth.tokenPlaceholder}
 											type="password"
 											style={sharedInputStyle}
+											className="runa-input"
 										/>
 									</label>
 								)}
@@ -414,6 +417,7 @@ export function LoginPage({
 										opacity: isAuthPending ? 0.6 : 1,
 										width: '100%',
 									}}
+									className="runa-button runa-button--primary"
 								>
 									{isAuthPending ? pendingLabel : submitLabel}
 								</button>

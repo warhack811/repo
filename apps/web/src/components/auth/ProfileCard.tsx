@@ -105,7 +105,7 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 		authContext.user?.email_verified ?? authContext.claims?.email_verified ?? false;
 
 	return (
-		<article style={appShellPanelStyle} className="runa-ambient-panel">
+		<article style={appShellPanelStyle} className="runa-card runa-ambient-panel">
 			<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
 				<div style={appShellSecondaryLabelStyle}>profil</div>
 				<h3 style={{ margin: 0, fontSize: '22px' }}>{getProfileTitle(authContext)}</h3>
@@ -118,6 +118,7 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 						...appShellMetricCardStyle,
 						borderColor: 'rgba(245, 158, 11, 0.18)',
 					}}
+					className="runa-metric"
 				>
 					<div style={appShellSecondaryLabelStyle}>hesap ozeti</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
@@ -136,6 +137,7 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 						...appShellMetricCardStyle,
 						borderColor: 'rgba(96, 165, 250, 0.18)',
 					}}
+					className="runa-metric"
 				>
 					<div style={appShellSecondaryLabelStyle}>e-posta</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
@@ -148,6 +150,7 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 						...appShellMetricCardStyle,
 						borderColor: 'rgba(148, 163, 184, 0.18)',
 					}}
+					className="runa-metric"
 				>
 					<div style={appShellSecondaryLabelStyle}>giris yontemi</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>

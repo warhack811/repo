@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+	<defs>
+		<linearGradient id="runaGradient" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#f59e0b" />
+			<stop offset="1" stop-color="#ea580c" />
+		</linearGradient>
+	</defs>
+	<rect width="64" height="64" rx="18" fill="#090d16" />
+	<rect x="6" y="6" width="52" height="52" rx="16" fill="url(#runaGradient)" opacity="0.12" />
+	<path
+		d="M20 16H33.5C42.6127 16 48 21.3795 48 29.8471C48 37.1719 44.0161 41.5212 37.0818 42.7401L49 48H39.0929L28.9582 43.0249H26.375V48H20V16ZM26.375 22.0415V37.2241H33.1201C38.7408 37.2241 41.4411 34.6563 41.4411 29.7597C41.4411 24.7293 38.6076 22.0415 33.0757 22.0415H26.375Z"
+		fill="url(#runaGradient)"
+	/>
+</svg>

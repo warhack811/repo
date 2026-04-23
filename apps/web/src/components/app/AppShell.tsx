@@ -9,12 +9,16 @@ import {
 import { uiCopy } from '../../localization/copy.js';
 import { AppNav, type AuthenticatedPageId } from './AppNav.js';
 
-export const appShellPageStyle: CSSProperties = pageStyle;
+export const appShellPageStyle: CSSProperties = {
+	...pageStyle,
+	minHeight: '100dvh',
+	padding: `calc(var(--space-page-y) + var(--safe-area-top))
+		calc(var(--space-page-x) + var(--safe-area-right))
+		calc(var(--space-page-y) + var(--safe-area-bottom))
+		calc(var(--space-page-x) + var(--safe-area-left))`,
+};
 
 const shellFrameStyle: CSSProperties = {
-	margin: '0 auto',
-	maxWidth: '1180px',
-	width: 'min(100%, 1180px)',
 	display: 'grid',
 	gap: 'clamp(16px, 3vw, 20px)',
 	minWidth: 0,
@@ -132,23 +136,14 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 			: uiCopy.appShell.authenticatedSession;
 
 	return (
-		<div style={appShellPageStyle}>
-			<div style={shellFrameStyle}>
+		<div className="runa-page runa-page--app-shell" style={appShellPageStyle}>
+			<div className="runa-shell-frame runa-shell-frame--app" style={shellFrameStyle}>
 				<header
 					style={{ ...appShellHeroPanelStyle, ...shellHeaderStyle }}
-					className="runa-ambient-panel"
+					className="runa-card runa-card--hero runa-ambient-panel runa-app-shell-header"
 				>
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'flex-start',
-							gap: '16px',
-							flexWrap: 'wrap',
-							marginBottom: '18px',
-						}}
-					>
-						<div style={{ display: 'grid', gap: '10px', maxWidth: 'min(760px, 100%)' }}>
+					<div className="runa-app-shell-header__top">
+						<div className="runa-app-shell-header__copy">
 							<div className="runa-eyebrow">{pageCopy.eyebrow.toUpperCase()}</div>
 							<h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 38px)' }}>{pageCopy.title}</h1>
 							<p style={appShellMutedTextStyle}>{pageCopy.subtitle}</p>
@@ -156,17 +151,23 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 						<div
 							style={{
 								...pillStyle,
-								alignSelf: 'start',
 							}}
+							className="runa-pill runa-app-shell-status-pill"
 						>
 							{statusLabel}
 						</div>
 					</div>
 
-					<AppNav activePage={activePage} />
+					<div className="runa-app-shell-nav">
+						<AppNav activePage={activePage} />
+					</div>
 				</header>
 
-				<main id="authenticated-app-content" style={shellMainStyle}>
+				<main
+					id="authenticated-app-content"
+					style={shellMainStyle}
+					className="runa-app-shell-main"
+				>
 					{children}
 				</main>
 			</div>

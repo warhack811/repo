@@ -83,6 +83,7 @@ export function AuthModeTabs({
 							...tabButtonStyle,
 							...(isActive ? activeTabButtonStyle : null),
 						}}
+						className={`runa-button ${isActive ? 'runa-button--secondary-active' : 'runa-button--secondary'}`}
 					>
 						{isActive ? (
 							<span

@@ -46,7 +46,7 @@ type OAuthButtonsProps = Readonly<{
 
 export function OAuthButtons({ isDisabled, onStartOAuth }: OAuthButtonsProps): ReactElement {
 	return (
-		<div style={{ ...subcardStyle, display: 'grid', gap: '12px' }}>
+		<div className="runa-card runa-card--subtle runa-card--soft-grid" style={subcardStyle}>
 			<div style={providerGridStyle}>
 				{providers.map((provider) => (
 					<button
@@ -59,6 +59,7 @@ export function OAuthButtons({ isDisabled, onStartOAuth }: OAuthButtonsProps): R
 							...providerButtonStyle,
 							opacity: isDisabled ? 0.6 : 1,
 						}}
+						className="runa-button runa-button--secondary"
 					>
 						{provider.label}
 					</button>

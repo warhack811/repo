@@ -24,6 +24,7 @@ import type {
 	WebSocketServerBridgeMessage,
 } from '../../ws-types.js';
 import { ApprovalPanel } from '../approval/ApprovalPanel.js';
+import { MarkdownRenderer } from './MarkdownRenderer.js';
 import {
 	createStatusChipStyle,
 	getToolResultStyles,
@@ -185,6 +186,11 @@ export function buildRunTransportSummaryMap(
 					runSummary.final_state = 'FAILED';
 				}
 
+				break;
+			}
+			case 'text.delta': {
+				const runSummary = ensureRunSummary(message.payload.run_id);
+				runSummary.trace_id = message.payload.trace_id ?? runSummary.trace_id;
 				break;
 			}
 			case 'presentation.blocks': {
@@ -753,7 +759,7 @@ export function renderPresentationBlock(
 			return (
 				<article key={block.id} style={eventCardStyle}>
 					<strong style={{ display: 'block', marginBottom: '8px' }}>text</strong>
-					<div style={{ color: 'hsl(var(--color-text))' }}>{block.payload.text}</div>
+					<MarkdownRenderer content={block.payload.text} />
 				</article>
 			);
 		case 'status':

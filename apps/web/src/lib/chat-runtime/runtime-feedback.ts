@@ -68,6 +68,11 @@ export function buildRunTransportSummaryMap(
 
 				break;
 			}
+			case 'text.delta': {
+				const runSummary = ensureRunSummary(message.payload.run_id);
+				runSummary.trace_id ??= message.payload.trace_id;
+				break;
+			}
 			case 'presentation.blocks': {
 				const runSummary = ensureRunSummary(message.payload.run_id);
 				runSummary.has_presentation_blocks = true;

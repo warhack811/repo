@@ -1,3 +1,5 @@
+import { gatewayProviders, defaultGatewayModels as runtimeDefaultGatewayModels } from '@runa/types';
+import type { ModelAttachment, ModelMessage } from '@runa/types';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -33,6 +35,15 @@ import {
 	parseServerMessage,
 } from '../lib/ws-client.js';
 import { uiCopy } from '../localization/copy.js';
+import {
+	createChatStore,
+	selectConnectionState,
+	selectPresentationState,
+	selectRuntimeConfigState,
+	selectTransportState,
+	useChatStoreSelector,
+} from '../stores/chat-store.js';
+import type { ChatStore } from '../stores/chat-store.js';
 import type {
 	ApprovalResolveDecision,
 	ConnectionStatus,
@@ -48,10 +59,14 @@ export type {
 } from '../lib/chat-runtime/types.js';
 
 export interface UseChatRuntimeResult {
+	readonly accessToken?: string | null;
+	readonly attachments: readonly ModelAttachment[];
 	readonly apiKey: string;
 	readonly connectionStatus: ConnectionStatus;
 	readonly currentPresentationSurface: PresentationRunSurface | null;
 	readonly currentRunFeedback: RunFeedbackState | null;
+	readonly currentStreamingRunId: string | null;
+	readonly currentStreamingText: string;
 	readonly expandedPastRunIds: readonly string[];
 	readonly includePresentationBlocks: boolean;
 	readonly inspectionAnchorIdsByDetailId: ReadonlyMap<string, string | undefined>;
@@ -67,8 +82,10 @@ export interface UseChatRuntimeResult {
 	readonly prompt: string;
 	readonly provider: GatewayProvider;
 	readonly runTransportSummaries: ReadonlyMap<string, RunTransportSummary>;
+	readonly store: ChatStore;
 	readonly staleInspectionRequestKeys: readonly string[];
 	setApiKey: (value: string) => void;
+	setAttachments: (value: readonly ModelAttachment[]) => void;
 	setIncludePresentationBlocks: (value: boolean) => void;
 	setModel: (value: string) => void;
 	setPastRunExpanded: (runId: string, isExpanded: boolean) => void;
@@ -81,6 +98,17 @@ export interface UseChatRuntimeResult {
 
 export interface UseChatRuntimeOptions {
 	readonly accessToken?: string | null;
+	readonly activeConversationId?: string | null;
+	readonly buildRequestMessages?: (prompt: string) => readonly ModelMessage[];
+	readonly onRunAccepted?: (input: {
+		readonly conversationId?: string;
+		readonly prompt: string;
+		readonly runId: string;
+	}) => void;
+	readonly onRunFinished?: (input: {
+		readonly conversationId?: string;
+		readonly runId: string;
+	}) => void;
 }
 
 interface StoredRuntimeConfigCandidate {
@@ -92,7 +120,11 @@ interface StoredRuntimeConfigCandidate {
 
 const RUNTIME_CONFIG_STORAGE_KEY = 'runa.developer.runtime_config';
 const DEFAULT_PROVIDER: GatewayProvider = 'groq';
-const DEFAULT_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_MODEL = runtimeDefaultGatewayModels[DEFAULT_PROVIDER];
+
+function isGatewayProviderValue(value: unknown): value is GatewayProvider {
+	return typeof value === 'string' && gatewayProviders.includes(value as GatewayProvider);
+}
 
 function resolveRuntimeConfigStorage(): Storage | null {
 	if (typeof window === 'undefined') {
@@ -154,11 +186,12 @@ function readStoredRuntimeConfig(): Readonly<{
 			model:
 				typeof parsedValue.model === 'string' && parsedValue.model.trim().length > 0
 					? parsedValue.model
-					: DEFAULT_MODEL,
-			provider:
-				parsedValue.provider === 'claude' || parsedValue.provider === 'groq'
-					? parsedValue.provider
-					: DEFAULT_PROVIDER,
+					: runtimeDefaultGatewayModels[
+							isGatewayProviderValue(parsedValue.provider) ? parsedValue.provider : DEFAULT_PROVIDER
+						],
+			provider: isGatewayProviderValue(parsedValue.provider)
+				? parsedValue.provider
+				: DEFAULT_PROVIDER,
 		};
 	} catch {
 		return createDefaultRuntimeConfig();
@@ -208,8 +241,42 @@ function scrollToPresentationBlock(blockId: string): void {
 }
 
 export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRuntimeResult {
-	const { accessToken } = options;
-	const storedRuntimeConfig = readStoredRuntimeConfig();
+	const { accessToken, activeConversationId, buildRequestMessages, onRunAccepted, onRunFinished } =
+		options;
+	const chatStoreRef = useRef<ChatStore | null>(null);
+
+	if (chatStoreRef.current === null) {
+		const initialRuntimeConfig = readStoredRuntimeConfig();
+
+		chatStoreRef.current = createChatStore({
+			connection: {
+				connectionStatus: 'connecting',
+				isSubmitting: false,
+				lastError: null,
+			},
+			presentation: {
+				currentStreamingRunId: null,
+				currentStreamingText: '',
+				expandedPastRunIds: [],
+				pendingInspectionRequestKeys: [],
+				presentationRunId: null,
+				presentationRunSurfaces: [],
+				staleInspectionRequestKeys: [],
+			},
+			runtimeConfig: initialRuntimeConfig,
+			transport: {
+				latestRunRequestIncludesPresentationBlocks: null,
+				messages: [],
+				runTransportSummaries: new Map(),
+			},
+		});
+	}
+
+	const chatStore = chatStoreRef.current;
+
+	if (chatStore === null) {
+		throw new Error('Chat runtime store failed to initialize.');
+	}
 	const reconnectTimerRef = useRef<number | null>(null);
 	const socketRef = useRef<WebSocket | null>(null);
 	const expectedPresentationRunIdRef = useRef<string | null>(null);
@@ -220,33 +287,81 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const presentationRunSurfacesRef = useRef<readonly PresentationRunSurface[]>([]);
 	const presentationRunIdRef = useRef<string | null>(null);
 	const staleInspectionRequestKeysRef = useRef<Set<string>>(new Set());
-	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
-	const [includePresentationBlocks, setIncludePresentationBlocks] = useState(
-		storedRuntimeConfig.includePresentationBlocks,
-	);
-	const [provider, setProvider] = useState<GatewayProvider>(storedRuntimeConfig.provider);
-	const [model, setModel] = useState(storedRuntimeConfig.model);
-	const [apiKey, setApiKey] = useState(storedRuntimeConfig.apiKey);
+	const conversationIdByRunIdRef = useRef<Map<string, string | undefined>>(new Map());
+	const activeConversationIdRef = useRef(activeConversationId);
+	const onRunAcceptedRef = useRef(onRunAccepted);
+	const onRunFinishedRef = useRef(onRunFinished);
+	const submittedPromptByRunIdRef = useRef<Map<string, string>>(new Map());
+	const [attachments, setAttachments] = useState<readonly ModelAttachment[]>([]);
 	const [prompt, setPrompt] = useState('');
-	const [messages, setMessages] = useState<WebSocketServerBridgeMessage[]>([]);
-	const [expandedPastRunIds, setExpandedPastRunIds] = useState<readonly string[]>([]);
-	const [presentationRunId, setPresentationRunId] = useState<string | null>(null);
-	const [presentationRunSurfaces, setPresentationRunSurfaces] = useState<
-		readonly PresentationRunSurface[]
-	>([]);
-	const [pendingInspectionRequestKeys, setPendingInspectionRequestKeys] = useState<
-		readonly string[]
-	>([]);
-	const [staleInspectionRequestKeys, setStaleInspectionRequestKeys] = useState<readonly string[]>(
-		[],
-	);
-	const [lastError, setLastError] = useState<string | null>(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [
-		latestRunRequestIncludesPresentationBlocks,
-		setLatestRunRequestIncludesPresentationBlocks,
-	] = useState<boolean | null>(null);
+
+	const runtimeConfig = useChatStoreSelector(chatStore, selectRuntimeConfigState);
+	const connectionState = useChatStoreSelector(chatStore, selectConnectionState);
+	const presentationState = useChatStoreSelector(chatStore, selectPresentationState);
+	const transportState = useChatStoreSelector(chatStore, selectTransportState);
+	const { apiKey, includePresentationBlocks, model, provider } = runtimeConfig;
+	const { connectionStatus, isSubmitting, lastError } = connectionState;
+	const {
+		currentStreamingRunId,
+		currentStreamingText,
+		expandedPastRunIds,
+		pendingInspectionRequestKeys,
+		presentationRunId,
+		presentationRunSurfaces,
+		staleInspectionRequestKeys,
+	} = presentationState;
+	const { latestRunRequestIncludesPresentationBlocks, messages, runTransportSummaries } =
+		transportState;
 	const isRuntimeConfigReady = model.trim().length > 0;
+
+	useEffect(() => {
+		onRunAcceptedRef.current = onRunAccepted;
+	}, [onRunAccepted]);
+
+	useEffect(() => {
+		activeConversationIdRef.current = activeConversationId;
+	}, [activeConversationId]);
+
+	useEffect(() => {
+		onRunFinishedRef.current = onRunFinished;
+	}, [onRunFinished]);
+
+	function setApiKey(value: string): void {
+		chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
+			...currentRuntimeConfig,
+			apiKey: value,
+		}));
+	}
+
+	function setIncludePresentationBlocks(value: boolean): void {
+		chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
+			...currentRuntimeConfig,
+			includePresentationBlocks: value,
+		}));
+	}
+
+	function setModel(value: string): void {
+		chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
+			...currentRuntimeConfig,
+			model: value,
+		}));
+	}
+
+	function setProvider(nextProvider: GatewayProvider): void {
+		chatStore.setRuntimeConfigState((currentRuntimeConfig) => {
+			const trimmedModel = currentRuntimeConfig.model.trim();
+			const currentDefaultModel = runtimeDefaultGatewayModels[currentRuntimeConfig.provider];
+
+			return {
+				...currentRuntimeConfig,
+				model:
+					trimmedModel.length === 0 || trimmedModel === currentDefaultModel
+						? runtimeDefaultGatewayModels[nextProvider]
+						: currentRuntimeConfig.model,
+				provider: nextProvider,
+			};
+		});
+	}
 
 	useEffect(() => {
 		persistRuntimeConfig({
@@ -261,21 +376,30 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		const nextKeySet = new Set(nextRequestKeys);
 
 		pendingInspectionRequestKeysRef.current = nextKeySet;
-		setPendingInspectionRequestKeys(toSortedStringArray(nextKeySet));
+		chatStore.setPresentationState((currentPresentationState) => ({
+			...currentPresentationState,
+			pendingInspectionRequestKeys: toSortedStringArray(nextKeySet),
+		}));
 	}
 
 	function replaceStaleInspectionRequestKeys(nextRequestKeys: Iterable<string>): void {
 		const nextKeySet = new Set(nextRequestKeys);
 
 		staleInspectionRequestKeysRef.current = nextKeySet;
-		setStaleInspectionRequestKeys(toSortedStringArray(nextKeySet));
+		chatStore.setPresentationState((currentPresentationState) => ({
+			...currentPresentationState,
+			staleInspectionRequestKeys: toSortedStringArray(nextKeySet),
+		}));
 	}
 
 	function replaceExpandedPastRunIds(nextRunIds: Iterable<string>): void {
 		const nextRunIdSet = new Set(nextRunIds);
 
 		expandedPastRunIdsRef.current = nextRunIdSet;
-		setExpandedPastRunIds(toSortedStringArray(nextRunIdSet));
+		chatStore.setPresentationState((currentPresentationState) => ({
+			...currentPresentationState,
+			expandedPastRunIds: toSortedStringArray(nextRunIdSet),
+		}));
 	}
 
 	function setPastRunExpanded(runId: string, isExpanded: boolean): void {
@@ -308,21 +432,30 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			const nextKeySet = new Set(nextRequestKeys);
 
 			pendingInspectionRequestKeysRef.current = nextKeySet;
-			setPendingInspectionRequestKeys(toSortedStringArray(nextKeySet));
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				pendingInspectionRequestKeys: toSortedStringArray(nextKeySet),
+			}));
 		}
 
 		function commitStaleInspectionRequestKeys(nextRequestKeys: Iterable<string>): void {
 			const nextKeySet = new Set(nextRequestKeys);
 
 			staleInspectionRequestKeysRef.current = nextKeySet;
-			setStaleInspectionRequestKeys(toSortedStringArray(nextKeySet));
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				staleInspectionRequestKeys: toSortedStringArray(nextKeySet),
+			}));
 		}
 
 		function commitExpandedPastRunIds(nextRunIds: Iterable<string>): void {
 			const nextRunIdSet = new Set(nextRunIds);
 
 			expandedPastRunIdsRef.current = nextRunIdSet;
-			setExpandedPastRunIds(toSortedStringArray(nextRunIdSet));
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				expandedPastRunIds: toSortedStringArray(nextRunIdSet),
+			}));
 		}
 
 		function scheduleReconnect(message?: string): void {
@@ -332,8 +465,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 
 			clearReconnectTimer();
 			reconnectAttemptCount += 1;
-			setConnectionStatus('connecting');
-			setLastError(message ?? uiCopy.runtime.wsClosedRetrying);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				connectionStatus: 'connecting',
+				lastError: message ?? uiCopy.runtime.wsClosedRetrying,
+			}));
 			reconnectTimerRef.current = window.setTimeout(
 				() => {
 					connectSocket();
@@ -348,7 +484,10 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			}
 
 			clearReconnectTimer();
-			setConnectionStatus('connecting');
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				connectionStatus: 'connecting',
+			}));
 			const socket = new WebSocket(createWebSocketUrl(accessToken));
 			activeSocket = socket;
 			socketRef.current = socket;
@@ -359,8 +498,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				}
 
 				reconnectAttemptCount = 0;
-				setConnectionStatus('open');
-				setLastError(null);
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					connectionStatus: 'open',
+					lastError: null,
+				}));
 			});
 
 			socket.addEventListener('close', (event) => {
@@ -374,10 +516,12 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				const closeReason = event.reason.trim();
 
 				if (event.code === 1008) {
-					setConnectionStatus('error');
-					setLastError(
-						closeReason.length > 0 ? closeReason : 'Authenticated WebSocket connection required.',
-					);
+					chatStore.setConnectionState((currentConnectionState) => ({
+						...currentConnectionState,
+						connectionStatus: 'error',
+						lastError:
+							closeReason.length > 0 ? closeReason : 'Authenticated WebSocket connection required.',
+					}));
 					return;
 				}
 
@@ -393,8 +537,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 					return;
 				}
 
-				setConnectionStatus('error');
-				setLastError(uiCopy.runtime.wsFailedRetrying);
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					connectionStatus: 'error',
+					lastError: uiCopy.runtime.wsFailedRetrying,
+				}));
 			});
 
 			socket.addEventListener('message', (event) => {
@@ -407,7 +554,15 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 						const raw = await decodeWebSocketMessageData(event.data as Blob | string);
 						const parsedMessage = parseServerMessage(raw);
 
-						setMessages((currentMessages) => [...currentMessages, parsedMessage]);
+						chatStore.setTransportState((currentTransportState) => {
+							const nextMessages = [...currentTransportState.messages, parsedMessage];
+
+							return {
+								...currentTransportState,
+								messages: nextMessages,
+								runTransportSummaries: buildRunTransportSummaryMap(nextMessages),
+							};
+						});
 
 						if (parsedMessage.type === 'presentation.blocks') {
 							const nextPresentationState = derivePresentationBlocksUpdate(parsedMessage, {
@@ -440,8 +595,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 							expectedPresentationRunIdRef.current = nextPresentationState.expectedRunId;
 							presentationRunIdRef.current = nextPresentationState.presentationRunId;
 							presentationRunSurfacesRef.current = nextPresentationState.presentationRunSurfaces;
-							setPresentationRunId(nextPresentationState.presentationRunId);
-							setPresentationRunSurfaces(nextPresentationState.presentationRunSurfaces);
+							chatStore.setPresentationState((currentPresentationState) => ({
+								...currentPresentationState,
+								presentationRunId: nextPresentationState.presentationRunId,
+								presentationRunSurfaces: nextPresentationState.presentationRunSurfaces,
+							}));
 
 							if (nextPresentationState.detailBlockIds.length > 0) {
 								window.requestAnimationFrame(() => {
@@ -457,25 +615,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 							}
 						}
 
-						if (parsedMessage.type === 'run.rejected') {
-							if (
-								matchesTrackedRun(
-									parsedMessage.payload.run_id,
-									presentationRunIdRef.current,
-									expectedPresentationRunIdRef.current,
-								)
-							) {
-								setIsSubmitting(false);
-
-								if (parsedMessage.payload.run_id === expectedPresentationRunIdRef.current) {
-									expectedPresentationRunIdRef.current = presentationRunIdRef.current;
-								}
-							}
-
-							setLastError(parsedMessage.payload.error_message);
-						}
-
-						if (parsedMessage.type === 'run.finished') {
+						if (parsedMessage.type === 'text.delta') {
 							if (
 								!matchesTrackedRun(
 									parsedMessage.payload.run_id,
@@ -486,17 +626,115 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								return;
 							}
 
-							setIsSubmitting(false);
-							setLastError(
-								parsedMessage.payload.final_state === 'FAILED'
-									? (parsedMessage.payload.error_message ?? 'Calisma hata ile bitti.')
-									: null,
+							chatStore.setPresentationState((currentPresentationState) => ({
+								...currentPresentationState,
+								currentStreamingRunId: parsedMessage.payload.run_id,
+								currentStreamingText:
+									currentPresentationState.currentStreamingText + parsedMessage.payload.text_delta,
+							}));
+							return;
+						}
+
+						if (parsedMessage.type === 'run.rejected') {
+							submittedPromptByRunIdRef.current.delete(parsedMessage.payload.run_id ?? '');
+							if (
+								matchesTrackedRun(
+									parsedMessage.payload.run_id,
+									presentationRunIdRef.current,
+									expectedPresentationRunIdRef.current,
+								)
+							) {
+								chatStore.setConnectionState((currentConnectionState) => ({
+									...currentConnectionState,
+									isSubmitting: false,
+								}));
+								chatStore.setPresentationState((currentPresentationState) => ({
+									...currentPresentationState,
+									currentStreamingRunId: null,
+									currentStreamingText: '',
+								}));
+
+								if (parsedMessage.payload.run_id === expectedPresentationRunIdRef.current) {
+									expectedPresentationRunIdRef.current = presentationRunIdRef.current;
+								}
+							}
+
+							chatStore.setConnectionState((currentConnectionState) => ({
+								...currentConnectionState,
+								lastError: parsedMessage.payload.error_message,
+							}));
+						}
+
+						if (parsedMessage.type === 'run.finished') {
+							submittedPromptByRunIdRef.current.delete(parsedMessage.payload.run_id);
+							const conversationId = conversationIdByRunIdRef.current.get(
+								parsedMessage.payload.run_id,
 							);
+							const shouldNotifyConversationSync =
+								conversationId !== undefined &&
+								(conversationId === activeConversationIdRef.current ||
+									matchesTrackedRun(
+										parsedMessage.payload.run_id,
+										presentationRunIdRef.current,
+										expectedPresentationRunIdRef.current,
+									));
+
+							if (shouldNotifyConversationSync) {
+								onRunFinishedRef.current?.({
+									conversationId,
+									runId: parsedMessage.payload.run_id,
+								});
+							}
+
+							if (
+								!matchesTrackedRun(
+									parsedMessage.payload.run_id,
+									presentationRunIdRef.current,
+									expectedPresentationRunIdRef.current,
+								)
+							) {
+								return;
+							}
+
+							chatStore.setConnectionState((currentConnectionState) => ({
+								...currentConnectionState,
+								isSubmitting: false,
+								lastError:
+									parsedMessage.payload.final_state === 'FAILED'
+										? (parsedMessage.payload.error_message ?? 'Calisma hata ile bitti.')
+										: null,
+							}));
+							chatStore.setPresentationState((currentPresentationState) => ({
+								...currentPresentationState,
+								currentStreamingRunId: null,
+								currentStreamingText: '',
+							}));
+						}
+
+						if (parsedMessage.type === 'run.accepted') {
+							conversationIdByRunIdRef.current.set(
+								parsedMessage.payload.run_id,
+								parsedMessage.payload.conversation_id,
+							);
+							const submittedPrompt = submittedPromptByRunIdRef.current.get(
+								parsedMessage.payload.run_id,
+							);
+
+							if (submittedPrompt) {
+								onRunAcceptedRef.current?.({
+									conversationId: parsedMessage.payload.conversation_id,
+									prompt: submittedPrompt,
+									runId: parsedMessage.payload.run_id,
+								});
+							}
 						}
 					} catch (error: unknown) {
 						const message =
 							error instanceof Error ? error.message : uiCopy.runtime.wsParsingUnknown;
-						setLastError(message);
+						chatStore.setConnectionState((currentConnectionState) => ({
+							...currentConnectionState,
+							lastError: message,
+						}));
 					}
 				})();
 			});
@@ -510,7 +748,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			activeSocket?.close();
 			socketRef.current = null;
 		};
-	}, [accessToken]);
+	}, [accessToken, chatStore]);
 
 	const expectedPresentationRunId = expectedPresentationRunIdRef.current;
 	const presentationSurfaceState = useMemo(
@@ -522,7 +760,6 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			}),
 		[expectedPresentationRunId, presentationRunId, presentationRunSurfaces],
 	);
-	const runTransportSummaries = useMemo(() => buildRunTransportSummaryMap(messages), [messages]);
 	const currentRunSummary = presentationSurfaceState.activeRunId
 		? runTransportSummaries.get(presentationSurfaceState.activeRunId)
 		: undefined;
@@ -558,8 +795,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		try {
 			const payload = createRunRequestPayload({
 				apiKey,
+				attachments,
+				conversationId: activeConversationId,
 				includePresentationBlocks,
 				model,
+				messages: buildRequestMessages?.(prompt),
 				prompt,
 				provider,
 				runId: createClientId('run'),
@@ -574,15 +814,32 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				);
 			}
 
-			setIsSubmitting(true);
-			setLastError(null);
-			setLatestRunRequestIncludesPresentationBlocks(payload.include_presentation_blocks === true);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				isSubmitting: true,
+				lastError: null,
+			}));
+			chatStore.setTransportState((currentTransportState) => ({
+				...currentTransportState,
+				latestRunRequestIncludesPresentationBlocks: payload.include_presentation_blocks === true,
+			}));
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				currentStreamingRunId: payload.run_id,
+				currentStreamingText: '',
+			}));
 			expectedPresentationRunIdRef.current = payload.run_id;
+			conversationIdByRunIdRef.current.set(payload.run_id, payload.conversation_id);
+			submittedPromptByRunIdRef.current.set(payload.run_id, prompt);
 			socketRef.current.send(JSON.stringify(createRunRequestMessage(payload)));
+			setAttachments([]);
 			setPrompt('');
 		} catch (error: unknown) {
-			setIsSubmitting(false);
-			setLastError(error instanceof Error ? error.message : uiCopy.runtime.unknownSubmit);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				isSubmitting: false,
+				lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownSubmit,
+			}));
 		}
 	}
 
@@ -592,7 +849,10 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				throw new Error(uiCopy.runtime.wsNotOpen);
 			}
 
-			setLastError(null);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				lastError: null,
+			}));
 			socketRef.current.send(
 				JSON.stringify(
 					createApprovalResolveMessage({
@@ -602,7 +862,10 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				),
 			);
 		} catch (error: unknown) {
-			setLastError(error instanceof Error ? error.message : uiCopy.runtime.unknownApprovalSubmit);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownApprovalSubmit,
+			}));
 		}
 	}
 
@@ -654,7 +917,10 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				return;
 			}
 
-			setLastError(null);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				lastError: null,
+			}));
 			const nextStaleRequestKeys = new Set(staleInspectionRequestKeysRef.current);
 			const nextPendingRequestKeys = new Set(pendingInspectionRequestKeysRef.current);
 
@@ -711,15 +977,22 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				);
 			}
 
-			setLastError(error instanceof Error ? error.message : uiCopy.runtime.unknownInspectionSubmit);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownInspectionSubmit,
+			}));
 		}
 	}
 
 	return {
+		accessToken,
+		attachments,
 		apiKey,
 		connectionStatus,
 		currentPresentationSurface: presentationSurfaceState.currentPresentationSurface,
 		currentRunFeedback,
+		currentStreamingRunId,
+		currentStreamingText,
 		expandedPastRunIds,
 		includePresentationBlocks,
 		inspectionAnchorIdsByDetailId: inspectionAnchorIdsByDetailIdRef.current,
@@ -737,7 +1010,9 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		requestInspection,
 		resolveApproval,
 		runTransportSummaries,
+		store: chatStore,
 		setApiKey,
+		setAttachments,
 		setIncludePresentationBlocks,
 		setModel,
 		setPastRunExpanded,

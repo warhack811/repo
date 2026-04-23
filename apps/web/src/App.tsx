@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'rea
 import type { AuthenticatedPageId } from './components/app/AppNav.js';
 import { AppShell } from './components/app/AppShell.js';
 import { useAuth } from './hooks/useAuth.js';
+import { useConversations } from './hooks/useConversations.js';
 import { type UseChatRuntimeResult, useChatRuntime } from './hooks/useChatRuntime.js';
 import { ChatPage } from './pages/ChatPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
@@ -106,8 +107,24 @@ function AuthenticatedApp(
 		onRefreshAuthContext: () => Promise<void>;
 	}>,
 ): ReactElement {
-	const runtime = useChatRuntime({
+	const conversations = useConversations({
 		accessToken: props.bearerToken,
+	});
+	const runtime = useChatRuntime({
+		activeConversationId: conversations.activeConversationId,
+		accessToken: props.bearerToken,
+		buildRequestMessages: conversations.buildRequestMessages,
+		onRunAccepted: ({ conversationId, prompt }) => {
+			conversations.handleRunAccepted({
+				conversationId,
+				prompt,
+			});
+		},
+		onRunFinished: ({ conversationId }) => {
+			conversations.handleRunFinished({
+				conversationId,
+			});
+		},
 	});
 
 	return (
@@ -115,7 +132,10 @@ function AuthenticatedApp(
 			<Routes>
 				<Route path="/" element={<AuthenticatedLayout authStatus={props.authStatus} />}>
 					<Route index element={<Navigate replace to="chat" />} />
-					<Route path="chat" element={<ChatPage embedded runtime={runtime} />} />
+					<Route
+						path="chat"
+						element={<ChatPage conversations={conversations} embedded runtime={runtime} />}
+					/>
 					<Route
 						path="account"
 						element={

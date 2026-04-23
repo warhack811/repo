@@ -1,13 +1,17 @@
 import type { ReactElement } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ChatShell } from '../components/chat/ChatShell.js';
+import { ConversationSidebar } from '../components/chat/ConversationSidebar.js';
+import { FileUploadButton } from '../components/chat/FileUploadButton.js';
+import { MarkdownRenderer } from '../components/chat/MarkdownRenderer.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import type { InspectionActionState } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
 import { RunTimelinePanel } from '../components/chat/RunTimelinePanel.js';
+import { VoiceComposerControls } from '../components/chat/VoiceComposerControls.js';
 import {
 	buildInspectionSurfaceMeta,
 	createInspectionDetailRequestKey,
@@ -16,14 +20,25 @@ import {
 } from '../components/chat/chat-presentation.js';
 import type { UseChatRuntimeResult } from '../hooks/useChatRuntime.js';
 import { useChatRuntimeView } from '../hooks/useChatRuntimeView.js';
+import type { UseConversationsResult } from '../hooks/useConversations.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
+import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
+import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { deriveCurrentRunProgressSurface } from '../lib/chat-runtime/current-run-progress.js';
 import { DEFAULT_INSPECTION_DETAIL_LEVEL } from '../lib/chat-runtime/types.js';
 import { heroPanelStyle, secondaryLabelStyle } from '../lib/chat-styles.js';
 import { uiCopy } from '../localization/copy.js';
+import {
+	selectConnectionState,
+	selectPresentationState,
+	selectRuntimeConfigState,
+	selectTransportState,
+	useChatStoreSelector,
+} from '../stores/chat-store.js';
 import type { InspectionTargetKind, RenderBlock } from '../ws-types.js';
 
 type ChatPageProps = Readonly<{
+	conversations: UseConversationsResult;
 	embedded?: boolean;
 	runtime: UseChatRuntimeResult;
 }>;
@@ -99,31 +114,137 @@ const developerHintStyle = {
 	transition: 'opacity 220ms ease, transform 220ms ease',
 } as const;
 
-export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactElement {
+const streamingSurfaceStyle = {
+	borderRadius: '20px',
+	border: '1px solid rgba(245, 158, 11, 0.28)',
+	background: 'linear-gradient(180deg, rgba(54, 32, 7, 0.28) 0%, rgba(15, 23, 42, 0.3) 100%)',
+	padding: '16px 18px',
+	display: 'grid',
+	gap: '10px',
+	boxShadow: '0 18px 36px rgba(15, 23, 42, 0.22)',
+} as const;
+
+const workspaceGridStyle = {
+	display: 'grid',
+	gap: '20px',
+	gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+	alignItems: 'start',
+} as const;
+
+const persistedMessagesStyle = {
+	display: 'grid',
+	gap: '12px',
+} as const;
+
+export function ChatPage({
+	conversations,
+	embedded = false,
+	runtime,
+}: ChatPageProps): ReactElement {
 	const { isDeveloperMode, setDeveloperMode } = useDeveloperMode();
+	const runtimeConfig = useChatStoreSelector(runtime.store, selectRuntimeConfigState);
+	const connectionState = useChatStoreSelector(runtime.store, selectConnectionState);
+	const presentationState = useChatStoreSelector(runtime.store, selectPresentationState);
+	const transportState = useChatStoreSelector(runtime.store, selectTransportState);
+	const currentPresentationSurface = runtime.currentPresentationSurface;
+	const currentRunFeedback = runtime.currentRunFeedback;
+	const pastPresentationSurfaces = runtime.pastPresentationSurfaces;
 	const {
-		connectionStatus,
-		currentPresentationSurface,
-		currentRunFeedback,
+		currentStreamingRunId,
+		currentStreamingText,
 		expandedPastRunIds,
-		inspectionAnchorIdsByDetailId,
-		isSubmitting,
-		isRuntimeConfigReady,
-		lastError,
-		pastPresentationSurfaces,
 		pendingInspectionRequestKeys,
 		presentationRunSurfaces,
+		staleInspectionRequestKeys,
+	} = presentationState;
+	const { connectionStatus, isSubmitting, lastError } = connectionState;
+	const { apiKey, model } = runtimeConfig;
+	const isRuntimeConfigReady = model.trim().length > 0;
+	const {
+		accessToken,
+		attachments,
+		inspectionAnchorIdsByDetailId,
 		prompt,
 		requestInspection,
 		resolveApproval,
-		runTransportSummaries,
 		setPastRunExpanded,
-		staleInspectionRequestKeys,
-		submitRunRequest,
 		setPrompt,
-		apiKey,
+		setAttachments,
+		submitRunRequest,
 	} = runtime;
+	const { runTransportSummaries } = transportState;
+	const {
+		activeConversationId,
+		activeConversationMessages,
+		beginDraftConversation,
+		conversationError,
+		conversations: conversationList,
+		isConversationLoading,
+		selectConversation,
+	} = conversations;
 	const [showRecentSessionRuns, setShowRecentSessionRuns] = useState(false);
+	const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
+	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+	const promptRef = useRef(prompt);
+	const lastSeenAssistantMessageIdRef = useRef<string | null>(null);
+
+	const latestAssistantMessage = useMemo(
+		() =>
+			[...activeConversationMessages].reverse().find((message) => message.role === 'assistant') ??
+			null,
+		[activeConversationMessages],
+	);
+	const latestReadableResponse = latestAssistantMessage?.content?.trim() ?? '';
+	const {
+		autoReadEnabled,
+		cancel: cancelTextToSpeech,
+		errorMessage: textToSpeechErrorMessage,
+		isSpeaking,
+		isSupported: isTextToSpeechSupported,
+		speak,
+	} = useTextToSpeech();
+	const voiceInput = useVoiceInput({
+		onFinalTranscript: (transcript) => {
+			const existingPrompt = promptRef.current.trim();
+			const nextPrompt =
+				existingPrompt.length > 0 ? `${promptRef.current.trimEnd()}\n${transcript}` : transcript;
+
+			setPrompt(nextPrompt);
+		},
+	});
+
+	useEffect(() => {
+		promptRef.current = prompt;
+	}, [prompt]);
+
+	useEffect(() => {
+		lastSeenAssistantMessageIdRef.current = latestAssistantMessage?.message_id ?? null;
+	}, [latestAssistantMessage?.message_id]);
+
+	useEffect(() => {
+		const latestAssistantMessageId = latestAssistantMessage?.message_id ?? null;
+
+		if (latestAssistantMessageId === null) {
+			return;
+		}
+
+		if (lastSeenAssistantMessageIdRef.current === null) {
+			lastSeenAssistantMessageIdRef.current = latestAssistantMessageId;
+			return;
+		}
+
+		if (lastSeenAssistantMessageIdRef.current === latestAssistantMessageId) {
+			return;
+		}
+
+		lastSeenAssistantMessageIdRef.current = latestAssistantMessageId;
+
+		if (autoReadEnabled && latestReadableResponse.length > 0) {
+			speak(latestReadableResponse);
+		}
+	}, [autoReadEnabled, latestAssistantMessage?.message_id, latestReadableResponse, speak]);
+
+	const voiceStatusMessage = voiceInput.errorMessage ?? textToSpeechErrorMessage ?? null;
 
 	const currentInspectionSurfaceMeta = useMemo(
 		() =>
@@ -179,16 +300,79 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 	const currentRunProgressPanel = currentRunProgress ? (
 		<RunProgressPanel feedbackBanner={currentRunFeedbackBanner} progress={currentRunProgress} />
 	) : null;
+	const currentRunId = currentRunFeedback?.run_id ?? currentPresentationSurface?.run_id;
+	const shouldShowStreamingSurface =
+		currentStreamingText.trim().length > 0 &&
+		currentStreamingRunId !== null &&
+		currentStreamingRunId === currentRunId;
+	const streamingSurface = shouldShowStreamingSurface ? (
+		<div style={streamingSurfaceStyle} aria-live="polite">
+			<div style={secondaryLabelStyle}>Live response</div>
+			<MarkdownRenderer
+				className="runa-streaming-response"
+				content={currentStreamingText}
+				isStreaming
+			/>
+		</div>
+	) : null;
+
+	const persistedConversationMessages =
+		activeConversationMessages.length > 0 ? (
+			<div style={persistedMessagesStyle} aria-live="polite">
+				<div style={secondaryLabelStyle}>Persisted transcript</div>
+				{activeConversationMessages.map((message) => (
+					<div
+						key={message.message_id}
+						style={{
+							borderRadius: '18px',
+							border:
+								message.role === 'user'
+									? '1px solid rgba(245, 158, 11, 0.24)'
+									: '1px solid rgba(148, 163, 184, 0.14)',
+							background:
+								message.role === 'user' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(7, 11, 20, 0.46)',
+							padding: '14px 16px',
+							display: 'grid',
+							gap: '8px',
+						}}
+					>
+						<div
+							style={{
+								display: 'flex',
+								justifyContent: 'space-between',
+								gap: '12px',
+								flexWrap: 'wrap',
+								fontSize: '12px',
+								color: '#94a3b8',
+							}}
+						>
+							<strong style={{ color: '#e5e7eb' }}>
+								{message.role === 'user' ? 'You' : message.role === 'assistant' ? 'Runa' : 'System'}
+							</strong>
+							<span>{new Date(message.created_at).toLocaleString()}</span>
+						</div>
+						<MarkdownRenderer content={message.content} />
+					</div>
+				))}
+			</div>
+		) : activeConversationId ? (
+			<div className="runa-subtle-copy">
+				Bu conversation icin henuz kalici mesaj bulunmuyor. Ilk yanit tamamlandiginda burada
+				gorunecek.
+			</div>
+		) : (
+			<div className="runa-subtle-copy">
+				Yeni draft conversation acik. Ilk mesaji gonderdiginde otomatik olarak kalici bir
+				conversation olusturulacak.
+			</div>
+		);
 
 	const emptyRunTimelineContent = (
 		<div
 			style={{
-				borderRadius: '14px',
-				border: '1px dashed rgba(148, 163, 184, 0.24)',
-				padding: '20px',
-				color: '#94a3b8',
 				transition: 'opacity 220ms ease, transform 220ms ease',
 			}}
+			className="runa-empty-state"
 		>
 			{uiCopy.chat.emptySurface}
 		</div>
@@ -282,7 +466,7 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 	return (
 		<ChatShell embedded={embedded}>
 			<section
-				className="runa-ambient-panel"
+				className="runa-card runa-card--hero runa-ambient-panel"
 				style={heroPanelStyle}
 				aria-labelledby="chat-workspace-heading"
 				aria-describedby="chat-workspace-description"
@@ -329,7 +513,7 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 			</section>
 
 			<section
-				className="runa-chat-surface"
+				className="runa-card runa-card--strong runa-chat-surface"
 				style={composerCardStyle}
 				aria-labelledby="chat-composer-heading"
 			>
@@ -347,16 +531,12 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 				{!apiKey.trim() && isRuntimeConfigReady ? (
 					<div
 						style={{
-							padding: '12px 16px',
-							borderRadius: '16px',
-							border: '1px solid rgba(148, 163, 184, 0.2)',
-							background: 'rgba(15, 23, 42, 0.4)',
-							color: '#94a3b8',
 							fontSize: '13px',
 							display: 'flex',
 							alignItems: 'center',
 							gap: '10px',
 						}}
+						className="runa-alert runa-alert--warning"
 					>
 						<span style={{ color: '#f59e0b' }}>●</span>
 						Sunucu tarafındaki varsayılan API anahtarı kullanılacak.
@@ -367,14 +547,11 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 					<output
 						aria-live="polite"
 						style={{
-							padding: '14px 16px',
-							borderRadius: '18px',
-							border: '1px solid rgba(250, 204, 21, 0.32)',
-							background: 'rgba(120, 53, 15, 0.16)',
 							display: 'grid',
 							gap: '10px',
 							transition: 'opacity 220ms ease, transform 220ms ease',
 						}}
+						className="runa-alert runa-alert--warning"
 					>
 						<div style={{ color: '#fde68a', fontWeight: 700 }}>{uiCopy.chat.configMissing}</div>
 						<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -386,10 +563,15 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 									padding: '10px 14px',
 									boxShadow: 'none',
 								}}
+								className="runa-button runa-button--primary"
 							>
 								Developer Mode'u etkinlestir
 							</button>
-							<Link style={secondaryButtonLinkStyle} to="/developer">
+							<Link
+								className="runa-button runa-button--secondary"
+								style={secondaryButtonLinkStyle}
+								to="/developer"
+							>
 								{uiCopy.chat.openDeveloper}
 							</Link>
 						</div>
@@ -405,21 +587,140 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 							placeholder={uiCopy.chat.composerPlaceholder}
 							rows={5}
 							style={composerInputStyle}
+							className="runa-input runa-input--textarea"
 						/>
 					</label>
+
+					<VoiceComposerControls
+						canReadLatestResponse={latestReadableResponse.length > 0}
+						isListening={voiceInput.isListening}
+						isSpeaking={isSpeaking}
+						isSpeechPlaybackSupported={isTextToSpeechSupported}
+						isVoiceSupported={voiceInput.isSupported}
+						onReadLatestResponse={() => speak(latestReadableResponse)}
+						onStopSpeaking={cancelTextToSpeech}
+						onToggleListening={voiceInput.toggleListening}
+						voiceStatusMessage={voiceStatusMessage}
+					/>
+
+					<div style={{ display: 'grid', gap: '10px' }}>
+						<div
+							style={{
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'space-between',
+								gap: '12px',
+								flexWrap: 'wrap',
+							}}
+						>
+							<div style={secondaryLabelStyle}>Attachments</div>
+							<FileUploadButton
+								accessToken={accessToken}
+								disabled={!isRuntimeConfigReady || isSubmitting}
+								onAttachmentUploaded={(attachment) => {
+									setAttachments([...attachments, attachment]);
+									setAttachmentUploadError(null);
+								}}
+								onUploadStateChange={({ error, isUploading }) => {
+									setAttachmentUploadError(error);
+									setIsUploadingAttachment(isUploading);
+								}}
+							/>
+						</div>
+						<div className="runa-subtle-copy">
+							Bu minimum seam simdilik `image/*`, `text/*` ve `application/json` dosyalari ile
+							sinirli. Prompt'a kisa bir niyet ekleyip dosyayi birlikte gonderebilirsin.
+						</div>
+						{attachments.length > 0 ? (
+							<div style={{ display: 'grid', gap: '10px' }}>
+								{attachments.map((attachment) => (
+									<div
+										key={attachment.blob_id}
+										style={{
+											display: 'grid',
+											gap: '8px',
+											padding: '12px 14px',
+											borderRadius: '16px',
+											border: '1px solid rgba(148, 163, 184, 0.16)',
+											background: 'rgba(9, 14, 25, 0.68)',
+										}}
+									>
+										<div
+											style={{
+												display: 'flex',
+												alignItems: 'center',
+												justifyContent: 'space-between',
+												gap: '12px',
+												flexWrap: 'wrap',
+											}}
+										>
+											<div style={{ display: 'grid', gap: '4px' }}>
+												<strong style={{ color: '#f8fafc' }}>
+													{attachment.filename ?? attachment.blob_id}
+												</strong>
+												<div className="runa-subtle-copy">
+													{attachment.kind} • {attachment.media_type} • {attachment.size_bytes} bytes
+												</div>
+											</div>
+											<button
+												type="button"
+												onClick={() =>
+													setAttachments(
+														attachments.filter(
+															(candidate) => candidate.blob_id !== attachment.blob_id,
+														),
+													)
+												}
+												style={{
+													...secondaryButtonLinkStyle,
+													padding: '8px 12px',
+												}}
+												className="runa-button runa-button--secondary"
+											>
+												Kaldir
+											</button>
+										</div>
+										{attachment.kind === 'image' ? (
+											<img
+												alt={attachment.filename ?? 'Uploaded attachment preview'}
+												src={attachment.data_url}
+												style={{
+													maxWidth: 'min(220px, 100%)',
+													borderRadius: '14px',
+													border: '1px solid rgba(148, 163, 184, 0.16)',
+												}}
+											/>
+										) : (
+											<div
+												style={{
+													fontSize: '13px',
+													lineHeight: 1.5,
+													color: '#cbd5e1',
+													whiteSpace: 'pre-wrap',
+												}}
+											>
+												{attachment.text_content}
+											</div>
+										)}
+									</div>
+								))}
+							</div>
+						) : null}
+						{attachmentUploadError ? (
+							<div className="runa-alert runa-alert--warning">{attachmentUploadError}</div>
+						) : isUploadingAttachment ? (
+							<div className="runa-subtle-copy">Secilen dosya yukleniyor...</div>
+						) : null}
+					</div>
 
 					{lastError ? (
 						<div
 							role="alert"
 							style={{
-								padding: '12px 14px',
-								borderRadius: '14px',
-								background: 'rgba(127, 29, 29, 0.28)',
-								border: '1px solid rgba(248, 113, 113, 0.36)',
-								color: '#fecaca',
 								lineHeight: 1.5,
 								transition: 'opacity 220ms ease, transform 220ms ease',
 							}}
+							className="runa-alert runa-alert--danger"
 						>
 							{lastError}
 						</div>
@@ -437,13 +738,24 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 						<div style={{ color: '#94a3b8', fontSize: '13px' }}>{statusLabel}</div>
 						<button
 							type="submit"
-							disabled={isSubmitting || connectionStatus !== 'open' || !isRuntimeConfigReady}
+							disabled={
+								isSubmitting ||
+								isUploadingAttachment ||
+								connectionStatus !== 'open' ||
+								!isRuntimeConfigReady
+							}
 							style={{
 								...primaryButtonStyle,
 								opacity:
-									isSubmitting || connectionStatus !== 'open' || !isRuntimeConfigReady ? 0.6 : 1,
+									isSubmitting ||
+									isUploadingAttachment ||
+									connectionStatus !== 'open' ||
+									!isRuntimeConfigReady
+										? 0.6
+										: 1,
 								width: 'min(220px, 100%)',
 							}}
+							className="runa-button runa-button--primary"
 						>
 							{submitButtonLabel}
 						</button>
@@ -451,22 +763,40 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 				</form>
 			</section>
 
-			<section
-				className="runa-chat-surface"
-				style={conversationSurfaceStyle}
-				aria-labelledby="chat-conversation-surface-heading"
-			>
-				<div style={{ display: 'grid', gap: '8px' }}>
-					<div style={secondaryLabelStyle}>{uiCopy.run.currentRunProgress}</div>
-					<h2 id="chat-conversation-surface-heading" style={{ fontSize: '20px' }}>
-						Aktif sohbet akisi
-					</h2>
-					<div className="runa-subtle-copy">
-						Guncel calisma, onaylar ve yardimci kartlar burada sakin bir akista kalir.
+			<section style={workspaceGridStyle} aria-label="Conversation workspace">
+				<ConversationSidebar
+					activeConversationId={activeConversationId}
+					activeConversationMembers={conversations.activeConversationMembers}
+					activeConversationSummary={conversations.activeConversationSummary}
+					conversationError={conversationError}
+					conversations={conversationList}
+					isLoading={isConversationLoading}
+					isMemberLoading={conversations.isMemberLoading}
+					memberError={conversations.memberError}
+					onRemoveMember={conversations.removeConversationMember}
+					onSelectConversation={selectConversation}
+					onShareMember={conversations.shareConversationMember}
+					onStartNewConversation={beginDraftConversation}
+				/>
+				<div
+					className="runa-card runa-card--chat runa-chat-surface"
+					style={conversationSurfaceStyle}
+					aria-labelledby="chat-conversation-surface-heading"
+				>
+					<div style={{ display: 'grid', gap: '8px' }}>
+						<div style={secondaryLabelStyle}>{uiCopy.run.currentRunProgress}</div>
+						<h2 id="chat-conversation-surface-heading" style={{ fontSize: '20px' }}>
+							Aktif sohbet akisi
+						</h2>
+						<div className="runa-subtle-copy">
+							Guncel calisma, kalici mesajlar ve yardimci kartlar burada sakin bir akista kalir.
+						</div>
 					</div>
+					{persistedConversationMessages}
+					{currentRunProgressPanel}
+					{streamingSurface}
+					{currentPresentationContent ?? emptyRunTimelineContent}
 				</div>
-				{currentRunProgressPanel}
-				{currentPresentationContent ?? emptyRunTimelineContent}
 			</section>
 
 			{isDeveloperMode ? (
@@ -483,7 +813,11 @@ export function ChatPage({ embedded = false, runtime }: ChatPageProps): ReactEle
 					onToggleRecentSessionRuns={() => setShowRecentSessionRuns((current) => !current)}
 				/>
 			) : (
-				<section style={developerHintStyle} aria-label="Developer Mode notice">
+				<section
+					style={developerHintStyle}
+					className="runa-card runa-card--subtle"
+					aria-label="Developer Mode notice"
+				>
 					<div style={{ color: '#fde68a', fontWeight: 700 }}>Developer Mode kapali</div>
 					<div className="runa-subtle-copy">
 						Ham timeline, gecmis calismalar ve teknik izler ikinci katmanda tutulur. Ihtiyac

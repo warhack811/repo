@@ -16,6 +16,12 @@ import { TransportMessagesPanel } from '../components/chat/TransportMessagesPane
 import type { UseChatRuntimeResult } from '../hooks/useChatRuntime.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
 import { uiCopy } from '../localization/copy.js';
+import {
+	selectConnectionState,
+	selectRuntimeConfigState,
+	selectTransportState,
+	useChatStoreSelector,
+} from '../stores/chat-store.js';
 
 const sectionGridStyle: CSSProperties = {
 	display: 'grid',
@@ -68,12 +74,15 @@ export function DashboardPage({
 }: DashboardPageProps): ReactElement {
 	const { isDeveloperMode } = useDeveloperMode();
 	const [showTransportMessages, setShowTransportMessages] = useState(false);
+	const runtimeConfig = useChatStoreSelector(runtime.store, selectRuntimeConfigState);
+	const connectionState = useChatStoreSelector(runtime.store, selectConnectionState);
+	const transportState = useChatStoreSelector(runtime.store, selectTransportState);
 
 	useEffect(() => {
-		if (runtime.lastError !== null) {
+		if (connectionState.lastError !== null) {
 			setShowTransportMessages(true);
 		}
-	}, [runtime.lastError]);
+	}, [connectionState.lastError]);
 
 	return (
 		<>
@@ -90,13 +99,13 @@ export function DashboardPage({
 					<div style={appShellMetricCardStyle}>
 						<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.provider}</div>
 						<div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
-							{runtime.provider}
+							{runtimeConfig.provider}
 						</div>
 					</div>
 					<div style={appShellMetricCardStyle}>
 						<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.model}</div>
 						<div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
-							{runtime.model}
+							{runtimeConfig.model}
 						</div>
 					</div>
 					<div style={appShellMetricCardStyle}>
@@ -122,12 +131,12 @@ export function DashboardPage({
 			) : (
 				<>
 					<OperatorControlsPanel
-						apiKey={runtime.apiKey}
-						connectionStatus={runtime.connectionStatus}
-						includePresentationBlocks={runtime.includePresentationBlocks}
-						lastError={runtime.lastError}
-						model={runtime.model}
-						provider={runtime.provider}
+						apiKey={runtimeConfig.apiKey}
+						connectionStatus={connectionState.connectionStatus}
+						includePresentationBlocks={runtimeConfig.includePresentationBlocks}
+						lastError={connectionState.lastError}
+						model={runtimeConfig.model}
+						provider={runtimeConfig.provider}
 						onApiKeyChange={runtime.setApiKey}
 						onIncludePresentationBlocksChange={runtime.setIncludePresentationBlocks}
 						onModelChange={runtime.setModel}
@@ -212,8 +221,8 @@ export function DashboardPage({
 
 					<TransportMessagesPanel
 						formatMessagePayload={(message) => JSON.stringify(message, null, 2)}
-						lastError={runtime.lastError}
-						messages={runtime.messages}
+						lastError={connectionState.lastError}
+						messages={transportState.messages}
 						showTransportMessages={showTransportMessages}
 						transportMessagesLabel={
 							showTransportMessages

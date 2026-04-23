@@ -1,11 +1,11 @@
 import type { CSSProperties } from 'react';
 
 export const panelStyle: CSSProperties = {
-	background: 'rgba(15, 23, 42, 0.78)',
+	background: 'var(--gradient-panel)',
 	border: '1px solid rgba(148, 163, 184, 0.2)',
-	borderRadius: '20px',
+	borderRadius: 'var(--radius-panel)',
 	boxShadow: 'var(--shadow-panel)',
-	padding: 'clamp(16px, 3vw, 20px)',
+	padding: 'var(--space-panel)',
 	backdropFilter: 'blur(12px)',
 	transition:
 		'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease',
@@ -16,7 +16,7 @@ export const pageStyle: CSSProperties = {
 	background: 'var(--page-background)',
 	color: 'hsl(var(--color-text))',
 	fontFamily: 'var(--font-body)',
-	padding: 'clamp(18px, 4vw, 32px) clamp(12px, 3vw, 16px)',
+	padding: 'var(--space-page-y) var(--space-page-x)',
 };
 
 export const heroPanelStyle: CSSProperties = {
@@ -37,11 +37,12 @@ export const inputStyle: CSSProperties = {
 	padding: '10px 12px',
 	borderRadius: '14px',
 	border: '1px solid rgba(148, 163, 184, 0.24)',
-	background: 'rgba(8, 14, 24, 0.8)',
+	background: 'var(--gradient-input)',
 	color: 'hsl(var(--color-text))',
 	fontSize: '14px',
 	boxSizing: 'border-box',
 	minWidth: 0,
+	boxShadow: 'var(--shadow-inset)',
 	transition: 'border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
 };
 
@@ -49,7 +50,7 @@ export const buttonStyle: CSSProperties = {
 	padding: '12px 16px',
 	borderRadius: '14px',
 	border: 'none',
-	background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+	background: 'var(--gradient-primary-button)',
 	color: 'var(--color-accent-foreground)',
 	fontWeight: 700,
 	cursor: 'pointer',
@@ -60,11 +61,11 @@ export const secondaryButtonStyle: CSSProperties = {
 	padding: '10px 14px',
 	borderRadius: '14px',
 	border: '1px solid rgba(148, 163, 184, 0.28)',
-	background: 'rgba(10, 16, 28, 0.84)',
+	background: 'var(--gradient-secondary-button)',
 	color: 'hsl(var(--color-text))',
 	fontWeight: 600,
 	cursor: 'pointer',
-	boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+	boxShadow: 'var(--shadow-inset)',
 	transition:
 		'transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease',
 };
@@ -91,7 +92,7 @@ export const eventListStyle: CSSProperties = {
 };
 
 export const eventCardStyle: CSSProperties = {
-	borderRadius: '18px',
+	borderRadius: 'var(--radius-soft)',
 	border: '1px solid rgba(148, 163, 184, 0.18)',
 	background: 'linear-gradient(180deg, rgba(8, 13, 24, 0.88) 0%, rgba(4, 9, 19, 0.8) 100%)',
 	padding: '16px',
@@ -347,7 +348,7 @@ export const inspectionCorrelationChipStyle: CSSProperties = {
 };
 
 export const secondarySurfaceStyle: CSSProperties = {
-	borderRadius: '18px',
+	borderRadius: 'var(--radius-soft)',
 	border: '1px solid rgba(148, 163, 184, 0.16)',
 	background: 'rgba(6, 11, 21, 0.72)',
 	padding: '16px 18px',
@@ -361,7 +362,7 @@ export const pillStyle: CSSProperties = {
 	alignItems: 'center',
 	gap: '8px',
 	padding: '8px 12px',
-	borderRadius: '999px',
+	borderRadius: 'var(--radius-pill)',
 	border: '1px solid rgba(245, 158, 11, 0.28)',
 	background: 'rgba(36, 24, 8, 0.7)',
 	color: '#fde68a',
