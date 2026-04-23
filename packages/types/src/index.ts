@@ -32,5 +32,6 @@ export * from './blocks.js';
 export * from './ws.js';
 export * from './ws-guards.js';
 export * from './tools.js';
+export * from './mcp.js';
 export * from './memory.js';
 export * from './policy.js';

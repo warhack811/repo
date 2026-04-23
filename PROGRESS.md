@@ -8,10 +8,333 @@
 ## Mevcut Durum Ozeti
 
 - **Tarih:** 19 Nisan 2026
-- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, acik ana gap'ler GAP-11 ve GAP-12
+- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, acik ana gap GAP-12
 - **Vizyon:** Basit kullanicidan teknik uzmana kadar herkesin kullanabilecegi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI calisma ortagi.
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu ve desktop-agent oncesi net backlog ayrimi.
 - **Son Onemli Olay:** 2026-04-19 tarihinde ust seviye UI/UX manifesto belgelere baglayici cerceve olarak eklendi; chat-first consumer surface, Developer Mode izolasyonu ve natural-language-first presentation sonraki planlama icin netlestirildi.
+
+### Release-Readiness / Track A / KONU 21 - Approval / Policy Persistence Hardening - 23 Nisan 2026
+
+- `apps/server/src/ws/policy-wiring.test.ts` restart-safe hydration kanitini dar ama dogru sekilde genisletti. Yeni coverage, ayni authenticated scope icin persisted denial/session-pause state'inin taze socket + taze `createWebSocketPolicyWiring(...)` instance'ina hydrate oldugunu ve persisted progressive-trust auto-continue state'inin reconnect sonrasi tekrar `allow` uretebildigini dogruluyor.
+- `apps/server/src/ws/register-ws.test.ts` yeni reconnect acceptance'i ile persisted pending approval kaydinin taze websocket attachment + taze approval store/policy wiring instance uzerinden `approval.resolve` ile replay edildigini kanitliyor. Test presentation timing'ine degil, persisted approval seam'ine dayali; restart-safe continuation kaniti daha dogrudan hale geldi.
+- Production kodunda genis redesign acilmadi. Mevcut `approval-store.ts` / `policy-state-store.ts` / `policy-wiring.ts` persistence zemini korunup, release-oncesi eksik kalan hydration/reconnect proof katmani task-local testlerle kapatildi.
+- Task-local kanit:
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/persistence/approval-store.test.ts src/persistence/policy-state-store.test.ts` PASS
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/policy-wiring.test.ts` PASS
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts -t "replays a persisted pending approval after a fresh websocket attachment and policy wiring instance"` PASS
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/policy-wiring.test.ts src/ws/register-ws.test.ts -t "replays a persisted pending approval after a fresh websocket attachment and policy wiring instance|hydrates paused denial tracking for a fresh socket from the persistent policy store|hydrates progressive trust for auto-continue from the persistent policy store"` PASS
+- `pnpm.cmd --filter @runa/server typecheck` PASS
+- `pnpm.cmd --filter @runa/server exec biome check src/ws/policy-wiring.test.ts src/ws/register-ws.test.ts` PASS
+- `pnpm.cmd --filter @runa/server lint` FAIL, ancak failure bu gorevin dosyalarindan degil. Kalan repo-baseline Biome drift `src/gateway/{claude,gemini,openai}-gateway.ts`, `src/persistence/conversation-store{,.test}.ts`, `src/routes/{conversations,upload}.ts`, `src/ws/{conversation-collaboration,orchestration-types}.ts` ve `src/gateway/gateway.test.ts` tarafinda devam ediyor.
+- Durust kalan not: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts src/ws/policy-wiring.test.ts src/persistence/approval-store.test.ts src/persistence/policy-state-store.test.ts` genis task-local sweep'inde `src/ws/register-ws.test.ts` icindeki daha eski, bu gorevle dogrudan ilgili olmayan bircok acceptance senaryosu repo-baseline olarak kirmizi kaldi. Bu turda reconnect/persistence proof'lari hedefli olarak yesile getirildi; tum WS acceptance dosyasi yeniden stabilize edilmedi.
+- Sonraki onerilen gorev: ayri bir stabilization turunda `src/ws/register-ws.test.ts` dosyasinin genis baseline'ini tekrar yesile dondurmek ya da artik ana acik audit gap olan `GAP-12` icin desktop/browser capability yoluna gecmek.
+
+### Phase 3 Depth / Phase 4 Continuation / KONU 18 - Semantic Memory + RAG - 23 Nisan 2026
+
+- `packages/types/src/memory.ts`, `packages/db/src/schema.ts` ve `client.ts` additive olarak semantic memory zeminiyle genisletildi. `memories` tablosuna `retrieval_text` ve `embedding_metadata` alanlari eklendi; shared memory kontrati `MemoryEmbeddingMetadata` ve `RetrievedMemoryRecord` tipleriyle retrieval bilgisi tasiyabilir hale geldi.
+- `apps/server/src/memory/semantic-profile.ts` ve `retrieve-semantic-memories.ts` ile dependency acmadan minimum retrieval seami kuruldu. Yeni write path her memory icin deterministic token-profile metadata uretiyor; read path query varsa semantic overlap skoruyla, yoksa mevcut recency fallback ile calisiyor.
+- `apps/server/src/context/compose-memory-context.ts`, `orchestrate-memory-read.ts` ve `apps/server/src/ws/live-request.ts` run basinda ilgili memory parcasi cekmek icin bu retrieval helper'i kullanir hale geldi. Boylece compiled context artik sirf en yeni memory'leri degil, user turn ile daha alakali memory'leri one cekebiliyor.
+- `apps/server/src/memory/search-memory-tool.ts` ile dar bir `search.memory` tool seam'i eklendi. Tool built-in registry'yi global olarak redesign etmeden, `apps/server/src/ws/run-execution.ts` icinde run-local registry clone'una additive kaydediliyor; memory persistence mevcutsa model durable user/workspace memory icinde arama yapabiliyor.
+- Memory write tarafi bilincli sekilde secici tutuldu. `apps/server/src/persistence/memory-store.ts` artik yazilan kayitlara retrieval metadata'si ekliyor; mevcut explicit memory/user preference akisi korunuyor, conversation history veya her assistant yaniti sonsuz memory'ye cevrilmiyor.
+- Task-local kanit:
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/memory/retrieve-semantic-memories.test.ts src/memory/search-memory-tool.test.ts src/persistence/memory-store.test.ts src/ws/live-request.test.ts src/context/compose-memory-context.test.ts src/context/orchestrate-memory-read.test.ts` PASS
+- `pnpm.cmd --filter @runa/server exec tsc --noEmit` PASS
+- `pnpm.cmd --filter @runa/server exec biome check src/memory/semantic-profile.ts src/memory/retrieve-semantic-memories.ts src/memory/search-memory-tool.ts src/memory/retrieve-semantic-memories.test.ts src/memory/search-memory-tool.test.ts src/context/compose-memory-context.ts src/context/orchestrate-memory-read.ts src/ws/live-request.ts src/ws/live-request.test.ts src/ws/run-execution.ts src/persistence/memory-store.ts src/persistence/memory-store.test.ts ../../packages/types/src/memory.ts ../../packages/types/src/tools.ts ../../packages/db/src/schema.ts ../../packages/db/src/client.ts ../../packages/db/src/schema.test.ts` PASS
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts -t "injects them into the next compiled_context"` FAIL. Workspace explicit-memory path bu regression turunda yesil kalirken `writes explicit user preferences into user scope and injects them into the next compiled_context` senaryosunda `createMemoryMock` halen 0 geliyor; semantic retrieval seami gecse de bu dar WS preference persistence acceptance'i ayri stabilization istiyor.
+- `pnpm.cmd --filter @runa/server lint` FAIL, ancak kalan 15 Biome hatasi bu gorevin semantic-memory dosyalarindan degil. Gorunen baseline drift `src/gateway/{claude,gemini,openai}-gateway.ts`, `src/persistence/conversation-store{,.test}.ts`, `src/routes/{conversations,upload}.ts`, `src/app.test.ts`, `src/gateway/gateway.test.ts`, `src/ws/{conversation-collaboration,orchestration-types}.ts` uzerinde devam ediyor.
+- Durust kalan durum: semantic retrieval/store zemini, live request context entegrasyonu ve dar memory search tool'u task-local olarak calisiyor. Ancak mevcut WS preference persistence acceptance testi ve repo-genel server lint baseline'i bu tur sonunda hala tamamen yesil degil.
+- Sonraki onerilen gorev: `src/ws/register-ws.test.ts` icindeki user_preference persistence acceptance'ini dar kapsamda tekrar yesile donduren bir stabilization gorevi acmak; ayrik olarak da mevcut server Biome baseline drift'ini ayri bir hygiene gorevinde temizlemek.
+
+### Release-Readiness / Track B / KONU 19 - Security Hardening - 23 Nisan 2026
+
+- `apps/server/src/auth/rbac.ts` ile minimum role-aware authorization seami eklendi. `anonymous < viewer < editor < owner < admin` matrisi tek yerde toplandi; service principal `admin`, normal authenticated principal varsayilan `editor`, `claims.app_metadata` veya `user.metadata` icindeki `runa_role`/`role`/`roles[]` alanlari varsa override edebiliyor.
+- `apps/server/src/routes/auth.ts` prod-grade OAuth ve session sertlestirmesi icin genisletildi. `/auth/oauth/start` artik same-origin `redirect_to` ve opsiyonel PKCE `code_challenge`/`code_challenge_method=S256` parametrelerini dogruluyor; `/auth/oauth/callback` callback query'sini güvenli sekilde app origin'ine relay ediyor; yeni `/auth/oauth/callback/exchange` Supabase `grant_type=pkce` code exchange yolunu aciyor; yeni `/auth/session/refresh` ise `grant_type=refresh_token` ile session yeniliyor.
+- Auth route boundary netlestirildi: `/auth/context` cevabi additive `authorization.role` bilgisi tasiyor; `/auth/protected` yalniz authenticated olmayi degil en az `editor` yetkisini de istiyor. Boylece role downgraded bir kullanici bu route yuzeyinde acik `403` ile reddediliyor.
+- `apps/server/src/policy/permission-engine.ts` role-aware tool authorization seami kazandi. Runtime kontrati redesign edilmeden `actor_role` opsiyonel hale getirildi; verildiginde tool icin minimum rol (`viewer` read/search, `editor` write, `owner` execute/shell) hesaplanip `authorization_role_denied` karari uretebiliyor. Mevcut WS/runtime davranisi actor role gecmedigi icin task disi bir regressione zorlanmadi.
+- `apps/web/src/hooks/useAuth.ts` PKCE ve session timeout davranisini sertlestirdi. Hook artik OAuth query callback sonucunu tuketiyor, PKCE `code_verifier` uretip sakliyor, callback code'unu yeni server route uzerinden exchange ediyor, `refresh_token`/`expires_at` bilgisini sessionStorage'da tutuyor, expiry yaklastiginda otomatik refresh deniyor ve additive olarak `authorizationRole` ile `sessionState` yuzeylerini expose ediyor.
+- Conversation tarafinda yeni route/store redesign acilmadi. Mevcut `viewer/editor/owner` conversation access modeli korundu; yeni auth role seami bunu replace etmek yerine onunla ayni dilde hizalandi.
+- Task-local kanit:
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/auth/supabase-auth.test.ts src/auth/rbac.test.ts src/policy/permission-engine.test.ts src/app.test.ts` PASS
+- `pnpm.cmd --filter @runa/server typecheck` PASS
+- `pnpm.cmd --filter @runa/web typecheck` PASS
+- `pnpm.cmd exec biome check apps/server/src/auth/rbac.ts apps/server/src/auth/rbac.test.ts apps/server/src/routes/auth.ts apps/server/src/policy/permission-engine.ts apps/server/src/policy/permission-engine.test.ts apps/server/src/app.test.ts apps/web/src/hooks/useAuth.ts` PASS
+- `pnpm.cmd --filter @runa/server lint` FAIL, ancak kalan 14 Biome hatasi bu gorevin auth/RBAC dosyalarindan degil. Gorunen baseline drift `src/gateway/{claude,gemini,openai}-gateway.ts`, `src/gateway/gateway.test.ts`, `src/persistence/{conversation-store,conversation-store.test}.ts`, `src/routes/{conversations,upload}.ts`, `src/ws/{conversation-collaboration,orchestration-types}.ts` uzerinde devam ediyor.
+- Durust kalan durum: PKCE callback relay/exchange, refresh-token session renewal ve minimum route/tool role seami task-local olarak yesil. Ancak full server lint baseline'i halen repo-genel hygiene borcu olarak acik; conversation route/store tarafinda bu taskta bilerek yeni RBAC rewrite acilmadi.
+- Sonraki onerilen gorev: mevcut auth role seami uzerinden conversation/share ve runtime policy wiring tarafina actor role tasiyan dar bir integration gorevi acmak ya da once kalan server Biome baseline drift'ini ayri bir hygiene turunda temizlemek.
+
+### Phase 4 Backlog / KONU 16 - Collaborative Sessions - 23 Nisan 2026
+
+- `packages/db/src/schema.ts`, `client.ts`, `conversations.ts` ve `schema.test.ts` additive olarak `conversation_members` tablosu ile guncellendi. Composite primary key `(conversation_id, member_user_id)` uzerinden `viewer/editor` uyeligi, owner'dan gelen `added_by_user_id` izi ve conversation/member indeksleri acildi.
+- `apps/server/src/persistence/conversation-store.ts` tek kullanicili sahiplik mantigini bozmadan role-aware access katmani kazandi. `owner/editor/viewer` rolleri icin okuma-yazma ayrimi eklendi; `listConversationMembers`, `shareConversationWithMember`, `removeConversationMember` ve `getConversationAccessRole` seamlari acildi.
+- `apps/server/src/routes/conversations.ts` artik yalniz `/conversations` ve `/messages` degil, `/conversations/:conversationId/members` GET/POST ve `/conversations/:conversationId/members/:memberUserId` DELETE yuzeylerini de expose ediyor. Owner olmayan kullanicilarin member degistirme denemeleri store seviyesinden typed 404/400 olarak geri donuyor.
+- `apps/server/src/ws/conversation-collaboration.ts`, `register-ws.ts` ve `run-execution.ts` uzerinde ayni conversation icin minimum realtime fan-out eklendi. Origin socket `run.accepted` ve `run.finished` alirken, ayni conversation'a erisimi olan diger socket'ler de ayni lifecycle sinyalini gorup kendi aktif conversation gorunumlerini tazeleyebiliyor.
+- Web tarafinda `apps/web/src/hooks/useConversations.ts`, `apps/web/src/hooks/useChatRuntime.ts`, `apps/web/src/components/chat/ConversationSidebar.tsx` ve `apps/web/src/pages/ChatPage.tsx` role-aware hale geldi. Sidebar artik role badge gosteriyor; aktif conversation icin member listesi aciliyor; owner kullanici minimum share/remove formu ile `viewer/editor` yonetebiliyor.
+- Task-local kanit:
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/persistence/conversation-store.test.ts` PASS
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/app.test.ts -t "lists authenticated conversations|returns persisted messages|lists shared conversation members|allows owners to share a conversation member through the route seam|surfaces viewer/editor sharing validation as a bad request"` PASS
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts -t "rejects viewers from starting a run in a shared conversation|allows editors to start a run and fans out completion to another shared socket"` PASS
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/types build` PASS
+- `pnpm --filter @runa/web build` PASS
+- Durust kalan durum: task-local multi-user route/ws acceptance yesil. Ancak genis `src/ws/register-ws.test.ts` dosyasinin tamami bu turda yeniden stabilize edilmedi; full dosya kosusunda task disi daha genis failure'lar goruldu. Bu gorev icinde yalnizca collaborative-session acceptance senaryolari yesile getirildi.
+- Sonraki onerilen gorev: yeni collaboration seami uzerinde share UX'ini email/display-name dostu hale getiren dar bir polish gorevi acmak ya da ayri bir stabilization gorevinde `src/ws/register-ws.test.ts` dosyasinin genis baseline'ini tekrar yesile dondurmek.
+
+### Phase 4 Backlog / KONU 17 - Mobile PWA - 23 Nisan 2026
+
+- `apps/web/public/manifest.json`, `sw.js`, `favicon.svg` ve `icons/*` ile minimum installable PWA zemini eklendi. Manifest chat-first `start_url` olarak `/chat`, `standalone` display, mobile shortcut'lar ve 32/180/192/512 icon seti tasiyor.
+- `apps/web/index.html` mobile shell metadata'si ile guncellendi: `viewport-fit=cover`, `apple-mobile-web-app-*` alanlari, manifest/icon linkleri ve yeni dependency acmadan service worker registration eklendi.
+- `apps/web/src/components/app/AppShell.tsx` ile `apps/web/src/index.css` uzerinde mobile-first shell sertlestirildi. Safe-area-aware page padding, sticky app shell hero/header ve `1024px`, `768px`, `480px` breakpoint sikilastirmalari eklendi; navigation meta/toggle mobilda dikey akisa dusebiliyor.
+- `apps/web/public/sw.js` bilincli olarak minimum shell-cache stratejisiyle sinirli tutuldu. App shell, manifest ve statik asset'ler cache'leniyor; `/auth` ve `/ws` disarida birakiliyor ve full offline runtime garantisi verilmiyor.
+- Dogrulama:
+- `pnpm.cmd --filter @runa/web typecheck` PASS
+- `pnpm.cmd --filter @runa/web build` PASS
+- Durust kalan durum: manifest/installability metadata'si ve production build artifact'i yesil. Canli authenticated mobile browser smoke veya cihaz emulation turu bu task icinde kosulmadi; breakpoint audit CSS/layout seam'i ve build uzerinden yapildi.
+- Sonraki onerilen gorev: install prompt davranisi ve authenticated route icin gercek mobile browser smoke'u ayri, dar kapsamli bir verification/polish gorevi olarak acmak; offline runtime veya push notification kapsami acmamak.
+
+### Phase 3 Backlog / KONU 13 - Dosya Tabanli Plugin Loader ve Sandboxli Tool Bridge - 23 Nisan 2026
+
+- `packages/types/src/tools.ts` additive olarak `plugin` namespace'ini kabul eder hale getirildi. Boylece built-in isim listesi bozulmadan plugin tool adlari typed kontrat icinde tanimlanabiliyor.
+- `apps/server/src/plugins/manifest.ts` ile dosya tabanli plugin manifest formati eklendi. `runa-plugin.json` manifest'i `plugin_id`, `schema_version`, `tools[]`, callable schema, risk/side-effect metadata ve timeout alanlarini parse ediyor; `RUNA_PLUGIN_DIRS` env seam'i de buradan okunuyor.
+- `apps/server/src/plugins/tool-bridge.ts` child-process tabanli izole execution yolu kurdu. Plugin handler'lari ayri `node` surecinde, shell kapali ve kisitli env ile calisiyor; input/context JSON olarak stdin'den gidiyor, stdout JSON cevabi `ToolResult` shape'ine map ediliyor. Timeout, non-zero exit ve invalid JSON hatalari typed `EXECUTION_FAILED` sonucuna donuyor.
+- `apps/server/src/plugins/loader.ts` built-in registry'yi replace etmeden plugin discovery seami acti. Plugin root ya dogrudan `runa-plugin.json` iceren klasor olabilir ya da boyle alt klasorleri barindiran parent klasor olabilir. Loader built-in tool isimlerini ve ayni discovery turundeki tekrar adlari rezerv tutuyor; override denemesinde `PluginConflictError` ile kayit reddediliyor.
+- `apps/server/src/ws/runtime-dependencies.ts` artik built-in registry kurulduktan sonra `RUNA_PLUGIN_DIRS` altindaki plugin tool'larini additive olarak registry'ye ekliyor; MCP wiring aynen korunuyor, plugin sistemi MCP ile birlestirilmedi.
+- Hedefli kanit:
+- `apps/server/src/plugins/loader.test.ts` child-process bridge'in calistigini, plugin metadata'nin registry'ye map edildigini, immediate-child discovery'nin calistigini ve built-in override denemesinin reddedildigini kanitliyor.
+- `apps/server/src/ws/runtime-dependencies.test.ts` env tabanli plugin discovery'nin built-in registry'yi bozmadan runtime dependency seviyesinde eklendigini kanitliyor.
+- `apps/server/src/tools/registry.ts` uzerine yalnizca built-in ad listesini expose eden kucuk helper eklendi; built-in execution yolu replace edilmedi.
+- Dogrulama:
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/plugins/loader.test.ts src/ws/runtime-dependencies.test.ts src/tools/registry.test.ts` PASS
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/server exec biome check src/plugins src/ws/runtime-dependencies.ts src/ws/runtime-dependencies.test.ts src/tools/registry.ts src/tools/registry.test.ts ../../packages/types/src/tools.ts src/gateway/gateway.test.ts` PASS
+- `pnpm --filter @runa/server lint` FAIL, ancak kalan 5 Biome hatasi bu gorevin degistirdigi dosyalarda degil. Mevcut baseline drift `src/gateway/{claude,gemini,openai}-gateway.ts`, `src/persistence/conversation-store.ts` ve `src/ws/orchestration-types.ts` uzerinde devam ediyor.
+- Durust kalan durum: file-based plugin loader ve child-process bridge aktif; built-in override reddi kanitli. Tam repo server lint baseline'i ise ayri hygiene gorevi gerektiriyor.
+- Sonraki onerilen gorev: plugin bridge icin ikinci dar adimda policy baglaminin manifest seviyesinde daha da netlestirilmesi ya da kalan 5 Biome drift'ini temizleyip `@runa/server lint` baseline'ini yeniden yesile dondurmek.
+
+### Phase 3 Depth / KONU 15 - File Upload + Multimodal Minimum Path - 23 Nisan 2026
+
+- `packages/types/src/gateway.ts` ve `packages/types/src/ws.ts` additive olarak attachment kontratini aldi. `ModelAttachment` union'i text/image ayrimini typed sekilde tasiyor; `RunRequestPayload` ustunde opsiyonel `attachments` alani acildi ve `ws-guards.ts` bu yeni shape'i dogruluyor.
+- `apps/server/src/routes/upload.ts` yeni minimum upload route'u olarak eklendi ve `apps/server/src/app.ts` icinde register edildi. Route mevcut auth + storage authority ile uyumlu kalarak JSON-base64 upload kabul ediyor, dosyayi storage seamine yaziyor ve text icin `text_content`, image icin `data_url` iceren typed attachment cevabi donuyor.
+- Storage tarafinda yeni dependency acilmadi. `apps/server/src/storage/storage-service.ts` ve `supabase-storage-adapter.ts` attachment blob kind'larini (`attachment_text`, `attachment_image`) additive olarak kabul eder hale geldi; buyuk payload'i WS presentation block'larina gommek yerine upload sonrasi attachment metadata kontrati kullanildi.
+- `apps/server/src/context/adapt-context-to-model-request.ts` ve `apps/server/src/ws/live-request.ts` attachment'lari live model request'e tasiyor. Gateway tarafinda `openai`, `groq`, `gemini` ve `claude` adapter'lari son user turn'e attachment part'larini provider-native request shape'inde map ediyor; text attachment metni kontrollu sekilde ekleniyor, image attachment data URL/base64 kaynagi olarak geciyor.
+- Web tarafinda `apps/web/src/components/chat/FileUploadButton.tsx` ve `apps/web/src/pages/ChatPage.tsx` composer yanina sade dosya yukleme seami ekledi. Yuklenen attachment'lar kartta ozetleniyor, kaldirilabiliyor ve mevcut text-first chat akisi korunuyor; full document understanding pipeline veya vision-action desktop loop acilmadi.
+- Dogrulama:
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/routes/upload.test.ts src/ws/live-request.test.ts src/gateway/gateway.test.ts` PASS
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/web typecheck` PASS
+- `pnpm --filter @runa/web build` PASS
+- Durust kalan durum: minimum multimodal yol text/image ile acildi; PDF ve daha genis document understanding bilincli olarak scope disinda tutuldu. `@runa/web lint` bu turda istenmedi ve repo genelindeki onceki Biome drift'leri acik kaldi.
+- Sonraki onerilen gorev: attachment'lar icin persisted conversation transcript ve assistant cevabi arasina hafif preview/reference surface'i eklemek ya da PDF/dokuman tarafini ayri, dar kapsamli bir extraction seamiyle acmak; WS contract'i veya desktop vision loop'unu genisletmemek.
+
+### Release-Readiness Backlog / KONU 12 - Structured Logging Zemini ve Dar Tracing Seam'leri - 23 Nisan 2026
+
+- `apps/server/src/utils/logger.ts` ve `logger.test.ts` ile yeni structured logger utility'si eklendi. Tek giris noktasindan JSON log uretiyor; `apiKey`, `authorization`, `password`, `token`, `secret`, `cookie` ve benzeri gizli alanlari recursive olarak `[REDACTED]` maskesine cekiyor. Ayrica minimum span/tracing seami icin `startLogSpan(...)` yardimcisi eklendi.
+- `apps/server/src/app.ts` artik startup asamalarindaki `console.log` cagrilarini logger uzerinden geciriyor; websocket/auth/storage route registration adimlari structured event isimleriyle kayit altina aliniyor.
+- `apps/server/src/ws/run-execution.ts` uzerinde run kabul/finalize, gateway generate ve tool execute dar seam'lerine log/spans eklendi. Log baglamlari `run_id`, `trace_id`, provider/model, `tool_name`, `call_id`, final state ve status alanlarini tasiyor; tool permission allow/approval/deny/pause dallari da structured event olarak gorunur hale geldi.
+- `apps/server/src/gateway/provider-http.ts` ve `groq-gateway.ts` structured logger'a tasindi. Provider debug log'u artik env flag (`RUNA_DEBUG_PROVIDER_ERRORS=1`) altinda JSON olarak uretiliyor; Groq debug baglamina `run_id`, `trace_id`, model, tool serialization/context mode ve yalniz sayisal/guvenli ozet alanlari tasindi. Eski `last_user_message_preview` cikarildi; sadece `last_user_message_chars` korunuyor.
+- Dogrulama:
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/utils/logger.test.ts src/gateway/gateway.test.ts` PASS
+- `pnpm --filter @runa/server exec biome check src/utils/logger.ts src/utils/logger.test.ts src/gateway/provider-http.ts src/gateway/groq-gateway.ts src/gateway/gateway.test.ts src/ws/run-execution.ts src/app.ts` PASS
+- `pnpm --filter @runa/server lint` FAIL, ancak kalan 5 Biome hatasi bu gorevin dokundugu dosyalarda degil. Mevcut baseline drift `src/gateway/{claude,gemini,openai}-gateway.ts`, `src/persistence/conversation-store.ts` ve `src/ws/orchestration-types.ts` uzerinde devam ediyor.
+- Durust kalan durum: bu gorev kapsamindaki logger/tracing zemini ve gizli alan maskelemesi aktif; full repo server lint baseline'i ise ayri bir hygiene gorevi gerektiriyor.
+- Sonraki onerilen gorev: `@runa/server lint` baseline'ini yeniden yesile dondurmek icin kalan 5 format drift'ini temizleyen dar kapsamli hygiene gorevi acmak ya da structured logger'i scope disi kalan secili `console.*` yuzeylerine (`ws/live-request.ts`, persistence debug seam'leri) kontrollu sekilde yaymak.
+
+### Track B / Follow-Up - HTTP + WS Icin Dar Kapsamli Quota / Rate-Limit Enforcement - 23 Nisan 2026
+
+- `packages/types/src/policy.ts` uzerine typed `UsageLimitRejection` kontrati eklendi; `packages/types/src/ws.ts` ve `ws-guards.ts` artik `run.rejected` payload'i icinde opsiyonel typed limit nedeni tasiyabiliyor. WS protocol redesign yapilmadi; yalnizca additive reject metadata eklendi.
+- `apps/server/src/policy/usage-quota.ts` icinde mevcut quota helper'i korunarak yeni tier-aware rolling minute rate-limit seami eklendi. `ws_run_request` icin daha siki, `http_request` icin daha hafif limit tablosu tanimlandi; store bilincli olarak ilk adimda process-ici Map olarak tutuldu. `UsageQuotaError` artik rate-limit ve quota exhaustion durumlarinda typed `reject_reason` metadata'si tasiyabiliyor.
+- `apps/server/src/ws/run-execution.ts` artik authenticated run baslangicinda `monthly_turns` metriği icin `ws_run_request` limitini enforce ediyor. Limit asiminda `run.accepted` gonderilmeden once kontrollu `run.rejected` donuyor; ayni kullanici icin minute-window dolunca typed neden payload'a dusuyor.
+- Test kaniti dar tutuldu: `apps/server/src/policy/usage-quota.test.ts` WS-vs-HTTP threshold farkini, rolling-window resetini ve typed rate-limit error'unu kanitliyor. `apps/server/src/ws/register-ws.test.ts` uzerine ayni kullanici icin WS run-start limit asiminda typed `run.rejected.reject_reason` beklentisi eklendi.
+- Dogrulama:
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/policy/usage-quota.test.ts` PASS
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts -t "returns a typed run.rejected reason when the ws run-start rate limit is exceeded for the same user"` PASS
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/server exec biome check src/policy/usage-quota.ts src/policy/usage-quota.test.ts src/ws/run-execution.ts src/ws/transport.ts src/ws/register-ws.test.ts ../../packages/types/src/policy.ts ../../packages/types/src/ws.ts ../../packages/types/src/ws-guards.ts` PASS
+- `pnpm --filter @runa/server lint` FAIL, ancak failure bu gorevin rate-limit dosyalarindan degil; mevcut repo baseline drift `src/gateway/{claude,gemini,groq,openai}-gateway.ts`, `src/persistence/conversation-store.ts` ve `src/ws/orchestration-types.ts` uzerinde devam ediyor.
+- Durust kalan durum: WS tarafinda minimum enforcement aktif ve typed reject kaniti var. HTTP tarafi icin daha hafif threshold mantigi shared helper'a eklendi ve testlendi; route-level genis wiring bu gorevin strict scope'u disina tasinmadi.
+- Sonraki onerilen gorev: mevcut helper'i dar kapsamli bir authenticated HTTP surface'e baglayip ayni typed reject dilini REST cevabina da yansitmak ya da ayri bir hygiene goreviyle `@runa/server lint` baseline'ini yeniden yesile dondurmek.
+
+### Track A / Phase 3 Backlog - Intent-Aware Model Router + Fallback Temeli - 22 Nisan 2026
+
+- `apps/server/src/gateway/model-router.ts` ve `fallback-chain.ts` ile metadata-opt-in intent-aware routing seami eklendi. Karar mantigi saf helper'larda tutuldu: explicit preferred provider, cheap/tool-heavy/deep-reasoning intent ayrimi ve minimum fallback sirasi testlenebilir hale geldi.
+- `apps/server/src/gateway/factory.ts` artik provider adapter'larini yeniden yazmadan ince bir router-aware `ModelGateway` wrapper'i donuyor. Router kapaliyken request mevcut provider/model yolunda kaliyor; router acikken secilen provider icin request model'i guncelleniyor ve yalniz request/response/configuration failure tiplerinde minimum provider fallback deneniyor.
+- Bu turda `apps/server/src/ws/run-execution.ts` davranisi degistirilmedi; mevcut `createModelGateway(...)` cagrisi korunarak routing/fallback factory seviyesinde devreye alindi. Boylece WS/runtime kontrati ve authenticated akisin sekli degismedi.
+- Dogrulama:
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/gateway/model-router.test.ts` PASS
+- `pnpm --filter @runa/server exec biome check src/gateway/model-router.ts src/gateway/fallback-chain.ts src/gateway/factory.ts src/gateway/model-router.test.ts src/gateway/gateway.test.ts` PASS
+- `pnpm --filter @runa/server lint` FAIL, ancak kalan Biome drift bu gorevin yeni router dosyalarinda degil; mevcut snapshot'ta `src/gateway/{claude,gemini,groq,openai}-gateway.ts`, `src/persistence/conversation-store.ts`, `src/ws/run-execution.ts` ve `src/ws/orchestration-types.ts` uzerinde kaliyor.
+- Sonraki onerilen gorev: router seam'ini canli env/proof gorevine tasiyip intent metadata'nin hangi runtime kaynaklardan beslenecegini dar kapsamda netlestirmek ya da ayri bir hygiene goreviyle repo-genel server Biome drift'ini temizlemek.
+
+### Release-Readiness Backlog - Web + Server E2E Altyapisi ve Temel CI Pipeline - 22 Nisan 2026
+
+- Root seviyesinde `@playwright/test` devDependency'si, `test:e2e` script'i, yeni `playwright.config.ts`, `.github/workflows/ci.yml` ve `e2e/*` smoke altyapisi eklendi. Amaç canli provider secret'i kullanmadan auth bootstrap + chat submit + approval replay yolunu release oncesi minimum kalite kapisi olarak kanitlamakti.
+- `e2e/serve-runa-e2e.mjs` deterministic bir local harness sagliyor: Fastify + WS server dist output'u ayaga kaldiriliyor, local-dev auth bootstrap aktif ediliyor, OpenAI chat-completions cagrisi process-ici mock ile intercept ediliyor ve approval sonrasi `file.write` replay'i gercek tool registry uzerinden proof dosyasi yazarak tamamlanıyor.
+- `e2e/chat-e2e.spec.ts` iki smoke senaryosu kapsiyor: `/auth/dev/bootstrap` uzerinden chat shell'in acilmasi ve approval gerektiren bir chat isteginin kabul edilip `file.write completed successfully.` sinyali ile proof dosyasina ulasmasi. Testler stale local conversation state'ini temizleyerek daha deterministik hale getirildi.
+- GitHub Actions workflow iki lane olarak ayrildi: `quality` job'i `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` kosuyor; `e2e` job'i Playwright Chromium kurup `pnpm test:e2e` calistiriyor ve `playwright-report` ile `test-results/playwright` artifact'larini yukluyor.
+- Dogrulama:
+- `pnpm typecheck` PASS
+- `pnpm lint` FAIL, ancak failure bu gorevin ekledigi dosyalardan degil; repo-genel pre-existing Biome drift `apps/server/src/gateway/*`, `apps/server/src/ws/*`, `apps/web/src/App.tsx`, `apps/web/src/hooks/useConversations.ts` ve benzeri dosyalarda devam ediyor.
+- `pnpm test` FAIL, ancak failure bu gorevin yeni E2E lane'inden degil; mevcut baseline `dist/ws/register-ws.test.js` ve `dist/runtime/run-with-provider.test.js` tarafinda kirik durumda.
+- `pnpm build` PASS
+- `pnpm exec biome check package.json playwright.config.ts e2e/chat-e2e.spec.ts e2e/serve-runa-e2e.mjs` PASS
+- `pnpm test:e2e` PASS
+- Sonraki onerilen gorev: repo-genel `lint` ve `test` baseline'ini dar kapsamli bir hygiene/repair goreviyle tekrar yesile dondurup yeni CI pipeline'in PR'larda gercek blocker olarak kullanilabilir hale gelmesini saglamak.
+
+### Track C / Maintenance - Chat Runtime State Management Decomposition - 22 Nisan 2026
+
+- `apps/web/src/stores/chat-store.ts` ile dependency eklemeden kucuk external store seam'i eklendi; runtime config, connection/submit durumu, transport mesajlari ve current-run presentation tracking state'i artik ayri slice'lar halinde tutuluyor.
+- `apps/web/src/hooks/useChatRuntime.ts` sifirdan yazilmadan kontrollu sekilde toparlandi. WebSocket lifecycle, runtime-config persistence ve presentation tracking update'leri yeni store uzerinden ilerliyor; mevcut WS davranisi ve chat aksiyonu kontratlari korunuyor.
+- `apps/web/src/pages/ChatPage.tsx` ve `apps/web/src/pages/DashboardPage.tsx` secili runtime state'lerini `useChatStoreSelector(...)` ile tuketir hale geldi. Boylece sayfa tarafinda selector mantigi acildi; hook sonucu uzerindeki tum ham state'e dogrudan bagimlilik biraz daha azaldi.
+- Dogrulama:
+- `pnpm --filter @runa/web typecheck` PASS
+- `pnpm --filter @runa/web lint` FAIL, ancak kalan Biome drift bu gorevin dar kapsamindan once de repoda bulunan `src/App.tsx`, `src/components/chat/ConversationSidebar.tsx` ve `src/hooks/useConversations.ts` uzerinde gorunuyor. Degistirilen state-management dosyalari icin `pnpm --filter @runa/web exec biome check src/hooks/useChatRuntime.ts src/pages/ChatPage.tsx src/pages/DashboardPage.tsx src/stores/chat-store.ts` PASS.
+- `pnpm --filter @runa/web build` PASS
+- Sonraki onerilen gorev: bu store tabanli ilk adimi takip ederek `useChatRuntime.ts` icindeki inspection/request orchestration dalini ayri bir helper/store seam'ine tasimak ya da ayri bir hygiene goreviyle mevcut repo-genel Biome drift baseline'ini temizlemek.
+
+### Track C / Sprint 11 Hazirlik - Approval-Gated Desktop Control Tool Family - 22 Nisan 2026
+
+- `apps/server/src/tools/desktop-click.ts`, `desktop-type.ts`, `desktop-keypress.ts` ve `desktop-scroll.ts` eklendi. Her tool approval-gated, `capability_class: desktop`, `risk_level: high` ve `side_effect_level: execute` metadata'si ile kayitli; mevcut `desktop.screenshot` davranisina dokunulmadi.
+- Uygulama bilincli olarak yeni native dependency acmadan tutuldu. Windows host icin PowerShell tabanli ince input-injection seam'i kullanildi; click/scroll `user32` uzerinden, type/keypress ise `System.Windows.Forms.SendKeys` uzerinden calisiyor. `apps/desktop-agent/`, vision-action loop ve browser automation kapsam disinda birakildi.
+- `packages/types/src/tools.ts` additive olarak yeni desktop tool adlariyla guncellendi; `apps/server/src/tools/registry.ts` built-in registry artik `desktop.click`, `desktop.type`, `desktop.keypress`, `desktop.scroll`, `desktop.screenshot` ailesini birlikte expose ediyor.
+- Hedefli coverage eklendi: `apps/server/src/tools/desktop-{click,type,keypress,scroll}.test.ts` ve `apps/server/src/tools/registry.test.ts` guncellendi. Ayrica `desktop.screenshot` regression guard olarak ayni validation turunda tekrar kosturuldu.
+- Dogrulama:
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/desktop-screenshot.test.ts src/tools/desktop-click.test.ts src/tools/desktop-type.test.ts src/tools/desktop-keypress.test.ts src/tools/desktop-scroll.test.ts src/tools/registry.test.ts` PASS
+- `pnpm --filter @runa/server lint` FAIL, ancak failure yeni desktop dosyalarindan degil. Pre-existing Biome drift `src/gateway/{claude,gemini,groq,openai}-gateway.ts`, `src/gateway/gateway.test.ts` ve `src/ws/run-execution.ts` uzerinde kalmaya devam ediyor.
+- Sonraki onerilen gorev: yeni desktop tool ailesi icin approval persistence / replay seam'ini dar kapsamda kanitlamak ya da ayri bir hygiene goreviyle mevcut repo-genel Biome drift'ini temizleyip `@runa/server lint` baseline'ini tekrar yesile dondurmek.
+
+### Track A / Track C - Conversation Persistence Temeli - 22 Nisan 2026
+
+- `packages/db/src/schema.ts`, `client.ts` ve yeni `packages/db/src/conversations.ts` uzerinden `conversations` ve `conversation_messages` tablolari ile helper client zemini eklendi. Ayrica `runs` tablosu additive `conversation_id` kolonu aldi; mevcut run/tool/event persistence akisi bozulmadi.
+- `apps/server/src/persistence/conversation-store.ts` ve `apps/server/src/routes/conversations.ts` ile authenticated conversation listing + message fetch API'si acildi. `buildServer()` artik bu route'lari register ediyor; testlenebilirlik icin dar injection seam'i eklendi.
+- `apps/server/src/ws/run-execution.ts` conversation aware hale getirildi. Yeni run ilk user mesajindan conversation'i ensure ediyor, `run.accepted` icinde optional `conversation_id` geri donuyor, user/assistant mesajlari additive olarak persist ediliyor ve final run state `conversation_id` ile upsert ediliyor. WS protocol redesign yapilmadi; yalnizca optional field eklendi.
+- Web tarafinda `apps/web/src/hooks/useConversations.ts` ve `apps/web/src/components/chat/ConversationSidebar.tsx` eklendi. `App.tsx` conversation hook ile runtime hook'unu bagliyor; `ChatPage.tsx` artik conversation secimi, persisted transcript hydration'i ve refresh sonrasi aktif conversation geri alim akisini gosteriyor. Dashboard-first yan menu kurgusuna kayilmadi.
+- Dogrulama:
+- `pnpm --filter @runa/db test` PASS
+- `pnpm --filter @runa/server typecheck` PASS
+- `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/persistence/conversation-store.test.ts src/persistence/run-store.test.ts src/app.test.ts` PASS
+- `pnpm --filter @runa/web typecheck` PASS
+- `pnpm --filter @runa/web build` PASS
+- Sonraki onerilen gorev: conversation persistence uzerine ikinci dar adim olarak persisted transcript ile current session presentation surface iliskisini daha da netlestiren markdown/render polish gorevi ya da conversation history icin hedefli live browser smoke gorevi acmak.
+
+### Track A / Phase 3 Backlog - StdIO MCP Client + Tool Registry Bridge Temeli - 22 Nisan 2026
+
+- `packages/types/src/mcp.ts` eklendi ve barrel export guncellendi; MCP server config, tool definition, tool content ve call-result tipleri shared contract olarak tanimlandi. Ayni turda `packages/types/src/tools.ts` additive genisletilerek `mcp` namespace'i ve `external` capability class'i acildi.
+- `apps/server/src/mcp/config.ts`, `stdio-transport.ts`, `client.ts` ve `registry-bridge.ts` ile ilk stdio tabanli MCP istemci omurgasi kuruldu. Tasarim bilincli olarak mevcut sync tool-registry seam'ini bozmamak icin one-shot stdio session modeli kullaniyor: initialize -> initialized -> `tools/list` / `tools/call`.
+- MCP tool discovery sonucu gelen tanimlar `ToolDefinition` shape'ine map'lendi; runtime tarafinda bunlar `mcp.<serverId>.<toolName>` seklinde namespaceleniyor, built-in tool isimleri override edilmiyor ve metadata tarafinda conservative `requires_approval: true`, `risk_level: high`, `side_effect_level: execute` karari uygulanıyor.
+- `apps/server/src/ws/runtime-dependencies.ts` additive olarak `RUNA_MCP_SERVERS` env seam'ini okumaya basladi. Env yoksa built-in registry aynen korunuyor; env varsa built-in tool set'ine MCP discovery sonucu bulunan tool'lar ekleniyor.
+- Hedefli coverage eklendi: `apps/server/src/mcp/client.test.ts`, `apps/server/src/mcp/registry-bridge.test.ts` ve `apps/server/src/tools/registry.test.ts`. Fake stdio MCP fixture ile `tools/list`, `tools/call`, bridge mapping ve built-in name authority davranisi kanitlandi.
+- Dogrulama: `pnpm --filter @runa/server typecheck` PASS. `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/mcp/client.test.ts src/mcp/registry-bridge.test.ts src/tools/registry.test.ts` PASS. MCP scope'u hedefleyen `pnpm --filter @runa/server exec biome check src/mcp src/tools/registry.test.ts src/ws/runtime-dependencies.ts` PASS.
+- Durust kalan durum: `pnpm --filter @runa/server lint` bu task'in dokunmadigi pre-existing format/import drift'leri nedeniyle hala FAIL. Kalan dosyalar `src/gateway/{claude,gemini,groq,openai}-gateway.ts`, `src/gateway/gateway.test.ts` ve `src/ws/run-execution.ts`; MCP degisikligi bu dosyalara yayilmadi.
+- Sonraki onerilen gorev: MCP bridge icin ikinci dar adimda roots/cwd/policy baglaminin stdio server'lara kontrollu sekilde iletilmesi ve gerekirse uzun-omurlu session cache ile process-per-call maliyetinin dusurulmesi.
+
+### Track A / GAP-11 Follow-Up - Groq Schema-Density + Context-Split Compatibility Matrix Hardening - 21 Nisan 2026
+
+- `apps/server/src/gateway/request-tools.ts` additive serialization knob'lari aldi; tool/function description ve parameter description yogunlugu artik provider-adapter tarafinda secimli olarak minimalize edilebiliyor.
+- `apps/server/src/gateway/groq-gateway.ts` Groq request-hygiene katmani eklendi. Legacy split-system yol tekrar default yapildi; request metadata ile `merged_system` ve farkli tool-serialization modlari hala force edilebiliyor. Full-registry benzeri genis tool set'lerinde non-primary tool description/parameter-description yukunu azaltan `minimal_non_primary` serialization korunuyor; broad interface degisikligi yapilmadi.
+- `apps/server/scripts/groq-live-smoke.mjs` compatibility matrix'i gerekli eksenlere daraltildi ve paced hale getirildi. Her prompt family (`package_json_list`, `readme_file_read_probe`) icin `current_shape`, `stripped_descriptions`, `narrow_context_split` ve full-registry `groq_safe_minimal_schema` karsilastirmasi canli raporlaniyor; request budget 64 output token ve varyantlar arasi delay ile TPM surtunmesi azaltildi.
+- `apps/server/scripts/approval-browser-authority-check.mjs` authority harness canli Groq smoke icin daha hafif varsayilan model (`llama-3.1-8b-instant`) ve `max_output_tokens: 64` override kullaniyor. Debug log only-if-env seam'i eklendi; normal behavior degismedi.
+- Coverage: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit`, `pnpm.cmd --filter @runa/server lint` ve `pnpm.cmd --filter @runa/server build` yesil.
+- Canli sonuc PASS ile kapandi; shell env'de `GROQ_API_KEY` yoktu, key yalniz `.env` icinden alt surece tasindi. `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix pnpm.cmd --filter @runa/server run test:groq-live-smoke` yeni daraltma/pacing ile yesil dondu ve iki prompt family icin hedef varyantlarin tamami PASS raporladi. `pnpm.cmd --filter @runa/server run test:approval-browser-authority-check` de default `minimal_authority + package_json_list` yolunda tekrar PASS verdi; debug log ozetinde `approval boundary -> approval.resolve -> run.finished(COMPLETED)` zinciri goruldu. `pnpm.cmd --filter @runa/server run test:approval-persistence-live-smoke` PASS kaldi; restart/reconnect persistence smoke bozulmadi.
+- Canli matrix'ten ogrenim: `tool_use_failed` riski Groq tarafinda request-shape duyarliligi gosterse de bu snapshot'ta hedef compatibility varyantlari `llama-3.1-8b-instant` + daha dusuk output budget + paced matrix ile stabil PASS verdi. Minimal/default authority yolunu kiren ana operasyonel sebep bu tur provider TPM/TPD ve request budget kombinasyonuydu; exact blocker broad runtime redesign gerektirmedi.
+- Sonraki onerilen gorev: istenirse bu Groq smoke/authority model-budget karari repo runbook'una kisa operasyon notu olarak eklemek; gateway-level hygiene knob'larini daha sonra baska provider smoke'lari icin de dar benchmark goreviyle karsilastirmak.
+
+### Track A / Phase 3 Hazirlik - Multi-Provider Gateway (OpenAI + Gemini) - 22 Nisan 2026
+
+- `apps/server/src/gateway/openai-gateway.ts` ve `apps/server/src/gateway/gemini-gateway.ts` eklendi; her iki adapter da mevcut `ModelGateway` kontratina sadik kalarak `generate()` ve `stream()` yollarini, tool schema serialization'ini ve tool-call parse akislarini destekliyor.
+- `apps/server/src/gateway/factory.ts`, `config-resolver.ts` ve `providers.ts` wiring'i additive genisletildi. Factory artik `openai` ve `gemini` provider'larini secebiliyor; env fallback tarafinda `OPENAI_API_KEY` ve `GEMINI_API_KEY` destekleniyor.
+- Shared provider kontrati genisletildi: `packages/types/src/ws.ts` ve `packages/types/src/ws-guards.ts` artik `claude | gemini | groq | openai` union'ini kabul ediyor. Varsayilan model adlari tek kaynakta toplandi (`defaultGatewayModels`), boylece provider secim UI'i ve runtime storage fallback'i daginik literal kullanmiyor. Bu union genislemesiyle birlikte `apps/server/src/persistence/approval-store.ts` icindeki provider-env resolver de yeni provider'lar icin exhaustive hale getirildi; persistence davranisi redesign edilmedi.
+- Frontend tarafinda `apps/web/src/ws-types.ts`, `apps/web/src/hooks/useChatRuntime.ts` ve `apps/web/src/components/chat/OperatorControlsPanel.tsx` additive guncellendi. Developer runtime config artik yeni provider'lari listeliyor, placeholder/provider default model baglantisi tek kaynaktan geliyor ve provider degisince model de ancak onceki provider default'unu kullaniyorsa otomatik guncelleniyor.
+- Coverage: `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts` PASS; yeni OpenAI ve Gemini factory/generate/tool-call/stream coverage'i eklendi. `pnpm --filter @runa/server typecheck` PASS. `pnpm --filter @runa/web typecheck` PASS.
+- Sonraki onerilen gorev: provider secim UI'i ve gateway adapter seti hazir oldugu icin bir sonraki dar gorev live smoke / credential-gated OpenAI ve Gemini compatibility probe yazip mevcut Groq/Claude behavior'ini bozmadan canli request-shape proof toplamak.
+
+### Track C / Polish Follow-Up - Premium Design System Zemini ve Kontrollu UI Migration - 22 Nisan 2026
+
+- `apps/web/src/index.css` uzerinde design token zemini genisletildi; spacing, radius, shadow ve gradient degiskenleri daha merkezi hale getirildi. Buna ek olarak `runa-page`, `runa-shell-frame`, `runa-card`, `runa-input`, `runa-button`, `runa-alert`, `runa-metric` gibi ortak utility/class seam'leri eklendi.
+- `apps/web/src/lib/chat-styles.ts` mevcut inline stil omurgasini koruyacak sekilde yeni CSS variable zeminiyle hizalandi; boylece chat/login/settings yuzeyleri ayni token sistemi uzerinden daha tutarli renk, spacing ve elevation kullaniyor.
+- Chat-first manifesto korunarak kontrollu migration yapildi. `ChatShell`, `AppShell`, `ChatPage`, `LoginPage`, `SettingsPage` ve secili auth/chat component'leri ortak panel/button/input/alert siniflarini kullanir hale geldi; ham operator/developer yuzeyi daha baskin hale getirilmedi.
+- Ozellikle login ve settings tarafinda tekrar eden panel, subcard, metric, secondary button ve error/info banner stilleri toplandi; chat composer ve aktif sohbet yuzeyi de ayni premium panel/button/form diliyle hizalandi. Bu tur tam rewrite degil, mevcut yuzeyi daha sistemli hale getiren additive migration olarak tutuldu.
+- Dogrulama: `pnpm --filter @runa/web typecheck` PASS, `pnpm --filter @runa/web lint` PASS, `pnpm --filter @runa/web build` PASS. Not: `build` rerun oncesinde workspace bagimli `@runa/types` paketinin guncel dist ciktisi icin `pnpm --filter @runa/types build` de kosturuldu; web kod davranisini degistiren ek bir task acilmadi.
+- Sonraki onerilen gorev: eger istenirse ikinci adimda `apps/web/src/components/chat/*` ve `components/auth/*` icindeki kalan metric/card/header varyantlarini kucuk presentational primitive'lere ayirip inline style objelerini biraz daha azaltmak; yeni UI dependency acmamak.
+
+### Track A / GAP-11 Follow-Up - Groq Prompt-Aware Dense Registry Hygiene Narrowing - 21 Nisan 2026
+
+- `apps/server/src/gateway/groq-gateway.ts` icinde default Groq hygiene secimi artik yalniz tool sayisina bakmiyor; dense registry durumunda prompt-oncelikli tool da hesaba katiliyor. `file.read` odakli prompt family'lerinde legacy split-system korunurken, diger dense prompt'larda merged-system yoluna gecilebiliyor. Tool serialization default'u ise dense registry'de `minimal_non_primary` olarak kaldi; daha agresif required-only schema budamasi kalici default yapilmadi.
+- Bu turdaki en onemli negatif bulgu da kanitlandi: required-only non-primary schema deneyi ve bazi merged-system varyantlari `tool_use_failed` riskini azaltmak yerine yeni malformed tool-call davranislari uretti. Ozellikle `file.list` icin `include_hidden` alaninin string olarak uretilmesi ve `file.read` odakli akista coklu malformed function tag'leri goruldu. Bu yuzden cozum, daha agresif budama degil, prompt-family aware hygiene secimi olarak daraltildi.
+- `apps/server/scripts/groq-live-smoke.mjs` compatibility matrix'i prompt-aware default'u ayrik bir `default_prompt_aware` profil olarak raporlar hale geldi. Boylece metadata-force edilen deneysel varyantlarla gercek varsayilan runtime davranisi birbirinden ayrildi.
+- `apps/server/src/gateway/gateway.test.ts` uzerine dense registry + `file.list` prompt family'si icin merged-system default'unu ve dense registry + `file.read` prompt family'si icin legacy split-system default'unu kanitlayan coverage eklendi. Hedefli test zinciri `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/ws/live-request.test.ts src/runtime/bind-available-tools.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit`, `pnpm.cmd --filter @runa/server lint` ve `pnpm.cmd --filter @runa/server build` yesil.
+- Canli smoke durumu durustce karisik ama daha dar: current shell'de `GROQ_API_KEY` yoktu; file-backed `.env` icinden yalniz alt surece tasinan key ile `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix pnpm.cmd --filter @runa/server run test:groq-live-smoke` kosturuldu. Full-registry `default_prompt_aware + package_json_list` PASS, full-registry `default_prompt_aware + readme_file_read_probe` PASS, full-registry `current_shape + package_json_list` PASS ve full-registry `current_shape + readme_file_read_probe` PASS kaniti alindi.
+- Durust kalan residual blocker artik daha dar: matrix'in exploratory karsilastirma varyanti olan `minimal_file_list + narrow_context_split` halen `tool_use_failed` ile kiriliyor ve exact body `file.list.include_hidden` alanini stringlestirilmis gorunuyor. Yani kapanan alan default/full-registry dense runtime yolu; acik kalan alan ise explicit `merged_system + full schema` ile zorlanan dar karsilastirma varyanti. Bu genel runtime regression diye sunulmamalidir.
+- Sonraki onerilen gorev: Groq provider icin `narrow_context_split` turu dar bir forensics gorevine ayrilip `include_hidden` boolean-string drift'inin message/context assembly mi yoksa provider-side generation varyansi mi oldugu daha da daraltilsin; mevcut prompt-aware default yoluna gereksiz redesign acilmasin.
+
+### Track A / GAP-11 Follow-Up - Groq Boolean-String Drift Closure for `minimal_file_list + narrow_context_split` - 22 Nisan 2026
+
+- Kalan blocker dar kapsamda yeniden incelendi. Kod taramasi gosterdi ki request assembly zinciri `file.list` schema'sini dogru tasiyor; asimetrik kirilma, ayni schema ile bazen `include_hidden: false`, bazen `include_hidden: "false"` ya da `False` benzeri provider-side generation varyansi olarak ortaya cikiyordu. Bu nedenle sorun yalnız `request-tools` serializer bug'i diye siniflandirilmadi.
+- `apps/server/src/gateway/groq-gateway.ts` uzerinde iki additive Groq hygiene sertlestirmesi yapildi:
+- merged-system + tool-enabled isteklerde system mesaja explicit typed tool-argument disiplini eklendi: booleans/numbers quote edilmesin, optional alanlar gereksizse omit edilsin.
+- tool-enabled Groq request'lerde explicit `temperature` verilmemisse varsayilan `0` gonderilmeye baslandi. Bu, provider-side malformed function-call varyansini daraltan bir runtime hygiene karari olarak eklendi; request explicit temperature verirse mevcut davranis korunuyor.
+- `apps/server/src/gateway/gateway.test.ts` coverage'i guncellendi. Yeni testler merged-system altinda typed tool-argument instruction'inin request body'ye girdigini ve tool-enabled Groq request'lerde `temperature: 0` varsayilaninin uygulandigini kanitliyor. Hedefli test zinciri `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/ws/live-request.test.ts src/runtime/bind-available-tools.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit`, `pnpm.cmd --filter @runa/server lint` ve `pnpm.cmd --filter @runa/server build` yesil.
+- Shell truth durustce ayrildi: current shell'de `GROQ_API_KEY` yoktu. Live smoke icin key gitignored repo-root `.env` icinden secret loglanmadan yalniz alt surece tasindi.
+- Kapanis kaniti: `RUNA_DEBUG_PROVIDER_ERRORS=1 RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix pnpm.cmd --filter @runa/server run test:groq-live-smoke` yeniden kosturuldu ve bu kez tum matrix PASS dondu. Daha once kirilan `minimal_file_list + narrow_context_split` varyanti PASS verdi; ayni turda full-registry `default_prompt_aware` ve diger komsu varyantlar da korunarak PASS kaldi.
+- Durust sonuc: bu turda kapanan alan exact compatibility closure'dur. Kalan residual risk, Groq tarafinda genel tool-call generation variansi ihtimalinin tamamen teorik olarak yok oldugu degil; ama bugunku hedef matrix ve mevcut runtime yollar icin blocker kapanmis, canlı kanit PASS ile alinmistir.
+- Sonraki onerilen gorev: istenirse bu Groq hygiene kararlarini (merged-system typed tool instruction + tool-enabled `temperature: 0`) kisa bir runbook notu olarak belgelendirmek ve ayni disiplinin baska provider smoke'larinda fayda saglayip saglamadigini ayri benchmark gorevinde olcmek.
+
+### Track A / GAP-11 Follow-Up - Full-Registry `package_json_list` Groq Request-Hygiene Hardening Attempt - 21 Nisan 2026
+
+- `apps/server/src/gateway/request-tools.ts` tool schema/property siralamasini deterministik hale getirecek sekilde dar kapsamda sertlestirildi; ayni dosyada prompt'tan turetilen kucuk relevance hint'leri ile provider-side tool ordering deneyi eklendi.
+- `apps/server/src/gateway/groq-gateway.ts` Groq request body olustururken son user prompt'una gore en alakali tool'u one aliyor ve debug summary artik hem `requested_tool_names` hem `serialized_tool_names` alanlarini raporluyor. Boylece request-hygiene denemesi canli matrix'te dogrudan gorulebiliyor.
+- `apps/server/scripts/groq-live-smoke.mjs` full-registry compatibility matrix yolunu runtime'daki canonical `bindAvailableTools()` binding'i ile hizaladi; yani full registry varyanti artik script'e ozgu registry insertion order degil, gercek runtime tool set'i ile koÅŸuyor.
+- Coverage: `apps/server/src/gateway/gateway.test.ts` prompt-relevant Groq tool ordering ve yeni debug summary alanlari icin guncellendi. `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/ws/live-request.test.ts src/runtime/bind-available-tools.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit` ve `pnpm.cmd --filter @runa/server lint` yesil.
+- Canli sonuc durustce karisik kaldi: file-backed `GROQ_API_KEY` ile koÅŸan `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix` turunda `full_registry + package_json_list` halen `HTTP 400 / tool_use_failed` verdi; yeni debug ozetinde `serialized_tool_names[0] = file.list` oldugu halde exact malformed body yine `file.list` markup'i urettigi icin sadece tool-order hardening'in blocker'i kapatmadigi goruldu.
+- Ayni snapshot'ta ek bir varyans da goruldu: `minimal_file_read + readme_file_read_probe` bu kez `failed_generation = <function=file.read[]{\"path\": \"README.md\"}</function>` ile kirildi; `full_registry + readme_file_read_probe` ise PASS kaldi. Yani residual risk artik yalniz eski tek varyanta indirgenmis diye sunulmamali; Groq tarafinda prompt/tool-family bagimli malformed tool-call varyansi suruyor.
+- Koruyucu kanit korunuyor: `pnpm.cmd --filter @runa/server run test:approval-persistence-live-smoke` PASS verdi. `pnpm.cmd --filter @runa/server run test:approval-browser-authority-check` bu shell'de `exit code 0` ile dondu; komut stdout summary'si yakalanmamis olsa da authority yolunu bozan yeni bir regresyon kaniti uretilmedi.
+- Sonraki onerilen gorev: request order disindaki Groq compatibility etkenlerini daraltmak icin tool-description/schema yogunlugu ve system-context ayrimi uzerinde daha kucuk, provider-ozel ama authority-safe matrix deneyi yapmak; mevcut degisikligi genel provider fix'i diye sunmamak.
+
+### Track A / GAP-11 Follow-Up - Approval Continuation Provider Config Minimization - 21 Nisan 2026
+
+- `apps/server/src/persistence/approval-store.ts` icinde approval continuation persistence seam'i daraltildi; auto-continue `continuation_context.payload.provider_config.apiKey` artik server env ayni provider icin secret saglayabildiginde DB'ye bos string olarak yaziliyor. `defaultModel` / `defaultMaxOutputTokens` gibi non-secret metadata korunuyor.
+- Minimization defense-in-depth olarak hem write hem read/hydration yoluna kondu; boylece env-backed continuation kaydi yeniden okunurken de raw secret runtime'a geri tasinmiyor.
+- `apps/server/src/persistence/approval-store.test.ts` secret-redaction ve request-only fallback davranisini kapsayacak sekilde guncellendi; `apps/server/src/ws/register-ws.test.ts` auto-continue resume'in redacted persisted context + env fallback ile devam ettigini kapsiyor.
+- `apps/server/scripts/approval-persistence-live-smoke.mjs` summary'sine `persisted_provider_api_key_redacted` eklendi. `pnpm.cmd --filter @runa/server run test:approval-persistence-live-smoke` PASS verdi ve auto-continue senaryosunda bu alan `true` dondu.
+- `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/persistence/approval-store.test.ts src/ws/register-ws.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit` ve `pnpm.cmd --filter @runa/server lint` yesil.
+- Durust kalan blocker: `pnpm.cmd --filter @runa/server run test:approval-browser-authority-check` bu snapshot'ta yesile donmedi. Tekrar kosularda browser authority harness bir turda `groq returned HTTP 400 / tool_use_failed`, diger turda approval boundary'ye ulasamayan websocket/browser drift verdi. Yani provider-config persistence minimization PASS, fakat browser + gercek provider authority evidence'i bu turda yeniden stabilize edilemedi.
+- Residual risk: server env ilgili provider secret'ini tasimiyorsa request-only browser-supplied API key halen restart-survival icin persist edilmeye devam ediyor; tam secret removal icin request-only runtime config'i persistence disi daha dar bir server-side secret seam'e tasimak gerekecek.
+- Sonraki onerilen gorev: browser authority harness'inde exact Groq 400 / reconnect drift davranisini ayri dar bir provider-browser forensics goreviyle stabilize etmek; minimization degisikliginin uzerine yeni runtime claim acmamak.
+
+### Track A / GAP-11 Follow-Up - Browser Authority Harness Stabilization + Provider/Browser Forensics - 21 Nisan 2026
+
+- `apps/server/scripts/approval-browser-authority-check.mjs` dar kapsamda stabilize edildi. Harness artik browser submit oncesi `connection.ready` gozlemliyor, server'i repo root `cwd` ile baslatiyor ve summary'ye gercek browser `run.request` gozlemini (`provider`, `model`, `include_presentation_blocks`, prompt preview, api key presence) ekliyor.
+- Failure katmani somutlastirildi: stale/reconnect tarafindaki browser drift submit oncesi websocket-ready beklenerek kapatildi; exact provider forensics ise summary icinde `[provider.error.debug]` kuyrugu ve browser tarafindan yakalanan `run.request` ile birlikte okunabilir hale geldi.
+- Canli denemelerde `file.read` odakli authority prompt Groq tarafinda deterministic `HTTP 400 / tool_use_failed` urettigi icin exact provider/browser ayrimi net goruldu. Harness approval authority amacini koruyup daha stabil `file.list` tabanli auto-continue prompt'a cekildi; bu, ayni auto-continue approval boundary'yi daha az provider surtunmesiyle tetikledi.
+- Sonuc: `pnpm.cmd --filter @runa/server run test:approval-browser-authority-check` yeniden PASS verdi. Browser tarafinda `run.request -> approval boundary -> approval.resolve -> continuation -> run.finished(COMPLETED)` zinciri tekrar goruldu; summary `approval_id = run_*:approval:auto-continue:1` ve `result = PASS` dondurdu.
+- Koruyucu rerun: `pnpm.cmd --filter @runa/server run test:approval-persistence-live-smoke` halen PASS; persistence minimization ve restart/reconnect proof kirilmadi.
+- `pnpm.cmd --filter @runa/server exec tsc --noEmit` ve `pnpm.cmd --filter @runa/server lint` yesil.
+- Durust not: live Groq provider ayni harness icinde `file.read` odakli authority prompt'ta malformed tool-call 400 verebildigi icin residual provider risk tamamen yok olmadi; kapanan alan browser authority harness drift'i ve exact failure ayriminin somutlastirilmasidir.
+- Sonraki onerilen gorev: istenirse Groq `tool_use_failed` varyansini ayri bir provider-shape hardening gorevinde ele alip `file.read` odakli browser authority prompt'un neden kirildigini runtime/gateway seviyesinde dar kapsamda incelemek.
+
+### Track A / GAP-11 Follow-Up - Groq `tool_use_failed` Request-Shape Forensics + Minimum Authority-Safe Mitigation - 21 Nisan 2026
+
+- `apps/server/src/gateway/provider-http.ts` artik `[provider.error.debug]` payload'ini JSON string olarak basiyor; `apps/server/src/gateway/groq-gateway.ts` request summary'sine `last_user_message_preview` eklendi. Boylece exact live Groq 400 body ve request-shape ipucu script summary'lerinden guvenilir sekilde ayrilabiliyor.
+- `apps/server/scripts/approval-browser-authority-check.mjs` prompt-variant (`package_json_list` / `readme_file_read_probe`) ve tool-mode (`minimal_authority` / `full_registry`) destekli hale getirildi. Summary artik `tool_mode`, explicit `available_tool_count` / `available_tool_names` ve parse edilmis `provider_error_debug` ozetini raporluyor.
+- Forensics sirasinda gercek bir server-side seam bug'i bulundu: browser harness explicit `request.available_tools` gonderse bile `apps/server/src/ws/live-request.ts` bunu `adaptContextToModelRequest()` uzerinden dusuruyordu; Groq'a tekrar full registry gidiyordu. `apps/server/src/context/adapt-context-to-model-request.ts` ve `apps/server/src/ws/live-request.ts` bu explicit tool set'i artik koruyor. `apps/server/src/ws/live-request.test.ts` bu davranis icin yeni coverage aldi.
+- Canli ayrim netlesti:
+- default `minimal_authority` + `package_json_list` authority harness PASS ve `approval.resolve -> continuation -> run.finished(COMPLETED)` zinciri korundu.
+- `full_registry` + `package_json_list` de PASS; yani full tool registry tek basina kesin blocker degil.
+- `full_registry` + `readme_file_read_probe` ise deterministik olarak `groq returned HTTP 400` + `tool_use_failed` verdi. Exact `failed_generation` body malformed `file.read` function-call markup'i gosterdi (`<function=file.read{"path": "README.md"}</function>`). Bu, browser payload shape bozuklugundan ziyade Groq tool-call generation varyansina isaret ediyor.
+- Durust residual risk: `readme/file.read` prompt family'si halen provider-side kirilgan; authority harness default PASS yolu explicit minimal tool set ile stabilize edildi ama bu genel runtime cozum diye sunulmamali. Kapanan alan, exact failure siniflandirmasi ve live-request explicit tool-set seam bug'inin duzeltilmesidir.
+- Dogrulama: `pnpm.cmd exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/live-request.test.ts src/gateway/gateway.test.ts` (`apps/server` cwd), `pnpm.cmd --filter @runa/server exec tsc --noEmit`, `pnpm.cmd --filter @runa/server lint`, `pnpm.cmd --filter @runa/server run test:approval-browser-authority-check` (default minimal PASS) ve `pnpm.cmd --filter @runa/server run test:approval-persistence-live-smoke` yesil. Forensics icin env bazli rerun'da `RUNA_APPROVAL_BROWSER_TOOL_MODE=full_registry` + `RUNA_APPROVAL_BROWSER_PROMPT_VARIANT=readme_file_read_probe` FAIL verdi ve exact Groq 400 body kaydedildi.
+- Sonraki onerilen gorev: eger istenirse, `readme/file.read` prompt family'sindeki Groq malformed tool-call varyansini browser harness'ten bagimsiz daha dar bir gateway/provider compatibility matrix gorevinde toplamak; ama mevcut authority PASS yolu uzerine gereksiz runtime redesign acmamak.
+
+### Track A / GAP-11 Follow-Up - Browser-Independent Groq Compatibility Matrix + Exact Provider-Side Blocker Isolation - 21 Nisan 2026
+
+- `apps/server/scripts/groq-live-smoke.mjs` opt-in `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix` modu kazandi. Bu mod browser'a bagimli olmadan live `buildLiveModelRequest() -> createModelGateway().generate()` zinciri uzerinde prompt/tool varyantlarini koÅŸturup her stage icin request summary, tool count/names ve varsa exact `provider_error_debug` body kaydediyor.
+- Matrix'te dort varyant canli karsilastirildi: `minimal_file_list + package_json_list`, `full_registry + package_json_list`, `minimal_file_read + readme_file_read_probe`, `full_registry + readme_file_read_probe`.
+- Exact canli sonuc: tek deterministic kirilan varyant `full_registry + package_json_list` oldu. Groq `HTTP 400 / tool_use_failed` dondu ve `failed_generation` malformed `file.list` function-call markup'i gosterdi (`<function=file.list{"path": "D:\\ai\\Runa", "include_hidden": true}</function>`). Bu, browser-specific degil; gateway/provider generate seam'inde browser disinda da yeniden uretilebilen bir compatibility blocker olarak kanitlandi.
+- Ayni matrix'te `minimal_file_list + package_json_list`, `minimal_file_read + readme_file_read_probe` ve `full_registry + readme_file_read_probe` PASS verdi; yani residual risk artik genel `file.read` / README family'si degil, daha spesifik olarak full registry altindaki package-json/list authority prompt family'sindeki Groq tool-call generation varyansi olarak daraldi.
+- Dogrulama notu: mevcut shell env'de `GROQ_API_KEY` yoktu; compatibility matrix authority'si repo `.env` icindeki gerçek key yalniz alt surece tasinarak kosturuldu. `pnpm.cmd --filter @runa/server exec tsc --noEmit`, `pnpm.cmd --filter @runa/server lint`, `GROQ_API_KEY=<file-backed> RUNA_DEBUG_PROVIDER_ERRORS=1 RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix pnpm.cmd --filter @runa/server run test:groq-live-smoke`, `pnpm.cmd --filter @runa/server run test:approval-browser-authority-check` ve `pnpm.cmd --filter @runa/server run test:approval-persistence-live-smoke` ile guncel kanit toplandi.
+- Durust residual risk: default authority PASS yolu korunuyor, restart/reconnect persistence proof korunuyor; ancak full registry altindaki package-json/list prompt family'si Groq tarafinda halen kirilgan. Bu, harness-level prompt/tool narrowing ile gecici olarak cevrilen bir compatibility path; genel provider fix diye sunulmuyor.
+- Sonraki onerilen gorev: full registry altindaki package-json/list prompt family'si icin Groq tool-call generation davranisini gateway-level request-shape matrix ile biraz daha daraltmak veya bu family icin provider-compatible request hygiene kuralini additive olarak tanimlamak.
 
 ### Track A / GAP-11 - Browser + Real Provider Approval Authority Check - 21 Nisan 2026
 
@@ -538,19 +861,60 @@
 
 ---
 
+### Track C / Prompt Audit Follow-up - Markdown Renderer Gap Closure - 23 Nisan 2026
+
+- `PROMPTS-PHASE-2.md` icindeki `KONU 7 - Markdown Renderer` gorevi yeniden denetlendi ve eksik kalan markdown render seam'i tamamlandi. Yeni `apps/web/src/components/chat/MarkdownRenderer.tsx` dependency eklemeden kuruldu; fenced code block, inline code, liste, tablo ve guvenli link render destegi veriyor.
+- `apps/web/src/pages/ChatPage.tsx` icinde streaming cevap ve persisted transcript plain text yerine bu renderer'i kullaniyor. Yari-acik markdown iceren streaming durumda parser savunmaci davranip ham metne dusmeden UI'yi bozmuyor.
+- `apps/web/src/components/chat/chat-presentation.tsx` tarafinda `text` presentation block'lari da ayni markdown katmanina tasindi; backend render schema'si veya `RenderBlock` kontrati degistirilmedi.
+- `apps/web/src/index.css` uzerine markdown odakli hafif stil siniflari eklendi; kod blogu, tablo, inline code ve link gorunumu chat-first premium yuzeyle hizalandi.
+- Audit notu: `KONU 3 - Premium Design System` prompt'u Tailwind/shadcn kurulumu zorunlu kilmiyordu; eksik kalan gercek uygulama boslugu markdown renderer idi. Bu turde yeni UI dependency eklenmedi ve mevcut design-system zemini dependency-free korundu.
+- Dogrulama: `pnpm --filter @runa/web typecheck` yesil, `pnpm --filter @runa/web build` yesil, `pnpm --filter @runa/web exec biome check src/components/chat/MarkdownRenderer.tsx src/components/chat/chat-presentation.tsx src/pages/ChatPage.tsx src/index.css` yesil. `pnpm --filter @runa/web lint` halen repo icindeki onceki Biome drift'lerine takiliyor; gorunen baseline dosyalari `apps/web/src/App.tsx`, `apps/web/src/components/chat/ConversationSidebar.tsx` ve `apps/web/src/hooks/useConversations.ts`.
+- Sonraki onerilen gorev: istenirse bu kalan web lint baseline drift'lerini ayri ve dar kapsamli bir hygiene gorevi olarak temizlemek; markdown/presentation davranisini yeniden acmamak.
+
+### Track C / Phase 3 UX - Voice I/O Minimum Web Seams - 23 Nisan 2026
+
+- `apps/web/src/hooks/useVoiceInput.ts` ve `apps/web/src/hooks/useTextToSpeech.ts` eklendi; Web Speech API tabanli minimum mikrofon ve text-to-speech seam'i server tarafina yeni bir speech servisi acmadan, tamamen tarayici yetenegi uzerinden kuruldu.
+- `apps/web/src/components/chat/VoiceComposerControls.tsx` ve `apps/web/src/pages/ChatPage.tsx` tarafinda composer yanina sade bir voice trigger eklendi. Kullanici isterse mikrofondan metin ekleyebiliyor, isterse son asistan yanitini sesli okutabiliyor; ana chat akisi voice-first moda cekilmedi.
+- Mikrofon izni reddedildiginde veya tarayici destegi olmadiginda UI graceful fallback veriyor: voice tetigi yazili akisi bozmadan pasif/uyari durumuna dusuyor ve neden ayni composer kartinda acikca gorunuyor.
+- `apps/web/src/pages/SettingsPage.tsx` icinde additive bir `Voice preferences` karti acildi. Otomatik okuma tercihi `localStorage` uzerinden korunuyor; bu tercih yalniz destekleyen tarayicilarda aktif oluyor ve mevcut account/settings akisinin yerini almiyor.
+- Dogrulama: `pnpm --filter @runa/web typecheck` yesil, `pnpm --filter @runa/web build` yesil. `pnpm --filter @runa/web exec biome check src/hooks/useVoiceInput.ts src/hooks/useTextToSpeech.ts src/components/chat/VoiceComposerControls.tsx src/pages/ChatPage.tsx src/pages/SettingsPage.tsx` yesil. `pnpm --filter @runa/web lint` halen repo icindeki onceden var olan Biome drift'lerine takiliyor; bu turde gorunen baseline dosyalari `apps/web/src/App.tsx`, `apps/web/src/components/chat/ConversationSidebar.tsx` ve `apps/web/src/hooks/useConversations.ts`.
+- Sonraki onerilen gorev: voice transcript ve son asistan yaniti icin daha kontrollu dil/voice secimi ve okunacak metin ozetleme seam'i; server protocol'u veya mobile/native davranis varsayimi acmamak.
+
+### Track A / Track C - SSE Token Streaming - 22 Nisan 2026
+
+- `packages/types/src/ws.ts` ve `packages/types/src/ws-guards.ts` tarafina additive `text.delta` server mesaji eklendi; mevcut `runtime.event`, `presentation.blocks` ve `run.finished` kontratlari korunarak bridge union genisletildi.
+- `apps/server/src/gateway/groq-gateway.ts` ve `apps/server/src/gateway/claude-gateway.ts` icinde SSE streaming yolu tamamlandi. Gercek `text/event-stream` cevaplarda delta chunk'lari ve terminal response parse ediliyor; mevcut JSON/stub cevaplarinda stream yolu otomatik terminal parse'a duserek eski generate tabani bozulmuyor.
+- `apps/server/src/ws/run-execution.ts` artik destekleyen provider icin model stream'i tuketip `text.delta` mesajlarini run bitmeden once WS uzerinden basiyor; terminal response yine mevcut agent loop continuation akisini besliyor ve `run.finished` tek terminal sinyal olarak kaliyor.
+- `apps/server/src/ws/register-ws.test.ts` uzerine SSE cevabinda `text.delta` mesajlarinin `run.finished` oncesi geldiginin kaniti eklendi. `apps/server/src/gateway/gateway.test.ts` de Groq ve Claude stream parser'lari icin yeni coverage aldi.
+- `apps/web/src/hooks/useChatRuntime.ts`, `apps/web/src/pages/ChatPage.tsx` ve `apps/web/src/index.css` tarafinda aktif run icin gecici streaming cevap yuzeyi eklendi; final presentation block akisi yeniden tasarlanmadi, sadece delta append edilip gecici bir live response katmani gosterildi.
+- Dogrulama: `pnpm --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/ws/register-ws.test.ts`, `pnpm --filter @runa/server typecheck`, `pnpm --filter @runa/web typecheck` ve `pnpm --filter @runa/web build` yesil. Not: `@runa/web build` ilk denemede `@runa/types/dist` stale export nedeniyle kirildi; `pnpm --filter @runa/types build` sonrasi tekrar kosulup yesile dondu.
+- Sonraki onerilen gorev: conversation persistence veya markdown render gorevine gecmek; `text.delta` yuzeyi uzerine yeni protocol redesign acmamak.
+
+### Release-readiness / KONU 20 - Deployment Zemini - 23 Nisan 2026
+
+- Placeholder root `Dockerfile` kaldirildi; yerine workspace-aware multi-stage build zinciri geldi. Root target'lari artik `server-runtime` ve `web-runtime` olarak ayriliyor; `apps/server/Dockerfile` ve `apps/web/Dockerfile` de ayni release patikalarini app-bazli build icin aciyor.
+- `compose.yaml` minimum tam-stack local rehearsal icin yeniden kuruldu: `postgres`, `server`, `web` servisleri ayrildi; healthcheck, restart policy, published port mapping ve service dependency sirasi eklendi.
+- `.dockerignore` build context'i icin gercekci hale getirildi; Dockerfile/compose dosyalarini kazara context disina atan eski desenler temizlendi.
+- Secret icermeyen environment templating olarak `/.env.compose` ve `/.env.server.example` eklendi. `k8s/DEPLOYMENT.md` icinde image build, compose rehearsal ve sonraki orchestration adimi icin okunur deployment notu yazildi.
+- Runtime kodu genisletilmedi. Server'in container icinde `0.0.0.0` uzerinden kalkmasi ve internal port/health davranisi Docker/compose komut katmaninda cozuldu.
+- Local rehearsal notu: storage seam'i startup'ta bos Supabase storage config'i kabul etmedigi icin `/.env.compose` icine yalniz boot amacli placeholder storage degerleri kondu. Bu, stack'in kalkmasini saglar; gercek upload/storage davranisi icin bu degerlerin deployment sirasinda secret store'dan override edilmesi gerekir.
+- Dogrulama:
+  - `pnpm.cmd build` yesil.
+  - `docker build --target server-runtime -t runa-server:task20 .` yesil.
+  - `docker build --target web-runtime -t runa-web:task20 .` yesil.
+  - `docker compose --env-file .env.compose config` yesil.
+  - `docker compose --env-file .env.compose up --build -d` ilk denemede host `5432` portu dolu oldugu icin bloklandi; compose tanimi bozuk degildi, host port cakismasi vardi.
+  - Alternatif host portlarla replay (`POSTGRES_PORT=55432`, `RUNA_SERVER_PORT=3300`, `RUNA_WEB_PORT=8081`) yesil. `docker compose ps` uzerinde uc servis de healthy goruldu; `http://127.0.0.1:3300/health` `200 {"service":"runa-server","status":"ok"}` ve `http://127.0.0.1:8081/` `200` verdi.
+  - Validation sonrasi `docker compose down -v` ile stack temiz kapatildi.
+- Non-goal hatirlatmasi: bu tur tam CI/CD otomasyonu, prod secret management platformu veya desktop-agent deployment acmadi.
+- Sonraki onerilen dar gorev: bu Docker/compose zemini uzerine secret-backed staging deployment runbook'u ve tek bir cloud target icin manifest/pipeline baglama gorevi; runtime veya auth sistemini yeniden acmamak.
+
 ## Teknik Borc (Tech Debt) & Known Gaps
 
 > **Kaynak:** 2026-04-18 tarihli kapsamli mimari denetim (Architectural Audit).
 > Bu bolum yalnizca acik kalan gap'leri listeler. Kapanan gap'ler asagida arsive tasinmistir.
 
 ### P3 - Acik Gaplar
-
-#### [GAP-11] In-Memory Store'larin Kalicilastirilmasi
-- **Mevcut:** `approval-store.ts` ve `policy-wiring.ts` WeakMap uzerinden in-memory state tutuyor. Server restart = state kaybi.
-- **Etki:** Restart veya deploy sonrasi pending approval/policy baglami kaybolabiliyor; uzun oturumlarda operasyonel risk olusuyor.
-- **Hedef:** Session/policy/approval state'ini process-disina tasiyan kalici persistence seam'i (DB veya uygun persistent store) eklemek.
-- **Tetikleyici:** Cloud deployment sirasinda.
-- **Ilgili dosyalar:** `apps/server/src/persistence/approval-store.ts`, `apps/server/src/ws/policy-wiring.ts`, `apps/server/src/ws/transport.ts`
 
 #### [GAP-12] Eksik Desktop Yetenekler (screen.capture, browser.interact, semantic search)
 - **Mevcut:** Sprint 11 blueprint'inde tanimli `apps/desktop-agent/` package'i ve desktop tool yuzeyleri repoda henuz yok.
@@ -561,6 +925,7 @@
 
 ### Arsivlenen Audit Gaplari (18 Nisan 2026)
 
+- GAP-11: In-Memory Store'larin Kalicilastirilmasi (23 Nisan 2026 itibariyla persistence seam + reconnect/hydration proof ile kapatildi)
 - GAP-01: Realtime Streaming (kapatildi)
 - GAP-02: ChatPage Block Renderer + Style Extraction (kapatildi)
 - GAP-03: Repeated Tool Call + Stagnation Detection (kapatildi)
@@ -577,3 +942,32 @@
 1. **WS Cleanup Gaps:** `register-ws.ts` Sprint 9'da parcalandi. Orchestration/presentation akisinda daha derin cleanup ihtiyaci suruyor.
 2. **Memory Seams:** Semantic search kapasitesi henuz yok. (Phase 3)
 3. **Cloud / Local Ayrimi:** Persist path'i local DB'ye bagimli. Hybrid WSS token uzerinden cloud'a acilmali.
+
+### Track A / Core Hardening Phase 2 - Approval Release Rehearsal Proof Unification - 22 Nisan 2026
+
+- `apps/server/scripts/approval-release-rehearsal.mjs` ve `apps/server/scripts/approval-release-rehearsal-lib.mjs` eklendi; browser authority proof ile approval persistence/reconnect smoke tek release-grade rehearsal hikayesinde birlestirildi.
+- `apps/server/scripts/approval-browser-authority-check.mjs` ve `apps/server/scripts/approval-persistence-live-smoke.mjs` artik zinciri asama bazli ozetliyor: approval boundary, `approval.resolve`, continuation, reconnect/restart ve terminal `run.finished(COMPLETED)` sinyalleri normalize edildi.
+- Failure dili tek bakista okunur hale getirildi; rehearsal helper `approval_boundary_missing`, `approval_resolve_missing`, `continuation_missing`, `restart_reconnect_missing`, `terminal_finish_missing` gibi net siniflandirma uretiyor.
+- `apps/server/src/ws/approval-release-rehearsal-summary.ts` ve `apps/server/src/ws/register-ws.test.ts` uzerinden bu siniflandirma/summary extraction mantigi icin hedefli coverage eklendi; mevcut WS/runtime kontratlari degistirilmedi.
+- Dogrulama: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/persistence/approval-store.test.ts src/ws/register-ws.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit`, `pnpm.cmd --filter @runa/server lint`, `pnpm.cmd --filter @runa/server build` yesil.
+- Live rehearsal kaniti: shell env gercegi `GROQ_API_KEY=missing`, `DATABASE_TARGET=<unset>`, `LOCAL_OR_DATABASE_URL=missing` idi; buna ragmen file-backed env ile `node scripts/approval-release-rehearsal.mjs` calisarak `APPROVAL_RELEASE_REHEARSAL_SUMMARY {"result":"PASS"}` urettigi dogrulandi. Browser authority tarafinda gercek approval boundary ve terminal `run.finished(COMPLETED)` goruldu; persistence tarafinda restart/reconnect sonrasi `approval.resolve -> continuation -> run.finished(COMPLETED)` zinciri PASS verdi.
+- Kalan durum: release-proof kaniti artik tek giris noktasinda mevcut, fakat approval continuation context icindeki provider secret persistence yuzeyi hala ayrik hardening konusu olarak duruyor.
+- Sonraki dar gorev: `provider_config` secret persistence minimization. Ozellikle request-only browser/runtime kaynakli provider API key'lerinin continuation icin gereken minimum veriyle sinirlanip persistence yuzeyinden daha da temizlenmesi.
+
+### Track A / Core Hardening Phase 2 - Approval Continuation `provider_config` Minimum Persistence Shape - 22 Nisan 2026
+
+- `apps/server/src/persistence/approval-store.ts` icinde continuation persistence hattı daraltildi. `provider_config` artik spread edilerek kalici yazilmiyor; persistence icin explicit minimum shape kuruluyor: yalniz `apiKey` ve ancak continuation request'i onlar olmadan calisamayacaksa `defaultModel` / `defaultMaxOutputTokens` tutuluyor.
+- Boylece request seviyesinde zaten `request.model` ve `request.max_output_tokens` ile tasinan bilgiler icin redundant provider default'lari approval continuation payload'inda kalici saklanmiyor. Read/hydration yolu da ayni sanitization fonksiyonunu kullandigi icin eski/genis kayitlar runtime'a minimum shape ile geri veriliyor.
+- Secret minimization davranisi degismedi ama daha netlestirildi: server env ilgili provider key'ini saglayabiliyorsa persisted `apiKey` bos string olarak kaliyor; env fallback yoksa replay/resume kirilmasin diye request-only `apiKey` halen tutuluyor. Bu residual risk bilincli olarak acik birakti; broad provider/auth redesign yapilmadi.
+- `apps/server/src/persistence/approval-store.test.ts` yeni minimum-shape davranisini kanitlayacak sekilde guncellendi: redundant provider default'lari dusurme, env-backed secret redaction ve request-only fallback korunumu coverage altina alindi. `apps/server/scripts/approval-persistence-live-smoke.mjs` summary'si de secretsiz `persisted_provider_config_keys` alanini raporlar hale geldi.
+- Dogrulama: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/persistence/approval-store.test.ts src/ws/register-ws.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit`, `pnpm.cmd --filter @runa/server lint` ve `pnpm.cmd --filter @runa/server build` yesil. Shell env gercegi bu turda da `GROQ_API_KEY=missing`, `DATABASE_TARGET=missing`, `LOCAL_DATABASE_URL=missing`, `DATABASE_URL=missing`, `SUPABASE_DATABASE_URL=missing` idi. `node scripts/approval-release-rehearsal.mjs` bu shell'de `exit code 0` ile dondu; structured stdout summary'si bu harness capture'inda gorunmedigi icin canli PASS yorumu cikis kodu kontratina dayanir, shell env ile file-backed env birbirine karistirilmadi.
+- Kapanan alan: approval continuation persistence icindeki gereksiz `provider_config` genisligi daraltildi. Kalan alan: env-backed olmayan request-only provider secret'leri persistence disi daha dar bir re-hydration seam'ine tasiyacak follow-up.
+- Sonraki dar gorev: request-only provider secret'i DB'ye yazmadan restart-sonrasi continuation'i koruyacak dar bir server-side re-hydration/reference seam'i tasarlamak; protocol ve gateway redesign acmamak.
+
+### Docs Hardening - Critical 20 Roadmap + Prompt Set Realignment - 22 Nisan 2026
+
+- `CRITICAL-20-ROADMAP.md` repo gercegiyle yeniden hizalandi; belge artik genel urun listesi gibi degil, `Core Hardening Phase 2` snapshot'ina ve aktif gap'lere (`GAP-11`, `GAP-12`) dayanan bir oncelik/siralama dokumani gibi okunuyor.
+- `PROMPTS-PHASE-1.md`, `PROMPTS-PHASE-2.md`, `PROMPTS-PHASE-3.md`, `PROMPTS-PHASE-4.md` bastan yazildi; tum gorevler `docs/TASK-TEMPLATE.md` basliklarina, Turkce no-go diline, exact file path disiplinine ve denetlenebilir done kriterlerine getirildi.
+- Prompt'lar artik "genel feature istegi" degil, repo icinde dar kapsamli ve additive koşturulabilir gorev formatinda. Her konuda sebep-sonuc kisa notu, degistirilebilecek dosyalar, degistirilmeyecek dosyalar ve test/validation kapilari acikca yaziyor.
+- Bu tur kod davranisina dokunmadi; yalnizca roadmap/prompt kalitesi sertlestirildi.
+- Sonraki onerilen gorev: istenirse bu yeni setten P0 kabul edilen ilk 3 gorev (`SSE token streaming`, `conversation persistence`, `markdown renderer`) icin daha da daraltilmis "bir sonraki uygulanacak prompt" varyantlari uretmek.

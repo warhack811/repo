@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
@@ -16,17 +16,60 @@ const serverBaseUrl = 'http://127.0.0.1:3000';
 const webBaseUrl = 'http://127.0.0.1:5173';
 const cdpBaseUrl = 'http://127.0.0.1:9222';
 const summaryToken = 'APPROVAL_BROWSER_AUTHORITY_SUMMARY';
-const defaultModel = 'llama-3.3-70b-versatile';
+const defaultModel = 'llama-3.1-8b-instant';
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';
-const promptText =
-	'Tool kullanarak package.json dosyasini oku ve yalnizca "name" alaninin degerini soyle.';
+const debugLogPath = process.env.RUNA_APPROVAL_BROWSER_DEBUG_LOG?.trim() || undefined;
+const promptVariants = {
+	package_json_list: {
+		id: 'package_json_list',
+		prompt:
+			'Tool kullanarak mevcut klasordeki dosyalari listele ve yalnizca "package.json var" ya da "package.json yok" diye yanit ver.',
+	},
+	readme_file_read_probe: {
+		id: 'readme_file_read_probe',
+		prompt:
+			'Mevcut klasorde README.md varsa file.read ile oku ve yalnizca projenin adini ya da README yoksa "README yok" diye yanit ver.',
+	},
+};
+const toolModeVariants = {
+	full_registry: 'full_registry',
+	minimal_authority: 'minimal_authority',
+};
 
 function printSummary(summary) {
 	process.stdout.write(`${summaryToken} ${JSON.stringify(summary)}\n`);
+	writeDebugLog(`${summaryToken} ${JSON.stringify(summary)}`);
 }
 
 function logStep(message) {
 	process.stdout.write(`[approval-browser-authority] ${message}\n`);
+	writeDebugLog(`[approval-browser-authority] ${message}`);
+}
+
+function writeDebugLog(message) {
+	if (!debugLogPath) {
+		return;
+	}
+
+	try {
+		appendFileSync(debugLogPath, `${new Date().toISOString()} ${message}\n`, 'utf8');
+	} catch {}
+}
+
+process.on('uncaughtException', (error) => {
+	writeDebugLog(
+		`uncaughtException ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`,
+	);
+});
+
+process.on('unhandledRejection', (reason) => {
+	writeDebugLog(
+		`unhandledRejection ${reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)}`,
+	);
+});
+
+async function sleep(durationMs) {
+	await new Promise((resolvePromise) => setTimeout(resolvePromise, durationMs));
 }
 
 function normalizeEnvValue(rawValue) {
@@ -363,11 +406,16 @@ class CdpSession {
 }
 
 function buildWebSocketLogInjection() {
+	const requestOverrides = {
+		request: buildAuthorityRequestOverrides(),
+	};
+
 	return `
 		(() => {
 			if (window.__RUNA_WS_LOG__) {
 				return;
 			}
+			const requestOverrides = ${JSON.stringify(requestOverrides)};
 			const log = {
 				parse_errors: [],
 				received: [],
@@ -393,8 +441,30 @@ function buildWebSocketLogInjection() {
 				const nativeSend = socket.send.bind(socket);
 				socket.send = function(data) {
 					const rawValue = typeof data === 'string' ? data : String(data);
-					log.sent.push(toLoggedPayload(rawValue));
-					return nativeSend(data);
+					let rewrittenValue = rawValue;
+
+					try {
+						const parsed = JSON.parse(rawValue);
+
+						if (
+							parsed?.type === 'run.request' &&
+							parsed.payload &&
+							typeof parsed.payload === 'object' &&
+							parsed.payload.request &&
+							typeof parsed.payload.request === 'object' &&
+							requestOverrides.request &&
+							typeof requestOverrides.request === 'object'
+						) {
+							parsed.payload.request = {
+								...parsed.payload.request,
+								...requestOverrides.request,
+							};
+							rewrittenValue = JSON.stringify(parsed);
+						}
+					} catch {}
+
+					log.sent.push(toLoggedPayload(rewrittenValue));
+					return nativeSend(rewrittenValue);
 				};
 				socket.addEventListener('message', (event) => {
 					const rawValue = typeof event.data === 'string' ? event.data : String(event.data);
@@ -418,6 +488,181 @@ function buildWebSocketLogInjection() {
 
 function escapeForEvaluate(value) {
 	return JSON.stringify(value);
+}
+
+function resolvePromptVariant() {
+	const requestedVariant = process.env.RUNA_APPROVAL_BROWSER_PROMPT_VARIANT?.trim();
+
+	if (!requestedVariant) {
+		return promptVariants.package_json_list;
+	}
+
+	return promptVariants[requestedVariant] ?? {
+		id: requestedVariant,
+		prompt: requestedVariant,
+	};
+}
+
+function resolveToolMode() {
+	const requestedMode = process.env.RUNA_APPROVAL_BROWSER_TOOL_MODE?.trim();
+
+	if (!requestedMode) {
+		return toolModeVariants.minimal_authority;
+	}
+
+	return requestedMode;
+}
+
+function buildMinimalAuthorityAvailableTools() {
+	const promptVariant = resolvePromptVariant();
+
+	switch (promptVariant.id) {
+		case 'readme_file_read_probe':
+			return [
+				{
+					description: 'Reads a text file from the local workspace and returns its contents.',
+					name: 'file.read',
+					parameters: {
+						encoding: {
+							description: 'Optional text encoding.',
+							type: 'string',
+						},
+						path: {
+							description: 'Path to read.',
+							required: true,
+							type: 'string',
+						},
+					},
+				},
+			];
+		case 'package_json_list':
+		default:
+			return [
+				{
+					description: 'Lists the entries in a local workspace directory with deterministic ordering.',
+					name: 'file.list',
+					parameters: {
+						include_hidden: {
+							description: 'Whether hidden files and directories should be listed.',
+							type: 'boolean',
+						},
+						path: {
+							description: 'Directory path to list.',
+							required: true,
+							type: 'string',
+						},
+					},
+				},
+			];
+	}
+}
+
+function buildAuthorityRequestOverrides() {
+	if (resolveToolMode() !== toolModeVariants.minimal_authority) {
+		return undefined;
+	}
+
+	return {
+		available_tools: buildMinimalAuthorityAvailableTools(),
+		max_output_tokens: 64,
+	};
+}
+
+function summarizeRunRequestPayload(payload) {
+	if (!payload || typeof payload !== 'object') {
+		return null;
+	}
+
+	const request = payload.request;
+	const firstMessage =
+		request && typeof request === 'object' && Array.isArray(request.messages)
+			? request.messages[0]
+			: null;
+
+	return {
+		available_tool_count:
+			request && typeof request === 'object' && Array.isArray(request.available_tools)
+				? request.available_tools.length
+				: null,
+		available_tool_names:
+			request && typeof request === 'object' && Array.isArray(request.available_tools)
+				? request.available_tools.map((tool) =>
+						tool && typeof tool === 'object' && typeof tool.name === 'string' ? tool.name : 'unknown',
+					)
+				: [],
+		include_presentation_blocks: payload.include_presentation_blocks === true,
+		model:
+			request && typeof request === 'object' && typeof request.model === 'string'
+				? request.model
+				: null,
+		provider: typeof payload.provider === 'string' ? payload.provider : null,
+		provider_has_api_key:
+			typeof payload.provider_config?.apiKey === 'string' &&
+			payload.provider_config.apiKey.trim().length > 0,
+		user_message_preview:
+			firstMessage &&
+			typeof firstMessage === 'object' &&
+			typeof firstMessage.content === 'string'
+				? firstMessage.content.slice(0, 160)
+				: null,
+	};
+}
+
+function parseProviderErrorDebugPayloads(serverLogs) {
+	const payloads = [];
+
+	for (const rawLine of serverLogs.split(/\r?\n/u)) {
+		const line = rawLine.trim();
+
+		if (!line.startsWith('[provider.error.debug] ')) {
+			continue;
+		}
+
+		const serializedPayload = line.slice('[provider.error.debug] '.length);
+
+		try {
+			payloads.push(JSON.parse(serializedPayload));
+		} catch {
+			payloads.push({
+				parse_error: 'invalid_provider_error_debug_json',
+				raw: serializedPayload,
+			});
+		}
+	}
+
+	return payloads;
+}
+
+function summarizeProviderErrorDebugPayload(payload) {
+	if (!payload || typeof payload !== 'object') {
+		return null;
+	}
+
+	return {
+		provider: typeof payload.provider === 'string' ? payload.provider : null,
+		request_summary:
+			payload.request_summary && typeof payload.request_summary === 'object'
+				? payload.request_summary
+				: null,
+		response_body: typeof payload.response_body === 'string' ? payload.response_body : null,
+		status_code: typeof payload.status_code === 'number' ? payload.status_code : null,
+	};
+}
+
+function findLastMatchingEntry(entries, predicate) {
+	if (!Array.isArray(entries)) {
+		return undefined;
+	}
+
+	for (let index = entries.length - 1; index >= 0; index -= 1) {
+		const entry = entries[index];
+
+		if (predicate(entry) === true) {
+			return entry;
+		}
+	}
+
+	return undefined;
 }
 
 async function readBrowserState(session) {
@@ -445,25 +690,93 @@ function extractAuthorityOutcome(browserState) {
 	const wsLog = browserState?.ws_log;
 	const sentMessages = Array.isArray(wsLog?.sent) ? wsLog.sent : [];
 	const receivedMessages = Array.isArray(wsLog?.received) ? wsLog.received : [];
-	const runRequestMessage = sentMessages.find((message) => message?.type === 'run.request');
-	const approvalMessage = receivedMessages.find(
-		(message) =>
-			message?.type === 'presentation.blocks' &&
-			Array.isArray(message.payload?.blocks) &&
-			message.payload.blocks.some(
-				(block) => block?.type === 'approval_block' && block?.payload?.status === 'pending',
-			),
+	const runFinishedMessage = findLastMatchingEntry(
+		receivedMessages,
+		(message) => message?.type === 'run.finished',
 	);
+	const runId = runFinishedMessage?.payload?.run_id;
+	const runRequestMessage =
+		findLastMatchingEntry(
+			sentMessages,
+			(message) =>
+				message?.type === 'run.request' &&
+				(typeof runId !== 'string' || message?.payload?.run_id === runId),
+		) ??
+		findLastMatchingEntry(sentMessages, (message) => message?.type === 'run.request');
+	const approvalMessage =
+		findLastMatchingEntry(
+			receivedMessages,
+			(message) =>
+				message?.type === 'presentation.blocks' &&
+				(typeof runId !== 'string' || message.payload?.run_id === runId) &&
+				Array.isArray(message.payload?.blocks) &&
+				message.payload.blocks.some(
+					(block) => block?.type === 'approval_block' && block?.payload?.status === 'pending',
+				),
+		) ??
+		findLastMatchingEntry(
+			receivedMessages,
+			(message) =>
+				message?.type === 'presentation.blocks' &&
+				Array.isArray(message.payload?.blocks) &&
+				message.payload.blocks.some(
+					(block) => block?.type === 'approval_block' && block?.payload?.status === 'pending',
+				),
+		);
 	const approvalBlock = approvalMessage?.payload?.blocks?.find((block) => block?.type === 'approval_block');
-	const runFinishedMessage = receivedMessages.find((message) => message?.type === 'run.finished');
+	const approvalResolveMessage =
+		findLastMatchingEntry(
+			sentMessages,
+			(message) =>
+				message?.type === 'approval.resolve' &&
+				(typeof approvalBlock?.payload?.approval_id !== 'string' ||
+					message?.payload?.approval_id === approvalBlock.payload.approval_id),
+		) ?? findLastMatchingEntry(sentMessages, (message) => message?.type === 'approval.resolve');
 
 	return {
 		approvalBlock,
 		approvalMessage,
+		approvalResolveMessage,
 		receivedMessages,
 		runFinishedMessage,
 		runRequestMessage,
 		sentMessages,
+	};
+}
+
+function summarizeBrowserChain(authorityOutcome) {
+	const runId =
+		authorityOutcome.runFinishedMessage?.payload?.run_id ??
+		authorityOutcome.approvalMessage?.payload?.run_id ??
+		null;
+	const receivedMessages = Array.isArray(authorityOutcome.receivedMessages)
+		? authorityOutcome.receivedMessages
+		: [];
+	const continuationSignalTypes = receivedMessages
+		.filter((message) => {
+			if (typeof runId === 'string' && message?.payload?.run_id !== runId) {
+				return false;
+			}
+
+			return (
+				message?.type === 'presentation.blocks' ||
+				message?.type === 'run.finished' ||
+				message?.type === 'runtime.event'
+			);
+		})
+		.map((message) => message?.type ?? 'unknown');
+
+	return {
+		approval_boundary_observed: Boolean(authorityOutcome.approvalBlock),
+		approval_resolve_sent: Boolean(authorityOutcome.approvalResolveMessage),
+		continuation_observed:
+			continuationSignalTypes.length > 0 &&
+			(authorityOutcome.runFinishedMessage !== undefined ||
+				continuationSignalTypes.some((type) => type === 'runtime.event')),
+		continuation_signal_types: Array.from(new Set(continuationSignalTypes)),
+		reconnect_restart_tolerated: false,
+		terminal_run_finished_completed:
+			authorityOutcome.runFinishedMessage?.payload?.final_state === 'COMPLETED',
 	};
 }
 
@@ -509,16 +822,21 @@ function classifyFailure(input) {
 }
 
 async function main() {
+	writeDebugLog('main.entered');
 	const envState = createLoadedEnvironment();
+	const promptVariant = resolvePromptVariant();
+	const toolMode = resolveToolMode();
 	let finalExitCode = 0;
 
 	if (envState.groq_api_key_source === 'missing') {
 		printSummary({
 			groq_api_key_source: 'missing',
+			prompt_variant: promptVariant.id,
 			result: 'BLOCKED',
 			reason: 'credential_missing',
 			shell_groq_api_key_present: envState.shell_groq_api_key_present,
 			file_backed_groq_api_key_present: envState.file_backed_groq_api_key_present,
+			tool_mode: toolMode,
 		});
 		finalExitCode = 2;
 		process.exit(finalExitCode);
@@ -528,8 +846,10 @@ async function main() {
 	if (!existsSync(edgePath)) {
 		printSummary({
 			groq_api_key_source: envState.groq_api_key_source,
+			prompt_variant: promptVariant.id,
 			result: 'BLOCKED',
 			reason: 'browser_unavailable',
+			tool_mode: toolMode,
 		});
 		finalExitCode = 2;
 		process.exit(finalExitCode);
@@ -538,10 +858,11 @@ async function main() {
 
 	const tempRoot = mkdtempSync(resolve(os.tmpdir(), 'runa-browser-authority-'));
 	const edgeUserDataDir = resolve(tempRoot, 'edge-profile');
+	const serverEntryPath = resolve(serverRoot, 'dist', 'index.js');
 	const serverProcess = spawnManagedProcess({
-		args: ['dist/index.js'],
+		args: [serverEntryPath],
 		command: process.execPath,
-		cwd: serverRoot,
+		cwd: workspaceRoot,
 		env: {
 			...envState.environment,
 			RUNA_DEBUG_PROVIDER_ERRORS: '1',
@@ -609,6 +930,19 @@ async function main() {
 		);
 		logStep('chat surface is ready');
 
+		await waitForCondition(
+			'browser websocket ready state',
+			async () => {
+				const browserState = await readBrowserState(cdpSession);
+				const receivedMessages = Array.isArray(browserState.ws_log?.received)
+					? browserState.ws_log.received
+					: [];
+				return receivedMessages.some((message) => message?.type === 'connection.ready');
+			},
+			30_000,
+		);
+		logStep('browser websocket ready observed');
+
 		const initialBrowserState = await readBrowserState(cdpSession);
 		const configuredModel = initialBrowserState.runtime_config?.model ?? defaultModel;
 		logStep('submitting browser run request');
@@ -627,7 +961,7 @@ async function main() {
 					throw new Error('Textarea value setter is unavailable.');
 				}
 
-				valueSetter.call(textarea, ${escapeForEvaluate(promptText)});
+				valueSetter.call(textarea, ${escapeForEvaluate(promptVariant.prompt)});
 				textarea.dispatchEvent(new Event('input', { bubbles: true }));
 				textarea.dispatchEvent(new Event('change', { bubbles: true }));
 				submitButton.click();
@@ -644,6 +978,8 @@ async function main() {
 			60_000,
 		);
 		logStep('approval boundary observed in browser websocket log');
+		await sleep(750);
+		logStep('approval boundary stabilized before resolve');
 
 		await cdpSession.evaluate(`
 			(() => {
@@ -675,9 +1011,12 @@ async function main() {
 
 		printSummary({
 			browser_runtime_config_model: configuredModel,
+			chain: summarizeBrowserChain(authorityOutcome),
 			groq_api_key_source: envState.groq_api_key_source,
+			prompt_variant: promptVariant.id,
 			result: 'PASS',
 			scenario: {
+				scenario_id: 'browser_authority_live',
 				approval_id: authorityOutcome.approvalBlock?.payload?.approval_id ?? null,
 				approval_kind: authorityOutcome.approvalBlock?.payload?.title ?? null,
 				final_state: authorityOutcome.runFinishedMessage.payload.final_state,
@@ -687,18 +1026,20 @@ async function main() {
 			},
 			ws_observation: {
 				received_types: authorityOutcome.receivedMessages.map((message) => message?.type ?? 'unknown'),
-				run_request_provider: authorityOutcome.runRequestMessage?.payload?.provider ?? null,
-				run_request_provider_has_api_key:
-					typeof authorityOutcome.runRequestMessage?.payload?.provider_config?.apiKey === 'string' &&
-					authorityOutcome.runRequestMessage.payload.provider_config.apiKey.length > 0,
-				run_request_model: authorityOutcome.runRequestMessage?.payload?.request?.model ?? null,
+				run_request: summarizeRunRequestPayload(authorityOutcome.runRequestMessage?.payload),
 				socket_urls: sanitizeSocketUrls(finalBrowserState.ws_log?.socket_urls),
 			},
+			tool_mode: toolMode,
 		});
 	} catch (error) {
 		const browserState = cdpSession ? await readBrowserState(cdpSession).catch(() => null) : null;
 		const authorityOutcome = browserState ? extractAuthorityOutcome(browserState) : {};
 		const combinedServerLogs = `${serverProcess.stdout}\n${serverProcess.stderr}`;
+		const providerErrorDebugPayloads = parseProviderErrorDebugPayloads(combinedServerLogs);
+		const lastProviderErrorDebugPayload =
+			providerErrorDebugPayloads.length > 0
+				? providerErrorDebugPayloads[providerErrorDebugPayloads.length - 1]
+				: null;
 
 		printSummary({
 			browser_state: browserState
@@ -708,6 +1049,7 @@ async function main() {
 						pathname: browserState.pathname,
 					}
 				: null,
+			chain: summarizeBrowserChain(authorityOutcome),
 			error:
 				error instanceof Error
 					? {
@@ -725,8 +1067,16 @@ async function main() {
 				serverLogs: combinedServerLogs,
 			}),
 			groq_api_key_source: envState.groq_api_key_source,
+			provider_error_debug: summarizeProviderErrorDebugPayload(lastProviderErrorDebugPayload),
+			prompt_variant: promptVariant.id,
 			result: 'FAIL',
+			ws_observation: {
+				received_types: authorityOutcome.receivedMessages?.map((message) => message?.type ?? 'unknown') ?? [],
+				run_request: summarizeRunRequestPayload(authorityOutcome.runRequestMessage?.payload),
+				socket_urls: sanitizeSocketUrls(browserState?.ws_log?.socket_urls),
+			},
 			server_log_tail: combinedServerLogs.slice(-2000),
+			tool_mode: toolMode,
 		});
 		finalExitCode = 1;
 	} finally {

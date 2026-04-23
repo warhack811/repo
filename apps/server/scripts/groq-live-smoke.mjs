@@ -8,7 +8,7 @@ const serverRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(serverRoot, '..', '..');
 const distRoot = path.resolve(serverRoot, 'dist');
 
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 const GROQ_API_KEY_ENV = 'GROQ_API_KEY';
 const GROQ_MODEL_ENV = 'GROQ_MODEL';
 const LEGACY_NON_AUTHORITATIVE_GROQ_ENVS = [
@@ -20,6 +20,56 @@ const smokePersistenceWriter = {
 	async upsertRun() {},
 	async upsertToolCall() {},
 };
+const compatibilityPromptVariants = {
+	package_json_list: {
+		id: 'package_json_list',
+		prompt:
+			'Tool kullanarak mevcut klasordeki dosyalari listele ve yalnizca "package.json var" ya da "package.json yok" diye yanit ver.',
+	},
+	readme_file_read_probe: {
+		id: 'readme_file_read_probe',
+		prompt:
+			'Mevcut klasorde README.md varsa file.read ile oku ve yalnizca projenin adini ya da README yoksa "README yok" diye yanit ver.',
+	},
+};
+
+const compatibilityToolVariants = {
+	full_registry: 'full_registry',
+	minimal_file_list: 'minimal_file_list',
+	minimal_file_read: 'minimal_file_read',
+};
+const groqHygieneProfiles = {
+	default_prompt_aware: {
+		context_mode: null,
+		id: 'default_prompt_aware',
+		tool_serialization: null,
+	},
+	current_shape: {
+		context_mode: 'legacy_split_system',
+		id: 'current_shape',
+		tool_serialization: 'full',
+	},
+	stripped_descriptions: {
+		context_mode: 'legacy_split_system',
+		id: 'stripped_descriptions',
+		tool_serialization: 'strip_descriptions',
+	},
+	narrow_context_split: {
+		context_mode: 'merged_system',
+		id: 'narrow_context_split',
+		tool_serialization: 'full',
+	},
+	groq_safe_minimal_schema: {
+		context_mode: 'merged_system',
+		id: 'groq_safe_minimal_schema',
+		tool_serialization: 'minimal_non_primary',
+	},
+};
+const smokeModes = {
+	default: 'default',
+	compatibility_matrix: 'compatibility_matrix',
+};
+const COMPATIBILITY_MATRIX_REQUEST_DELAY_MS = 15_000;
 
 function readEnv(name) {
 	const value = process.env[name];
@@ -56,6 +106,16 @@ function resolveModelSource() {
 	};
 }
 
+function resolveSmokeMode() {
+	const requestedMode = readEnv('RUNA_GROQ_LIVE_SMOKE_MODE');
+
+	if (!requestedMode) {
+		return smokeModes.default;
+	}
+
+	return requestedMode;
+}
+
 function buildAuthoritySummary(input) {
 	return {
 		api_key_authority: {
@@ -90,6 +150,7 @@ function toErrorSummary(error) {
 
 function buildStageRequest(input) {
 	return {
+		available_tools: input.availableTools,
 		max_output_tokens: input.maxOutputTokens,
 		messages: [
 			{
@@ -105,6 +166,93 @@ function buildStageRequest(input) {
 		run_id: input.runId,
 		trace_id: input.traceId,
 	};
+}
+
+function summarizeAvailableTools(availableTools) {
+	return {
+		available_tool_count: Array.isArray(availableTools) ? availableTools.length : 0,
+		available_tool_names: Array.isArray(availableTools)
+			? availableTools.map((tool) => tool.name)
+			: [],
+	};
+}
+
+function summarizeModelRequest(modelRequest) {
+	const lastUserMessage = [...(modelRequest.messages ?? [])]
+		.reverse()
+		.find((message) => message.role === 'user' && typeof message.content === 'string');
+	const groqRequestHygiene =
+		modelRequest.metadata &&
+		typeof modelRequest.metadata === 'object' &&
+		!Array.isArray(modelRequest.metadata) &&
+		modelRequest.metadata.groq_request_hygiene &&
+		typeof modelRequest.metadata.groq_request_hygiene === 'object' &&
+		!Array.isArray(modelRequest.metadata.groq_request_hygiene)
+			? modelRequest.metadata.groq_request_hygiene
+			: null;
+
+	return {
+		compiled_context_present: modelRequest.compiled_context !== undefined,
+		groq_request_hygiene: groqRequestHygiene,
+		last_user_message_preview: lastUserMessage?.content?.slice(0, 160) ?? null,
+		max_output_tokens: modelRequest.max_output_tokens ?? null,
+		message_count: modelRequest.messages?.length ?? 0,
+		message_roles: modelRequest.messages?.map((message) => message.role) ?? [],
+		model: modelRequest.model ?? null,
+		...summarizeAvailableTools(modelRequest.available_tools),
+	};
+}
+
+function extractProviderErrorDebugPayload(input) {
+	if (!Array.isArray(input.calls)) {
+		return null;
+	}
+
+	for (let index = input.calls.length - 1; index >= 0; index -= 1) {
+		const call = input.calls[index];
+
+		if (call?.[0] !== '[provider.error.debug]') {
+			continue;
+		}
+
+		try {
+			return JSON.parse(String(call[1]));
+		} catch {
+			return {
+				parse_error: 'invalid_provider_error_debug_json',
+				raw: String(call[1]),
+			};
+		}
+	}
+
+	return null;
+}
+
+async function captureConsoleErrors(action) {
+	const originalConsoleError = console.error;
+	const capturedCalls = [];
+
+	console.error = (...args) => {
+		capturedCalls.push(args);
+		originalConsoleError(...args);
+	};
+
+	try {
+		try {
+			return {
+				capturedCalls,
+				result: await action(),
+			};
+		} catch (error) {
+			return {
+				capturedCalls,
+				error,
+				result: undefined,
+			};
+		}
+	} finally {
+		console.error = originalConsoleError;
+	}
 }
 
 function buildIds(stageName) {
@@ -135,6 +283,7 @@ async function loadRuntimeModules() {
 		bindAvailableToolsModule,
 		registryModule,
 		fileListModule,
+		fileReadModule,
 	] = await Promise.all([
 		import(pathToFileURL(ensureDistFile('gateway/factory.js')).href),
 		import(pathToFileURL(ensureDistFile('ws/live-request.js')).href),
@@ -143,6 +292,7 @@ async function loadRuntimeModules() {
 		import(pathToFileURL(ensureDistFile('runtime/bind-available-tools.js')).href),
 		import(pathToFileURL(ensureDistFile('tools/registry.js')).href),
 		import(pathToFileURL(ensureDistFile('tools/file-list.js')).href),
+		import(pathToFileURL(ensureDistFile('tools/file-read.js')).href),
 	]);
 
 	return {
@@ -151,6 +301,7 @@ async function loadRuntimeModules() {
 		buildLiveModelRequest: liveRequestModule.buildLiveModelRequest,
 		createModelGateway: factoryModule.createModelGateway,
 		fileListTool: fileListModule.fileListTool,
+		fileReadTool: fileReadModule.fileReadTool,
 		getDefaultToolRegistry: runtimeDependenciesModule.getDefaultToolRegistry,
 		runModelTurn: runModelTurnModule.runModelTurn,
 	};
@@ -332,6 +483,204 @@ async function runBrowserShapeRoundtrip(input) {
 	};
 }
 
+function buildCompatibilityVariantDefinitions(modules) {
+	const fullRegistryResolver = () => {
+		const bindingResult = modules.bindAvailableTools({
+			registry: modules.getDefaultToolRegistry(),
+		});
+
+		if (bindingResult.status !== 'completed') {
+			throw new Error(
+				`Compatibility matrix full registry binding failed: ${bindingResult.failure.message}`,
+			);
+		}
+
+		return bindingResult.available_tools;
+	};
+	const packageJsonVariants = [
+		{
+			prompt_variant: compatibilityPromptVariants.package_json_list,
+			resolveAvailableTools() {
+				return [
+					{
+						description: modules.fileListTool.description,
+						name: modules.fileListTool.name,
+						parameters: modules.fileListTool.callable_schema.parameters,
+					},
+				];
+			},
+			tool_mode: compatibilityToolVariants.minimal_file_list,
+		},
+		{
+			prompt_variant: compatibilityPromptVariants.package_json_list,
+			resolveAvailableTools: fullRegistryResolver,
+			tool_mode: compatibilityToolVariants.full_registry,
+		},
+	];
+	const readmeVariants = [
+		{
+			prompt_variant: compatibilityPromptVariants.readme_file_read_probe,
+			resolveAvailableTools() {
+				return [
+					{
+						description: modules.fileReadTool.description,
+						name: modules.fileReadTool.name,
+						parameters: modules.fileReadTool.callable_schema.parameters,
+					},
+				];
+			},
+			tool_mode: compatibilityToolVariants.minimal_file_read,
+		},
+		{
+			prompt_variant: compatibilityPromptVariants.readme_file_read_probe,
+			resolveAvailableTools: fullRegistryResolver,
+			tool_mode: compatibilityToolVariants.full_registry,
+		},
+	];
+
+	return [
+		...packageJsonVariants.flatMap((variant) =>
+			(
+				variant.tool_mode === compatibilityToolVariants.full_registry
+					? [groqHygieneProfiles.current_shape, groqHygieneProfiles.default_prompt_aware]
+					: [
+							groqHygieneProfiles.current_shape,
+							groqHygieneProfiles.stripped_descriptions,
+							groqHygieneProfiles.narrow_context_split,
+						]
+			).map((hygiene_profile) => ({
+				...variant,
+				hygiene_profile,
+			})),
+		),
+		...readmeVariants.flatMap((variant) =>
+			(
+				variant.tool_mode === compatibilityToolVariants.full_registry
+					? [groqHygieneProfiles.current_shape, groqHygieneProfiles.default_prompt_aware]
+					: [
+							groqHygieneProfiles.current_shape,
+							groqHygieneProfiles.stripped_descriptions,
+							groqHygieneProfiles.narrow_context_split,
+						]
+			).map((hygiene_profile) => ({
+				...variant,
+				hygiene_profile,
+			})),
+		),
+	];
+}
+
+async function runCompatibilityMatrix(input) {
+	const { buildLiveModelRequest, createModelGateway } = input.modules;
+	const variants = buildCompatibilityVariantDefinitions(input.modules);
+	const stageResults = [];
+
+	for (const [index, variant] of variants.entries()) {
+		if (index > 0) {
+			await new Promise((resolvePromise) =>
+				setTimeout(resolvePromise, COMPATIBILITY_MATRIX_REQUEST_DELAY_MS),
+			);
+		}
+
+		const ids = buildIds(`compatibility_${variant.prompt_variant.id}_${variant.tool_mode}`);
+		const availableTools = variant.resolveAvailableTools();
+		const livePayload = {
+			include_presentation_blocks: true,
+			provider: 'groq',
+			provider_config: {
+				apiKey: input.apiKey,
+			},
+			request: {
+				available_tools: availableTools,
+				max_output_tokens: 64,
+				messages: [
+					{
+						content: variant.prompt_variant.prompt,
+						role: 'user',
+					},
+				],
+				metadata:
+					variant.hygiene_profile.context_mode === null &&
+					variant.hygiene_profile.tool_serialization === null
+						? undefined
+						: {
+								groq_request_hygiene: {
+									context_mode: variant.hygiene_profile.context_mode,
+									tool_serialization: variant.hygiene_profile.tool_serialization,
+								},
+							},
+				model: input.model,
+			},
+			run_id: ids.runId,
+			trace_id: ids.traceId,
+		};
+		const modelRequest = await buildLiveModelRequest(livePayload, repoRoot);
+		const gateway = createModelGateway({
+			config: {
+				apiKey: input.apiKey,
+				defaultMaxOutputTokens: 256,
+				defaultModel: input.model,
+			},
+			provider: 'groq',
+		});
+
+		let captured;
+
+		try {
+			captured = await captureConsoleErrors(async () => {
+				return await gateway.generate(modelRequest);
+			});
+		} catch (error) {
+			captured = {
+				capturedCalls: [],
+				error,
+				result: undefined,
+			};
+		}
+
+		const providerErrorDebug = extractProviderErrorDebugPayload({
+			calls: captured.capturedCalls ?? [],
+		});
+
+		if (captured.result) {
+			stageResults.push({
+				hygiene_profile: variant.hygiene_profile.id,
+				outcome_kind: captured.result.tool_call_candidate ? 'tool_call_candidate' : 'assistant_response',
+				prompt_variant: variant.prompt_variant.id,
+				provider: captured.result.provider,
+				request_summary: summarizeModelRequest(modelRequest),
+				result: 'PASS',
+				stage: 'compatibility_matrix',
+				tool_mode: variant.tool_mode,
+			});
+			continue;
+		}
+
+		const error = captured.error;
+		stageResults.push({
+			error:
+				error instanceof Error
+					? {
+							message: error.message,
+							name: error.name,
+						}
+					: {
+							message: String(error),
+							name: 'UnknownError',
+						},
+			hygiene_profile: variant.hygiene_profile.id,
+			provider_error_debug: providerErrorDebug,
+			prompt_variant: variant.prompt_variant.id,
+			request_summary: summarizeModelRequest(modelRequest),
+			result: 'FAIL',
+			stage: 'compatibility_matrix',
+			tool_mode: variant.tool_mode,
+		});
+	}
+
+	return stageResults;
+}
+
 function printSummary(summary) {
 	process.stdout.write(`GROQ_LIVE_SMOKE_SUMMARY ${JSON.stringify(summary)}\n`);
 }
@@ -340,6 +689,7 @@ async function main() {
 	const apiKeySource = resolveApiKeySource();
 	const modelSource = resolveModelSource();
 	const model = modelSource.model;
+	const smokeMode = resolveSmokeMode();
 
 	if (!apiKeySource) {
 		printSummary({
@@ -352,6 +702,7 @@ async function main() {
 			model,
 			provider: 'groq',
 			result: 'BLOCKED',
+			smoke_mode: smokeMode,
 			stage_results: [],
 			working_directory: repoRoot,
 		});
@@ -363,27 +714,37 @@ async function main() {
 	const stageResults = [];
 
 	try {
-		stageResults.push(
-			await runAssistantRoundtrip({
-				apiKey: apiKeySource.apiKey,
-				model,
-				modules,
-			}),
-		);
-		stageResults.push(
-			await runToolSchemaRoundtrip({
-				apiKey: apiKeySource.apiKey,
-				model,
-				modules,
-			}),
-		);
-		stageResults.push(
-			await runBrowserShapeRoundtrip({
-				apiKey: apiKeySource.apiKey,
-				model,
-				modules,
-			}),
-		);
+		if (smokeMode === smokeModes.compatibility_matrix) {
+			stageResults.push(
+				...(await runCompatibilityMatrix({
+					apiKey: apiKeySource.apiKey,
+					model,
+					modules,
+				})),
+			);
+		} else {
+			stageResults.push(
+				await runAssistantRoundtrip({
+					apiKey: apiKeySource.apiKey,
+					model,
+					modules,
+				}),
+			);
+			stageResults.push(
+				await runToolSchemaRoundtrip({
+					apiKey: apiKeySource.apiKey,
+					model,
+					modules,
+				}),
+			);
+			stageResults.push(
+				await runBrowserShapeRoundtrip({
+					apiKey: apiKeySource.apiKey,
+					model,
+					modules,
+				}),
+			);
+		}
 	} catch (error) {
 		printSummary({
 			...buildAuthoritySummary({
@@ -396,12 +757,15 @@ async function main() {
 			model,
 			provider: 'groq',
 			result: 'FAIL',
+			smoke_mode: smokeMode,
 			stage_results: stageResults,
 			working_directory: repoRoot,
 		});
 		process.exitCode = 1;
 		return;
 	}
+
+	const hasFailedStage = stageResults.some((stage) => stage?.result === 'FAIL');
 
 	printSummary({
 		...buildAuthoritySummary({
@@ -412,10 +776,13 @@ async function main() {
 		database_url_present: readEnv('DATABASE_URL') !== undefined,
 		model,
 		provider: 'groq',
-		result: 'PASS',
+		result: hasFailedStage ? 'FAIL' : 'PASS',
+		smoke_mode: smokeMode,
 		stage_results: stageResults,
 		working_directory: repoRoot,
 	});
+
+	process.exitCode = hasFailedStage ? 1 : 0;
 }
 
 await main();

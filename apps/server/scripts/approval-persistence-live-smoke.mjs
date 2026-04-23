@@ -103,6 +103,19 @@ function logStep(message) {
 	process.stdout.write(`[approval-smoke] ${message}\n`);
 }
 
+function createScenarioChain(input) {
+	return {
+		approval_boundary_observed: input.approval_boundary_observed === true,
+		approval_resolve_sent: input.approval_resolve_sent === true,
+		continuation_observed: input.continuation_observed === true,
+		continuation_signal_types: Array.isArray(input.continuation_signal_types)
+			? Array.from(new Set(input.continuation_signal_types))
+			: [],
+		reconnect_restart_tolerated: input.reconnect_restart_tolerated === true,
+		terminal_run_finished_completed: input.terminal_run_finished_completed === true,
+	};
+}
+
 function createMessageRecorder(socket) {
 	const messages = [];
 	const closeState = {
@@ -422,6 +435,16 @@ async function runToolApprovalRestartScenario(input) {
 			);
 
 			return {
+				chain: createScenarioChain({
+					approval_boundary_observed: true,
+					approval_resolve_sent: true,
+					continuation_observed: true,
+					continuation_signal_types: secondRecorder.messages
+						.filter((message) => message.payload?.run_id === runId || message.type === 'connection.ready')
+						.map((message) => message.type),
+					reconnect_restart_tolerated: true,
+					terminal_run_finished_completed: false,
+				}),
 				approval_id: pendingApprovalBlock.payload.approval_id,
 				persisted_pending_status: pendingApprovalRow.status,
 				reconnect_message_types: secondRecorder.messages
@@ -434,6 +457,7 @@ async function runToolApprovalRestartScenario(input) {
 				resolved_status: resolvedApprovalRow?.status ?? null,
 				result: 'PASS',
 				run_id: runId,
+				scenario_id: 'tool_approval_restart',
 				trace_id: traceId,
 				written_content: approvedContents,
 			};
@@ -564,11 +588,26 @@ async function runAutoContinueRestartScenario(input) {
 			const runtimeEventTypes = await queryRunEventTypes(input.connection, runId);
 
 			return {
+				chain: createScenarioChain({
+					approval_boundary_observed: true,
+					approval_resolve_sent: true,
+					continuation_observed: true,
+					continuation_signal_types: secondRecorder.messages
+						.filter((message) => message.payload?.run_id === runId || message.type === 'connection.ready')
+						.map((message) => message.type),
+					reconnect_restart_tolerated: true,
+					terminal_run_finished_completed: runFinishedMessage.payload.final_state === 'COMPLETED',
+				}),
 				approval_id: pendingApprovalBlock.payload.approval_id,
 				final_state: runFinishedMessage.payload.final_state,
 				message_types: secondRecorder.messages
 					.filter((message) => message.payload?.run_id === runId || message.type === 'connection.ready')
 					.map((message) => message.type),
+				persisted_provider_config_keys: Object.keys(
+					pendingApprovalRow?.continuation_context?.payload?.provider_config ?? {},
+				).sort(),
+				persisted_provider_api_key_redacted:
+					pendingApprovalRow?.continuation_context?.payload?.provider_config?.apiKey === '',
 				persisted_continuation_context: Boolean(pendingApprovalRow?.continuation_context),
 				persisted_run_state: runRow?.current_state ?? null,
 				resolved_decision: resolvedApprovalRow?.decision ?? null,
@@ -576,6 +615,7 @@ async function runAutoContinueRestartScenario(input) {
 				result: 'PASS',
 				run_id: runId,
 				runtime_event_types: runtimeEventTypes,
+				scenario_id: 'auto_continue_restart',
 				trace_id: traceId,
 			};
 		} finally {
