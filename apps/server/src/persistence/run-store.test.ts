@@ -67,6 +67,7 @@ describe('run-store', () => {
 		);
 
 		expect(upsertRun).toHaveBeenCalledWith({
+			conversation_id: null,
 			created_at: '2026-04-10T10:00:00.000Z',
 			current_state: 'COMPLETED',
 			last_error_code: 'IGNORED',

@@ -3,9 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AuthContext, SubscriptionContext, UsageMetricKey, UsageQuota } from '@runa/types';
 
 import {
+	consumeUsageRateLimit,
 	evaluateResolvedUsageQuota,
 	evaluateUsageQuota,
+	evaluateUsageRateLimit,
 	requireUsageQuota,
+	requireUsageRateLimit,
+	resetUsageRateLimitStore,
 	resolveUsageQuota,
 } from './usage-quota.js';
 import type { UsageQuotaError } from './usage-quota.js';
@@ -292,5 +296,160 @@ describe('requireUsageQuota', () => {
 				]),
 			}),
 		).rejects.toMatchObject(expectedError);
+	});
+});
+
+describe('evaluateUsageRateLimit', () => {
+	it('uses tighter thresholds for ws_run_request and lighter thresholds for http_request', () => {
+		const auth = createAuthenticatedAuthContext();
+		const freeSubscription = createSubscriptionContext([], {
+			effective_tier: 'free',
+		});
+		const now = () => new Date('2026-04-23T12:00:00.000Z');
+
+		expect(
+			evaluateUsageRateLimit(
+				{
+					auth,
+					metric: 'monthly_turns',
+					now,
+					scope: 'ws_run_request',
+					subscription: freeSubscription,
+				},
+				{
+					started_at_ms: now().getTime(),
+					used: 4,
+				},
+			),
+		).toMatchObject({
+			allowed: true,
+			limit: {
+				limit: 5,
+				scope: 'ws_run_request',
+				tier: 'free',
+				window: 'minute',
+				window_ms: 60_000,
+			},
+			remaining: 0,
+			status: 'allowed',
+		});
+
+		expect(
+			evaluateUsageRateLimit(
+				{
+					auth,
+					metric: 'monthly_turns',
+					now,
+					scope: 'http_request',
+					subscription: freeSubscription,
+				},
+				{
+					started_at_ms: now().getTime(),
+					used: 4,
+				},
+			),
+		).toMatchObject({
+			allowed: true,
+			limit: {
+				limit: 60,
+				scope: 'http_request',
+				tier: 'free',
+				window: 'minute',
+				window_ms: 60_000,
+			},
+			remaining: 55,
+			status: 'allowed',
+		});
+	});
+});
+
+describe('consumeUsageRateLimit', () => {
+	it('records authenticated usage inside the rolling minute window and resets after expiry', () => {
+		const rateLimitStore = new Map();
+		const auth = createAuthenticatedAuthContext();
+		const now = vi.fn(() => new Date('2026-04-23T12:00:00.000Z'));
+
+		const firstDecision = consumeUsageRateLimit({
+			auth,
+			metric: 'monthly_turns',
+			now,
+			rate_limit_store: rateLimitStore,
+			scope: 'ws_run_request',
+			subscription: createSubscriptionContext([], {
+				effective_tier: 'free',
+			}),
+		});
+
+		expect(firstDecision).toMatchObject({
+			allowed: true,
+			remaining: 4,
+			status: 'allowed',
+		});
+
+		now.mockReturnValueOnce(new Date('2026-04-23T12:01:01.000Z'));
+		const secondDecision = consumeUsageRateLimit({
+			auth,
+			metric: 'monthly_turns',
+			now,
+			rate_limit_store: rateLimitStore,
+			scope: 'ws_run_request',
+			subscription: createSubscriptionContext([], {
+				effective_tier: 'free',
+			}),
+		});
+
+		expect(secondDecision).toMatchObject({
+			allowed: true,
+			remaining: 4,
+			status: 'allowed',
+		});
+	});
+});
+
+describe('requireUsageRateLimit', () => {
+	it('throws a typed rate limit rejection with ws scope metadata when the user exceeds the window', () => {
+		resetUsageRateLimitStore();
+
+		const auth = createAuthenticatedAuthContext();
+		const subscription = createSubscriptionContext([], {
+			effective_tier: 'free',
+		});
+		const now = vi.fn(() => new Date('2026-04-23T12:00:00.000Z'));
+
+		for (let attempt = 0; attempt < 5; attempt += 1) {
+			expect(() =>
+				requireUsageRateLimit({
+					auth,
+					metric: 'monthly_turns',
+					now,
+					scope: 'ws_run_request',
+					subscription,
+				}),
+			).not.toThrow();
+		}
+
+		expect(() =>
+			requireUsageRateLimit({
+				auth,
+				metric: 'monthly_turns',
+				now,
+				scope: 'ws_run_request',
+				subscription,
+			}),
+		).toThrowError(
+			expect.objectContaining<Partial<UsageQuotaError>>({
+				code: 'USAGE_RATE_LIMIT_EXCEEDED',
+				metric: 'monthly_turns',
+				reject_reason: expect.objectContaining({
+					kind: 'rate_limited',
+					limit: 5,
+					metric: 'monthly_turns',
+					scope: 'ws_run_request',
+					tier: 'free',
+					window: 'minute',
+				}),
+				statusCode: 429,
+			}),
+		);
 	});
 });

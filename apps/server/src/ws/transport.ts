@@ -3,7 +3,13 @@ import {
 	isInspectionRequestClientMessage,
 	isRunRequestClientMessage,
 } from '@runa/types';
-import type { AuthContext, RenderBlock, RuntimeEvent, SubscriptionContext } from '@runa/types';
+import type {
+	AuthContext,
+	RenderBlock,
+	RuntimeEvent,
+	SubscriptionContext,
+	UsageLimitRejection,
+} from '@runa/types';
 
 import type {
 	ConnectionReadyServerMessage,
@@ -13,13 +19,14 @@ import type {
 	RunRejectedServerMessage,
 	RunRequestPayload,
 	RuntimeEventServerMessage,
+	TextDeltaServerMessage,
 	WebSocketClientMessage,
 	WebSocketServerBridgeMessage,
 } from './messages.js';
 
 export interface WebSocketConnection {
 	close(code?: number, reason?: string): void;
-	on(event: 'message', listener: (message: unknown) => void): void;
+	on(event: 'close' | 'message', listener: (message?: unknown) => void): void;
 	send(message: string): void;
 }
 
@@ -64,11 +71,20 @@ export function decodeSocketMessage(message: unknown): string {
 export function getErrorDetails(error: unknown): {
 	readonly error_message: string;
 	readonly error_name: string;
+	readonly reject_reason?: UsageLimitRejection;
 } {
 	if (error instanceof Error) {
+		const rejectReason =
+			'reject_reason' in error &&
+			typeof error.reject_reason === 'object' &&
+			error.reject_reason !== null
+				? (error.reject_reason as UsageLimitRejection)
+				: undefined;
+
 		return {
 			error_message: error.message,
 			error_name: error.name,
+			reject_reason: rejectReason,
 		};
 	}
 
@@ -96,6 +112,7 @@ export function createReadyMessage(): ConnectionReadyServerMessage {
 export function createAcceptedMessage(payload: RunRequestPayload): RunAcceptedServerMessage {
 	return {
 		payload: {
+			conversation_id: payload.conversation_id,
 			provider: payload.provider,
 			run_id: payload.run_id,
 			trace_id: payload.trace_id,
@@ -118,6 +135,20 @@ export function createRuntimeEventMessage(
 	};
 }
 
+export function createTextDeltaMessage(
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	textDelta: string,
+): TextDeltaServerMessage {
+	return {
+		payload: {
+			run_id: payload.run_id,
+			text_delta: textDelta,
+			trace_id: payload.trace_id,
+		},
+		type: 'text.delta',
+	};
+}
+
 export function createRejectedMessage(
 	error: unknown,
 	context?: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
@@ -128,6 +159,7 @@ export function createRejectedMessage(
 		payload: {
 			error_message: details.error_message,
 			error_name: details.error_name,
+			reject_reason: details.reject_reason,
 			run_id: context?.run_id,
 			trace_id: context?.trace_id,
 		},

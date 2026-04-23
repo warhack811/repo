@@ -7,6 +7,34 @@ export interface ModelMessage {
 	readonly content: string;
 }
 
+export const modelAttachmentKinds = ['image', 'text'] as const;
+
+export type ModelAttachmentKind = (typeof modelAttachmentKinds)[number];
+
+interface BaseModelAttachment {
+	readonly blob_id: string;
+	readonly filename?: string;
+	readonly kind: ModelAttachmentKind;
+	readonly media_type: string;
+	readonly size_bytes: number;
+}
+
+export interface ModelImageAttachment extends BaseModelAttachment {
+	readonly data_url: string;
+	readonly kind: 'image';
+}
+
+export interface ModelTextAttachment extends BaseModelAttachment {
+	readonly kind: 'text';
+	readonly text_content: string;
+}
+
+export type ModelAttachment = ModelImageAttachment | ModelTextAttachment;
+
+export interface UploadAttachmentResponse {
+	readonly attachment: ModelAttachment;
+}
+
 export interface CompiledContextLayer {
 	readonly name: string;
 	readonly kind: string;
@@ -48,6 +76,7 @@ export interface ModelRequest {
 	readonly run_id: string;
 	readonly trace_id: string;
 	readonly messages: readonly ModelMessage[];
+	readonly attachments?: readonly ModelAttachment[];
 	readonly available_tools?: readonly ModelCallableTool[];
 	readonly compiled_context?: CompiledContextArtifact;
 	readonly model?: string;

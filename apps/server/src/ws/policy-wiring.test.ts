@@ -1,15 +1,81 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import type { ToolDefinition } from '@runa/types';
+import type { AuthContext, ToolDefinition } from '@runa/types';
 
+import type { PolicyStateStore } from '../persistence/policy-state-store.js';
+import type { PermissionEngineState } from '../policy/permission-engine.js';
 import { createPermissionEngine } from '../policy/permission-engine.js';
 import { createWebSocketPolicyWiring } from './policy-wiring.js';
+import { attachWebSocketTransport } from './transport.js';
 
 function createSocket() {
 	return {
 		close() {},
 		on() {},
 		send() {},
+	};
+}
+
+function createAuthContext(): AuthContext {
+	return {
+		principal: {
+			email: 'policy@runa.local',
+			kind: 'authenticated',
+			provider: 'supabase',
+			role: 'authenticated',
+			scope: {
+				tenant_id: 'tenant_policy',
+				workspace_id: 'workspace_policy',
+			},
+			session_id: 'session_policy',
+			user_id: 'user_policy',
+		},
+		session: {
+			identity_provider: 'email_password',
+			provider: 'supabase',
+			scope: {
+				tenant_id: 'tenant_policy',
+				workspace_id: 'workspace_policy',
+			},
+			session_id: 'session_policy',
+			user_id: 'user_policy',
+		},
+		transport: 'websocket',
+	};
+}
+
+function attachAuthContext(
+	socket: ReturnType<typeof createSocket>,
+	authContext: AuthContext = createAuthContext(),
+): void {
+	attachWebSocketTransport(socket, {
+		auth_context: authContext,
+		on_message: () => {},
+	});
+}
+
+function createPolicyStateStore(): {
+	readonly getPolicyStateMock: ReturnType<typeof vi.fn>;
+	readonly putPolicyStateMock: ReturnType<typeof vi.fn>;
+	readonly states: Map<string, PermissionEngineState>;
+	readonly store: PolicyStateStore;
+} {
+	const states = new Map<string, PermissionEngineState>();
+	const getPolicyState: PolicyStateStore['getPolicyState'] = vi.fn(
+		async (scope) => states.get(scope.session_id) ?? null,
+	);
+	const putPolicyState: PolicyStateStore['putPolicyState'] = vi.fn(async (scope, state) => {
+		states.set(scope.session_id, state);
+	});
+
+	return {
+		getPolicyStateMock: getPolicyState as ReturnType<typeof vi.fn>,
+		putPolicyStateMock: putPolicyState as ReturnType<typeof vi.fn>,
+		states,
+		store: {
+			getPolicyState,
+			putPolicyState,
+		},
 	};
 }
 
@@ -306,6 +372,185 @@ describe('websocket policy wiring', () => {
 			last_denied_capability_id: 'desktop.screenshot',
 			last_denial_at: expect.any(String),
 			threshold: 3,
+		});
+	});
+
+	it('hydrates paused denial tracking for a fresh socket from the persistent policy store', async () => {
+		const authContext = createAuthContext();
+		const firstSocket = createSocket();
+		const secondSocket = createSocket();
+		const policyStateStore = createPolicyStateStore();
+		const permissionEngine = createPermissionEngine({
+			approval_required_capability_ids: ['file.write'],
+			now: () => '2026-04-23T12:00:00.000Z',
+		});
+		const approvalTool = createToolDefinition({
+			capability_class: 'file_system',
+			name: 'file.write',
+			requires_approval: false,
+			risk_level: 'medium',
+			side_effect_level: 'write',
+		});
+		const firstWiring = createWebSocketPolicyWiring({
+			permission_engine: permissionEngine,
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(firstSocket, authContext);
+
+		for (let attempt = 1; attempt <= 3; attempt += 1) {
+			const decision = (
+				await firstWiring.evaluateToolPermission(firstSocket, {
+					call_id: `call_persisted_pause_${attempt}`,
+					tool_definition: approvalTool,
+				})
+			).decision;
+
+			expect(decision.decision).toBe('require_approval');
+
+			if (decision.decision !== 'require_approval') {
+				throw new Error('Expected file.write to require approval before pause hydration.');
+			}
+
+			await firstWiring.recordOutcome(firstSocket, {
+				decision,
+				outcome: 'approval_rejected',
+			});
+		}
+
+		expect(policyStateStore.putPolicyStateMock).toHaveBeenCalledTimes(3);
+		expect(await firstWiring.getState(firstSocket)).toEqual({
+			denial_tracking: {
+				consecutive_denials: 3,
+				last_denial_at: '2026-04-23T12:00:00.000Z',
+				last_denied_capability_id: 'file.write',
+				threshold: 3,
+			},
+			progressive_trust: {
+				auto_continue: {
+					enabled: false,
+				},
+			},
+			session_pause: {
+				active: true,
+				paused_at: '2026-04-23T12:00:00.000Z',
+				reason: 'denial_threshold',
+			},
+		});
+
+		const secondWiring = createWebSocketPolicyWiring({
+			permission_engine: permissionEngine,
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(secondSocket, authContext);
+
+		await expect(secondWiring.getState(secondSocket)).resolves.toEqual({
+			denial_tracking: {
+				consecutive_denials: 3,
+				last_denial_at: '2026-04-23T12:00:00.000Z',
+				last_denied_capability_id: 'file.write',
+				threshold: 3,
+			},
+			progressive_trust: {
+				auto_continue: {
+					enabled: false,
+				},
+			},
+			session_pause: {
+				active: true,
+				paused_at: '2026-04-23T12:00:00.000Z',
+				reason: 'denial_threshold',
+			},
+		});
+		expect(policyStateStore.getPolicyStateMock).toHaveBeenCalledWith({
+			session_id: 'session_policy',
+			tenant_id: 'tenant_policy',
+			user_id: 'user_policy',
+			workspace_id: 'workspace_policy',
+		});
+	});
+
+	it('hydrates progressive trust for auto-continue from the persistent policy store', async () => {
+		const authContext = createAuthContext();
+		const firstSocket = createSocket();
+		const secondSocket = createSocket();
+		const policyStateStore = createPolicyStateStore();
+		const permissionEngine = createPermissionEngine({
+			now: () => '2026-04-23T13:00:00.000Z',
+		});
+		const firstWiring = createWebSocketPolicyWiring({
+			permission_engine: permissionEngine,
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(firstSocket, authContext);
+
+		const approvalDecision = (
+			await firstWiring.evaluateAutoContinuePermission(firstSocket, {
+				requested_max_consecutive_turns: 4,
+			})
+		).decision;
+
+		expect(approvalDecision.decision).toBe('require_approval');
+
+		if (approvalDecision.decision !== 'require_approval') {
+			throw new Error('Expected auto-continue to require approval before persistence hydration.');
+		}
+
+		await firstWiring.recordOutcome(firstSocket, {
+			decision: approvalDecision,
+			outcome: 'approval_approved',
+		});
+
+		const secondWiring = createWebSocketPolicyWiring({
+			permission_engine: permissionEngine,
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(secondSocket, authContext);
+
+		await expect(secondWiring.getState(secondSocket)).resolves.toEqual({
+			denial_tracking: {
+				consecutive_denials: 0,
+				threshold: 3,
+			},
+			progressive_trust: {
+				auto_continue: {
+					enabled: true,
+					enabled_at: '2026-04-23T13:00:00.000Z',
+					max_consecutive_turns: 4,
+				},
+			},
+			session_pause: {
+				active: false,
+			},
+		});
+		await expect(secondWiring.evaluateAutoContinuePermission(secondSocket)).resolves.toEqual({
+			decision: {
+				decision: 'allow',
+				reason: 'progressive_trust_enabled',
+				request: expect.objectContaining({
+					kind: 'auto_continue',
+					requested_max_consecutive_turns: undefined,
+				}),
+			},
+			state: {
+				denial_tracking: {
+					consecutive_denials: 0,
+					threshold: 3,
+				},
+				progressive_trust: {
+					auto_continue: {
+						enabled: true,
+						enabled_at: '2026-04-23T13:00:00.000Z',
+						max_consecutive_turns: 4,
+					},
+				},
+				session_pause: {
+					active: false,
+				},
+			},
 		});
 	});
 });

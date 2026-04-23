@@ -23,6 +23,7 @@ import type { ApprovalStore, PendingApprovalEntry } from '../persistence/approva
 import type { MemoryStore } from '../persistence/memory-store.js';
 import type { PersistRunStateInput } from '../persistence/run-store.js';
 import { createPermissionEngine } from '../policy/permission-engine.js';
+import { resetUsageRateLimitStore } from '../policy/usage-quota.js';
 import { mapSearchResultToBlock } from '../presentation/map-search-result.js';
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
 import { requestApproval } from '../runtime/request-approval.js';
@@ -31,11 +32,19 @@ import { runToolStep } from '../runtime/run-tool-step.js';
 import { createDesktopScreenshotTool } from '../tools/desktop-screenshot.js';
 import { fileReadTool } from '../tools/file-read.js';
 import { fileWriteTool } from '../tools/file-write.js';
-import { ToolRegistry } from '../tools/registry.js';
+import { ToolRegistry, listBuiltInToolNames } from '../tools/registry.js';
 import { searchCodebaseTool } from '../tools/search-codebase.js';
 import { shellExecTool } from '../tools/shell-exec.js';
 import { resetDefaultToolEffectIdempotencyStore } from '../tools/tool-idempotency.js';
 import { webSearchTool } from '../tools/web-search.js';
+import {
+	classifyApprovalReleaseChainFailure,
+	extractApprovalReleaseSummaryFromOutput,
+} from './approval-release-rehearsal-summary.js';
+import {
+	resetConversationCollaborationHub,
+	setConversationCollaborationAccessResolver,
+} from './conversation-collaboration.js';
 import { createWebSocketPolicyWiring } from './policy-wiring.js';
 import { attachRuntimeWebSocketHandler, handleWebSocketMessage } from './register-ws.js';
 
@@ -57,11 +66,17 @@ class MockSocket {
 	closed = false;
 	closeCode?: number;
 	closeReason?: string;
+	#closeListener?: () => void;
 	#messageListener?: (message: unknown) => void;
 
-	on(event: 'message', listener: (message: unknown) => void): void {
+	on(event: 'close' | 'message', listener: (message?: unknown) => void): void {
+		if (event === 'close') {
+			this.#closeListener = listener as () => void;
+			return;
+		}
+
 		if (event === 'message') {
-			this.#messageListener = listener;
+			this.#messageListener = listener as (message: unknown) => void;
 		}
 	}
 
@@ -73,6 +88,7 @@ class MockSocket {
 		this.closed = true;
 		this.closeCode = code;
 		this.closeReason = reason;
+		this.#closeListener?.();
 	}
 
 	emitMessage(message: unknown): void {
@@ -155,6 +171,68 @@ function createApprovalStore(): {
 	};
 }
 
+function createSharedApprovalStore(entries: Map<string, PendingApprovalEntry>): {
+	readonly getPendingApprovalByIdMock: ReturnType<typeof vi.fn>;
+	readonly persistApprovalRequestMock: ReturnType<typeof vi.fn>;
+	readonly persistApprovalResolutionMock: ReturnType<typeof vi.fn>;
+	readonly store: ApprovalStore;
+} {
+	const getPendingApprovalById: ApprovalStore['getPendingApprovalById'] = vi.fn(
+		async (approval_id) => entries.get(approval_id) ?? null,
+	);
+	const persistApprovalRequest: ApprovalStore['persistApprovalRequest'] = vi.fn(async (input) => {
+		entries.set(input.approval_request.approval_id, {
+			approval_request: input.approval_request,
+			auto_continue_context: input.auto_continue_context,
+			next_sequence_no: input.next_sequence_no ?? 1,
+			pending_tool_call: input.pending_tool_call,
+		});
+	});
+	const persistApprovalResolution: ApprovalStore['persistApprovalResolution'] = vi.fn(
+		async (input) => {
+			entries.delete(input.approval_request.approval_id);
+		},
+	);
+
+	return {
+		getPendingApprovalByIdMock: getPendingApprovalById as ReturnType<typeof vi.fn>,
+		persistApprovalRequestMock: persistApprovalRequest as ReturnType<typeof vi.fn>,
+		persistApprovalResolutionMock: persistApprovalResolution as ReturnType<typeof vi.fn>,
+		store: {
+			getPendingApprovalById,
+			persistApprovalRequest,
+			persistApprovalResolution,
+		},
+	};
+}
+
+function createPolicyStateStore() {
+	const states = new Map<
+		string,
+		Awaited<ReturnType<ReturnType<typeof createWebSocketPolicyWiring>['getState']>>
+	>();
+	const getPolicyState = vi.fn(async (scope: { readonly session_id: string }) => {
+		return states.get(scope.session_id) ?? null;
+	});
+	const putPolicyState = vi.fn(
+		async (
+			scope: { readonly session_id: string },
+			state: Awaited<ReturnType<ReturnType<typeof createWebSocketPolicyWiring>['getState']>>,
+		) => {
+			states.set(scope.session_id, state);
+		},
+	);
+
+	return {
+		getPolicyStateMock: getPolicyState,
+		putPolicyStateMock: putPolicyState,
+		store: {
+			getPolicyState,
+			putPolicyState,
+		},
+	};
+}
+
 async function enableAutoContinueForSocket(
 	socket: MockSocket,
 ): Promise<ReturnType<typeof createWebSocketPolicyWiring>> {
@@ -182,7 +260,50 @@ async function enableAutoContinueForSocket(
 afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+	resetConversationCollaborationHub();
 	resetDefaultToolEffectIdempotencyStore();
+	resetUsageRateLimitStore();
+	Reflect.deleteProperty(process.env, 'ANTHROPIC_API_KEY');
+	Reflect.deleteProperty(process.env, 'GROQ_API_KEY');
+});
+
+describe('approval release rehearsal helpers', () => {
+	it('classifies the exact missing approval chain stage', () => {
+		expect(
+			classifyApprovalReleaseChainFailure({
+				approval_boundary_observed: true,
+				approval_resolve_sent: false,
+				continuation_observed: false,
+				reconnect_restart_tolerated: false,
+				terminal_run_finished_completed: false,
+			}),
+		).toBe('approval_resolve_missing');
+		expect(
+			classifyApprovalReleaseChainFailure({
+				approval_boundary_observed: true,
+				approval_resolve_sent: true,
+				continuation_observed: true,
+				reconnect_restart_tolerated: true,
+				terminal_run_finished_completed: false,
+			}),
+		).toBe('terminal_finish_missing');
+	});
+
+	it('extracts the last structured rehearsal summary from script output', () => {
+		expect(
+			extractApprovalReleaseSummaryFromOutput(
+				[
+					'[approval-smoke] booting',
+					'APPROVAL_RELEASE_REHEARSAL_SUMMARY {"result":"FAIL","failure_stage":"continuation_missing"}',
+					'APPROVAL_RELEASE_REHEARSAL_SUMMARY {"result":"PASS","failure_stage":null}',
+				].join('\n'),
+				'APPROVAL_RELEASE_REHEARSAL_SUMMARY',
+			),
+		).toEqual({
+			failure_stage: null,
+			result: 'PASS',
+		});
+	});
 });
 
 async function withTempDirectory<T>(callback: (directory: string) => Promise<T>): Promise<T> {
@@ -501,6 +622,256 @@ describe('register-ws', () => {
 				trace_id: 'trace_ws_1',
 			}),
 		);
+	});
+
+	it('rejects viewers from starting a run in a shared conversation', async () => {
+		const socket = new MockSocket();
+
+		attachRuntimeWebSocketHandler(socket);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					conversation_id: 'conversation_shared',
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Hello', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_viewer',
+					trace_id: 'trace_ws_viewer',
+				},
+				type: 'run.request',
+			}),
+			{
+				conversationStore: {
+					appendConversationMessage: vi.fn(),
+					ensureConversation: vi.fn(async () => {
+						throw new Error('Conversation not found for the current user.');
+					}),
+				},
+			},
+		);
+
+		const messages = parseMessages(socket);
+		expect(messages.map((message) => message.type)).toEqual(['connection.ready', 'run.rejected']);
+	});
+
+	it('allows editors to start a run and fans out completion to another shared socket', async () => {
+		const ownerSocket = new MockSocket();
+		const viewerSocket = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const persistRunState = vi.fn(async (_input: PersistRunStateInput) => {});
+
+		setConversationCollaborationAccessResolver(async (_conversationId, scope) => {
+			if (scope.user_id === 'viewer_user') {
+				return 'viewer';
+			}
+
+			if (scope.user_id === 'owner_user') {
+				return 'owner';
+			}
+
+			return null;
+		});
+
+		attachRuntimeWebSocketHandler(ownerSocket, {
+			auth_context: {
+				principal: {
+					email: 'owner@runa.local',
+					kind: 'authenticated',
+					provider: 'supabase',
+					role: 'authenticated',
+					scope: {},
+					user_id: 'owner_user',
+				},
+				transport: 'websocket',
+			},
+		});
+		attachRuntimeWebSocketHandler(viewerSocket, {
+			auth_context: {
+				principal: {
+					email: 'viewer@runa.local',
+					kind: 'authenticated',
+					provider: 'supabase',
+					role: 'authenticated',
+					scope: {},
+					user_id: 'viewer_user',
+				},
+				transport: 'websocket',
+			},
+		});
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							choices: [
+								{
+									finish_reason: 'stop',
+									message: {
+										content: 'Shared answer',
+										role: 'assistant',
+									},
+								},
+							],
+							id: 'chatcmpl_ws_shared',
+							model: 'llama-3.3-70b-versatile',
+							usage: {
+								completion_tokens: 12,
+								prompt_tokens: 8,
+								total_tokens: 20,
+							},
+						}),
+						{
+							headers: {
+								'content-type': 'application/json',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		await handleWebSocketMessage(
+			ownerSocket,
+			JSON.stringify({
+				payload: {
+					conversation_id: 'conversation_shared',
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Hello shared', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_shared',
+					trace_id: 'trace_ws_shared',
+				},
+				type: 'run.request',
+			}),
+			{
+				conversationStore: {
+					appendConversationMessage: vi.fn(async (input) => ({
+						content: input.content,
+						conversation_id: input.conversation_id,
+						created_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+						message_id: `message_${input.conversation_id}`,
+						role: input.role,
+						run_id: input.run_id,
+						sequence_no: 1,
+						trace_id: input.trace_id,
+					})),
+					ensureConversation: vi.fn(async (input) => ({
+						access_role: 'owner' as const,
+						conversation_id: input.conversation_id ?? 'conversation_shared',
+						created_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+						last_message_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+						last_message_preview: input.initial_preview ?? 'Hello shared',
+						owner_user_id: 'owner_user',
+						title: 'Shared conversation',
+						updated_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+					})),
+				},
+				persistEvents,
+				persistRunState,
+			},
+		);
+
+		const viewerMessages = parseMessages(viewerSocket).map((message) => message.type);
+		expect(viewerMessages).toContain('run.accepted');
+		expect(viewerMessages).toContain('run.finished');
+	});
+
+	it('streams text.delta messages before run.finished when the provider returns SSE text chunks', async () => {
+		const socket = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const persistRunState = vi.fn(async (_input: PersistRunStateInput) => {});
+
+		attachRuntimeWebSocketHandler(socket);
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						[
+							'data: {"id":"chatcmpl_ws_stream","model":"llama-3.3-70b-versatile","choices":[{"delta":{"role":"assistant","content":"Hello "},"finish_reason":null}]}',
+							'',
+							'data: {"id":"chatcmpl_ws_stream","model":"llama-3.3-70b-versatile","choices":[{"delta":{"content":"streaming world"},"finish_reason":"stop"}],"usage":{"prompt_tokens":8,"completion_tokens":12,"total_tokens":20}}',
+							'',
+							'data: [DONE]',
+							'',
+						].join('\n'),
+						{
+							headers: {
+								'content-type': 'text/event-stream',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Hello', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_stream_1',
+					trace_id: 'trace_ws_stream_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				persistEvents,
+				persistRunState,
+			},
+		);
+
+		const messages = parseMessages(socket);
+		const textDeltaMessages = messages.filter(
+			(message): message is Extract<WebSocketServerBridgeMessage, { type: 'text.delta' }> =>
+				message.type === 'text.delta',
+		);
+		const finishedMessageIndex = messages.findIndex((message) => message.type === 'run.finished');
+		const lastTextDeltaIndex = messages.reduce(
+			(lastIndex, message, index) => (message.type === 'text.delta' ? index : lastIndex),
+			-1,
+		);
+
+		expect(textDeltaMessages.map((message) => message.payload.text_delta)).toEqual([
+			'Hello ',
+			'streaming world',
+		]);
+		expect(lastTextDeltaIndex).toBeGreaterThan(-1);
+		expect(finishedMessageIndex).toBeGreaterThan(lastTextDeltaIndex);
+		expect(messages[finishedMessageIndex]).toMatchObject({
+			payload: {
+				final_state: 'COMPLETED',
+				run_id: 'run_ws_stream_1',
+				status: 'completed',
+				trace_id: 'trace_ws_stream_1',
+			},
+			type: 'run.finished',
+		});
 	});
 
 	it('fast-paths assistant-only presentation.blocks after streamed runtime.event messages when explicitly requested', async () => {
@@ -2407,6 +2778,11 @@ describe('register-ws', () => {
 	});
 
 	it('continues a live tool-follow-up turn after approving auto-continue', async () => {
+		const environment = process.env as NodeJS.ProcessEnv & {
+			GROQ_API_KEY?: string;
+		};
+		environment.GROQ_API_KEY = 'env-groq-key';
+
 		await withTempDirectory(async (directory) => {
 			const socket = new MockSocket();
 			const approvalResolveSocket = new MockSocket();
@@ -2549,6 +2925,28 @@ describe('register-ws', () => {
 			if (!pendingApprovalBlock) {
 				throw new Error('Expected an auto-continue approval block.');
 			}
+
+			const persistedPendingEntry = approvalStore.entries.get(
+				pendingApprovalBlock.payload.approval_id,
+			);
+
+			if (!persistedPendingEntry?.auto_continue_context) {
+				throw new Error('Expected persisted auto-continue context before approval.resolve.');
+			}
+
+			approvalStore.entries.set(pendingApprovalBlock.payload.approval_id, {
+				...persistedPendingEntry,
+				auto_continue_context: {
+					...persistedPendingEntry.auto_continue_context,
+					payload: {
+						...persistedPendingEntry.auto_continue_context.payload,
+						provider_config: {
+							...persistedPendingEntry.auto_continue_context.payload.provider_config,
+							apiKey: '',
+						},
+					},
+				},
+			});
 
 			await handleWebSocketMessage(
 				approvalResolveSocket,
@@ -2736,19 +3134,7 @@ describe('register-ws', () => {
 					message.type === 'runtime.event',
 			);
 
-			expect(requestedToolNames).toEqual([
-				'desktop.screenshot',
-				'edit.patch',
-				'file.list',
-				'file.read',
-				'file.write',
-				'git.diff',
-				'git.status',
-				'search.codebase',
-				'search.grep',
-				'shell.exec',
-				'web.search',
-			]);
+			expect([...requestedToolNames].sort()).toEqual([...listBuiltInToolNames()].sort());
 			expect(messages.map((message) => message.type)).toEqual([
 				'connection.ready',
 				'run.accepted',
@@ -5162,6 +5548,126 @@ describe('register-ws', () => {
 		});
 	});
 
+	it('replays a persisted pending approval after a fresh websocket attachment and policy wiring instance', async () => {
+		await withTempDirectory(async (directory) => {
+			const authContext = {
+				principal: {
+					email: 'approval@runa.local',
+					kind: 'authenticated',
+					provider: 'supabase',
+					role: 'authenticated',
+					scope: {
+						tenant_id: 'tenant_approval',
+						workspace_id: 'workspace_approval',
+					},
+					session_id: 'session_approval',
+					user_id: 'user_approval',
+				},
+				session: {
+					identity_provider: 'email_password',
+					provider: 'supabase',
+					scope: {
+						tenant_id: 'tenant_approval',
+						workspace_id: 'workspace_approval',
+					},
+					session_id: 'session_approval',
+					user_id: 'user_approval',
+				},
+				transport: 'websocket',
+			} as const;
+			const resumedSocket = new MockSocket();
+			const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+			const sharedEntries = new Map<string, PendingApprovalEntry>();
+			const resumedApprovalStore = createSharedApprovalStore(sharedEntries);
+			const policyStateStore = createPolicyStateStore();
+			const resumedPolicyWiring = createWebSocketPolicyWiring({
+				policy_state_store: policyStateStore.store,
+			});
+			const registry = new ToolRegistry();
+			const filePath = 'restart-approved.txt';
+
+			registry.register(fileWriteTool);
+			attachRuntimeWebSocketHandler(resumedSocket, {
+				auth_context: authContext,
+			});
+
+			const pendingApprovalResult = await runToolStep({
+				current_state: 'MODEL_THINKING',
+				event_context: {
+					sequence_start: 11,
+				},
+				execution_context: createExecutionContext({
+					run_id: 'run_ws_restart_safe_approval_1',
+					trace_id: 'trace_ws_restart_safe_approval_1',
+					working_directory: directory,
+				}),
+				registry,
+				run_id: 'run_ws_restart_safe_approval_1',
+				tool_input: {
+					arguments: {
+						content: 'restart-safe content',
+						overwrite: true,
+						path: filePath,
+					},
+					call_id: 'call_ws_restart_safe_approval_1',
+					tool_name: 'file.write',
+				},
+				tool_name: 'file.write',
+				trace_id: 'trace_ws_restart_safe_approval_1',
+			});
+
+			expect(pendingApprovalResult.status).toBe('approval_required');
+
+			if (pendingApprovalResult.status !== 'approval_required') {
+				throw new Error('Expected a persisted pending approval before reconnect replay.');
+			}
+
+			sharedEntries.set(pendingApprovalResult.approval_request.approval_id, {
+				approval_request: pendingApprovalResult.approval_request,
+				next_sequence_no: 12,
+				pending_tool_call: {
+					tool_input: {
+						content: 'restart-safe content',
+						overwrite: true,
+						path: filePath,
+					},
+					working_directory: directory,
+				},
+			});
+
+			await handleWebSocketMessage(
+				resumedSocket,
+				JSON.stringify({
+					payload: {
+						approval_id: pendingApprovalResult.approval_request.approval_id,
+						decision: 'approved',
+					},
+					type: 'approval.resolve',
+				}),
+				{
+					approvalStore: resumedApprovalStore.store,
+					auth_context: authContext,
+					persistEvents,
+					policy_wiring: resumedPolicyWiring,
+					toolRegistry: registry,
+				},
+			);
+
+			expect(resumedApprovalStore.getPendingApprovalByIdMock).toHaveBeenCalledWith(
+				pendingApprovalResult.approval_request.approval_id,
+			);
+			expect(resumedApprovalStore.persistApprovalResolutionMock).toHaveBeenCalledTimes(1);
+			expect(policyStateStore.getPolicyStateMock).toHaveBeenCalledWith({
+				session_id: 'session_approval',
+				tenant_id: 'tenant_approval',
+				user_id: 'user_approval',
+				workspace_id: 'workspace_approval',
+			});
+			expect(await readFile(join(directory, filePath), 'utf8')).toBe('restart-safe content');
+			expect(sharedEntries.has(pendingApprovalResult.approval_request.approval_id)).toBe(false);
+		});
+	});
+
 	it('automatically replays an approved pending tool call after approval.resolve', async () => {
 		const socket = new MockSocket();
 		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
@@ -5878,11 +6384,12 @@ describe('register-ws', () => {
 			}),
 		);
 
-		expect(parseMessages(socket).map((message) => message.type)).toEqual([
-			'connection.ready',
-			'run.accepted',
-			'run.rejected',
-		]);
+		const messages = parseMessages(socket);
+
+		expect(messages[0]?.type).toBe('connection.ready');
+		expect(messages[1]?.type).toBe('run.accepted');
+		expect(messages.at(-1)?.type).toBe('run.rejected');
+		expect(messages.some((message) => message.type === 'runtime.event')).toBe(true);
 	});
 
 	it('sends run.rejected when persistence fails after runtime.event delivery starts', async () => {
@@ -5959,5 +6466,183 @@ describe('register-ws', () => {
 			'runtime.event',
 			'run.rejected',
 		]);
+	});
+
+	it('returns a typed run.rejected reason when the ws run-start rate limit is exceeded for the same user', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							choices: [
+								{
+									finish_reason: 'stop',
+									message: {
+										content: 'Hello over websocket',
+										role: 'assistant',
+									},
+								},
+							],
+							id: 'chatcmpl_ws_rate_limit',
+							model: 'llama-3.3-70b-versatile',
+							usage: {
+								completion_tokens: 12,
+								prompt_tokens: 8,
+								total_tokens: 20,
+							},
+						}),
+						{
+							headers: {
+								'content-type': 'application/json',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		const authContext = {
+			bearer_token_present: true,
+			principal: {
+				kind: 'authenticated',
+				provider: 'supabase',
+				role: 'authenticated',
+				scope: {
+					tenant_id: 'tenant_rate_limit',
+					workspace_id: 'workspace_rate_limit',
+					workspace_ids: ['workspace_rate_limit'],
+				},
+				session_id: 'session_rate_limit',
+				user_id: 'user_rate_limit',
+			},
+			request_id: 'req_rate_limit',
+			transport: 'websocket',
+		} as const;
+		const subscriptionContext = {
+			entitlements: [],
+			effective_tier: 'free',
+			evaluated_at: '2026-04-23T12:00:00.000Z',
+			quotas: [],
+			scope: {
+				kind: 'workspace',
+				subject_id: 'workspace_rate_limit',
+				tenant_id: 'tenant_rate_limit',
+				user_id: 'user_rate_limit',
+				workspace_id: 'workspace_rate_limit',
+			},
+			status: 'active',
+		} as const;
+		const conversationStore = {
+			appendConversationMessage: vi.fn(async (input) => ({
+				content: input.content,
+				conversation_id: input.conversation_id,
+				created_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+				message_id: `message_${input.conversation_id}`,
+				role: input.role,
+				run_id: input.run_id,
+				sequence_no: 1,
+				trace_id: input.trace_id,
+			})),
+			ensureConversation: vi.fn(async (input) => ({
+				access_role: 'owner' as const,
+				conversation_id: input.conversation_id ?? 'conversation_rate_limit',
+				created_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+				last_message_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+				last_message_preview: input.initial_preview ?? 'Hello',
+				owner_user_id: 'user_rate_limit',
+				title: 'Rate limit test',
+				updated_at: input.created_at ?? '2026-04-23T12:00:00.000Z',
+			})),
+		};
+
+		for (let attempt = 0; attempt < 5; attempt += 1) {
+			const socket = new MockSocket();
+
+			attachRuntimeWebSocketHandler(socket, {
+				auth_context: authContext,
+				subscription_context: subscriptionContext,
+			});
+
+			await handleWebSocketMessage(
+				socket,
+				JSON.stringify({
+					payload: {
+						provider: 'groq',
+						provider_config: {
+							apiKey: 'groq-key',
+						},
+						request: {
+							max_output_tokens: 64,
+							messages: [{ content: `Hello ${attempt}`, role: 'user' }],
+							model: 'llama-3.3-70b-versatile',
+						},
+						run_id: `run_ws_rate_limit_${attempt}`,
+						trace_id: `trace_ws_rate_limit_${attempt}`,
+					},
+					type: 'run.request',
+				}),
+				{
+					auth_context: authContext,
+					conversationStore,
+					subscription_context: subscriptionContext,
+				},
+			);
+
+			expect(parseMessages(socket).map((message) => message.type)).toContain('run.accepted');
+		}
+
+		const limitedSocket = new MockSocket();
+
+		attachRuntimeWebSocketHandler(limitedSocket, {
+			auth_context: authContext,
+			subscription_context: subscriptionContext,
+		});
+
+		await handleWebSocketMessage(
+			limitedSocket,
+			JSON.stringify({
+				payload: {
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Hello overflow', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_rate_limit_overflow',
+					trace_id: 'trace_ws_rate_limit_overflow',
+				},
+				type: 'run.request',
+			}),
+			{
+				auth_context: authContext,
+				conversationStore,
+				subscription_context: subscriptionContext,
+			},
+		);
+
+		const messages = parseMessages(limitedSocket);
+
+		expect(messages.map((message) => message.type)).toEqual(['connection.ready', 'run.rejected']);
+
+		if (messages[1]?.type === 'run.rejected') {
+			expect(messages[1].payload).toMatchObject({
+				error_name: 'UsageQuotaError',
+				reject_reason: {
+					kind: 'rate_limited',
+					limit: 5,
+					metric: 'monthly_turns',
+					scope: 'ws_run_request',
+					tier: 'free',
+					window: 'minute',
+				},
+				run_id: 'run_ws_rate_limit_overflow',
+				trace_id: 'trace_ws_rate_limit_overflow',
+			});
+			expect(messages[1].payload.error_message).toContain('Rate limit exhausted');
+		}
 	});
 });

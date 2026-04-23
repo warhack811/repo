@@ -126,6 +126,38 @@ describe('permission-engine', () => {
 		});
 	});
 
+	it('opens a role-aware tool authorization seam without changing the default runtime path', () => {
+		const engine = createPermissionEngine();
+		const decision = engine.evaluatePermission({
+			request: createToolPermissionRequest({
+				actor_role: 'viewer',
+				tool_definition: createToolDefinition({
+					capability_class: 'shell',
+					name: 'shell.exec',
+					requires_approval: true,
+					risk_level: 'high',
+					side_effect_level: 'execute',
+				}),
+			}),
+			state: engine.createInitialState(),
+		});
+
+		expect(decision).toEqual({
+			decision: 'deny',
+			denial: {
+				capability_id: 'shell.exec',
+				source: 'authorization',
+			},
+			reason: 'authorization_role_denied',
+			request: expect.objectContaining({
+				capability: expect.objectContaining({
+					actor_role: 'viewer',
+					capability_id: 'shell.exec',
+				}),
+			}),
+		});
+	});
+
 	it('tracks consecutive denials and preserves in-memory state without persistence', () => {
 		const engine = createPermissionEngine({
 			now: () => '2026-04-17T20:00:00.000Z',

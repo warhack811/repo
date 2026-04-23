@@ -1,7 +1,19 @@
-export type ToolNamespace = 'desktop' | 'edit' | 'file' | 'git' | 'search' | 'shell';
+export type ToolNamespace =
+	| 'desktop'
+	| 'edit'
+	| 'file'
+	| 'git'
+	| 'mcp'
+	| 'plugin'
+	| 'search'
+	| 'shell';
 
 export type KnownToolName =
+	| 'desktop.click'
+	| 'desktop.keypress'
+	| 'desktop.scroll'
 	| 'desktop.screenshot'
+	| 'desktop.type'
 	| 'edit.patch'
 	| 'file.list'
 	| 'file.read'
@@ -9,6 +21,7 @@ export type KnownToolName =
 	| 'git.diff'
 	| 'git.status'
 	| 'search.codebase'
+	| 'search.memory'
 	| 'search.grep'
 	| 'web.search'
 	| 'shell.exec';
@@ -21,7 +34,7 @@ export type ToolRiskLevel = 'low' | 'medium' | 'high';
 
 export type ToolSideEffectLevel = 'none' | 'read' | 'write' | 'execute';
 
-export type ToolCapabilityClass = 'desktop' | 'file_system' | 'search' | 'shell';
+export type ToolCapabilityClass = 'desktop' | 'external' | 'file_system' | 'search' | 'shell';
 
 export type ToolCallableScalarType = 'boolean' | 'number' | 'string';
 

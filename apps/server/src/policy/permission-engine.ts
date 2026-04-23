@@ -7,6 +7,9 @@ import type {
 	ToolSideEffectLevel,
 } from '@runa/types';
 
+import type { AuthorizationRole } from '../auth/rbac.js';
+import { hasAuthorizationRole, resolveMinimumToolAuthorizationRole } from '../auth/rbac.js';
+
 const DEFAULT_DENIAL_PAUSE_THRESHOLD = 3;
 const AUTO_CONTINUE_CAPABILITY_ID = 'agent.auto_continue';
 
@@ -33,6 +36,7 @@ export type PermissionSideEffectLevel = ToolSideEffectLevel | 'session_control';
 export type PermissionDecisionReason =
 	| 'approval_required_by_capability'
 	| 'approval_required_by_policy'
+	| 'authorization_role_denied'
 	| 'auto_continue_disabled'
 	| 'capability_hard_denied'
 	| 'progressive_trust_enabled'
@@ -43,6 +47,7 @@ export type PermissionPauseReason = 'denial_threshold';
 
 export interface PermissionCapabilityDescriptor {
 	readonly action_kind: PermissionActionKind;
+	readonly actor_role?: AuthorizationRole;
 	readonly capability_class: PermissionCapabilityClass;
 	readonly capability_id: string;
 	readonly requires_approval: boolean;
@@ -117,10 +122,10 @@ export interface RequireApprovalPermissionDecision
 }
 
 export interface DenyPermissionDecision
-	extends PermissionDecisionBase<'deny', 'capability_hard_denied'> {
+	extends PermissionDecisionBase<'deny', 'authorization_role_denied' | 'capability_hard_denied'> {
 	readonly denial: {
 		readonly capability_id: string;
-		readonly source: 'policy';
+		readonly source: 'authorization' | 'policy';
 	};
 }
 
@@ -322,6 +327,40 @@ function createDenyDecision(request: PermissionRequest): DenyPermissionDecision 
 	};
 }
 
+function createAuthorizationRoleDeniedDecision(request: PermissionRequest): DenyPermissionDecision {
+	return {
+		decision: 'deny',
+		denial: {
+			capability_id: request.capability.capability_id,
+			source: 'authorization',
+		},
+		reason: 'authorization_role_denied',
+		request,
+	};
+}
+
+function isAuthorizationRoleAllowed(request: PermissionRequest): boolean {
+	if (
+		request.kind !== 'tool_execution' ||
+		request.capability.actor_role === undefined ||
+		request.capability.tool_name === undefined
+	) {
+		return true;
+	}
+
+	const minimumRole = resolveMinimumToolAuthorizationRole({
+		metadata: {
+			capability_class: request.capability.capability_class as ToolCapabilityClass,
+			requires_approval: request.capability.requires_approval,
+			risk_level: request.capability.risk_level,
+			side_effect_level: request.capability.side_effect_level as ToolSideEffectLevel,
+		},
+		name: request.capability.tool_name,
+	});
+
+	return hasAuthorizationRole(request.capability.actor_role, minimumRole);
+}
+
 export function evaluatePermission(
 	input: PermissionEngineInput,
 	config: PermissionEngineConfig = {},
@@ -338,6 +377,10 @@ export function evaluatePermission(
 
 	if (hardDeniedCapabilities.has(capabilityId)) {
 		return createDenyDecision(input.request);
+	}
+
+	if (!isAuthorizationRoleAllowed(input.request)) {
+		return createAuthorizationRoleDeniedDecision(input.request);
 	}
 
 	if (
@@ -575,6 +618,7 @@ function buildActionKindFromTool(
 
 export function createToolPermissionRequest(
 	input: Readonly<{
+		readonly actor_role?: AuthorizationRole;
 		readonly call_id?: string;
 		readonly tool_definition: Pick<ToolDefinition, 'metadata' | 'name'>;
 	}>,
@@ -583,6 +627,7 @@ export function createToolPermissionRequest(
 		call_id: input.call_id,
 		capability: {
 			action_kind: buildActionKindFromTool(input.tool_definition),
+			actor_role: input.actor_role,
 			capability_class: input.tool_definition.metadata.capability_class,
 			capability_id: input.tool_definition.name,
 			requires_approval: input.tool_definition.metadata.requires_approval,

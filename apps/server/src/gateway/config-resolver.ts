@@ -11,8 +11,10 @@ export function resolveGatewayConfig(
 	clientConfig: GatewayProviderConfig,
 ): GatewayProviderConfig {
 	const envKeyMap: Record<string, string> = {
-		groq: 'GROQ_API_KEY',
 		claude: 'ANTHROPIC_API_KEY',
+		gemini: 'GEMINI_API_KEY',
+		groq: 'GROQ_API_KEY',
+		openai: 'OPENAI_API_KEY',
 	};
 
 	const envKeyName = envKeyMap[provider];

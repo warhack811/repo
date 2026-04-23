@@ -271,6 +271,73 @@ function isPendingApprovalContinuationContext(
 	);
 }
 
+function getProviderApiKeyEnvironmentVariableName(provider: RunRequestPayload['provider']): string {
+	switch (provider) {
+		case 'claude':
+			return 'ANTHROPIC_API_KEY';
+		case 'gemini':
+			return 'GEMINI_API_KEY';
+		case 'groq':
+			return 'GROQ_API_KEY';
+		case 'openai':
+			return 'OPENAI_API_KEY';
+	}
+}
+
+function resolveProviderApiKeyFromEnvironment(
+	provider: RunRequestPayload['provider'],
+): string | undefined {
+	const envKeyName = getProviderApiKeyEnvironmentVariableName(provider);
+	const resolvedValue = process.env[envKeyName];
+
+	return typeof resolvedValue === 'string' && resolvedValue.trim().length > 0
+		? resolvedValue
+		: undefined;
+}
+
+function buildPersistedProviderConfig(
+	payload: RunRequestPayload,
+): RunRequestPayload['provider_config'] {
+	return {
+		apiKey:
+			resolveProviderApiKeyFromEnvironment(payload.provider) === undefined
+				? payload.provider_config.apiKey
+				: '',
+		...(payload.request.model === undefined &&
+		typeof payload.provider_config.defaultModel === 'string'
+			? {
+					defaultModel: payload.provider_config.defaultModel,
+				}
+			: {}),
+		...(payload.request.max_output_tokens === undefined &&
+		typeof payload.provider_config.defaultMaxOutputTokens === 'number'
+			? {
+					defaultMaxOutputTokens: payload.provider_config.defaultMaxOutputTokens,
+				}
+			: {}),
+	};
+}
+
+function sanitizeRunRequestPayloadForPersistence(payload: RunRequestPayload): RunRequestPayload {
+	return {
+		...payload,
+		provider_config: buildPersistedProviderConfig(payload),
+	};
+}
+
+function sanitizeContinuationContextForPersistence(
+	context: PendingApprovalContinuationContext | undefined,
+): PendingApprovalContinuationContext | undefined {
+	if (context === undefined) {
+		return undefined;
+	}
+
+	return {
+		...context,
+		payload: sanitizeRunRequestPayloadForPersistence(context.payload),
+	};
+}
+
 function getPrincipalSessionId(authContext: AuthContext): string | undefined {
 	if (authContext.session?.session_id) {
 		return authContext.session.session_id;
@@ -312,7 +379,7 @@ export function approvalPersistenceScopeFromAuthContext(
 
 function toPendingApprovalEntry(record: ApprovalRecord): PendingApprovalEntry {
 	const continuationContext = isPendingApprovalContinuationContext(record.continuation_context)
-		? record.continuation_context
+		? sanitizeContinuationContextForPersistence(record.continuation_context)
 		: undefined;
 
 	return {
@@ -345,6 +412,9 @@ function toPendingApprovalEntry(record: ApprovalRecord): PendingApprovalEntry {
 
 function toApprovalRequestRecord(input: PersistApprovalRequestInput): NewApprovalRecord {
 	const requestedAt = input.approval_request.requested_at;
+	const sanitizedContinuationContext = sanitizeContinuationContextForPersistence(
+		input.auto_continue_context,
+	);
 
 	return {
 		action_kind: input.approval_request.action_kind,
@@ -366,7 +436,7 @@ function toApprovalRequestRecord(input: PersistApprovalRequestInput): NewApprova
 		target_label: input.approval_request.target?.label ?? null,
 		tenant_id: toNullableScopeValue(input.scope?.tenant_id),
 		title: input.approval_request.title,
-		continuation_context: input.auto_continue_context ?? null,
+		continuation_context: sanitizedContinuationContext ?? null,
 		tool_input: input.pending_tool_call?.tool_input ?? null,
 		tool_name: input.approval_request.tool_name ?? null,
 		trace_id: input.approval_request.trace_id,
@@ -379,6 +449,9 @@ function toApprovalRequestRecord(input: PersistApprovalRequestInput): NewApprova
 
 function toApprovalResolutionRecord(input: PersistApprovalResolutionInput): NewApprovalRecord {
 	const resolvedAt = input.approval_resolution.decision.resolved_at;
+	const sanitizedContinuationContext = sanitizeContinuationContextForPersistence(
+		input.auto_continue_context,
+	);
 
 	return {
 		action_kind: input.approval_request.action_kind,
@@ -401,7 +474,7 @@ function toApprovalResolutionRecord(input: PersistApprovalResolutionInput): NewA
 		target_label: input.approval_request.target?.label ?? null,
 		tenant_id: toNullableScopeValue(input.scope?.tenant_id),
 		title: input.approval_request.title,
-		continuation_context: input.auto_continue_context ?? null,
+		continuation_context: sanitizedContinuationContext ?? null,
 		tool_input: input.pending_tool_call?.tool_input ?? null,
 		tool_name: input.approval_request.tool_name ?? null,
 		trace_id: input.approval_request.trace_id,

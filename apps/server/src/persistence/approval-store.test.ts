@@ -16,9 +16,13 @@ import {
 
 function clearDatabaseUrl(): void {
 	const environment = process.env as NodeJS.ProcessEnv & {
+		ANTHROPIC_API_KEY?: string;
 		DATABASE_URL?: string;
+		GROQ_API_KEY?: string;
 	};
-	environment.DATABASE_URL = undefined;
+	Reflect.deleteProperty(environment, 'ANTHROPIC_API_KEY');
+	Reflect.deleteProperty(environment, 'DATABASE_URL');
+	Reflect.deleteProperty(environment, 'GROQ_API_KEY');
 }
 
 function createApprovalRequest(): ApprovalRequest {
@@ -84,6 +88,8 @@ function createAutoContinueContext() {
 			provider: 'groq' as const,
 			provider_config: {
 				apiKey: 'groq-key',
+				defaultMaxOutputTokens: 64,
+				defaultModel: 'llama-3.3-70b-versatile',
 			},
 			request: {
 				max_output_tokens: 64,
@@ -96,6 +102,36 @@ function createAutoContinueContext() {
 		tool_result: createToolResult(),
 		turn_count: 2,
 		working_directory: 'd:\\ai\\Runa',
+	} as const;
+}
+
+function createSanitizedAutoContinueContext() {
+	return {
+		...createAutoContinueContext(),
+		payload: {
+			...createAutoContinueContext().payload,
+			provider_config: {
+				apiKey: '',
+			},
+		},
+	} as const;
+}
+
+function createContinuationContextWithProviderDefaultsOnly() {
+	return {
+		...createAutoContinueContext(),
+		payload: {
+			...createAutoContinueContext().payload,
+			provider: 'claude' as const,
+			provider_config: {
+				apiKey: 'claude-key',
+				defaultMaxOutputTokens: 96,
+				defaultModel: 'claude-3-7-sonnet',
+			},
+			request: {
+				messages: [{ content: 'Continue after the tool result', role: 'user' as const }],
+			},
+		},
 	} as const;
 }
 
@@ -113,6 +149,10 @@ describe('approval-store', () => {
 	});
 
 	it('maps approval request writes to deterministic upsert records', async () => {
+		const environment = process.env as NodeJS.ProcessEnv & {
+			GROQ_API_KEY?: string;
+		};
+		environment.GROQ_API_KEY = 'env-groq-key';
 		const upsertApproval: ApprovalRecordWriter['upsertApproval'] = vi
 			.fn()
 			.mockResolvedValue(undefined);
@@ -139,7 +179,7 @@ describe('approval-store', () => {
 			approval_id: 'approval_store_1',
 			call_id: 'call_approval_store_1',
 			created_at: '2026-04-11T10:00:00.000Z',
-			continuation_context: createAutoContinueContext(),
+			continuation_context: createSanitizedAutoContinueContext(),
 			decision: null,
 			next_sequence_no: 12,
 			note: null,
@@ -168,6 +208,10 @@ describe('approval-store', () => {
 	});
 
 	it('maps approval resolution writes to deterministic upsert records', async () => {
+		const environment = process.env as NodeJS.ProcessEnv & {
+			GROQ_API_KEY?: string;
+		};
+		environment.GROQ_API_KEY = 'env-groq-key';
 		const upsertApproval: ApprovalRecordWriter['upsertApproval'] = vi
 			.fn()
 			.mockResolvedValue(undefined);
@@ -195,7 +239,7 @@ describe('approval-store', () => {
 			approval_id: 'approval_store_1',
 			call_id: 'call_approval_store_1',
 			created_at: '2026-04-11T10:00:00.000Z',
-			continuation_context: createAutoContinueContext(),
+			continuation_context: createSanitizedAutoContinueContext(),
 			decision: 'approved',
 			next_sequence_no: 12,
 			note: 'Approved by reviewer',
@@ -224,6 +268,10 @@ describe('approval-store', () => {
 	});
 
 	it('hydrates pending approval lookup results into runtime-friendly entries', async () => {
+		const environment = process.env as NodeJS.ProcessEnv & {
+			GROQ_API_KEY?: string;
+		};
+		environment.GROQ_API_KEY = 'env-groq-key';
 		const entry = await getPendingApprovalById('approval_store_1', {
 			writer: {
 				async getPendingApprovalById() {
@@ -265,10 +313,72 @@ describe('approval-store', () => {
 
 		expect(entry).toEqual({
 			approval_request: createApprovalRequest(),
-			auto_continue_context: createAutoContinueContext(),
+			auto_continue_context: createSanitizedAutoContinueContext(),
 			next_sequence_no: 12,
 			pending_tool_call: createPendingToolCall(),
 		});
+	});
+
+	it('preserves request-only provider secrets when no environment fallback exists', async () => {
+		const upsertApproval: ApprovalRecordWriter['upsertApproval'] = vi
+			.fn()
+			.mockResolvedValue(undefined);
+
+		await persistApprovalRequest(
+			{
+				approval_request: createApprovalRequest(),
+				auto_continue_context: createAutoContinueContext(),
+			},
+			{
+				writer: {
+					async getPendingApprovalById() {
+						return null;
+					},
+					upsertApproval,
+				},
+			},
+		);
+
+		expect(upsertApproval).toHaveBeenCalledWith(
+			expect.objectContaining({
+				continuation_context: {
+					...createAutoContinueContext(),
+					payload: {
+						...createAutoContinueContext().payload,
+						provider_config: {
+							apiKey: 'groq-key',
+						},
+					},
+				},
+			}),
+		);
+	});
+
+	it('preserves provider defaults only when the continuation request still needs them', async () => {
+		const upsertApproval: ApprovalRecordWriter['upsertApproval'] = vi
+			.fn()
+			.mockResolvedValue(undefined);
+
+		await persistApprovalRequest(
+			{
+				approval_request: createApprovalRequest(),
+				auto_continue_context: createContinuationContextWithProviderDefaultsOnly(),
+			},
+			{
+				writer: {
+					async getPendingApprovalById() {
+						return null;
+					},
+					upsertApproval,
+				},
+			},
+		);
+
+		expect(upsertApproval).toHaveBeenCalledWith(
+			expect.objectContaining({
+				continuation_context: createContinuationContextWithProviderDefaultsOnly(),
+			}),
+		);
 	});
 
 	it('wraps reader failures in a typed read error', async () => {

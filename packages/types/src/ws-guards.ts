@@ -1,4 +1,5 @@
 import type { RenderBlock } from './blocks.js';
+import type { ModelAttachment } from './gateway.js';
 import type {
 	ApprovalResolveClientMessage,
 	ApprovalResolvePayload,
@@ -12,13 +13,25 @@ import type {
 	RunRequestClientMessage,
 	RunRequestPayload,
 	RuntimeEventServerMessage,
+	TextDeltaServerMessage,
 	WebSocketClientMessage,
 	WebSocketServerBridgeMessage,
 } from './ws.js';
+import { gatewayProviders } from './ws.js';
 
 interface MessageCandidate {
 	readonly content?: unknown;
 	readonly role?: unknown;
+}
+
+interface AttachmentCandidate {
+	readonly blob_id?: unknown;
+	readonly data_url?: unknown;
+	readonly filename?: unknown;
+	readonly kind?: unknown;
+	readonly media_type?: unknown;
+	readonly size_bytes?: unknown;
+	readonly text_content?: unknown;
 }
 
 interface ProviderConfigCandidate {
@@ -36,6 +49,8 @@ interface RequestCandidate {
 }
 
 interface RunRequestPayloadCandidate {
+	readonly attachments?: unknown;
+	readonly conversation_id?: unknown;
 	readonly include_presentation_blocks?: unknown;
 	readonly provider?: unknown;
 	readonly provider_config?: unknown;
@@ -87,12 +102,24 @@ interface RuntimeEventPayloadCandidate {
 	readonly event?: unknown;
 }
 
+interface TextDeltaMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface TextDeltaPayloadCandidate {
+	readonly run_id?: unknown;
+	readonly text_delta?: unknown;
+	readonly trace_id?: unknown;
+}
+
 interface RunAcceptedMessageCandidate {
 	readonly payload?: unknown;
 	readonly type?: unknown;
 }
 
 interface RunAcceptedPayloadCandidate {
+	readonly conversation_id?: unknown;
 	readonly provider?: unknown;
 	readonly run_id?: unknown;
 	readonly trace_id?: unknown;
@@ -106,6 +133,19 @@ interface RunRejectedMessageCandidate {
 interface RunRejectedPayloadCandidate {
 	readonly error_message?: unknown;
 	readonly error_name?: unknown;
+	readonly reject_reason?: unknown;
+}
+
+interface UsageLimitRejectionCandidate {
+	readonly kind?: unknown;
+	readonly limit?: unknown;
+	readonly metric?: unknown;
+	readonly remaining?: unknown;
+	readonly resets_at?: unknown;
+	readonly retry_after_seconds?: unknown;
+	readonly scope?: unknown;
+	readonly tier?: unknown;
+	readonly window?: unknown;
 }
 
 interface RunFinishedMessageCandidate {
@@ -287,6 +327,10 @@ function isMessageCandidate(value: unknown): value is MessageCandidate {
 	return isRecord(value);
 }
 
+function isAttachmentCandidate(value: unknown): value is AttachmentCandidate {
+	return isRecord(value);
+}
+
 function isProviderConfigCandidate(value: unknown): value is ProviderConfigCandidate {
 	return isRecord(value);
 }
@@ -341,6 +385,14 @@ function isRuntimeEventPayloadCandidate(value: unknown): value is RuntimeEventPa
 	return isRecord(value);
 }
 
+function isTextDeltaMessageCandidate(value: unknown): value is TextDeltaMessageCandidate {
+	return isRecord(value);
+}
+
+function isTextDeltaPayloadCandidate(value: unknown): value is TextDeltaPayloadCandidate {
+	return isRecord(value);
+}
+
 function isRunAcceptedMessageCandidate(value: unknown): value is RunAcceptedMessageCandidate {
 	return isRecord(value);
 }
@@ -354,6 +406,10 @@ function isRunRejectedMessageCandidate(value: unknown): value is RunRejectedMess
 }
 
 function isRunRejectedPayloadCandidate(value: unknown): value is RunRejectedPayloadCandidate {
+	return isRecord(value);
+}
+
+function isUsageLimitRejectionCandidate(value: unknown): value is UsageLimitRejectionCandidate {
 	return isRecord(value);
 }
 
@@ -432,8 +488,54 @@ function isMessageArray(value: unknown): value is RunRequestPayload['request']['
 	);
 }
 
+function isModelAttachmentKind(value: unknown): value is ModelAttachment['kind'] {
+	return value === 'image' || value === 'text';
+}
+
+function isModelAttachment(value: unknown): value is ModelAttachment {
+	if (!isAttachmentCandidate(value)) {
+		return false;
+	}
+
+	const {
+		blob_id: blobId,
+		data_url: dataUrl,
+		filename,
+		kind,
+		media_type: mediaType,
+		size_bytes: sizeBytes,
+		text_content: textContent,
+	} = value;
+
+	if (
+		typeof blobId !== 'string' ||
+		(filename !== undefined && typeof filename !== 'string') ||
+		!isModelAttachmentKind(kind) ||
+		typeof mediaType !== 'string' ||
+		typeof sizeBytes !== 'number'
+	) {
+		return false;
+	}
+
+	if (kind === 'image') {
+		return typeof dataUrl === 'string' && textContent === undefined;
+	}
+
+	return typeof textContent === 'string' && dataUrl === undefined;
+}
+
+function isAttachmentArray(value: unknown): value is readonly ModelAttachment[] {
+	return Array.isArray(value) && value.every((attachment) => isModelAttachment(attachment));
+}
+
 function isRequestMetadata(value: unknown): value is Readonly<Record<string, unknown>> {
 	return value === undefined || isRecord(value);
+}
+
+function isGatewayProvider(value: unknown): value is RunRequestPayload['provider'] {
+	return (
+		typeof value === 'string' && gatewayProviders.includes(value as RunRequestPayload['provider'])
+	);
 }
 
 export function isProviderConfig(value: unknown): value is RunRequestPayload['provider_config'] {
@@ -456,6 +558,8 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 	}
 
 	const {
+		attachments,
+		conversation_id: conversationId,
 		include_presentation_blocks: includePresentationBlocks,
 		provider,
 		provider_config: providerConfig,
@@ -471,8 +575,10 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 	const { max_output_tokens: maxOutputTokens, messages, metadata, model, temperature } = request;
 
 	return (
+		(attachments === undefined || isAttachmentArray(attachments)) &&
+		(conversationId === undefined || typeof conversationId === 'string') &&
 		(includePresentationBlocks === undefined || typeof includePresentationBlocks === 'boolean') &&
-		(provider === 'groq' || provider === 'claude') &&
+		isGatewayProvider(provider) &&
 		isProviderConfig(providerConfig) &&
 		typeof runId === 'string' &&
 		typeof traceId === 'string' &&
@@ -814,6 +920,17 @@ export function isRuntimeEventServerMessage(value: unknown): value is RuntimeEve
 	return isRuntimeEventPayloadCandidate(value.payload) && isRecord(value.payload.event);
 }
 
+export function isTextDeltaServerMessage(value: unknown): value is TextDeltaServerMessage {
+	return (
+		isTextDeltaMessageCandidate(value) &&
+		value.type === 'text.delta' &&
+		isTextDeltaPayloadCandidate(value.payload) &&
+		typeof value.payload.run_id === 'string' &&
+		typeof value.payload.trace_id === 'string' &&
+		typeof value.payload.text_delta === 'string'
+	);
+}
+
 export function isConnectionReadyServerMessage(
 	value: unknown,
 ): value is ConnectionReadyServerMessage {
@@ -830,6 +947,8 @@ export function isRunAcceptedServerMessage(value: unknown): value is RunAccepted
 		isRunAcceptedMessageCandidate(value) &&
 		value.type === 'run.accepted' &&
 		isRunAcceptedPayloadCandidate(value.payload) &&
+		(value.payload.conversation_id === undefined ||
+			typeof value.payload.conversation_id === 'string') &&
 		typeof value.payload.provider === 'string' &&
 		typeof value.payload.run_id === 'string' &&
 		typeof value.payload.trace_id === 'string'
@@ -842,7 +961,28 @@ export function isRunRejectedServerMessage(value: unknown): value is RunRejected
 		value.type === 'run.rejected' &&
 		isRunRejectedPayloadCandidate(value.payload) &&
 		typeof value.payload.error_message === 'string' &&
-		typeof value.payload.error_name === 'string'
+		typeof value.payload.error_name === 'string' &&
+		(value.payload.reject_reason === undefined ||
+			(isUsageLimitRejectionCandidate(value.payload.reject_reason) &&
+				(value.payload.reject_reason.kind === 'quota_exhausted' ||
+					value.payload.reject_reason.kind === 'rate_limited') &&
+				typeof value.payload.reject_reason.limit === 'number' &&
+				typeof value.payload.reject_reason.metric === 'string' &&
+				typeof value.payload.reject_reason.remaining === 'number' &&
+				(value.payload.reject_reason.resets_at === undefined ||
+					typeof value.payload.reject_reason.resets_at === 'string') &&
+				(value.payload.reject_reason.retry_after_seconds === undefined ||
+					typeof value.payload.reject_reason.retry_after_seconds === 'number') &&
+				(value.payload.reject_reason.scope === 'http_request' ||
+					value.payload.reject_reason.scope === 'ws_run_request') &&
+				(value.payload.reject_reason.tier === undefined ||
+					value.payload.reject_reason.tier === 'free' ||
+					value.payload.reject_reason.tier === 'pro' ||
+					value.payload.reject_reason.tier === 'business') &&
+				(value.payload.reject_reason.window === 'daily' ||
+					value.payload.reject_reason.window === 'monthly' ||
+					value.payload.reject_reason.window === 'billing_period' ||
+					value.payload.reject_reason.window === 'minute')))
 	);
 }
 
@@ -879,6 +1019,7 @@ export function isWebSocketServerBridgeMessage(
 		isConnectionReadyServerMessage(value) ||
 		isRunAcceptedServerMessage(value) ||
 		isRuntimeEventServerMessage(value) ||
+		isTextDeltaServerMessage(value) ||
 		isRunRejectedServerMessage(value) ||
 		isRunFinishedServerMessage(value) ||
 		isPresentationBlocksServerMessage(value)

@@ -34,6 +34,7 @@ export interface RunRecordWriter {
 }
 
 export interface PersistRunStateInput {
+	readonly conversation_id?: string;
 	readonly current_state: RuntimeState;
 	readonly last_error_code?: string;
 	readonly recorded_at?: string;
@@ -79,6 +80,7 @@ class DatabaseRunRecordWriter implements RunRecordWriter {
 			.values(record)
 			.onConflictDoUpdate({
 				set: {
+					conversation_id: record.conversation_id,
 					current_state: record.current_state,
 					last_error_code: record.last_error_code,
 					last_state_at: record.last_state_at,
@@ -215,6 +217,7 @@ function toRunRecord(input: PersistRunStateInput): NewRunRecord {
 	const recordedAt = input.recorded_at ?? new Date().toISOString();
 
 	return {
+		conversation_id: input.conversation_id ?? null,
 		created_at: recordedAt,
 		current_state: input.current_state,
 		last_error_code: input.last_error_code ?? null,

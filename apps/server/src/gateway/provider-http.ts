@@ -1,3 +1,4 @@
+import { createLogger } from '../utils/logger.js';
 import { GatewayRequestError, GatewayResponseError } from './errors.js';
 
 interface HttpTextResponse {
@@ -26,10 +27,17 @@ interface PostJsonOptions {
 interface ProviderErrorDebugContext {
 	readonly compiled_context_chars?: number;
 	readonly has_compiled_context?: boolean;
+	readonly last_user_message_chars?: number;
 	readonly max_output_tokens?: number;
 	readonly message_count?: number;
 	readonly message_roles?: readonly string[];
 	readonly model?: string;
+	readonly request_hygiene_context_mode?: string;
+	readonly request_hygiene_tool_serialization?: string;
+	readonly run_id?: string;
+	readonly requested_tool_names?: readonly string[];
+	readonly serialized_tool_names?: readonly string[];
+	readonly trace_id?: string;
 	readonly tool_count?: number;
 	readonly tool_names?: readonly string[];
 }
@@ -40,6 +48,12 @@ interface ProviderErrorDebugPayload {
 	readonly response_body: string;
 	readonly status_code?: number;
 }
+
+const gatewayLogger = createLogger({
+	context: {
+		component: 'gateway.provider_http',
+	},
+});
 
 function getFetchImplementation(): HttpFetch {
 	const fetchImplementation = (
@@ -75,7 +89,12 @@ function logProviderErrorDebug(payload: ProviderErrorDebugPayload): void {
 		return;
 	}
 
-	console.error('[provider.error.debug]', payload);
+	gatewayLogger.error('provider.error.debug', {
+		provider: payload.provider,
+		request_summary: payload.request_summary,
+		response_body: payload.response_body,
+		status_code: payload.status_code,
+	});
 }
 
 export async function postJson(options: PostJsonOptions): Promise<unknown> {

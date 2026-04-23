@@ -1,3 +1,4 @@
+import type { SubscriptionTier, UsageMetricKey, UsageWindow } from './subscription.js';
 import type { ToolName, ToolRiskLevel } from './tools.js';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'cancelled';
@@ -50,4 +51,24 @@ export interface ApprovalResolution {
 	readonly approval_id: string;
 	readonly decision: ApprovalDecision;
 	readonly final_status: ResolvedApprovalStatus;
+}
+
+export const usageLimitScopes = ['http_request', 'ws_run_request'] as const;
+
+export type UsageLimitScope = (typeof usageLimitScopes)[number];
+
+export const usageLimitRejectionKinds = ['quota_exhausted', 'rate_limited'] as const;
+
+export type UsageLimitRejectionKind = (typeof usageLimitRejectionKinds)[number];
+
+export interface UsageLimitRejection {
+	readonly kind: UsageLimitRejectionKind;
+	readonly limit: number;
+	readonly metric: UsageMetricKey;
+	readonly remaining: number;
+	readonly resets_at?: string;
+	readonly retry_after_seconds?: number;
+	readonly scope: UsageLimitScope;
+	readonly tier?: SubscriptionTier;
+	readonly window: UsageWindow | 'minute';
 }

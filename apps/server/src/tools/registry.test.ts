@@ -74,10 +74,26 @@ describe('ToolRegistry', () => {
 		expect(registry.listNames()).toEqual(['file.read', 'file.write', 'shell.exec']);
 	});
 
-	it('creates a built-in registry that includes desktop screenshot', () => {
+	it('creates a built-in registry that includes the approval-gated desktop family', () => {
 		const registry = createBuiltInToolRegistry();
 
+		expect(registry.has('desktop.click')).toBe(true);
+		expect(registry.has('desktop.keypress')).toBe(true);
+		expect(registry.has('desktop.scroll')).toBe(true);
 		expect(registry.has('desktop.screenshot')).toBe(true);
+		expect(registry.has('desktop.type')).toBe(true);
+		expect(registry.listNames()).toContain('desktop.click');
+		expect(registry.listNames()).toContain('desktop.keypress');
+		expect(registry.listNames()).toContain('desktop.scroll');
 		expect(registry.listNames()).toContain('desktop.screenshot');
+		expect(registry.listNames()).toContain('desktop.type');
+	});
+
+	it('keeps built-in names authoritative when another tool tries to reuse them', () => {
+		const registry = createBuiltInToolRegistry();
+		const conflictingTool = createFakeTool('file.read');
+
+		expect(() => registry.register(conflictingTool)).toThrowError(ToolAlreadyRegisteredError);
+		expect(registry.get('file.read')).not.toBe(conflictingTool);
 	});
 });

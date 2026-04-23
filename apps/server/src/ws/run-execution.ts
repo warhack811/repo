@@ -10,15 +10,24 @@ import type {
 } from '@runa/types';
 
 import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
+import { GatewayUnsupportedOperationError } from '../gateway/errors.js';
 import { createModelGateway } from '../gateway/factory.js';
+import { createSearchMemoryTool } from '../memory/search-memory-tool.js';
 import {
 	type ApprovalStore,
 	type PendingApprovalEntry,
 	approvalPersistenceScopeFromAuthContext,
 } from '../persistence/approval-store.js';
+import {
+	appendConversationMessage,
+	conversationScopeFromAuthContext,
+	ensureConversation,
+	hasConversationStoreConfiguration,
+} from '../persistence/conversation-store.js';
 import { persistRuntimeEvents } from '../persistence/event-store.js';
 import { defaultMemoryStore } from '../persistence/memory-store.js';
 import { persistRunState } from '../persistence/run-store.js';
+import { requireUsageRateLimit } from '../policy/usage-quota.js';
 import { adaptModelResponseToTurnOutcome } from '../runtime/adapt-model-response-to-turn-outcome.js';
 import type { AgentLoopSnapshot } from '../runtime/agent-loop.js';
 import { createAutoContinuePolicyGate } from '../runtime/auto-continue-policy.js';
@@ -39,6 +48,12 @@ import type {
 import { runToolStep } from '../runtime/run-tool-step.js';
 import { buildRunStartedEvent, buildStateEnteredEvent } from '../runtime/runtime-events.js';
 import { buildRunFailedEvent } from '../runtime/runtime-events.js';
+import { ToolRegistry } from '../tools/registry.js';
+import { createLogger, startLogSpan } from '../utils/logger.js';
+import {
+	broadcastConversationRunAccepted,
+	broadcastConversationRunFinished,
+} from './conversation-collaboration.js';
 import {
 	buildLiveModelRequest,
 	buildLiveWorkspaceLayer,
@@ -74,8 +89,15 @@ import {
 	createFinishedMessage,
 	createPresentationBlocksMessage,
 	createRuntimeEventMessage,
+	createTextDeltaMessage,
 	sendServerMessage,
 } from './transport.js';
+
+const runExecutionLogger = createLogger({
+	context: {
+		component: 'ws.run_execution',
+	},
+});
 
 type LoopRuntimeProgressEvent = Extract<
 	RuntimeEvent,
@@ -289,6 +311,7 @@ function cloneToolDefinitionWithApprovalRequired(toolDefinition: ToolDefinition)
 }
 
 interface FinalizeLiveRunResultOptions {
+	readonly conversation_id?: string;
 	readonly persist_live_memory_write: boolean;
 	readonly working_directory: string;
 }
@@ -302,6 +325,26 @@ interface ExecuteLiveRunOptions {
 	readonly registry: ReturnType<typeof getDefaultToolRegistry>;
 	readonly workingDirectory: string;
 	readonly workspace_layer?: WorkspaceLayer;
+}
+
+function createRuntimeToolRegistry(
+	baseRegistry: ToolRegistry,
+	options: Readonly<{
+		readonly memoryStore?: MemoryOrchestrationStore;
+	}>,
+): ToolRegistry {
+	const runtimeRegistry = new ToolRegistry();
+	runtimeRegistry.registerMany(baseRegistry.list().map((entry) => entry.tool));
+
+	if (canPersistLiveMemory(options.memoryStore) && !runtimeRegistry.has('search.memory')) {
+		runtimeRegistry.register(
+			createSearchMemoryTool({
+				memory_store: options.memoryStore ?? defaultMemoryStore,
+			}),
+		);
+	}
+
+	return runtimeRegistry;
 }
 
 function createRunModelTurnFailureResult(
@@ -342,6 +385,40 @@ function createRunModelTurnFailureResult(
 		resolved_model_request: input.resolved_model_request,
 		status: 'failed',
 	};
+}
+
+async function generateModelResponseWithStreaming(
+	socket: WebSocketConnection,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	modelGateway: Pick<ReturnType<typeof createModelGateway>, 'generate' | 'stream'>,
+	modelRequest: ModelRequest,
+): Promise<ModelResponse> {
+	let streamedResponse: ModelResponse | undefined;
+
+	try {
+		for await (const chunk of modelGateway.stream(modelRequest)) {
+			if (chunk.type === 'text.delta') {
+				if (chunk.text_delta.length === 0) {
+					continue;
+				}
+
+				sendServerMessage(socket, createTextDeltaMessage(payload, chunk.text_delta));
+				continue;
+			}
+
+			streamedResponse = chunk.response;
+		}
+	} catch (error: unknown) {
+		if (!(error instanceof GatewayUnsupportedOperationError)) {
+			throw error;
+		}
+	}
+
+	if (streamedResponse) {
+		return streamedResponse;
+	}
+
+	return modelGateway.generate(modelRequest);
 }
 
 function resolveRunModelRequest(input: RunModelTurnInput):
@@ -393,6 +470,12 @@ async function runPolicyAwareModelTurn(
 	input: RunModelTurnInput,
 	policyWiring: WebSocketPolicyWiring,
 ): Promise<RunModelTurnResult> {
+	const turnLogger = runExecutionLogger.child({
+		model: input.model_request.model,
+		run_id: input.run_id,
+		trace_id: input.trace_id,
+	});
+
 	if (input.current_state !== 'MODEL_THINKING') {
 		return createRunModelTurnFailureResult({
 			current_state: input.current_state,
@@ -413,10 +496,28 @@ async function runPolicyAwareModelTurn(
 
 	const resolvedModelRequest = modelRequestResult.model_request;
 	let modelResponse: ModelResponse;
+	const gatewaySpan = startLogSpan(turnLogger, 'gateway.generate', {
+		model: resolvedModelRequest.model,
+	});
 
 	try {
-		modelResponse = await input.model_gateway.generate(resolvedModelRequest);
+		modelResponse = await generateModelResponseWithStreaming(
+			socket,
+			{
+				run_id: input.run_id,
+				trace_id: input.trace_id,
+			},
+			input.model_gateway,
+			resolvedModelRequest,
+		);
+		gatewaySpan.end({
+			finish_reason: modelResponse.finish_reason,
+			response_model: modelResponse.model,
+		});
 	} catch (error: unknown) {
+		gatewaySpan.fail(error, {
+			model: resolvedModelRequest.model,
+		});
 		const errorMessage = error instanceof Error ? error.message : 'Unknown model generate failure.';
 
 		return {
@@ -485,9 +586,17 @@ async function runPolicyAwareModelTurn(
 
 	switch (permissionEvaluation.decision.decision) {
 		case 'allow': {
+			turnLogger.info('tool.permission.allowed', {
+				call_id: adaptedOutcomeResult.outcome.call_id,
+				tool_name: adaptedOutcomeResult.outcome.tool_name,
+			});
 			await policyWiring.recordOutcome(socket, {
 				decision: permissionEvaluation.decision,
 				outcome: 'allowed',
+			});
+			const toolSpan = startLogSpan(turnLogger, 'tool.execute', {
+				call_id: adaptedOutcomeResult.outcome.call_id,
+				tool_name: adaptedOutcomeResult.outcome.tool_name,
 			});
 
 			const toolStepResult = await runToolStep({
@@ -506,6 +615,9 @@ async function runPolicyAwareModelTurn(
 			});
 
 			if (toolStepResult.status === 'failed') {
+				toolSpan.fail(new Error(toolStepResult.failure.message), {
+					tool_name: adaptedOutcomeResult.outcome.tool_name,
+				});
 				return createRunModelTurnFailureResult({
 					current_state: input.current_state,
 					error_message: toolStepResult.failure.message,
@@ -516,6 +628,9 @@ async function runPolicyAwareModelTurn(
 			}
 
 			if (toolStepResult.status === 'approval_required') {
+				toolSpan.fail(new Error('Policy allow path unexpectedly requested approval again.'), {
+					tool_name: adaptedOutcomeResult.outcome.tool_name,
+				});
 				return createRunModelTurnFailureResult({
 					current_state: input.current_state,
 					error_message: 'Policy allow path unexpectedly requested approval again.',
@@ -535,6 +650,9 @@ async function runPolicyAwareModelTurn(
 			});
 
 			if (ingestionResult.status === 'failed') {
+				toolSpan.fail(new Error(ingestionResult.failure.message), {
+					tool_name: adaptedOutcomeResult.outcome.tool_name,
+				});
 				return createRunModelTurnFailureResult({
 					current_state: input.current_state,
 					error_message: ingestionResult.failure.message,
@@ -543,6 +661,12 @@ async function runPolicyAwareModelTurn(
 					resolved_model_request: resolvedModelRequest,
 				});
 			}
+
+			toolSpan.end({
+				call_id: ingestionResult.call_id,
+				tool_result_status: ingestionResult.tool_result.status,
+				tool_name: ingestionResult.tool_name,
+			});
 
 			return {
 				continuation_result: {
@@ -568,6 +692,10 @@ async function runPolicyAwareModelTurn(
 			};
 		}
 		case 'require_approval': {
+			turnLogger.info('tool.permission.approval_required', {
+				call_id: adaptedOutcomeResult.outcome.call_id,
+				tool_name: adaptedOutcomeResult.outcome.tool_name,
+			});
 			const approvalResult = requestApproval({
 				call_id: adaptedOutcomeResult.outcome.call_id,
 				current_state: input.current_state,
@@ -621,6 +749,10 @@ async function runPolicyAwareModelTurn(
 			};
 		}
 		case 'deny': {
+			turnLogger.warn('tool.permission.denied', {
+				call_id: adaptedOutcomeResult.outcome.call_id,
+				tool_name: adaptedOutcomeResult.outcome.tool_name,
+			});
 			const outcomeResult = await policyWiring.recordOutcome(socket, {
 				decision: permissionEvaluation.decision,
 				outcome: 'denied',
@@ -639,6 +771,10 @@ async function runPolicyAwareModelTurn(
 			});
 		}
 		case 'pause':
+			turnLogger.warn('tool.permission.paused', {
+				call_id: adaptedOutcomeResult.outcome.call_id,
+				tool_name: adaptedOutcomeResult.outcome.tool_name,
+			});
 			return createRunModelTurnFailureResult({
 				current_state: input.current_state,
 				error_message:
@@ -655,9 +791,22 @@ async function executeLiveRun(
 	payload: RunRequestPayload,
 	options: ExecuteLiveRunOptions,
 ): Promise<RunToolWebSocketResult> {
+	const runLogger = runExecutionLogger.child({
+		conversation_id: payload.conversation_id,
+		model: payload.request.model ?? payload.provider_config.defaultModel,
+		provider: payload.provider,
+		run_id: payload.run_id,
+		trace_id: payload.trace_id,
+	});
+	const runSpan = startLogSpan(runLogger, 'run.execute', {
+		include_presentation_blocks: payload.include_presentation_blocks === true,
+	});
 	const workspaceLayer =
 		options.workspace_layer ?? (await buildLiveWorkspaceLayer(payload, options.workingDirectory));
 	const policyWiring = getPolicyWiring(options);
+	const runtimeRegistry = createRuntimeToolRegistry(options.registry, {
+		memoryStore: options.memoryStore,
+	});
 	const gateway = createModelGateway({
 		config: payload.provider_config,
 		provider: payload.provider,
@@ -704,7 +853,7 @@ async function executeLiveRun(
 		initial_tool_result: options.initial_tool_result,
 		initial_turn_count: options.initial_turn_count,
 		model_gateway: gateway,
-		registry: options.registry,
+		registry: runtimeRegistry,
 		run_id: payload.run_id,
 		run_model_turn: (input) => runPolicyAwareModelTurn(socket, input, policyWiring),
 		on_yield: ({ snapshot, yield: loopYield }) => {
@@ -772,7 +921,7 @@ async function executeLiveRun(
 				finalSnapshot,
 			);
 
-			return {
+			const result = {
 				approval_request: finalSnapshot.approval_request,
 				assistant_text: finalSnapshot.assistant_text,
 				error_code:
@@ -797,9 +946,19 @@ async function executeLiveRun(
 				turn_count: finalSnapshot.turn_count,
 				workspace_layer: workspaceLayer,
 			};
+			runSpan.end({
+				final_state: result.final_state,
+				status: result.status,
+				turn_count: result.turn_count,
+			});
+
+			return result;
 		}
 
 		if (iteration.value.type === 'turn.started') {
+			runLogger.debug('run.turn.started', {
+				turn_index: iteration.value.turn_index,
+			});
 			for (const event of createLoopTurnStartedEvents(
 				payload,
 				iteration.value.turn_index,
@@ -836,8 +995,14 @@ async function finalizeLiveRunResult(
 	},
 	finalizeOptions: FinalizeLiveRunResultOptions,
 ): Promise<void> {
+	const finalizeLogger = runExecutionLogger.child({
+		conversation_id: finalizeOptions.conversation_id,
+		run_id: payload.run_id,
+		trace_id: payload.trace_id,
+	});
 	const persistEvents = options.persistEvents ?? persistRuntimeEvents;
 	const persistRunStateRecord = options.persistRunState ?? persistRunState;
+	const conversationStore = options.conversationStore ?? { appendConversationMessage };
 
 	if (finalizeOptions.persist_live_memory_write) {
 		await persistLiveMemoryWrite(
@@ -850,12 +1015,30 @@ async function finalizeLiveRunResult(
 
 	await persistEvents(result.runtime_events);
 	await persistRunStateRecord({
+		conversation_id: finalizeOptions.conversation_id,
 		current_state: result.final_state,
 		last_error_code: result.status === 'failed' ? result.error_code : undefined,
 		recorded_at: result.runtime_events.at(-1)?.timestamp,
 		run_id: payload.run_id,
 		trace_id: payload.trace_id,
 	});
+
+	if (
+		conversationStore &&
+		finalizeOptions.conversation_id &&
+		result.assistant_text &&
+		result.assistant_text.trim().length > 0
+	) {
+		await conversationStore.appendConversationMessage({
+			content: result.assistant_text,
+			conversation_id: finalizeOptions.conversation_id,
+			created_at: result.runtime_events.at(-1)?.timestamp,
+			role: 'assistant',
+			run_id: payload.run_id,
+			scope: conversationScopeFromAuthContext(options.auth_context),
+			trace_id: payload.trace_id,
+		});
+	}
 
 	const automaticApprovalPresentationInputs = createAutomaticApprovalPresentationInputs(
 		result,
@@ -910,7 +1093,13 @@ async function finalizeLiveRunResult(
 
 	if (finishedMessage) {
 		sendServerMessage(socket, finishedMessage);
+		await broadcastConversationRunFinished(socket, payload, result);
 	}
+
+	finalizeLogger.info('run.finalized', {
+		final_state: result.final_state,
+		status: result.status,
+	});
 }
 
 export async function resumeApprovedAutoContinue(
@@ -937,6 +1126,7 @@ export async function resumeApprovedAutoContinue(
 	});
 
 	await finalizeLiveRunResult(_socket, pendingContext.payload, continuationResult, options, {
+		conversation_id: pendingContext.payload.conversation_id,
 		persist_live_memory_write: false,
 		working_directory: pendingContext.working_directory,
 	});
@@ -950,7 +1140,7 @@ async function persistLiveMemoryWrite(
 	workingDirectory: string,
 	memoryStore?: MemoryOrchestrationStore,
 ): Promise<void> {
-	if (result.status === 'failed' || !canPersistLiveMemory(memoryStore)) {
+	if (!canPersistLiveMemory(memoryStore)) {
 		return;
 	}
 
@@ -982,6 +1172,10 @@ async function persistLiveMemoryWrite(
 		);
 	}
 
+	if (result.status === 'failed') {
+		return;
+	}
+
 	const workspaceMemoryWriteResult = await orchestrateMemoryWrite({
 		memory_store: orchestratedMemoryStore,
 		run_id: payload.run_id,
@@ -1010,17 +1204,86 @@ export async function handleRunRequestMessage(
 		readonly approvalStore: ApprovalStore;
 	},
 ): Promise<void> {
-	sendServerMessage(socket, createAcceptedMessage(payload));
+	const requestLogger = runExecutionLogger.child({
+		conversation_id: payload.conversation_id,
+		model: payload.request.model ?? payload.provider_config.defaultModel,
+		provider: payload.provider,
+		run_id: payload.run_id,
+		trace_id: payload.trace_id,
+	});
+
+	if (options.auth_context) {
+		requireUsageRateLimit({
+			auth: options.auth_context,
+			metric: 'monthly_turns',
+			scope: 'ws_run_request',
+			subscription: options.subscription_context,
+		});
+	}
+
+	const conversationStore =
+		options.conversationStore ??
+		(hasConversationStoreConfiguration()
+			? {
+					appendConversationMessage,
+					ensureConversation,
+				}
+			: undefined);
+	const conversationScope = conversationScopeFromAuthContext(options.auth_context);
+	const extractedUserTurn = extractUserTurn(payload.request.messages);
+	const resolvedConversation =
+		conversationStore && extractedUserTurn
+			? await conversationStore.ensureConversation({
+					conversation_id: payload.conversation_id,
+					initial_preview: extractedUserTurn.user_turn,
+					scope: conversationScope,
+				})
+			: undefined;
+	const resolvedPayload =
+		resolvedConversation === undefined
+			? payload
+			: {
+					...payload,
+					conversation_id: resolvedConversation.conversation_id,
+				};
+
+	if (conversationStore && extractedUserTurn && resolvedPayload.conversation_id) {
+		await conversationStore.appendConversationMessage({
+			content: extractedUserTurn.user_turn,
+			conversation_id: resolvedPayload.conversation_id,
+			role: 'user',
+			run_id: resolvedPayload.run_id,
+			scope: conversationScope,
+			trace_id: resolvedPayload.trace_id,
+		});
+	}
+
+	requestLogger.info('run.request.accepted', {
+		conversation_id: resolvedPayload.conversation_id,
+	});
+	sendServerMessage(socket, createAcceptedMessage(resolvedPayload));
+	await broadcastConversationRunAccepted(socket, resolvedPayload);
 
 	const toolRegistry = options.toolRegistry ?? getDefaultToolRegistry();
 	const workingDirectory = getLiveWorkingDirectory();
-	const result = await executeLiveRun(socket, payload, {
-		memoryStore: options.memoryStore,
-		policy_wiring: options.policy_wiring,
-		registry: toolRegistry,
-		workingDirectory,
-	});
-	await finalizeLiveRunResult(socket, payload, result, options, {
+	let result: RunToolWebSocketResult;
+
+	try {
+		result = await executeLiveRun(socket, resolvedPayload, {
+			memoryStore: options.memoryStore,
+			policy_wiring: options.policy_wiring,
+			registry: toolRegistry,
+			workingDirectory,
+		});
+	} catch (error: unknown) {
+		requestLogger.error('run.request.failed_before_finalize', {
+			error: error instanceof Error ? error : String(error),
+		});
+		throw error;
+	}
+
+	await finalizeLiveRunResult(socket, resolvedPayload, result, options, {
+		conversation_id: resolvedPayload.conversation_id,
 		persist_live_memory_write: true,
 		working_directory: workingDirectory,
 	});

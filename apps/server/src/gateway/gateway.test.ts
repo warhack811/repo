@@ -1,14 +1,12 @@
 import type { ModelRequest } from '@runa/types';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ClaudeGateway } from './claude-gateway.js';
-import {
-	GatewayConfigurationError,
-	GatewayResponseError,
-	GatewayUnsupportedOperationError,
-} from './errors.js';
+import { GatewayConfigurationError, GatewayResponseError } from './errors.js';
 import { createModelGateway } from './factory.js';
+import { GeminiGateway } from './gemini-gateway.js';
 import { GroqGateway } from './groq-gateway.js';
+import { OpenAiGateway } from './openai-gateway.js';
 
 const groqRequest: ModelRequest = {
 	max_output_tokens: 64,
@@ -30,6 +28,36 @@ const claudeRequest: ModelRequest = {
 	model: 'claude-sonnet-4-5',
 	run_id: 'run_claude',
 	trace_id: 'trace_claude',
+};
+
+const openAiRequest: ModelRequest = {
+	max_output_tokens: 96,
+	messages: [
+		{ content: 'You are helpful.', role: 'system' },
+		{ content: 'Hello OpenAI', role: 'user' },
+	],
+	model: 'gpt-4.1-mini',
+	run_id: 'run_openai',
+	trace_id: 'trace_openai',
+};
+
+const geminiRequest: ModelRequest = {
+	max_output_tokens: 96,
+	messages: [
+		{ content: 'You are helpful.', role: 'system' },
+		{ content: 'Hello Gemini', role: 'user' },
+	],
+	model: 'gemini-3-flash-preview',
+	run_id: 'run_gemini',
+	trace_id: 'trace_gemini',
+};
+
+const gatewayTestEnvironment = process.env as NodeJS.ProcessEnv & {
+	RUNA_DEBUG_PROVIDER_ERRORS?: string;
+};
+
+type LoggedEntry = Record<string, unknown> & {
+	readonly message?: unknown;
 };
 
 const compiledContextRequest = {
@@ -97,6 +125,114 @@ const callableToolsRequest: NonNullable<ModelRequest['available_tools']> = [
 	},
 ];
 
+const prioritizationToolsRequest: NonNullable<ModelRequest['available_tools']> = [
+	{
+		description: 'Read a UTF-8 text file from the workspace.',
+		name: 'file.read',
+		parameters: {
+			path: {
+				description: 'Path to read.',
+				required: true,
+				type: 'string',
+			},
+		},
+	},
+	{
+		description: 'Lists the entries in a local workspace directory with deterministic ordering.',
+		name: 'file.list',
+		parameters: {
+			include_hidden: {
+				description: 'Whether hidden files and directories should be listed.',
+				type: 'boolean',
+			},
+			path: {
+				description: 'Directory path to list.',
+				required: true,
+				type: 'string',
+			},
+		},
+	},
+	{
+		description: 'Execute a non-interactive shell command.',
+		name: 'shell.exec',
+		parameters: {
+			command: {
+				description: 'Executable to run.',
+				required: true,
+				type: 'string',
+			},
+		},
+	},
+];
+
+const denseGroqToolsRequest: NonNullable<ModelRequest['available_tools']> = [
+	...prioritizationToolsRequest,
+	{
+		description: 'Write a file to the workspace.',
+		name: 'file.write',
+		parameters: {
+			content: {
+				description: 'File contents.',
+				required: true,
+				type: 'string',
+			},
+			create_dirs: {
+				description: 'Whether parent directories may be created.',
+				type: 'boolean',
+			},
+			path: {
+				description: 'Destination path.',
+				required: true,
+				type: 'string',
+			},
+		},
+	},
+	{
+		description: 'Read the git diff for the current workspace.',
+		name: 'git.diff',
+		parameters: {
+			base_ref: {
+				description: 'Optional base ref.',
+				type: 'string',
+			},
+			path: {
+				description: 'Optional path filter.',
+				type: 'string',
+			},
+		},
+	},
+	{
+		description: 'Inspect git status for the current workspace.',
+		name: 'git.status',
+		parameters: {
+			include_ignored: {
+				description: 'Whether ignored files should be included.',
+				type: 'boolean',
+			},
+		},
+	},
+	{
+		description: 'Search the web.',
+		name: 'web.search',
+		parameters: {
+			max_results: {
+				description: 'Maximum number of search results.',
+				type: 'number',
+			},
+			query: {
+				description: 'Search query.',
+				required: true,
+				type: 'string',
+			},
+		},
+	},
+	{
+		description: 'Capture a desktop screenshot.',
+		name: 'desktop.screenshot',
+		parameters: {},
+	},
+];
+
 interface MockFetchCall {
 	readonly body: string;
 	readonly headers: {
@@ -111,10 +247,12 @@ interface MockFetchCall {
 interface GroqRequestBodyAssertion {
 	readonly max_completion_tokens?: number;
 	readonly messages?: ReadonlyArray<{
-		readonly content: string;
+		readonly content: unknown;
 		readonly role: string;
 	}>;
 	readonly model?: string;
+	readonly stream?: boolean;
+	readonly temperature?: number;
 	readonly tool_choice?: string;
 	readonly tools?: ReadonlyArray<{
 		readonly function?: {
@@ -130,7 +268,15 @@ interface GroqRequestBodyAssertion {
 						};
 						readonly type?: string;
 					}
-				>;
+				> & {
+					readonly path?: {
+						readonly description?: string;
+						readonly items?: {
+							readonly type?: string;
+						};
+						readonly type?: string;
+					};
+				};
 				readonly required?: readonly string[];
 				readonly type?: string;
 			};
@@ -142,10 +288,11 @@ interface GroqRequestBodyAssertion {
 interface ClaudeRequestBodyAssertion {
 	readonly max_tokens?: number;
 	readonly messages?: ReadonlyArray<{
-		readonly content: string;
+		readonly content: unknown;
 		readonly role: string;
 	}>;
 	readonly model?: string;
+	readonly stream?: boolean;
 	readonly system?: string;
 	readonly tools?: ReadonlyArray<{
 		readonly description?: string;
@@ -176,6 +323,15 @@ function mockJsonResponse(status: number, body: unknown): Response {
 	});
 }
 
+function mockSseResponse(events: readonly string[]): Response {
+	return new Response(events.join('\n\n'), {
+		headers: {
+			'content-type': 'text/event-stream',
+		},
+		status: 200,
+	});
+}
+
 function installFetchMock(response: Response) {
 	const calls: MockFetchCall[] = [];
 	const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -198,10 +354,15 @@ function installFetchMock(response: Response) {
 afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+	gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = undefined;
+});
+
+beforeEach(() => {
+	gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = undefined;
 });
 
 describe('gateway factory', () => {
-	it('returns a Groq gateway for the groq provider', () => {
+	it('returns a lazy gateway wrapper for the groq provider', () => {
 		const gateway = createModelGateway({
 			config: {
 				apiKey: 'groq-key',
@@ -209,10 +370,11 @@ describe('gateway factory', () => {
 			provider: 'groq',
 		});
 
-		expect(gateway).toBeInstanceOf(GroqGateway);
+		expect(typeof gateway.generate).toBe('function');
+		expect(typeof gateway.stream).toBe('function');
 	});
 
-	it('returns a Claude gateway for the claude provider', () => {
+	it('returns a lazy gateway wrapper for the claude provider', () => {
 		const gateway = createModelGateway({
 			config: {
 				apiKey: 'claude-key',
@@ -220,18 +382,43 @@ describe('gateway factory', () => {
 			provider: 'claude',
 		});
 
-		expect(gateway).toBeInstanceOf(ClaudeGateway);
+		expect(typeof gateway.generate).toBe('function');
+		expect(typeof gateway.stream).toBe('function');
 	});
 
-	it('throws a typed error when config is missing an api key', () => {
-		expect(() =>
-			createModelGateway({
-				config: {
-					apiKey: '   ',
-				},
-				provider: 'groq',
-			}),
-		).toThrowError(GatewayConfigurationError);
+	it('returns a lazy gateway wrapper for the gemini provider', () => {
+		const gateway = createModelGateway({
+			config: {
+				apiKey: 'gemini-key',
+			},
+			provider: 'gemini',
+		});
+
+		expect(typeof gateway.generate).toBe('function');
+		expect(typeof gateway.stream).toBe('function');
+	});
+
+	it('returns a lazy gateway wrapper for the openai provider', () => {
+		const gateway = createModelGateway({
+			config: {
+				apiKey: 'openai-key',
+			},
+			provider: 'openai',
+		});
+
+		expect(typeof gateway.generate).toBe('function');
+		expect(typeof gateway.stream).toBe('function');
+	});
+
+	it('throws a typed error when generate() is attempted without a usable api key', async () => {
+		const gateway = createModelGateway({
+			config: {
+				apiKey: '   ',
+			},
+			provider: 'groq',
+		});
+
+		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayConfigurationError);
 	});
 });
 
@@ -312,17 +499,54 @@ describe('GroqGateway', () => {
 
 		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
 		const compiledContextMessage = requestBody.messages?.[0];
+		const compiledContextContent = compiledContextMessage?.content as string | undefined;
 
 		expect(compiledContextMessage?.role).toBe('system');
-		expect(compiledContextMessage?.content).toContain('[core_rules:instruction]');
-		expect(compiledContextMessage?.content).toContain('[run_layer:runtime]');
-		expect(compiledContextMessage?.content.indexOf('[core_rules:instruction]') ?? -1).toBeLessThan(
-			compiledContextMessage?.content.indexOf('[run_layer:runtime]') ?? -1,
+		expect(compiledContextContent).toContain('[core_rules:instruction]');
+		expect(compiledContextContent).toContain('[run_layer:runtime]');
+		expect(compiledContextContent?.indexOf('[core_rules:instruction]') ?? -1).toBeLessThan(
+			compiledContextContent?.indexOf('[run_layer:runtime]') ?? -1,
 		);
 		expect(requestBody.messages?.slice(1)).toEqual([
 			{ content: 'You are helpful.', role: 'system' },
 			{ content: 'Hello', role: 'user' },
 		]);
+	});
+
+	it('can merge compiled_context with request system messages when explicitly requested in metadata', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from Groq',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			compiled_context: compiledContextRequest,
+			metadata: {
+				groq_request_hygiene: {
+					context_mode: 'merged_system',
+				},
+			},
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		const compiledContextMessage = requestBody.messages?.[0];
+
+		expect(compiledContextMessage?.role).toBe('system');
+		expect(compiledContextMessage?.content).toContain('[core_rules:instruction]');
+		expect(compiledContextMessage?.content).toContain('You are helpful.');
+		expect(requestBody.messages?.slice(1)).toEqual([{ content: 'Hello', role: 'user' }]);
 	});
 
 	it('includes available_tools in the Groq request body when present', async () => {
@@ -350,6 +574,7 @@ describe('GroqGateway', () => {
 		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
 
 		expect(requestBody.tool_choice).toBe('auto');
+		expect(requestBody.temperature).toBe(0);
 		expect(requestBody.tools).toEqual([
 			{
 				function: {
@@ -403,6 +628,318 @@ describe('GroqGateway', () => {
 		]);
 	});
 
+	it('prioritizes the prompt-relevant tool first for Groq request hygiene', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'package.json var',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			available_tools: prioritizationToolsRequest,
+			messages: [
+				{
+					content:
+						'Tool kullanarak mevcut klasordeki dosyalari listele ve yalnizca "package.json var" ya da "package.json yok" diye yanit ver.',
+					role: 'user',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual([
+			'file.list',
+			'file.read',
+			'shell.exec',
+		]);
+	});
+
+	it('keeps legacy split-system serialization when explicitly requested in metadata', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from Groq',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			compiled_context: compiledContextRequest,
+			metadata: {
+				groq_request_hygiene: {
+					context_mode: 'legacy_split_system',
+				},
+			},
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.messages).toEqual([
+			{
+				content: expect.stringContaining('[core_rules:instruction]'),
+				role: 'system',
+			},
+			{ content: 'You are helpful.', role: 'system' },
+			{ content: 'Hello', role: 'user' },
+		]);
+	});
+
+	it('minimizes non-primary full-registry tool metadata by default for Groq', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'package.json var',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			available_tools: [
+				...prioritizationToolsRequest,
+				{
+					description: 'Search for a substring.',
+					name: 'search.grep',
+					parameters: {
+						path: {
+							description: 'File or directory path to search.',
+							required: true,
+							type: 'string',
+						},
+						query: {
+							description: 'Substring query to search for.',
+							required: true,
+							type: 'string',
+						},
+					},
+				},
+			],
+			messages: [
+				{
+					content:
+						'Tool kullanarak mevcut klasordeki dosyalari listele ve yalnizca "package.json var" ya da "package.json yok" diye yanit ver.',
+					role: 'user',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		const [primaryTool, secondaryTool] = requestBody.tools ?? [];
+
+		expect(primaryTool?.function?.name).toBe('file.list');
+		expect(primaryTool?.function?.description).toBeDefined();
+		expect(primaryTool?.function?.parameters?.properties?.path?.description).toBeDefined();
+		expect(secondaryTool?.function?.description).toBeUndefined();
+		expect(secondaryTool?.function?.parameters?.properties?.path?.description).toBeUndefined();
+	});
+
+	it('uses merged-system plus minimal non-primary schemas for dense Groq tool registries', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'package.json var',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			available_tools: denseGroqToolsRequest,
+			compiled_context: compiledContextRequest,
+			messages: [
+				{
+					content:
+						'Tool kullanarak mevcut klasordeki dosyalari listele ve yalnizca "package.json var" ya da "package.json yok" diye yanit ver.',
+					role: 'user',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		const fileListTool = requestBody.tools?.[0];
+		const fileReadTool = requestBody.tools?.find((tool) => tool.function?.name === 'file.read');
+		const gitDiffTool = requestBody.tools?.find((tool) => tool.function?.name === 'git.diff');
+		const gitDiffProperties = gitDiffTool?.function?.parameters?.properties as
+			| {
+					readonly base_ref?: {
+						readonly description?: string;
+					};
+					readonly path?: {
+						readonly description?: string;
+					};
+			  }
+			| undefined;
+
+		expect(requestBody.messages?.[0]?.role).toBe('system');
+		expect(requestBody.messages).toHaveLength(2);
+		expect(fileListTool?.function?.name).toBe('file.list');
+		expect(fileListTool?.function?.description).toBeDefined();
+		expect(fileReadTool?.function?.description).toBeUndefined();
+		expect(fileReadTool?.function?.parameters?.properties?.path?.description).toBeUndefined();
+		expect(gitDiffProperties?.base_ref?.description).toBeUndefined();
+		expect(gitDiffProperties?.path?.description).toBeUndefined();
+		expect(fileReadTool?.function?.parameters).toEqual({
+			properties: {
+				path: {
+					type: 'string',
+				},
+			},
+			required: ['path'],
+			type: 'object',
+		});
+	});
+
+	it('keeps legacy split-system defaults for dense file.read-oriented Groq prompts', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Runa',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			available_tools: denseGroqToolsRequest,
+			compiled_context: compiledContextRequest,
+			messages: [
+				{
+					content: 'You are helpful.',
+					role: 'system',
+				},
+				{
+					content:
+						'Mevcut klasorde README.md varsa file.read ile oku ve yalnizca projenin adini ya da README yoksa "README yok" diye yanit ver.',
+					role: 'user',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.messages).toHaveLength(3);
+		expect(requestBody.messages?.[0]?.role).toBe('system');
+		expect(requestBody.messages?.[1]).toEqual({
+			content: 'You are helpful.',
+			role: 'system',
+		});
+		expect(requestBody.tools?.[0]?.function?.name).toBe('file.read');
+		expect(requestBody.tools?.[1]?.function?.description).toBeUndefined();
+	});
+
+	it('adds a strict typed-tool instruction when Groq uses merged-system tool hygiene', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'package.json var',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			available_tools: [
+				{
+					description:
+						'Lists the entries in a local workspace directory with deterministic ordering.',
+					name: 'file.list',
+					parameters: {
+						include_hidden: {
+							description: 'Whether hidden files and directories should be listed.',
+							type: 'boolean',
+						},
+						path: {
+							description: 'Directory path to list.',
+							required: true,
+							type: 'string',
+						},
+					},
+				},
+			],
+			compiled_context: compiledContextRequest,
+			metadata: {
+				groq_request_hygiene: {
+					context_mode: 'merged_system',
+					tool_serialization: 'full',
+				},
+			},
+			messages: [
+				{
+					content:
+						'Tool kullanarak mevcut klasordeki dosyalari listele ve yalnizca "package.json var" ya da "package.json yok" diye yanit ver.',
+					role: 'user',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.messages?.[0]?.role).toBe('system');
+		expect(requestBody.messages?.[0]?.content).toContain(
+			'Do not quote booleans or numbers. Omit optional arguments unless they are necessary.',
+		);
+		expect(requestBody.messages?.slice(1)).toEqual([
+			{
+				content:
+					'Tool kullanarak mevcut klasordeki dosyalari listele ve yalnizca "package.json var" ya da "package.json yok" diye yanit ver.',
+				role: 'user',
+			},
+		]);
+	});
+
 	it('turns a non-2xx response into a typed response error', async () => {
 		installFetchMock(mockJsonResponse(401, { error: { message: 'Unauthorized' } }));
 		const gateway = new GroqGateway({ apiKey: 'groq-key' });
@@ -411,39 +948,56 @@ describe('GroqGateway', () => {
 	});
 
 	it('logs non-2xx Groq details to stderr only when debug env is enabled', async () => {
-		const environment = process.env as NodeJS.ProcessEnv & {
-			RUNA_DEBUG_PROVIDER_ERRORS?: string;
-		};
+		gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = '1';
+		try {
+			installFetchMock(mockJsonResponse(400, { error: { message: 'Invalid model' } }));
+			const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const gateway = new GroqGateway({ apiKey: 'groq-key' });
 
-		environment.RUNA_DEBUG_PROVIDER_ERRORS = '1';
-		installFetchMock(mockJsonResponse(400, { error: { message: 'Invalid model' } }));
-		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+			await expect(
+				gateway.generate({
+					...groqRequest,
+					available_tools: callableToolsRequest,
+					compiled_context: compiledContextRequest,
+				}),
+			).rejects.toThrowError(GatewayResponseError);
 
-		await expect(
-			gateway.generate({
-				...groqRequest,
-				available_tools: callableToolsRequest,
-				compiled_context: compiledContextRequest,
-			}),
-		).rejects.toThrowError(GatewayResponseError);
+			const structuredEntries = consoleErrorSpy.mock.calls
+				.map(([entry]) => (typeof entry === 'string' ? (JSON.parse(entry) as LoggedEntry) : null))
+				.filter((entry): entry is LoggedEntry => entry !== null);
+			const providerDebugEntry = structuredEntries.find(
+				(entry) => entry.message === 'provider.error.debug',
+			);
 
-		expect(consoleErrorSpy).toHaveBeenCalledWith('[provider.error.debug]', {
-			provider: 'groq',
-			request_summary: {
-				compiled_context_chars: expect.any(Number),
-				has_compiled_context: true,
-				max_output_tokens: 64,
-				message_count: 3,
-				message_roles: ['system', 'system', 'user'],
-				model: 'llama-3.3-70b-versatile',
-				tool_count: 2,
-				tool_names: ['file.read', 'shell.exec'],
-			},
-			response_body: JSON.stringify({ error: { message: 'Invalid model' } }),
-			status_code: 400,
-		});
-		environment.RUNA_DEBUG_PROVIDER_ERRORS = undefined;
+			expect(providerDebugEntry).toEqual({
+				component: 'gateway.provider_http',
+				level: 'error',
+				message: 'provider.error.debug',
+				provider: 'groq',
+				request_summary: {
+					compiled_context_chars: expect.any(Number),
+					has_compiled_context: true,
+					last_user_message_chars: 5,
+					max_output_tokens: 64,
+					message_count: 3,
+					message_roles: ['system', 'system', 'user'],
+					model: 'llama-3.3-70b-versatile',
+					request_hygiene_context_mode: 'legacy_split_system',
+					request_hygiene_tool_serialization: 'full',
+					requested_tool_names: ['file.read', 'shell.exec'],
+					run_id: 'run_groq',
+					serialized_tool_names: ['file.read', 'shell.exec'],
+					tool_count: 2,
+					tool_names: ['file.read', 'shell.exec'],
+					trace_id: 'trace_groq',
+				},
+				response_body: JSON.stringify({ error: { message: 'Invalid model' } }),
+				status_code: 400,
+				timestamp: expect.any(String),
+			});
+		} finally {
+			gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = undefined;
+		}
 	});
 
 	it('keeps Groq non-2xx stderr logging silent by default', async () => {
@@ -453,7 +1007,12 @@ describe('GroqGateway', () => {
 
 		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayResponseError);
 
-		expect(consoleErrorSpy).not.toHaveBeenCalled();
+		expect(
+			consoleErrorSpy.mock.calls.some(
+				(call) =>
+					typeof call[0] === 'string' && call[0].includes('"message":"provider.error.debug"'),
+			),
+		).toBe(false);
 	});
 
 	it('maps a Groq tool call response into tool_call_candidate', async () => {
@@ -574,6 +1133,7 @@ describe('GroqGateway', () => {
 		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
 
 		expect(requestBody.tool_choice).toBe('auto');
+		expect(requestBody.temperature).toBe(0);
 		expect(requestBody.tools).toBeDefined();
 		expect(response.message).toEqual({
 			content: 'No tool needed.',
@@ -649,10 +1209,152 @@ describe('GroqGateway', () => {
 		).rejects.toThrowError('Groq response contained an invalid tool call candidate.');
 	});
 
-	it('keeps streaming as an explicit unsupported operation', () => {
+	it('logs structured provider debug context with run and trace correlation when enabled', async () => {
+		gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = '1';
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		installFetchMock(
+			mockJsonResponse(400, {
+				error: {
+					message: 'Bad Request',
+				},
+			}),
+		);
 		const gateway = new GroqGateway({ apiKey: 'groq-key' });
 
-		expect(() => gateway.stream(groqRequest)).toThrowError(GatewayUnsupportedOperationError);
+		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayResponseError);
+
+		const loggedEntries = consoleErrorSpy.mock.calls
+			.map(([entry]) => (typeof entry === 'string' ? (JSON.parse(entry) as LoggedEntry) : null))
+			.filter((entry): entry is LoggedEntry => entry !== null);
+		const providerDebugEntry = loggedEntries.find(
+			(entry) => entry.message === 'provider.error.debug',
+		);
+
+		expect(providerDebugEntry).toMatchObject({
+			component: 'gateway.provider_http',
+			level: 'error',
+			message: 'provider.error.debug',
+			provider: 'groq',
+			request_summary: {
+				model: 'llama-3.3-70b-versatile',
+				run_id: 'run_groq',
+				trace_id: 'trace_groq',
+			},
+			status_code: 400,
+		});
+	});
+
+	it('streams Groq text deltas and returns a terminal response chunk', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_stream_123","model":"llama-3.3-70b-versatile","choices":[{"delta":{"role":"assistant","content":"Hello "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_stream_123","model":"llama-3.3-70b-versatile","choices":[{"delta":{"content":"from Groq"},"finish_reason":"stop"}],"usage":{"prompt_tokens":8,"completion_tokens":12,"total_tokens":20}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		const chunks = [];
+
+		for await (const chunk of gateway.stream(groqRequest)) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.stream).toBe(true);
+		expect(chunks).toEqual([
+			{
+				text_delta: 'Hello ',
+				type: 'text.delta',
+			},
+			{
+				text_delta: 'from Groq',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Hello from Groq',
+						role: 'assistant',
+					},
+					model: 'llama-3.3-70b-versatile',
+					provider: 'groq',
+					response_id: 'chatcmpl_stream_123',
+					usage: {
+						input_tokens: 8,
+						output_tokens: 12,
+						total_tokens: 20,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('maps additive multimodal attachments onto the last Groq user message', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Attachment processed',
+							role: 'assistant',
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await gateway.generate({
+			...groqRequest,
+			attachments: [
+				{
+					blob_id: 'blob_image_1',
+					data_url: 'data:image/png;base64,ZmFrZS1pbWFnZQ==',
+					filename: 'capture.png',
+					kind: 'image',
+					media_type: 'image/png',
+					size_bytes: 10,
+				},
+				{
+					blob_id: 'blob_text_1',
+					filename: 'notes.txt',
+					kind: 'text',
+					media_type: 'text/plain',
+					size_bytes: 12,
+					text_content: 'Merhaba Runa',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		const lastMessageContent = requestBody.messages?.[1]?.content as readonly Record<
+			string,
+			unknown
+		>[];
+
+		expect(Array.isArray(lastMessageContent)).toBe(true);
+		expect(lastMessageContent).toEqual([
+			{
+				text: 'Hello',
+				type: 'text',
+			},
+			{
+				image_url: {
+					url: 'data:image/png;base64,ZmFrZS1pbWFnZQ==',
+				},
+				type: 'image_url',
+			},
+			{
+				text: 'Attached text file (notes.txt, text/plain):\nMerhaba Runa',
+				type: 'text',
+			},
+		]);
 	});
 });
 
@@ -948,9 +1650,478 @@ describe('ClaudeGateway', () => {
 		).rejects.toThrowError('Claude response contained an invalid tool call candidate.');
 	});
 
-	it('keeps streaming as an explicit unsupported operation', () => {
+	it('streams Claude text deltas and returns a terminal response chunk', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				'event: message_start\ndata: {"message":{"id":"msg_stream_123","model":"claude-sonnet-4-5","usage":{"input_tokens":10}}}',
+				'event: content_block_delta\ndata: {"index":0,"delta":{"type":"text_delta","text":"Hello "}}',
+				'event: content_block_delta\ndata: {"index":0,"delta":{"type":"text_delta","text":"from Claude"}}',
+				'event: message_delta\ndata: {"delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":14}}',
+				'event: message_stop\ndata: {}',
+			]),
+		);
 		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
 
-		expect(() => gateway.stream(claudeRequest)).toThrowError(GatewayUnsupportedOperationError);
+		const chunks = [];
+
+		for await (const chunk of gateway.stream(claudeRequest)) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as ClaudeRequestBodyAssertion;
+
+		expect(requestBody.stream).toBe(true);
+		expect(chunks).toEqual([
+			{
+				text_delta: 'Hello ',
+				type: 'text.delta',
+			},
+			{
+				text_delta: 'from Claude',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Hello from Claude',
+						role: 'assistant',
+					},
+					model: 'claude-sonnet-4-5',
+					provider: 'claude',
+					response_id: 'msg_stream_123',
+					usage: {
+						input_tokens: 10,
+						output_tokens: 14,
+						total_tokens: 24,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('maps additive multimodal attachments onto the last Claude user message', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				content: [{ text: 'Hello from Claude', type: 'text' }],
+				model: 'claude-sonnet-4-5',
+				role: 'assistant',
+			}),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		await gateway.generate({
+			...claudeRequest,
+			attachments: [
+				{
+					blob_id: 'blob_image_1',
+					data_url: 'data:image/png;base64,ZmFrZS1pbWFnZQ==',
+					filename: 'capture.png',
+					kind: 'image',
+					media_type: 'image/png',
+					size_bytes: 10,
+				},
+				{
+					blob_id: 'blob_text_1',
+					filename: 'notes.txt',
+					kind: 'text',
+					media_type: 'text/plain',
+					size_bytes: 12,
+					text_content: 'Merhaba Runa',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as ClaudeRequestBodyAssertion;
+		const lastMessageContent = requestBody.messages?.[0]?.content as readonly Record<
+			string,
+			unknown
+		>[];
+
+		expect(lastMessageContent).toEqual([
+			{
+				text: 'Hello Claude',
+				type: 'text',
+			},
+			{
+				source: {
+					data: 'ZmFrZS1pbWFnZQ==',
+					media_type: 'image/png',
+					type: 'base64',
+				},
+				type: 'image',
+			},
+			{
+				text: 'Attached text file (notes.txt, text/plain):\nMerhaba Runa',
+				type: 'text',
+			},
+		]);
+	});
+});
+
+describe('OpenAiGateway', () => {
+	it('maps the internal request and response shapes for generate()', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from OpenAI',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_openai_123',
+				model: 'gpt-4.1-mini',
+				usage: {
+					completion_tokens: 9,
+					prompt_tokens: 7,
+					total_tokens: 16,
+				},
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		const response = await gateway.generate(openAiRequest);
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(calls[0]?.url).toBe('https://api.openai.com/v1/chat/completions');
+		expect(calls[0]?.headers.Authorization).toBe('Bearer openai-key');
+		expect(requestBody.model).toBe('gpt-4.1-mini');
+		expect(requestBody.max_completion_tokens).toBe(96);
+		expect(requestBody.messages).toEqual([
+			{ content: 'You are helpful.', role: 'system' },
+			{ content: 'Hello OpenAI', role: 'user' },
+		]);
+		expect(response).toEqual({
+			finish_reason: 'stop',
+			message: {
+				content: 'Hello from OpenAI',
+				role: 'assistant',
+			},
+			model: 'gpt-4.1-mini',
+			provider: 'openai',
+			response_id: 'chatcmpl_openai_123',
+			usage: {
+				input_tokens: 7,
+				output_tokens: 9,
+				total_tokens: 16,
+			},
+		});
+	});
+
+	it('includes available_tools and tool call parsing for generate()', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"README.md"}',
+										name: 'file.read',
+									},
+									id: 'call_openai_tool',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_openai_tool',
+				model: 'gpt-4.1-mini',
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		const response = await gateway.generate({
+			...openAiRequest,
+			available_tools: callableToolsRequest,
+		});
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.tool_choice).toBe('auto');
+		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual([
+			'file.read',
+			'shell.exec',
+		]);
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_openai_tool',
+			tool_input: {
+				path: 'README.md',
+			},
+			tool_name: 'file.read',
+		});
+	});
+
+	it('streams OpenAI text deltas and returns a terminal response chunk', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_openai_stream","model":"gpt-4.1-mini","choices":[{"delta":{"role":"assistant","content":"Hello "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream","model":"gpt-4.1-mini","choices":[{"delta":{"content":"from OpenAI"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		const chunks = [];
+
+		for await (const chunk of gateway.stream(openAiRequest)) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.stream).toBe(true);
+		expect(chunks).toEqual([
+			{
+				text_delta: 'Hello ',
+				type: 'text.delta',
+			},
+			{
+				text_delta: 'from OpenAI',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Hello from OpenAI',
+						role: 'assistant',
+					},
+					model: 'gpt-4.1-mini',
+					provider: 'openai',
+					response_id: 'chatcmpl_openai_stream',
+					usage: {
+						input_tokens: 7,
+						output_tokens: 9,
+						total_tokens: 16,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('maps additive multimodal attachments onto the last OpenAI user message', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from OpenAI',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_openai_123',
+				model: 'gpt-4.1-mini',
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		await gateway.generate({
+			...openAiRequest,
+			attachments: [
+				{
+					blob_id: 'blob_image_1',
+					data_url: 'data:image/png;base64,ZmFrZS1pbWFnZQ==',
+					filename: 'capture.png',
+					kind: 'image',
+					media_type: 'image/png',
+					size_bytes: 10,
+				},
+				{
+					blob_id: 'blob_text_1',
+					filename: 'notes.txt',
+					kind: 'text',
+					media_type: 'text/plain',
+					size_bytes: 12,
+					text_content: 'Merhaba Runa',
+				},
+			],
+		});
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		const lastMessageContent = requestBody.messages?.[1]?.content as readonly Record<
+			string,
+			unknown
+		>[];
+
+		expect(lastMessageContent).toEqual([
+			{
+				text: 'Hello OpenAI',
+				type: 'text',
+			},
+			{
+				image_url: {
+					url: 'data:image/png;base64,ZmFrZS1pbWFnZQ==',
+				},
+				type: 'image_url',
+			},
+			{
+				text: 'Attached text file (notes.txt, text/plain):\nMerhaba Runa',
+				type: 'text',
+			},
+		]);
+	});
+});
+
+describe('GeminiGateway', () => {
+	it('maps the internal request and response shapes for generate()', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from Gemini',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_gemini_123',
+				model: 'gemini-3-flash-preview',
+				usage: {
+					completion_tokens: 11,
+					prompt_tokens: 6,
+					total_tokens: 17,
+				},
+			}),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		const response = await gateway.generate(geminiRequest);
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(calls[0]?.url).toBe(
+			'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+		);
+		expect(calls[0]?.headers.Authorization).toBe('Bearer gemini-key');
+		expect(requestBody.model).toBe('gemini-3-flash-preview');
+		expect(requestBody.max_completion_tokens).toBe(96);
+		expect(requestBody.messages).toEqual([
+			{ content: 'You are helpful.', role: 'system' },
+			{ content: 'Hello Gemini', role: 'user' },
+		]);
+		expect(response).toEqual({
+			finish_reason: 'stop',
+			message: {
+				content: 'Hello from Gemini',
+				role: 'assistant',
+			},
+			model: 'gemini-3-flash-preview',
+			provider: 'gemini',
+			response_id: 'chatcmpl_gemini_123',
+			usage: {
+				input_tokens: 6,
+				output_tokens: 11,
+				total_tokens: 17,
+			},
+		});
+	});
+
+	it('includes available_tools and tool call parsing for generate()', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"README.md"}',
+										name: 'file.read',
+									},
+									id: 'call_gemini_tool',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_gemini_tool',
+				model: 'gemini-3-flash-preview',
+			}),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		const response = await gateway.generate({
+			...geminiRequest,
+			available_tools: callableToolsRequest,
+		});
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.tool_choice).toBe('auto');
+		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual([
+			'file.read',
+			'shell.exec',
+		]);
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_gemini_tool',
+			tool_input: {
+				path: 'README.md',
+			},
+			tool_name: 'file.read',
+		});
+	});
+
+	it('streams Gemini text deltas and returns a terminal response chunk', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_gemini_stream","model":"gemini-3-flash-preview","choices":[{"delta":{"role":"assistant","content":"Hello "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_gemini_stream","model":"gemini-3-flash-preview","choices":[{"delta":{"content":"from Gemini"},"finish_reason":"stop"}],"usage":{"prompt_tokens":6,"completion_tokens":11,"total_tokens":17}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		const chunks = [];
+
+		for await (const chunk of gateway.stream(geminiRequest)) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.stream).toBe(true);
+		expect(chunks).toEqual([
+			{
+				text_delta: 'Hello ',
+				type: 'text.delta',
+			},
+			{
+				text_delta: 'from Gemini',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Hello from Gemini',
+						role: 'assistant',
+					},
+					model: 'gemini-3-flash-preview',
+					provider: 'gemini',
+					response_id: 'chatcmpl_gemini_stream',
+					usage: {
+						input_tokens: 6,
+						output_tokens: 11,
+						total_tokens: 17,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
 	});
 });

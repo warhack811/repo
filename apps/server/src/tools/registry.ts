@@ -1,6 +1,10 @@
 import type { ToolDefinition, ToolName, ToolRegistryEntry, ToolRegistryLike } from '@runa/types';
 
+import { desktopClickTool } from './desktop-click.js';
+import { desktopKeypressTool } from './desktop-keypress.js';
 import { desktopScreenshotTool } from './desktop-screenshot.js';
+import { desktopScrollTool } from './desktop-scroll.js';
+import { desktopTypeTool } from './desktop-type.js';
 import { editPatchTool } from './edit-patch.js';
 import { fileListTool } from './file-list.js';
 import { fileReadTool } from './file-read.js';
@@ -82,6 +86,9 @@ export class ToolRegistry implements ToolRegistryLike {
 }
 
 export const builtInTools = [
+	desktopClickTool,
+	desktopKeypressTool,
+	desktopScrollTool,
 	fileReadTool,
 	fileWriteTool,
 	fileListTool,
@@ -93,7 +100,12 @@ export const builtInTools = [
 	gitDiffTool,
 	editPatchTool,
 	desktopScreenshotTool,
+	desktopTypeTool,
 ] as const satisfies readonly ToolDefinition[];
+
+export function listBuiltInToolNames(): readonly ToolName[] {
+	return builtInTools.map((tool) => tool.name);
+}
 
 export function registerBuiltInTools(registry: ToolRegistry): ToolRegistry {
 	registry.registerMany(builtInTools);

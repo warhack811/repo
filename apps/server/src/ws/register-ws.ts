@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 
 import type { AuthTokenVerifier } from '../auth/supabase-auth.js';
 import type { SubscriptionContextResolver } from '../policy/subscription-context.js';
+import { registerConversationCollaborationSocket } from './conversation-collaboration.js';
 import { type RuntimeWebSocketHandlerOptions, handleWebSocketMessage } from './orchestration.js';
 import {
 	type WebSocketConnection,
@@ -22,6 +23,7 @@ export function attachRuntimeWebSocketHandler(
 	socket: WebSocketConnection,
 	options: RuntimeWebSocketHandlerOptions = {},
 ): void {
+	registerConversationCollaborationSocket(socket, options.auth_context);
 	attachWebSocketTransport(socket, {
 		auth_context: options.auth_context,
 		on_message: (message) => {
