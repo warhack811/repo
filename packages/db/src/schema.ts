@@ -11,6 +11,7 @@ import type {
 	CheckpointTriggerKind,
 	EventMetadata,
 	LoopState,
+	MemoryEmbeddingMetadata,
 	MemoryScope,
 	MemorySourceKind,
 	MemoryStatus,
@@ -22,7 +23,16 @@ import type {
 	ToolName,
 	ToolRiskLevel,
 } from '@runa/types';
-import { boolean, index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+	boolean,
+	index,
+	integer,
+	jsonb,
+	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+} from 'drizzle-orm/pg-core';
 
 type PolicyPauseReason = 'denial_threshold';
 
@@ -51,6 +61,7 @@ export const runtimeEventsTable = pgTable(
 export const runsTable = pgTable(
 	'runs',
 	{
+		conversation_id: text('conversation_id'),
 		created_at: timestamp('created_at', { mode: 'string', withTimezone: true }).notNull(),
 		current_state: text('current_state').$type<RuntimeState>().notNull(),
 		last_error_code: text('last_error_code'),
@@ -63,8 +74,81 @@ export const runsTable = pgTable(
 		workspace_id: text('workspace_id'),
 	},
 	(table) => ({
+		conversationIdIndex: index('runs_conversation_id_idx').on(table.conversation_id),
 		currentStateIndex: index('runs_current_state_idx').on(table.current_state),
 		traceIdIndex: index('runs_trace_id_idx').on(table.trace_id),
+	}),
+);
+
+export const conversationsTable = pgTable(
+	'conversations',
+	{
+		conversation_id: text('conversation_id').primaryKey(),
+		created_at: timestamp('created_at', { mode: 'string', withTimezone: true }).notNull(),
+		last_message_at: timestamp('last_message_at', { mode: 'string', withTimezone: true }).notNull(),
+		last_message_preview: text('last_message_preview').notNull(),
+		session_id: text('session_id'),
+		tenant_id: text('tenant_id'),
+		title: text('title').notNull(),
+		updated_at: timestamp('updated_at', { mode: 'string', withTimezone: true }).notNull(),
+		user_id: text('user_id'),
+		workspace_id: text('workspace_id'),
+	},
+	(table) => ({
+		lastMessageAtIndex: index('conversations_last_message_at_idx').on(table.last_message_at),
+		sessionIdIndex: index('conversations_session_id_idx').on(table.session_id),
+		userIdIndex: index('conversations_user_id_idx').on(table.user_id),
+	}),
+);
+
+export const conversationMessagesTable = pgTable(
+	'conversation_messages',
+	{
+		content: text('content').notNull(),
+		conversation_id: text('conversation_id').notNull(),
+		created_at: timestamp('created_at', { mode: 'string', withTimezone: true }).notNull(),
+		message_id: text('message_id').primaryKey(),
+		role: text('role').$type<'assistant' | 'system' | 'user'>().notNull(),
+		run_id: text('run_id'),
+		sequence_no: integer('sequence_no').notNull(),
+		tenant_id: text('tenant_id'),
+		trace_id: text('trace_id'),
+		user_id: text('user_id'),
+		workspace_id: text('workspace_id'),
+	},
+	(table) => ({
+		conversationIdIndex: index('conversation_messages_conversation_id_idx').on(
+			table.conversation_id,
+		),
+		conversationSequenceIndex: index('conversation_messages_conversation_sequence_idx').on(
+			table.conversation_id,
+			table.sequence_no,
+		),
+		runIdIndex: index('conversation_messages_run_id_idx').on(table.run_id),
+	}),
+);
+
+export const conversationMembersTable = pgTable(
+	'conversation_members',
+	{
+		added_by_user_id: text('added_by_user_id'),
+		conversation_id: text('conversation_id').notNull(),
+		created_at: timestamp('created_at', { mode: 'string', withTimezone: true }).notNull(),
+		member_role: text('member_role').$type<'editor' | 'owner' | 'viewer'>().notNull(),
+		member_user_id: text('member_user_id').notNull(),
+		tenant_id: text('tenant_id'),
+		updated_at: timestamp('updated_at', { mode: 'string', withTimezone: true }).notNull(),
+		workspace_id: text('workspace_id'),
+	},
+	(table) => ({
+		conversationMemberPk: primaryKey({
+			columns: [table.conversation_id, table.member_user_id],
+			name: 'conversation_members_pk',
+		}),
+		conversationIdIndex: index('conversation_members_conversation_id_idx').on(
+			table.conversation_id,
+		),
+		memberUserIdIndex: index('conversation_members_member_user_id_idx').on(table.member_user_id),
 	}),
 );
 
@@ -174,7 +258,9 @@ export const memoriesTable = pgTable(
 		archived_at: timestamp('archived_at', { mode: 'string', withTimezone: true }),
 		content: text('content').notNull(),
 		created_at: timestamp('created_at', { mode: 'string', withTimezone: true }).notNull(),
+		embedding_metadata: jsonb('embedding_metadata').$type<MemoryEmbeddingMetadata | null>(),
 		memory_id: text('memory_id').primaryKey(),
+		retrieval_text: text('retrieval_text'),
 		scope: text('scope').$type<MemoryScope>().notNull(),
 		scope_id: text('scope_id').notNull(),
 		source_kind: text('source_kind').$type<MemorySourceKind>().notNull(),

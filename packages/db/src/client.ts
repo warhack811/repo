@@ -71,6 +71,7 @@ const CREATE_RUNTIME_EVENTS_TRACE_ID_INDEX_SQL = `
 const CREATE_RUNS_TABLE_SQL = `
 	CREATE TABLE IF NOT EXISTS runs (
 		run_id text PRIMARY KEY,
+		conversation_id text,
 		trace_id text NOT NULL,
 		current_state text NOT NULL,
 		last_state_at timestamptz NOT NULL,
@@ -88,6 +89,11 @@ const ALTER_RUNS_ADD_TENANT_ID_SQL = `
 	ADD COLUMN IF NOT EXISTS tenant_id text;
 `;
 
+const ALTER_RUNS_ADD_CONVERSATION_ID_SQL = `
+	ALTER TABLE runs
+	ADD COLUMN IF NOT EXISTS conversation_id text;
+`;
+
 const ALTER_RUNS_ADD_WORKSPACE_ID_SQL = `
 	ALTER TABLE runs
 	ADD COLUMN IF NOT EXISTS workspace_id text;
@@ -101,6 +107,11 @@ const ALTER_RUNS_ADD_USER_ID_SQL = `
 const CREATE_RUNS_TRACE_ID_INDEX_SQL = `
 	CREATE INDEX IF NOT EXISTS runs_trace_id_idx
 	ON runs (trace_id);
+`;
+
+const CREATE_RUNS_CONVERSATION_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS runs_conversation_id_idx
+	ON runs (conversation_id);
 `;
 
 const CREATE_RUNS_CURRENT_STATE_INDEX_SQL = `
@@ -152,6 +163,91 @@ const CREATE_TOOL_CALLS_TRACE_ID_INDEX_SQL = `
 const CREATE_TOOL_CALLS_CALL_ID_INDEX_SQL = `
 	CREATE INDEX IF NOT EXISTS tool_calls_call_id_idx
 	ON tool_calls (call_id);
+`;
+
+const CREATE_CONVERSATIONS_TABLE_SQL = `
+	CREATE TABLE IF NOT EXISTS conversations (
+		conversation_id text PRIMARY KEY,
+		title text NOT NULL,
+		last_message_preview text NOT NULL,
+		last_message_at timestamptz NOT NULL,
+		created_at timestamptz NOT NULL,
+		updated_at timestamptz NOT NULL,
+		session_id text,
+		tenant_id text,
+		workspace_id text,
+		user_id text
+	);
+`;
+
+const CREATE_CONVERSATIONS_LAST_MESSAGE_AT_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx
+	ON conversations (last_message_at);
+`;
+
+const CREATE_CONVERSATIONS_SESSION_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversations_session_id_idx
+	ON conversations (session_id);
+`;
+
+const CREATE_CONVERSATIONS_USER_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversations_user_id_idx
+	ON conversations (user_id);
+`;
+
+const CREATE_CONVERSATION_MESSAGES_TABLE_SQL = `
+	CREATE TABLE IF NOT EXISTS conversation_messages (
+		message_id text PRIMARY KEY,
+		conversation_id text NOT NULL,
+		run_id text,
+		trace_id text,
+		role text NOT NULL,
+		content text NOT NULL,
+		sequence_no integer NOT NULL,
+		created_at timestamptz NOT NULL,
+		tenant_id text,
+		workspace_id text,
+		user_id text
+	);
+`;
+
+const CREATE_CONVERSATION_MESSAGES_CONVERSATION_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversation_messages_conversation_id_idx
+	ON conversation_messages (conversation_id);
+`;
+
+const CREATE_CONVERSATION_MESSAGES_CONVERSATION_SEQUENCE_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversation_messages_conversation_sequence_idx
+	ON conversation_messages (conversation_id, sequence_no);
+`;
+
+const CREATE_CONVERSATION_MESSAGES_RUN_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversation_messages_run_id_idx
+	ON conversation_messages (run_id);
+`;
+
+const CREATE_CONVERSATION_MEMBERS_TABLE_SQL = `
+	CREATE TABLE IF NOT EXISTS conversation_members (
+		conversation_id text NOT NULL,
+		member_user_id text NOT NULL,
+		member_role text NOT NULL,
+		added_by_user_id text,
+		created_at timestamptz NOT NULL,
+		updated_at timestamptz NOT NULL,
+		tenant_id text,
+		workspace_id text,
+		PRIMARY KEY (conversation_id, member_user_id)
+	);
+`;
+
+const CREATE_CONVERSATION_MEMBERS_CONVERSATION_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversation_members_conversation_id_idx
+	ON conversation_members (conversation_id);
+`;
+
+const CREATE_CONVERSATION_MEMBERS_MEMBER_USER_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversation_members_member_user_id_idx
+	ON conversation_members (member_user_id);
 `;
 
 const CREATE_APPROVALS_TABLE_SQL = `
@@ -301,6 +397,8 @@ const CREATE_MEMORIES_TABLE_SQL = `
 		source_kind text NOT NULL,
 		summary text NOT NULL,
 		content text NOT NULL,
+		retrieval_text text,
+		embedding_metadata jsonb,
 		source_run_id text,
 		source_trace_id text,
 		archived_at timestamptz,
@@ -325,6 +423,16 @@ const ALTER_MEMORIES_ADD_WORKSPACE_ID_SQL = `
 const ALTER_MEMORIES_ADD_USER_ID_SQL = `
 	ALTER TABLE memories
 	ADD COLUMN IF NOT EXISTS user_id text;
+`;
+
+const ALTER_MEMORIES_ADD_RETRIEVAL_TEXT_SQL = `
+	ALTER TABLE memories
+	ADD COLUMN IF NOT EXISTS retrieval_text text;
+`;
+
+const ALTER_MEMORIES_ADD_EMBEDDING_METADATA_SQL = `
+	ALTER TABLE memories
+	ADD COLUMN IF NOT EXISTS embedding_metadata jsonb;
 `;
 
 const CREATE_MEMORIES_SCOPE_SCOPE_ID_STATUS_INDEX_SQL = `
@@ -440,9 +548,11 @@ export function getDatabaseSchemaBootstrapStatements(): readonly string[] {
 		CREATE_RUNTIME_EVENTS_RUN_ID_INDEX_SQL,
 		CREATE_RUNTIME_EVENTS_TRACE_ID_INDEX_SQL,
 		CREATE_RUNS_TABLE_SQL,
+		ALTER_RUNS_ADD_CONVERSATION_ID_SQL,
 		ALTER_RUNS_ADD_TENANT_ID_SQL,
 		ALTER_RUNS_ADD_WORKSPACE_ID_SQL,
 		ALTER_RUNS_ADD_USER_ID_SQL,
+		CREATE_RUNS_CONVERSATION_ID_INDEX_SQL,
 		CREATE_RUNS_TRACE_ID_INDEX_SQL,
 		CREATE_RUNS_CURRENT_STATE_INDEX_SQL,
 		CREATE_TOOL_CALLS_TABLE_SQL,
@@ -451,6 +561,17 @@ export function getDatabaseSchemaBootstrapStatements(): readonly string[] {
 		CREATE_TOOL_CALLS_RUN_ID_INDEX_SQL,
 		CREATE_TOOL_CALLS_TRACE_ID_INDEX_SQL,
 		CREATE_TOOL_CALLS_CALL_ID_INDEX_SQL,
+		CREATE_CONVERSATIONS_TABLE_SQL,
+		CREATE_CONVERSATIONS_LAST_MESSAGE_AT_INDEX_SQL,
+		CREATE_CONVERSATIONS_SESSION_ID_INDEX_SQL,
+		CREATE_CONVERSATIONS_USER_ID_INDEX_SQL,
+		CREATE_CONVERSATION_MESSAGES_TABLE_SQL,
+		CREATE_CONVERSATION_MESSAGES_CONVERSATION_ID_INDEX_SQL,
+		CREATE_CONVERSATION_MESSAGES_CONVERSATION_SEQUENCE_INDEX_SQL,
+		CREATE_CONVERSATION_MESSAGES_RUN_ID_INDEX_SQL,
+		CREATE_CONVERSATION_MEMBERS_TABLE_SQL,
+		CREATE_CONVERSATION_MEMBERS_CONVERSATION_ID_INDEX_SQL,
+		CREATE_CONVERSATION_MEMBERS_MEMBER_USER_ID_INDEX_SQL,
 		CREATE_APPROVALS_TABLE_SQL,
 		ALTER_APPROVALS_ADD_TOOL_INPUT_SQL,
 		ALTER_APPROVALS_ADD_WORKING_DIRECTORY_SQL,
@@ -474,6 +595,8 @@ export function getDatabaseSchemaBootstrapStatements(): readonly string[] {
 		ALTER_MEMORIES_ADD_TENANT_ID_SQL,
 		ALTER_MEMORIES_ADD_WORKSPACE_ID_SQL,
 		ALTER_MEMORIES_ADD_USER_ID_SQL,
+		ALTER_MEMORIES_ADD_RETRIEVAL_TEXT_SQL,
+		ALTER_MEMORIES_ADD_EMBEDDING_METADATA_SQL,
 		CREATE_MEMORIES_SCOPE_SCOPE_ID_STATUS_INDEX_SQL,
 		CREATE_MEMORIES_SOURCE_TRACE_ID_INDEX_SQL,
 		CREATE_CHECKPOINTS_TABLE_SQL,

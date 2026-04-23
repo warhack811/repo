@@ -65,6 +65,19 @@ export {
 	type DatabaseCrudSmokeStepKind,
 } from './smoke.js';
 export type { ApprovalRecord, NewApprovalRecord } from './approvals.js';
+export type {
+	ConversationMemberRecord,
+	ConversationMessageRecord,
+	ConversationRecord,
+	NewConversationMemberRecord,
+	NewConversationMessageRecord,
+	NewConversationRecord,
+} from './conversations.js';
+export {
+	createConversationDatabaseClient,
+	type ConversationDatabaseClient,
+	type ListConversationRowsInput,
+} from './conversations.js';
 export {
 	createCheckpointPersistenceDatabaseClient,
 	type CheckpointPersistenceDatabaseClient,
@@ -84,8 +97,11 @@ export {
 } from './runtime-events.js';
 export type { NewRunRecord, RunRecord } from './runs.js';
 export {
+	conversationMembersTable,
 	approvalsTable,
 	checkpointsTable,
+	conversationMessagesTable,
+	conversationsTable,
 	memoriesTable,
 	policyStatesTable,
 	runtimeEventsTable,

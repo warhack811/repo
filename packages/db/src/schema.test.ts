@@ -6,6 +6,9 @@ import { createRlsPlan } from './rls.js';
 import {
 	approvalsTable,
 	checkpointsTable,
+	conversationMembersTable,
+	conversationMessagesTable,
+	conversationsTable,
 	memoriesTable,
 	policyStatesTable,
 	runsTable,
@@ -21,6 +24,9 @@ describe('schema scope columns', () => {
 	it('adds nullable scope columns to the core tables required for future RLS', () => {
 		const runtimeEventColumns = getTableColumns(runtimeEventsTable);
 		const runColumns = getTableColumns(runsTable);
+		const conversationColumns = getTableColumns(conversationsTable);
+		const conversationMessageColumns = getTableColumns(conversationMessagesTable);
+		const conversationMemberColumns = getTableColumns(conversationMembersTable);
 		const toolCallColumns = getTableColumns(toolCallsTable);
 		const approvalColumns = getTableColumns(approvalsTable);
 		const memoryColumns = getTableColumns(memoriesTable);
@@ -31,7 +37,42 @@ describe('schema scope columns', () => {
 			expect.arrayContaining(['tenant_id', 'workspace_id']),
 		);
 		expect(getColumnNames(runColumns)).toEqual(
-			expect.arrayContaining(['tenant_id', 'workspace_id', 'user_id']),
+			expect.arrayContaining(['conversation_id', 'tenant_id', 'workspace_id', 'user_id']),
+		);
+		expect(getColumnNames(conversationColumns)).toEqual(
+			expect.arrayContaining([
+				'conversation_id',
+				'title',
+				'last_message_preview',
+				'last_message_at',
+				'session_id',
+				'tenant_id',
+				'workspace_id',
+				'user_id',
+			]),
+		);
+		expect(getColumnNames(conversationMessageColumns)).toEqual(
+			expect.arrayContaining([
+				'conversation_id',
+				'run_id',
+				'trace_id',
+				'role',
+				'content',
+				'sequence_no',
+				'tenant_id',
+				'workspace_id',
+				'user_id',
+			]),
+		);
+		expect(getColumnNames(conversationMemberColumns)).toEqual(
+			expect.arrayContaining([
+				'conversation_id',
+				'member_user_id',
+				'member_role',
+				'added_by_user_id',
+				'tenant_id',
+				'workspace_id',
+			]),
 		);
 		expect(getColumnNames(toolCallColumns)).toEqual(
 			expect.arrayContaining(['tenant_id', 'workspace_id']),
@@ -46,7 +87,13 @@ describe('schema scope columns', () => {
 			]),
 		);
 		expect(getColumnNames(memoryColumns)).toEqual(
-			expect.arrayContaining(['tenant_id', 'workspace_id', 'user_id']),
+			expect.arrayContaining([
+				'embedding_metadata',
+				'retrieval_text',
+				'tenant_id',
+				'workspace_id',
+				'user_id',
+			]),
 		);
 		expect(getColumnNames(checkpointColumns)).toEqual(
 			expect.arrayContaining(['tenant_id', 'workspace_id', 'user_id']),
@@ -56,7 +103,9 @@ describe('schema scope columns', () => {
 		);
 
 		expect(runtimeEventColumns.tenant_id.notNull).toBe(false);
+		expect(runColumns.conversation_id.notNull).toBe(false);
 		expect(runColumns.user_id.notNull).toBe(false);
+		expect(conversationColumns.user_id.notNull).toBe(false);
 		expect(approvalColumns.workspace_id.notNull).toBe(false);
 		expect(memoryColumns.user_id.notNull).toBe(false);
 		expect(checkpointColumns.user_id.notNull).toBe(false);
@@ -101,11 +150,17 @@ describe('schema scope columns', () => {
 				expect.stringContaining('ALTER TABLE runtime_events'),
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS tenant_id text'),
 				expect.stringContaining('ALTER TABLE runs'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS conversation_id text'),
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS user_id text'),
+				expect.stringContaining('CREATE TABLE IF NOT EXISTS conversations'),
+				expect.stringContaining('CREATE TABLE IF NOT EXISTS conversation_messages'),
+				expect.stringContaining('CREATE TABLE IF NOT EXISTS conversation_members'),
 				expect.stringContaining('ALTER TABLE approvals'),
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS continuation_context jsonb'),
 				expect.stringContaining('CREATE TABLE IF NOT EXISTS policy_states'),
 				expect.stringContaining('ALTER TABLE memories'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS retrieval_text text'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS embedding_metadata jsonb'),
 				expect.stringContaining('CREATE TABLE IF NOT EXISTS checkpoints'),
 			]),
 		);
