@@ -252,6 +252,15 @@
 - Durust kalan durum: Bu tur detail kartlarinin inline render davranisini korur ve modalda sadece metadata yuzeyi acar. Focus trap, Radix/React Aria dialog gecisi, approval runtime entegrasyonu, desktop action/file/image/code detail modallari ve raw inspection payload explorer'i acilmadi.
 - Sonraki onerilen gorev: ApprovalDecisionCard'i mevcut approval yuzeyine dar ve davranis koruyan bir adapter olarak baglamak ya da web/file/code artifact detail modali icin yine UI-level metadata ile sinirli ikinci bir adapter acmak; runtime/contract davranisini kapali tutmak.
 
+### Track C / UI Foundation Phase 11 - Authenticated Route Render Loop Fix - 24 Nisan 2026
+
+- Root cause: `SettingsPage` desktop-device load effect'i `useEffectEvent` wrapper'ini dependency olarak izliyordu. `/account` ve `/settings` acildiginda `/desktop/devices` 404 path'i state'i tekrar tekrar guncelleyerek React `Maximum update depth exceeded` warning'ini tetikledi.
+- Degisen dosyalar: `apps/web/src/pages/SettingsPage.tsx`, `PROGRESS.md`.
+- Fix: desktop-device fetch akisi tek `useEffect` icine alindi ve effect dependency'si primitive `authContext.principal.kind` ile sinirlandi. Authenticated olmayan durumda bos success state korunuyor; authenticated durumda ayni fetch/error mesajlari ve abort guard'lari korunuyor.
+- Dogrulama: `pnpm.cmd install --frozen-lockfile`, `pnpm.cmd --filter @runa/db build`, `pnpm.cmd --filter @runa/types build`, `pnpm.cmd --filter @runa/web typecheck`, `pnpm.cmd --filter @runa/web build`, degisen dosya icin `pnpm.cmd exec biome check apps/web/src/pages/SettingsPage.tsx` PASS.
+- Browser smoke: local dev auth ile `/chat -> /account -> /developer -> /dashboard -> /settings -> /chat` route cycle tekrarlandi; `Maximum update depth exceeded` yeniden gorulmedi.
+- Kalan durum: `/conversations` ve `/desktop/devices` 404 davranislari bu gorevin kapsaminda degistirilmedi. Copy polish, 404 handling ve modal smoke follow-up olarak kaldi.
+
 ### Docs Governance / Track C - Desktop Companion + Device Presence Dokuman Hizalamasi - 23 Nisan 2026
 
 - `AGENTS.md`, `README.md`, `implementation-blueprint.md`, `docs/technical-architecture.md` ve `docs/post-mvp-strategy.md` desktop tarafi icin ayni authoritative dilde hizalandi. Eski "desktop-agent repoda yok / hala planli" anlatimi temizlenirken bugunku repo gercegi olarak secure bridge/runtime foundation ve `desktop.screenshot` vertical slice'i korunmus sekilde yazildi.

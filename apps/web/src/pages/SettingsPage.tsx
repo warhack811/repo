@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactElement, useEffect, useEffectEvent, useState } from 'react';
+import { type CSSProperties, type ReactElement, useEffect, useState } from 'react';
 
 import type { AuthContext, DesktopDevicePresenceSnapshot } from '@runa/types';
 
@@ -87,65 +87,67 @@ export function SettingsPage({
 		setAutoReadEnabled,
 	} = useTextToSpeech();
 	const voiceInput = useVoiceInput();
-	const loadDesktopDevices = useEffectEvent(async (signal: AbortSignal) => {
-		if (authContext.principal.kind !== 'authenticated') {
+	useEffect(() => {
+		const principalKind = authContext.principal.kind;
+		const abortController = new AbortController();
+
+		if (principalKind !== 'authenticated') {
 			setDesktopDevicesState({
 				status: 'success',
 				devices: [],
 			});
-			return;
+			return () => {
+				abortController.abort();
+			};
 		}
 
 		setDesktopDevicesState({
 			status: 'loading',
 		});
 
-		try {
-			const response = await fetchDesktopDevices({
-				bearerToken: readStoredBearerToken() ?? undefined,
-				signal,
-			});
+		void (async () => {
+			try {
+				const response = await fetchDesktopDevices({
+					bearerToken: readStoredBearerToken() ?? undefined,
+					signal: abortController.signal,
+				});
 
-			if (signal.aborted) {
-				return;
-			}
+				if (abortController.signal.aborted) {
+					return;
+				}
 
-			setDesktopDevicesState({
-				devices: response.devices,
-				status: 'success',
-			});
-		} catch (error) {
-			if (signal.aborted) {
-				return;
-			}
+				setDesktopDevicesState({
+					devices: response.devices,
+					status: 'success',
+				});
+			} catch (error) {
+				if (abortController.signal.aborted) {
+					return;
+				}
 
-			if (error instanceof DesktopDevicesResponseValidationError) {
+				if (error instanceof DesktopDevicesResponseValidationError) {
+					setDesktopDevicesState({
+						message:
+							'Online cihaz listesi beklendigi sekilde donmedi. Lutfen daha sonra yeniden dene.',
+						status: 'error',
+					});
+					return;
+				}
+
 				setDesktopDevicesState({
 					message:
-						'Online cihaz listesi beklendigi sekilde donmedi. Lutfen daha sonra yeniden dene.',
+						error instanceof Error
+							? error.message
+							: 'Online cihazlar su anda yuklenemedi. Lutfen daha sonra yeniden dene.',
 					status: 'error',
 				});
-				return;
 			}
-
-			setDesktopDevicesState({
-				message:
-					error instanceof Error
-						? error.message
-						: 'Online cihazlar su anda yuklenemedi. Lutfen daha sonra yeniden dene.',
-				status: 'error',
-			});
-		}
-	});
-
-	useEffect(() => {
-		const abortController = new AbortController();
-		void loadDesktopDevices(abortController.signal);
+		})();
 
 		return () => {
 			abortController.abort();
 		};
-	}, [loadDesktopDevices]);
+	}, [authContext.principal.kind]);
 
 	function formatConnectedAt(connectedAt: string): string {
 		const parsed = new Date(connectedAt);
