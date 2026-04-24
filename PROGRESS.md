@@ -1217,6 +1217,17 @@
 - Kalan durum: Tarihsel PR #7 smoke prosesinin terminal log'u mevcut degil; yeni health payload/runbook ayni sinif hatanin tekrarinda URL/secret sizdirmeden hangi DB target/source'un secildigini gosterir. Dogru dev/demo path local Postgres + `.env.local` ile netlestirildi.
 - Sonraki onerilen gorev: modal visual harness veya approval adapter.
 
+### Track C / UI Foundation Phase 15 - Modal + Capability Visual Harness - 24 Nisan 2026
+
+- `/developer/capability-preview` internal preview route'u eklendi. Route AppShell altinda Developer Mode sayfasi gibi isaretleniyor; ana chat flow ve public consumer nav icine preview karti koyulmadi.
+- Developer Mode dashboard icine yalniz Developer Mode acikken gorunen kucuk internal QA linki eklendi. Direkt route Developer Mode kapaliyken enable cagrisi gosteren internal gate ile kalir.
+- Preview kapsami: `CapabilityCard`, `CapabilityProgressList`, `CapabilityResultActions`, `ActiveTaskQueue`, `AssetPreviewCard`, `AssetGrid`, `AssetModal`, `BeforeAfterCompare`, `ActionRiskBadge`, `ApprovalDecisionCard` ve `ActionDetailModal` ayni sayfada static/local senaryolarla goruntuleniyor.
+- Asset ornekleri external URL veya binary asset kullanmaz; inline data placeholder ile local preview saglanir. Modal open/close, asset selection ve approval approve/reject kontrolleri yalniz local UI state gunceller; runtime action, upload, file, desktop veya approval execution cagrisi yapmaz.
+- Runtime/WS/RenderBlock/server/desktop-agent/packages davranisi degistirilmedi. Degisen dosyalar: `apps/web/src/App.tsx`, `apps/web/src/pages/DashboardPage.tsx`, `apps/web/src/pages/CapabilityPreviewPage.tsx`, `PROGRESS.md`.
+- Browser smoke sonucu: programatik dev server smoke'unda authenticated dev bootstrap ile `/chat`, `/developer`, `/developer/capability-preview`, `/account`, `/dashboard -> /chat`, `/settings -> /account` kontrol edildi. Direct authenticated browser fetch ile `/conversations` `200 {"conversations":[]}` ve `/desktop/devices` `200 {"devices":[]}` dondu. 1440x900 preview screenshot ve 390x844 mobile modal screenshot alindi; modal ac/kapat, asset selection ve approval no-op butonlari calisti. Browser console error ve page error sayisi 0; `Maximum update depth exceeded` gorulmedi.
+- Kalan durum: Bu harness yalniz internal QA yuzeyi. Capability componentlerinin gercek runtime adapter'lari henuz acik degil.
+- Sonraki onerilen gorev: approval adapter veya desktop action UI polish.
+
 ## Teknik Borc (Tech Debt) & Known Gaps
 
 > **Kaynak:** 2026-04-18 tarihli kapsamli mimari denetim (Architectural Audit).

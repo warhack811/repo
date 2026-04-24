@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactElement } from 'react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { AuthContext } from '@runa/types';
 
@@ -142,6 +143,30 @@ export function DashboardPage({
 						onModelChange={runtime.setModel}
 						onProviderChange={runtime.setProvider}
 					/>
+
+					<section style={appShellPanelStyle} aria-labelledby="capability-preview-link-heading">
+						<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
+							<div style={appShellSecondaryLabelStyle}>Internal preview</div>
+							<h2 id="capability-preview-link-heading" style={{ margin: 0, fontSize: '20px' }}>
+								Capability visual harness
+							</h2>
+							<p style={appShellMutedTextStyle}>
+								Open the internal QA route for capability cards, asset modal states, progress
+								surfaces, risk badges, and approval detail previews.
+							</p>
+						</div>
+						<Link
+							to="/developer/capability-preview"
+							style={{
+								...appShellSecondaryButtonStyle,
+								display: 'inline-flex',
+								textDecoration: 'none',
+								width: 'fit-content',
+							}}
+						>
+							Open capability preview
+						</Link>
+					</section>
 
 					<section style={appShellPanelStyle} aria-labelledby="developer-troubleshooting-heading">
 						<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
