@@ -729,7 +729,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								isSubmitting: false,
 								lastError:
 									parsedMessage.payload.final_state === 'FAILED'
-										? (parsedMessage.payload.error_message ?? 'Calisma hata ile bitti.')
+										? (parsedMessage.payload.error_message ?? 'Çalışma hata ile bitti.')
 										: null,
 							}));
 							chatStore.setPresentationState((currentPresentationState) => ({

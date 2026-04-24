@@ -88,7 +88,7 @@ export function VoiceComposerControls({
 			<div style={noteStyle} aria-live="polite">
 				{voiceStatusMessage ??
 					(isVoiceSupported
-						? 'Mikrofonu acip kisa bir not soyleyebilir veya son asistan yanitini sesli okutabilirsin.'
+						? 'Mikrofonu açıp kısa bir not söyleyebilir veya son asistan yanıtını sesli okutabilirsin.'
 						: 'Bu tarayici Web Speech API sunmuyor. Sohbet yazili modda aynen calismaya devam eder.')}
 			</div>
 		</div>

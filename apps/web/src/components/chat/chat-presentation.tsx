@@ -12,7 +12,6 @@ import {
 	presentationBlockCardStyle,
 	presentationSubtleTextStyle,
 	secondaryLabelStyle,
-	toolResultPreviewStyle,
 } from '../../lib/chat-styles.js';
 import type {
 	ApprovalResolveDecision,
@@ -26,12 +25,11 @@ import type {
 import { ApprovalPanel } from '../approval/ApprovalPanel.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import {
-	createStatusChipStyle,
-	getToolResultStyles,
 	renderCodeBlock,
 	renderDiffBlock,
 	renderRunTimelineBlock,
 	renderSearchResultBlock,
+	renderToolResultBlock,
 	renderTraceDebugBlock,
 	renderWebSearchResultBlock,
 	renderWorkspaceInspectionBlock,
@@ -256,10 +254,10 @@ export function buildRunFeedbackState(
 	if (!input.run_summary) {
 		return {
 			chip_label: 'accepted',
-			detail: 'Calisma kabul edildi; ilk gorunur yuzey hazirlaniyor.',
+			detail: 'Çalışma kabul edildi; ilk görünür yüzey hazırlanıyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma hazirlaniyor',
+			title: 'Çalışma hazırlanıyor',
 			tone: 'info',
 		};
 	}
@@ -270,7 +268,7 @@ export function buildRunFeedbackState(
 			detail: 'Bu calisma tamamlanamadi. En son gorunur kartlar korunuyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma durdu',
+			title: 'Çalışma durdu',
 			tone: 'error',
 			trace_id: input.run_summary.trace_id,
 		};
@@ -280,11 +278,11 @@ export function buildRunFeedbackState(
 		return {
 			chip_label: 'completed',
 			detail: input.has_visible_surface
-				? 'Calisma tamamlandi. Son kartlar ve detaylar burada sabit kaldı.'
-				: 'Calisma tamamlandi.',
+				? 'Çalışma tamamlandı. Son kartlar ve detaylar burada sabit kaldı.'
+				: 'Çalışma tamamlandı.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma tamamlandi',
+			title: 'Çalışma tamamlandı',
 			tone: 'success',
 			trace_id: input.run_summary.trace_id,
 		};
@@ -293,11 +291,11 @@ export function buildRunFeedbackState(
 	return {
 		chip_label: input.include_presentation_blocks ? 'live' : 'thinking',
 		detail: input.has_visible_surface
-			? 'Runa mevcut kartlari guncellerken akisi ayni yerde tutuyor.'
-			: 'Runa dusunuyor ve ilk yuzeyi hazirliyor.',
+			? 'Runa mevcut kartları güncellerken akışı aynı yerde tutuyor.'
+			: 'Runa düşünüyor ve ilk yüzeyi hazırlıyor.',
 		pending_detail_count: input.pending_detail_count,
 		run_id: runId,
-		title: 'Calisma suruyor',
+		title: 'Çalışma sürüyor',
 		tone: 'info',
 		trace_id: input.run_summary.trace_id,
 	};
@@ -661,87 +659,6 @@ function renderInspectionDetailBlock(
 					</div>
 				))}
 			</dl>
-		</article>
-	);
-}
-
-function renderToolResultBlock(block: Extract<RenderBlock, { type: 'tool_result' }>): ReactElement {
-	const toolResultStyles = getToolResultStyles(block.payload.status);
-
-	return (
-		<article
-			key={block.id}
-			style={{
-				...presentationBlockCardStyle,
-				borderColor: toolResultStyles.borderColor,
-				background:
-					block.payload.status === 'success'
-						? 'linear-gradient(180deg, rgba(6, 18, 16, 0.92) 0%, rgba(2, 6, 23, 0.88) 100%)'
-						: 'linear-gradient(180deg, rgba(30, 10, 10, 0.9) 0%, rgba(2, 6, 23, 0.88) 100%)',
-			}}
-		>
-			<div
-				style={{
-					display: 'flex',
-					justifyContent: 'space-between',
-					alignItems: 'flex-start',
-					gap: '12px',
-					flexWrap: 'wrap',
-					marginBottom: '10px',
-				}}
-			>
-				<div style={{ display: 'grid', gap: '4px' }}>
-					<span style={secondaryLabelStyle}>tool result</span>
-					<strong style={{ fontSize: '16px', color: 'hsl(var(--color-text))' }}>
-						{block.payload.tool_name}
-					</strong>
-				</div>
-				<span
-					style={{
-						...createStatusChipStyle(block.payload.status === 'success' ? 'success' : 'error'),
-						background: toolResultStyles.statusBackground,
-						color: toolResultStyles.statusColor,
-					}}
-				>
-					{block.payload.status}
-				</span>
-			</div>
-
-			<div style={presentationSubtleTextStyle}>{block.payload.summary}</div>
-
-			<div
-				style={{
-					display: 'flex',
-					alignItems: 'center',
-					gap: '10px',
-					flexWrap: 'wrap',
-					marginTop: '10px',
-				}}
-			>
-				<span style={secondaryLabelStyle}>call_id</span>
-				<code style={inspectionChipStyle}>{block.payload.call_id}</code>
-				{block.payload.error_code ? (
-					<span
-						style={{
-							...inspectionChipStyle,
-							color: '#fca5a5',
-							border: '1px solid rgba(248, 113, 113, 0.35)',
-							background: 'rgba(127, 29, 29, 0.24)',
-						}}
-					>
-						error_code: {block.payload.error_code}
-					</span>
-				) : null}
-			</div>
-
-			{block.payload.result_preview ? (
-				<div style={toolResultPreviewStyle}>
-					<div style={{ ...secondaryLabelStyle, marginBottom: '6px' }}>
-						preview / {block.payload.result_preview.kind}
-					</div>
-					<div>{block.payload.result_preview.summary_text}</div>
-				</div>
-			) : null}
 		</article>
 	);
 }

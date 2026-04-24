@@ -1,8 +1,11 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 
+import { designTokens } from '../../lib/design-tokens.js';
+import { RunaSurface } from '../ui/index.js';
+
 const shellStyle: CSSProperties = {
 	display: 'grid',
-	gap: 'clamp(16px, 3vw, 20px)',
+	gap: designTokens.spacing.shellGap,
 	minWidth: 0,
 };
 
@@ -14,25 +17,29 @@ type ChatShellProps = Readonly<{
 export function ChatShell({ children, embedded = false }: ChatShellProps): ReactElement {
 	if (embedded) {
 		return (
-			<main
+			<RunaSurface
+				as="main"
 				id="chat-workspace-content"
 				className="runa-shell-frame runa-shell-frame--chat"
 				style={shellStyle}
+				tone="plain"
 			>
 				{children}
-			</main>
+			</RunaSurface>
 		);
 	}
 
 	return (
-		<div className="runa-page">
-			<main
+		<RunaSurface className="runa-page" tone="plain">
+			<RunaSurface
+				as="main"
 				id="chat-workspace-content"
 				className="runa-shell-frame runa-shell-frame--chat"
 				style={shellStyle}
+				tone="plain"
 			>
 				{children}
-			</main>
-		</div>
+			</RunaSurface>
+		</RunaSurface>
 	);
 }

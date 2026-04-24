@@ -46,7 +46,7 @@ function humanizeProvider(provider: RunTransportSummary['provider']): string {
 function humanizeRuntimeState(state: string | undefined): string {
 	switch (state) {
 		case 'MODEL_THINKING':
-			return 'Model dusunuyor';
+			return 'Model düşünüyor';
 		case 'TOOL_EXECUTING':
 			return 'Arac calisiyor';
 		case 'TOOL_RESULT_INGESTING':
@@ -353,11 +353,11 @@ function getStatusTone(
 
 function getFallbackHeadline(runSummary: RunTransportSummary | undefined): string {
 	if (runSummary?.final_state === 'FAILED') {
-		return 'Calisma hata ile bitti';
+		return 'Çalışma hata ile bitti';
 	}
 
 	if (runSummary?.final_state === 'COMPLETED') {
-		return 'Calisma tamamlandi';
+		return 'Çalışma tamamlandı';
 	}
 
 	if (runSummary?.latest_runtime_state === 'WAITING_APPROVAL') {
@@ -377,7 +377,7 @@ function getFallbackHeadline(runSummary: RunTransportSummary | undefined): strin
 	}
 
 	if (runSummary?.has_accepted) {
-		return 'Calisma kabul edildi';
+		return 'Çalışma kabul edildi';
 	}
 
 	return uiCopy.run.currentRunProgress;
@@ -392,19 +392,19 @@ function getFallbackDetail(
 	}
 
 	if (runSummary?.final_state === 'COMPLETED') {
-		return 'Mevcut calisma tamamlandi. Son ozet ve destek kartlari asagida gorunur kalir.';
+		return 'Mevcut çalışma tamamlandı. Son özet ve destek kartları aşağıda görünür kalır.';
 	}
 
 	if (runSummary?.final_state === 'FAILED') {
-		return 'Mevcut calisma basarisiz oldu. Son gorunur kartlar inceleme icin asagida kalir.';
+		return 'Mevcut çalışma başarısız oldu. Son görünür kartlar inceleme için aşağıda kalır.';
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_RESULT_INGESTING') {
-		return 'Arac sonucu mevcut calisma yuzeyine isleniyor.';
+		return 'Araç sonucu mevcut çalışma yüzeyine işleniyor.';
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_EXECUTING') {
-		return 'Calisma araclari calistiriyor. Adimlar tamamlandikca yeni ozetler guncellenecek.';
+		return 'Çalışma araçları çalıştırıyor. Adımlar tamamlandıkça yeni özetler güncellenecek.';
 	}
 
 	if (runSummary?.latest_runtime_state === 'MODEL_THINKING') {

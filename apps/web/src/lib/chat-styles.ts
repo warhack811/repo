@@ -1,22 +1,23 @@
 import type { CSSProperties } from 'react';
 
+import { designTokens } from './design-tokens.js';
+
 export const panelStyle: CSSProperties = {
-	background: 'var(--gradient-panel)',
-	border: '1px solid rgba(148, 163, 184, 0.2)',
-	borderRadius: 'var(--radius-panel)',
-	boxShadow: 'var(--shadow-panel)',
-	padding: 'var(--space-panel)',
+	background: designTokens.color.background.panel,
+	border: `1px solid ${designTokens.color.border.subtle}`,
+	borderRadius: designTokens.radius.card,
+	boxShadow: designTokens.shadow.panel,
+	padding: designTokens.spacing.panel,
 	backdropFilter: 'blur(12px)',
-	transition:
-		'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease',
+	transition: designTokens.motion.transition.surface,
 };
 
 export const pageStyle: CSSProperties = {
 	minHeight: '100vh',
-	background: 'var(--page-background)',
-	color: 'hsl(var(--color-text))',
-	fontFamily: 'var(--font-body)',
-	padding: 'var(--space-page-y) var(--space-page-x)',
+	background: designTokens.color.background.page,
+	color: designTokens.color.foreground.text,
+	fontFamily: designTokens.typography.bodyFamily,
+	padding: `${designTokens.spacing.pageY} ${designTokens.spacing.pageX}`,
 };
 
 export const heroPanelStyle: CSSProperties = {
@@ -35,23 +36,23 @@ export const formGridStyle: CSSProperties = {
 export const inputStyle: CSSProperties = {
 	width: '100%',
 	padding: '10px 12px',
-	borderRadius: '14px',
-	border: '1px solid rgba(148, 163, 184, 0.24)',
-	background: 'var(--gradient-input)',
-	color: 'hsl(var(--color-text))',
+	borderRadius: designTokens.radius.control,
+	border: `1px solid ${designTokens.color.border.strong}`,
+	background: designTokens.color.background.input,
+	color: designTokens.color.foreground.text,
 	fontSize: '14px',
 	boxSizing: 'border-box',
 	minWidth: 0,
-	boxShadow: 'var(--shadow-inset)',
-	transition: 'border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
+	boxShadow: designTokens.shadow.inset,
+	transition: designTokens.motion.transition.focus,
 };
 
 export const buttonStyle: CSSProperties = {
 	padding: '12px 16px',
-	borderRadius: '14px',
+	borderRadius: designTokens.radius.button,
 	border: 'none',
-	background: 'var(--gradient-primary-button)',
-	color: 'var(--color-accent-foreground)',
+	background: designTokens.color.interactive.primary,
+	color: designTokens.color.foreground.inverse,
 	fontWeight: 700,
 	cursor: 'pointer',
 	transition: 'transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease',
@@ -59,13 +60,13 @@ export const buttonStyle: CSSProperties = {
 
 export const secondaryButtonStyle: CSSProperties = {
 	padding: '10px 14px',
-	borderRadius: '14px',
-	border: '1px solid rgba(148, 163, 184, 0.28)',
-	background: 'var(--gradient-secondary-button)',
-	color: 'hsl(var(--color-text))',
+	borderRadius: designTokens.radius.button,
+	border: `1px solid ${designTokens.color.border.strong}`,
+	background: designTokens.color.interactive.secondary,
+	color: designTokens.color.foreground.text,
 	fontWeight: 600,
 	cursor: 'pointer',
-	boxShadow: 'var(--shadow-inset)',
+	boxShadow: designTokens.shadow.inset,
 	transition:
 		'transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease',
 };

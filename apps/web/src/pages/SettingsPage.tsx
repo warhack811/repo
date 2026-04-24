@@ -231,8 +231,8 @@ export function SettingsPage({
 							Online devices
 						</h2>
 						<p style={appShellMutedTextStyle}>
-							Giris yaptigin acik bir desktop companion varsa burada gorunur. Bu yuzey simdilik
-							yalniz gorunurluk saglar; cihaz secimi veya uzaktan aksiyon baslatma bu turda acilmaz.
+							Giriş yaptığın açık bir desktop companion varsa burada görünür. Bu yüzey şimdilik
+							yalnız görünürlük sağlar; cihaz seçimi veya uzaktan aksiyon başlatma bu turda açılmaz.
 						</p>
 					</div>
 
@@ -256,7 +256,7 @@ export function SettingsPage({
 						{desktopDevicesState.status === 'success' &&
 						desktopDevicesState.devices.length === 0 ? (
 							<div style={deviceCardStyle}>
-								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Henuz gorunen cihaz yok</div>
+								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Henüz görünen cihaz yok</div>
 								<div style={appShellMutedTextStyle}>
 									Bu hesapla giris yapmis acik bir desktop companion bulunmadiginda burada cihaz
 									listelenmez.
@@ -376,7 +376,7 @@ export function SettingsPage({
 							</div>
 							{voiceInput.permissionDenied ? (
 								<div className="runa-alert runa-alert--warning">
-									Mikrofon izni reddedilmis. Chat ekranindaki voice trigger yazili akisi bozmadan
+									Mikrofon izni reddedilmiş. Chat ekranındaki voice trigger yazılı akışı bozmadan
 									pasif kalir; tekrar kullanmak istersen tarayici iznini acman yeterli.
 								</div>
 							) : null}

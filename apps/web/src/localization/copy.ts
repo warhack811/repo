@@ -216,8 +216,8 @@ const copyByLocale = {
 		appShell: {
 			authenticatedSession: 'Kimligi dogrulanmis oturum',
 			chatEyebrow: 'calisma ortagi',
-			chatSubtitle: 'Ana yuz sohbet akisi ve calisma alani olarak kurulur.',
-			chatTitle: 'Calisma alani',
+			chatSubtitle: 'Ana yüz sohbet akışı ve çalışma alanı olarak kurulur.',
+			chatTitle: 'Çalışma alanı',
 			developerEyebrow: 'ikinci katman',
 			developerSubtitle: 'Yalniz gelistiriciye ait ayarlar ve teknik gorunurluk burada tutulur.',
 			developerTitle: 'Developer Mode',
@@ -239,7 +239,7 @@ const copyByLocale = {
 			connecting: 'Hesap durumu kontrol ediliyor',
 			continueWithGithub: 'GitHub ile devam et',
 			continueWithGoogle: 'Google ile devam et',
-			devSession: 'Local dev oturumu baslat',
+			devSession: 'Local dev oturumu başlat',
 			email: 'E-posta adresi',
 			invalidSession: 'Bearer token gecerli bir oturuma donusmedi.',
 			localDevOnly: 'Local dev auth bootstrap sadece tarayicida baslayabilir.',
@@ -252,7 +252,7 @@ const copyByLocale = {
 			modeLabel: 'Kimlik dogrulama modu',
 			noStoredToken: 'Bu sekmede kayitli token yok',
 			oauthDescription:
-				'Bu, gercek bir OAuth baslangic akisidir. Uygulama geri donen tokeni auth bootstrap sirasinda okur.',
+				'Bu, gerçek bir OAuth başlangıç akışıdır. Uygulama geri dönen tokeni auth bootstrap sırasında okur.',
 			oauthRedirecting: 'OAuth saglayicisina yonlendiriliyor...',
 			oauthValidating: 'OAuth ile geri donuldu. Oturum dogrulaniyor.',
 			password: 'Sifre',
@@ -265,8 +265,8 @@ const copyByLocale = {
 			signupDescription: 'E-posta ve sifre ile hesap olustur.',
 			signupPending: 'Hesap olusturuluyor...',
 			signupVerificationNote:
-				'E-posta dogrulamasi aciksa uygulama giris ekraninda kalir ve dogrulama mesajini gosterir.',
-			startingDevSession: 'Local dev auth oturumu baslatiliyor...',
+				'E-posta doğrulaması açıksa uygulama giriş ekranında kalır ve doğrulama mesajını gösterir.',
+			startingDevSession: 'Local dev auth oturumu başlatılıyor...',
 			statusAnonymous: 'Anonim',
 			statusBootstrapping: 'Auth baglami kontrol ediliyor',
 			storedToken: 'Bu sekmede kayitli token var',
@@ -277,7 +277,7 @@ const copyByLocale = {
 			tokenAction: 'Tokeni dogrula',
 			tokenDescription: 'Var olan bir bearer tokeni dogrula.',
 			tokenFallbackNote:
-				'Token yolu, mevcut oturumlar ve troubleshooting icin guvenli bir yedek olarak kalir.',
+				'Token yolu, mevcut oturumlar ve troubleshooting için güvenli bir yedek olarak kalır.',
 			tokenPending: 'Dogrulaniyor...',
 			tokenPlaceholder: 'Bearer token yapistir',
 			unresolvedPrincipal: 'Cozulmedi',
@@ -285,13 +285,13 @@ const copyByLocale = {
 		chat: {
 			composerPlaceholder: 'Ne yapmak istedigini yaz...',
 			configMissing:
-				'Sohbet hazir ama runtime kurulumu eksik. Istek gondermeden once Developer Mode icinden gecerli bir API anahtari gir.',
+				'Sohbet hazır ama runtime kurulumu eksik. İstek göndermeden önce Developer Mode içinden geçerli bir API anahtarı gir.',
 			currentRunHeading: 'Mevcut calisma',
 			emptySurface:
-				'Henuz gorunur bir calisma yok. Yeni bir mesaj gonderdiginde mevcut calisma yuzeyi burada gorunur.',
+				'Henüz görünür bir çalışma yok. Yeni bir mesaj gönderdiğinde mevcut çalışma yüzeyi burada görünür.',
 			heroSubtitle:
-				'Sohbet, onaylar ve canli calisma yuzeyi burada birlikte kalir. Teknik kontroller Developer Mode icindedir.',
-			heroTitle: 'Calisma ortagin',
+				'Sohbet, onaylar ve canlı çalışma yüzeyi burada birlikte kalır. Teknik kontroller Developer Mode içindedir.',
+			heroTitle: 'Çalışma ortağın',
 			openDeveloper: 'Developer Mode ac',
 			runConnectionClosed: 'Baglanti kapali',
 			runConnectionConnecting: 'Baglaniyor',
@@ -300,12 +300,12 @@ const copyByLocale = {
 			sending: 'Gonderiliyor...',
 			submitConnectionConnecting: 'Canli runtime baglantisi kuruluyor...',
 			submitConnectionWaiting: 'Canli baglanti bekleniyor',
-			submitInProgress: 'Calisma suruyor...',
+			submitInProgress: 'Çalışma sürüyor...',
 		},
 		developer: {
 			apiKey: 'API anahtari',
 			configDescription:
-				'Bu ayarlar canli sohbet runtimeini besler ama ana sohbet yuzeyinde gorunmez.',
+				'Bu ayarlar canlı sohbet runtimeini besler ama ana sohbet yüzeyinde görünmez.',
 			configHeading: 'Runtime ayarlari',
 			currentDefaults: 'Mevcut varsayilanlar',
 			description:
@@ -314,7 +314,7 @@ const copyByLocale = {
 			includePresentationBlocks: 'Presentation block iste',
 			lastError: 'Son runtime hatasi',
 			model: 'Model',
-			noMessages: 'Henuz transport mesaji yok.',
+			noMessages: 'Henüz transport mesajı yok.',
 			provider: 'Saglayici',
 			rawTransport: 'Ham transport',
 			refreshAuthContext: 'Auth durumunu yenile',
@@ -336,8 +336,8 @@ const copyByLocale = {
 			showingLatestSteps: 'Son {count} adim gosteriliyor',
 			pastRuns: 'Gecmis calismalar',
 			pastRunsCollapsed: 'Gecmis calismalar ana sohbeti kalabaliklastirmadan burada kalir.',
-			surfaceHeading: 'Mevcut calisma yuzeyi',
-			surfaceSubtitle: 'En yeni ozet kartlari ve bagli detaylar calisma surerken burada kalir.',
+			surfaceHeading: 'Mevcut çalışma yüzeyi',
+			surfaceSubtitle: 'En yeni özet kartları ve bağlı detaylar çalışma sürerken burada kalır.',
 		},
 		runtime: {
 			apiKeyRequired: 'API anahtari gerekli.',
@@ -346,9 +346,9 @@ const copyByLocale = {
 				'Canli baglanti henuz hazir degil. Istek gondermeden once yeniden baglanmasini bekle.',
 			modelRequired: 'Model gerekli.',
 			promptRequired: 'Istek metni gerekli.',
-			unsupportedWsMessage: 'Desteklenmeyen WebSocket sunucu mesaji.',
+			unsupportedWsMessage: 'Desteklenmeyen WebSocket sunucu mesajı.',
 			wsClosedRetrying: 'Canli baglanti kapandi. Yeniden deneniyor...',
-			wsFailedRetrying: 'WebSocket baglantisi basarisiz oldu. Yeniden deneniyor...',
+			wsFailedRetrying: 'WebSocket bağlantısı başarısız oldu. Yeniden deneniyor...',
 			wsNotOpen: 'WebSocket acik degil.',
 			wsParsingUnknown: 'Bilinmeyen WebSocket mesaj cozumleme hatasi.',
 			unknownApprovalSubmit: 'Bilinmeyen onay gonderim hatasi.',

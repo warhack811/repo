@@ -13,6 +13,213 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-23 tarihinde desktop tarafi icin "local daemon" anlatimi, bugunku secure bridge gercegi ile toplantida netlesen "desktop app + signed-in device presence + secure remote control" hedefi arasindaki ayrimi koruyacak sekilde ana dokumanlarda hizalandi.
 
+### Track C / UI Foundation Phase 1 - Design Tokens + Internal Primitives - 24 Nisan 2026
+
+- `apps/web/src/lib/design-tokens.ts` eklendi. Mevcut `index.css`, `chat-styles.ts`, `AppShell.tsx` ve `ChatPage.tsx` icindeki gorsel dilden tureyen color, spacing, radius, shadow, typography, motion ve z-index token gruplari merkezi hale getirildi; yeni tema/redesign acilmadi.
+- `apps/web/src/components/ui/` altinda dependency-free internal primitive baslangici acildi: `RunaButton`, `RunaCard`, `RunaBadge`, `RunaTextarea`, `RunaSurface` ve barrel `index.ts`. Componentler native elementler uzerinden calisir, `className`/`style` override kabul eder ve `any`/type bypass kullanmaz.
+- `apps/web/src/lib/chat-styles.ts` komple kaldirilmadi; mevcut export kontratlari korunarak temel panel/page/input/button stilleri yeni token kaynagindan beslenmeye basladi.
+- `apps/web/src/components/app/AppShell.tsx` dusuk riskli olarak tokenlara baglandi; shell gap/panel/button/metric style kararlarinda token kullanimi basladi ve authenticated status pill `RunaBadge` uzerinden render ediliyor.
+- `apps/web/src/components/chat/ChatShell.tsx` sayfa/workspace sarmalayicilarinda `RunaSurface` kullanmaya basladi. Route, auth, chat runtime, Developer Mode, WS contract veya server/desktop/types davranisina dokunulmadi.
+- Degisen dosyalar: `apps/web/src/lib/design-tokens.ts`, `apps/web/src/components/ui/RunaButton.tsx`, `apps/web/src/components/ui/RunaCard.tsx`, `apps/web/src/components/ui/RunaBadge.tsx`, `apps/web/src/components/ui/RunaTextarea.tsx`, `apps/web/src/components/ui/RunaSurface.tsx`, `apps/web/src/components/ui/index.ts`, `apps/web/src/lib/chat-styles.ts`, `apps/web/src/components/app/AppShell.tsx`, `apps/web/src/components/chat/ChatShell.tsx`, `PROGRESS.md`.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/lib/design-tokens.ts apps/web/src/components/ui apps/web/src/components/app/AppShell.tsx apps/web/src/components/chat/ChatShell.tsx apps/web/src/lib/chat-styles.ts` PASS
+- Durust kalan durum: bu tur internal UI foundation'in ilk katmanini acti; `ChatPage.tsx` icindeki buyuk local style objeleri bilincli olarak task disi birakildi. `index.css` icindeki mevcut class tabani da korunuyor; ileride primitive/CSS token uyumu kademeli genisletilmeli.
+- Sonraki onerilen gorev: UI Foundation Phase 2 olarak `ChatPage.tsx` icindeki composer, conversation surface, status badge ve attachment row gibi dusuk riskli tekrar eden yuzeyleri `RunaButton` / `RunaCard` / `RunaTextarea` / `RunaBadge` primitive'lerine kademeli tasimak; runtime veya render contract degistirmemek.
+
+### Track C / UI Foundation Phase 2 - ChatPage Composer + Transcript Decomposition - 24 Nisan 2026
+
+- `apps/web/src/components/chat/ChatComposerSurface.tsx` eklendi. `ChatPage.tsx` icindeki composer card, prompt textarea, desktop target selector, voice controls, attachment upload/remove summary, runtime config warning, submit row ve last-error yuzeyi bu component'e tasindi.
+- `apps/web/src/components/chat/StreamingMessageSurface.tsx` eklendi. Live streaming metin yuzeyi mevcut kosulu koruyarak yalniz `currentStreamingText` doluysa ve `currentStreamingRunId === currentRunId` ise render oluyor; `aria-live="polite"` korunuyor.
+- `apps/web/src/components/chat/PersistedTranscript.tsx` eklendi. Kalici transcript render'i, bos conversation/draft copy'si, role label'lari, timestamp `toLocaleString()` davranisi ve `MarkdownRenderer` kullanimi ayni kalarak ayrildi.
+- `apps/web/src/pages/ChatPage.tsx` composer/transcript/streaming JSX yiginlarindan temizlendi; orchestration, effect'ler, runtime selector'lari, desktop device loading ve presentation/timeline akisi sayfada kaldi. `useChatRuntime`, `useConversations`, store selector, WS/auth/runtime veya markdown parser davranisina dokunulmadi.
+- Yeni componentlerde Phase 1 internal primitive'leri kontrollu kullanildi: composer submit/config/attachment remove icin `RunaButton`, prompt icin `RunaTextarea`, attachment preview icin `RunaCard`; buyuk visual redesign acilmadi.
+- Degisen dosyalar: `apps/web/src/pages/ChatPage.tsx`, `apps/web/src/components/chat/ChatComposerSurface.tsx`, `apps/web/src/components/chat/StreamingMessageSurface.tsx`, `apps/web/src/components/chat/PersistedTranscript.tsx`, `PROGRESS.md`.
+- Pre-existing changes notu: bu tura baslamadan once `PROGRESS.md`, Phase 1 web foundation dosyalari ve `apps/desktop-agent/src/auth.ts` / `apps/desktop-agent/src/launch-controller.ts` zaten dirty idi. Desktop-agent, server, packages/types, package.json ve lockfile dosyalarina bu turda dokunulmadi.
+- Dogrulama:
+  - `git status --short` on kontrol: dirty tree; gorev disi `apps/desktop-agent/src/auth.ts` ve `apps/desktop-agent/src/launch-controller.ts` mevcut.
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/pages/ChatPage.tsx apps/web/src/components/chat/ChatComposerSurface.tsx apps/web/src/components/chat/StreamingMessageSurface.tsx apps/web/src/components/chat/PersistedTranscript.tsx` PASS
+- Durust kalan durum: composer + transcript + streaming ayrismasi tamamlandi; current run progress, presentation surface cards, developer hint ve timeline orchestration halen `ChatPage.tsx` icinde. Bu bilincli olarak bu turun siniri disinda birakildi.
+- Sonraki onerilen gorev: UI Foundation Phase 3 olarak `ChatPage.tsx` icindeki conversation workspace header, current run progress/presentation surface yerlesimi ve Developer Mode hint yuzeyini kucuk chat componentlerine ayirmak; `RunProgressPanel` / `PresentationRunSurfaceCard` davranisini ve render contract'larini degistirmemek.
+
+### Track C / UI Foundation Phase 3 - ChatPage Workspace + Run Surface Decomposition - 24 Nisan 2026
+
+- `apps/web/src/components/chat/ChatWorkspaceHeader.tsx` eklendi. Chat workspace hero/heading, eyebrow, subtitle ve connection status pill ayni copy/status davranisiyla bu component'e tasindi.
+- `apps/web/src/components/chat/CurrentRunSurface.tsx` eklendi. Aktif sohbet yuzeyi, persisted transcript, current run progress panel, streaming response ve current presentation/empty state yerlesimi ChatPage disina alindi.
+- `apps/web/src/components/chat/PastRunSurfaces.tsx` eklendi. `pastPresentationSurfaces.map(...)` bloğu typed prop'larla ayrildi; expanded state, inspection detail action state, pending keys, transport summaries ve approval resolve callback'leri aynen korunuyor.
+- `apps/web/src/components/chat/ChatDeveloperHint.tsx` eklendi. Developer Mode kapali hint'i sadece tasindi; ana chat'e yeni raw runtime/debug/operator bilgisi eklenmedi.
+- `apps/web/src/pages/ChatPage.tsx` buyuk JSX bloklarindan arindirildi ama orchestration sorumlulugu korundu: hooks/effects/selectors, desktop device loading, submit/voice/upload callback'leri, current presentation ReactNode'u ve `getInspectionActionState` sayfada kalmaya devam ediyor.
+- Degisen dosyalar: `apps/web/src/pages/ChatPage.tsx`, `apps/web/src/components/chat/ChatWorkspaceHeader.tsx`, `apps/web/src/components/chat/CurrentRunSurface.tsx`, `apps/web/src/components/chat/PastRunSurfaces.tsx`, `apps/web/src/components/chat/ChatDeveloperHint.tsx`, `PROGRESS.md`.
+- Pre-existing changes on kontrolu:
+  - `M PROGRESS.md`
+  - `M apps/desktop-agent/src/auth.ts`
+  - `M apps/desktop-agent/src/launch-controller.ts`
+  - `M apps/web/src/components/app/AppShell.tsx`
+  - `M apps/web/src/components/chat/ChatShell.tsx`
+  - `M apps/web/src/lib/chat-styles.ts`
+  - `M apps/web/src/pages/ChatPage.tsx`
+  - `?? apps/web/src/components/chat/ChatComposerSurface.tsx`
+  - `?? apps/web/src/components/chat/PersistedTranscript.tsx`
+  - `?? apps/web/src/components/chat/StreamingMessageSurface.tsx`
+  - `?? apps/web/src/components/ui/`
+  - `?? apps/web/src/lib/design-tokens.ts`
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/pages/ChatPage.tsx apps/web/src/components/chat/ChatWorkspaceHeader.tsx apps/web/src/components/chat/CurrentRunSurface.tsx apps/web/src/components/chat/PastRunSurfaces.tsx apps/web/src/components/chat/ChatDeveloperHint.tsx` ilk kosuda yalniz yeni iki dosyada format farkiyla FAIL verdi; formatter beklentisi manuel uygulandi ve tekrar kosuda PASS oldu.
+  - `git diff --stat` ve `git status --short` final raporda ayrica kaydedildi.
+- Durust kalan durum: `RunProgressPanel`, `RunTimelinePanel`, `PresentationRunSurfaceCard`, `PresentationBlockRenderer`, markdown renderer, runtime/WS/auth/policy/gateway ve `RenderBlock` kontrati degistirilmedi. `ChatPage.tsx` hala orchestration dosyasi; sonraki fazda current presentation ReactNode render'i icin daha dar bir composition helper dusunulebilir.
+- Sonraki onerilen gorev: capability-oriented chat UI icin research/source cards, asset preview ve approval detail modal gibi yeni yuzeyleri acmadan once presentation/current-run composition tiplerini daha kucuk internal view-model componentlerine bolmek; runtime/render contract redesign acmamak.
+
+### Track C / UI Foundation Phase 4 - Capability Surface Foundation - 24 Nisan 2026
+
+- `apps/web/src/components/chat/capability/` klasoru eklendi. Bu klasor runtime veya WS contract'a baglanmayan, yalniz UI-level capability surface foundation katmani olarak kuruldu.
+- `types.ts` icinde yalniz UI seviyesinde kalan sade tipler tanimlandi: `CapabilityTone`, `CapabilityStatus`, `AssetPreviewKind`, `CapabilityProgressStep`, `CapabilityResultAction` ve `ActiveTaskQueueItem`. `packages/types`, `RenderBlock` veya conversation modeline dokunulmadi.
+- `CapabilityCard.tsx` eklendi. Research, desktop action, file operation, image generation, approval summary ve tool progress gibi gelecek yuzeyler icin reusable card zemini sunuyor; `RunaCard`, `RunaBadge` ve design token'lari kullaniliyor.
+- `CapabilityProgressList.tsx` eklendi. Research/image/desktop/code gibi akislarda kullanilabilecek generic step listesi, status badge'leri ve sakin empty behavior ile kuruldu.
+- `CapabilityResultActions.tsx` eklendi. Open/download/copy/retry/refine/details/approve/reject gibi gelecekteki result action row'lari icin `RunaButton` tabanli ve `type="button"` guvenceli action listesi sagliyor.
+- `AssetPreviewCard.tsx` eklendi. Image/screenshot preview icin `img`, diger asset turleri veya URL yoklugu icin sakin placeholder kullanan temel asset preview card'i kuruldu; modal/zoom/storage/upload entegrasyonu acilmadi.
+- `ActiveTaskQueue.tsx` eklendi. Future active task queue icin minimal generic UI componenti kuruldu; herhangi bir runtime/store baglantisi yapilmadi.
+- `index.ts` barrel export'u eklendi. Componentler ve UI-level tipler tek capability girisinden export ediliyor.
+- CurrentRunSurface entegrasyonu bu turda bilincli olarak yapilmadi. Mevcut chat/current presentation yuzeyinin gorsel davranisini degistirmemek icin capability componentleri foundation olarak birakildi.
+- Degisen dosyalar: `apps/web/src/components/chat/capability/types.ts`, `CapabilityCard.tsx`, `CapabilityProgressList.tsx`, `CapabilityResultActions.tsx`, `AssetPreviewCard.tsx`, `ActiveTaskQueue.tsx`, `index.ts`, `PROGRESS.md`.
+- Pre-existing changes on kontrolu:
+  - `M PROGRESS.md`
+  - `M apps/desktop-agent/src/auth.ts`
+  - `M apps/desktop-agent/src/launch-controller.ts`
+  - `M apps/web/src/components/app/AppShell.tsx`
+  - `M apps/web/src/components/chat/ChatShell.tsx`
+  - `M apps/web/src/lib/chat-styles.ts`
+  - `M apps/web/src/pages/ChatPage.tsx`
+  - `?? apps/web/src/components/chat/ChatComposerSurface.tsx`
+  - `?? apps/web/src/components/chat/ChatDeveloperHint.tsx`
+  - `?? apps/web/src/components/chat/ChatWorkspaceHeader.tsx`
+  - `?? apps/web/src/components/chat/CurrentRunSurface.tsx`
+  - `?? apps/web/src/components/chat/PastRunSurfaces.tsx`
+  - `?? apps/web/src/components/chat/PersistedTranscript.tsx`
+  - `?? apps/web/src/components/chat/StreamingMessageSurface.tsx`
+  - `?? apps/web/src/components/ui/`
+  - `?? apps/web/src/lib/design-tokens.ts`
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/components/chat/capability apps/web/src/components/chat/CurrentRunSurface.tsx` ilk kosuda yalniz yeni capability dosyalarinda import/format farkiyla FAIL verdi; manuel format/import duzeltmesi sonrasi tekrar kosuda PASS oldu.
+  - `git diff --stat` ve `git status --short` final raporda ayrica kaydedildi.
+- Durust kalan durum: Bu tur gercek research, image generation/editing, desktop action, asset modal, active task queue runtime wiring veya approval detail behavior'u acmadi. Capability componentleri henuz runtime tarafindan kullanilmiyor; bu bilincli olarak spaghetti UI riskini azaltan foundation adimi.
+- Sonraki onerilen gorev: mevcut presentation block render yuzeylerinden birini, ornegin source/search result veya tool result card'larini, yeni capability primitive'leriyle dar ve davranis koruyan bir adapter katmanina tasimak; RenderBlock/WS contract degistirmemek.
+
+### Track C / UI Foundation Phase 5 - Search Result CapabilityCard Adapter - 24 Nisan 2026
+
+- `apps/web/src/components/chat/PresentationBlockRenderer.tsx` icindeki `search_result_block` render yuzeyi `CapabilityCard` kabuguna tasindi. Hedef yalniz search result presentation surface idi; diff/tool/web search/run timeline gibi diger block renderer'lara dokunulmadi.
+- Mevcut davranislar korundu: `article` semantigi, `id`, `tabIndex`, `aria-labelledby`, `aria-describedby`, title id, summary id, truncated chip, inspection action button, query/search root/visible window metadata, source priority/conflict notlari, matches list ve empty matches state ayni akisla render edilmeye devam ediyor.
+- `CapabilityCard.tsx` icin kucuk additive API genisletmesi yapildi: `as`, `titleId` ve `headerAside`. Bu sayede presentation block gibi semantik `article` ihtiyaci olan yuzeyler ayni foundation componentini kullanabiliyor; mevcut Phase 4 kullanim sekli kirilmadi.
+- `RenderBlock`, WS contract, runtime, auth, policy, gateway, search provider, `web.search` tool ve conversation modeli degistirilmedi. Yeni dependency eklenmedi.
+- Degisen dosyalar: `apps/web/src/components/chat/PresentationBlockRenderer.tsx`, `apps/web/src/components/chat/capability/CapabilityCard.tsx`, `PROGRESS.md`.
+- Pre-existing changes on kontrolu:
+  - `M PROGRESS.md`
+  - `M apps/desktop-agent/src/auth.ts`
+  - `M apps/desktop-agent/src/launch-controller.ts`
+  - `M apps/web/src/components/app/AppShell.tsx`
+  - `M apps/web/src/components/chat/ChatShell.tsx`
+  - `M apps/web/src/lib/chat-styles.ts`
+  - `M apps/web/src/pages/ChatPage.tsx`
+  - `?? apps/web/src/components/chat/ChatComposerSurface.tsx`
+  - `?? apps/web/src/components/chat/ChatDeveloperHint.tsx`
+  - `?? apps/web/src/components/chat/ChatWorkspaceHeader.tsx`
+  - `?? apps/web/src/components/chat/CurrentRunSurface.tsx`
+  - `?? apps/web/src/components/chat/PastRunSurfaces.tsx`
+  - `?? apps/web/src/components/chat/PersistedTranscript.tsx`
+  - `?? apps/web/src/components/chat/StreamingMessageSurface.tsx`
+  - `?? apps/web/src/components/chat/capability/`
+  - `?? apps/web/src/components/ui/`
+  - `?? apps/web/src/lib/design-tokens.ts`
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/components/chat/PresentationBlockRenderer.tsx apps/web/src/components/chat/capability/CapabilityCard.tsx apps/web/src/components/chat/capability/types.ts apps/web/src/components/chat/capability/index.ts` ilk kosuda yalniz `CapabilityCard.tsx` format farkiyla FAIL verdi; format duzeltildi ve tekrar kosuda PASS oldu.
+  - `rg -n "any|as any|@ts-ignore|eslint-disable|TODO" apps/web/src/components/chat/PresentationBlockRenderer.tsx apps/web/src/components/chat/capability` final kontrolde eslesme bulmadi.
+  - `git diff --stat` ve `git status --short` final raporda ayrica kaydedildi.
+- Durust kalan durum: Search result block artik capability foundation ile uyumlu ilk gercek presentation adapter'i oldu. Web search result block, tool result, diff, code ve timeline yuzeyleri henuz capability primitive'lerine tasinmadi.
+- Sonraki onerilen gorev: `tool_result` veya `web_search_result_block` icin ayni dar adapter yaklasimini uygulamak; yine RenderBlock/WS contract ve provider/tool davranislarini kapali tutmak.
+
+### Track C / UI Foundation Phase 6 - Tool Result CapabilityCard Adapter - 24 Nisan 2026
+
+- `tool_result` render yuzeyi Phase 5'teki dar adapter yaklasimiyla `CapabilityCard` kabuguna tasindi. Tool adi, `tool result` eyebrow'i, success/error status chip'i, call_id, error_code ve result preview akisi ayni veriyle korunuyor.
+- `getToolResultStyles` mantigi korunarak success icin yesil, error icin danger kirmizi border/status dili devam ettirildi. Capability status/tone mapping UI seviyesinde eklendi: `success -> completed/success`, `error -> failed/danger`.
+- `CapabilityCard` API'sinde bu turda yeni additive prop gerekmedi; Phase 5'te eklenen `as`, `titleId` ve `headerAside` davranisi aynen kullanildi ve search result adapter bozulmadi.
+- `apps/web/src/components/chat/chat-presentation.tsx` icindeki inline `tool_result` renderer'i yalniz import edilen shared renderer'a devredildi; dispatch davranisi ve diger block render fonksiyonlari refactor edilmedi.
+- Degisen dosyalar: `apps/web/src/components/chat/PresentationBlockRenderer.tsx`, `apps/web/src/components/chat/chat-presentation.tsx`, `PROGRESS.md`.
+- Pre-existing changes on kontrolu:
+  - `M PROGRESS.md`
+  - `M apps/desktop-agent/src/auth.ts`
+  - `M apps/desktop-agent/src/launch-controller.ts`
+  - `M apps/web/src/components/app/AppShell.tsx`
+  - `M apps/web/src/components/chat/ChatShell.tsx`
+  - `M apps/web/src/components/chat/PresentationBlockRenderer.tsx`
+  - `M apps/web/src/lib/chat-styles.ts`
+  - `M apps/web/src/pages/ChatPage.tsx`
+  - `?? apps/web/src/components/chat/ChatComposerSurface.tsx`
+  - `?? apps/web/src/components/chat/ChatDeveloperHint.tsx`
+  - `?? apps/web/src/components/chat/ChatWorkspaceHeader.tsx`
+  - `?? apps/web/src/components/chat/CurrentRunSurface.tsx`
+  - `?? apps/web/src/components/chat/PastRunSurfaces.tsx`
+  - `?? apps/web/src/components/chat/PersistedTranscript.tsx`
+  - `?? apps/web/src/components/chat/StreamingMessageSurface.tsx`
+  - `?? apps/web/src/components/chat/capability/`
+  - `?? apps/web/src/components/ui/`
+  - `?? apps/web/src/lib/design-tokens.ts`
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/components/chat/PresentationBlockRenderer.tsx apps/web/src/components/chat/capability/CapabilityCard.tsx apps/web/src/components/chat/capability/types.ts apps/web/src/components/chat/capability/index.ts` PASS
+  - Ek task-local kontrol: `pnpm.cmd exec biome check apps/web/src/components/chat/chat-presentation.tsx` PASS. Not: daha once bu dosyayi da iceren ilk Biome denemesi yalniz import sirasi icin FAIL verdi; import sirasi duzeltildi.
+  - `rg -n "any|as any|@ts-ignore|eslint-disable|TODO" apps/web/src/components/chat/PresentationBlockRenderer.tsx apps/web/src/components/chat/capability` final kontrolde eslesme bulmadi.
+  - `git diff --stat` ve `git status --short` final raporda ayrica kaydedildi.
+- Durust kalan durum: Bu tur RenderBlock/WS contract, server, desktop-agent, packages/types, tool execution, provider veya markdown davranisini degistirmedi. Capability primitive'lerinin action-result yuzeyleri icin ilk tool-result adapter proof'u var; web_search_result_block, diff, code ve timeline yuzeyleri halen eski renderer diliyle duruyor.
+- Sonraki onerilen gorev: `web_search_result_block` icin ayni dar adapter yaklasimini uygulamak veya tool-result status/preview spacing'ini gercek browser screenshot'i ile ayrica gorsel regresyon kontrolunden gecirmek; runtime/protocol redesign acmamak.
+
+### Track C / UI Foundation Phase 7 - Asset UI Foundation - 24 Nisan 2026
+
+- `apps/web/src/components/chat/capability/AssetGrid.tsx` eklendi. Generated image variants, desktop screenshot preview, uploaded image/file preview ve generic asset listeleri icin reusable responsive grid zemini kuruldu; selectable kullanimda `role="button"`, keyboard Enter/Space handling ve `aria-pressed` state'i var.
+- `apps/web/src/components/chat/capability/AssetModal.tsx` eklendi. `AssetPreviewItem` tabanli minimal preview modal foundation'i kuruldu; image/screenshot icin buyuk `img` preview, URL/preview yoklugunda sakin placeholder, `Close` action'i ve optional `CapabilityResultActions` action row'u var. Zoom/pan/download/storage/provider entegrasyonu acilmadi. Full focus-trap icin ileride Radix veya React Aria gibi bir library candidate dusunulebilir; bu turda yeni dependency eklenmedi.
+- `apps/web/src/components/chat/capability/BeforeAfterCompare.tsx` eklendi. Future image editing ve desktop before/after durumlari icin iki `AssetPreviewCard` kullanan responsive Before / After comparison foundation'i kuruldu; drag slider/editor davranisi eklenmedi.
+- `AssetPreviewCard.tsx` backward-compatible sekilde genisletildi: `isSelected`, `actionSlot` ve `metaSlot` destekleri eklendi. Mevcut image/screenshot render ve placeholder davranisi korundu; button nesting yaratacak yeni wrapper eklenmedi.
+- `types.ts` yalniz UI-level asset tipleriyle genisletildi: `AssetActionTone` ve `AssetPreviewItem`. `packages/types`, provider/storage modeli veya runtime contract benzeri bir tip eklenmedi.
+- `index.ts` yeni component ve tip export'larini verdi. `ChatPage`, `PresentationBlockRenderer`, RenderBlock, WS, server, desktop-agent, storage/upload/provider ve active task runtime wiring'e dokunulmadi.
+- Degisen dosyalar: `apps/web/src/components/chat/capability/AssetGrid.tsx`, `AssetModal.tsx`, `BeforeAfterCompare.tsx`, `AssetPreviewCard.tsx`, `types.ts`, `index.ts`, `PROGRESS.md`.
+- Pre-existing changes on kontrolu:
+  - `M PROGRESS.md`
+  - `M apps/desktop-agent/src/auth.ts`
+  - `M apps/desktop-agent/src/launch-controller.ts`
+  - `M apps/web/src/components/app/AppShell.tsx`
+  - `M apps/web/src/components/chat/ChatShell.tsx`
+  - `M apps/web/src/components/chat/PresentationBlockRenderer.tsx`
+  - `M apps/web/src/components/chat/chat-presentation.tsx`
+  - `M apps/web/src/lib/chat-styles.ts`
+  - `M apps/web/src/pages/ChatPage.tsx`
+  - `?? apps/web/src/components/chat/ChatComposerSurface.tsx`
+  - `?? apps/web/src/components/chat/ChatDeveloperHint.tsx`
+  - `?? apps/web/src/components/chat/ChatWorkspaceHeader.tsx`
+  - `?? apps/web/src/components/chat/CurrentRunSurface.tsx`
+  - `?? apps/web/src/components/chat/PastRunSurfaces.tsx`
+  - `?? apps/web/src/components/chat/PersistedTranscript.tsx`
+  - `?? apps/web/src/components/chat/StreamingMessageSurface.tsx`
+  - `?? apps/web/src/components/chat/capability/`
+  - `?? apps/web/src/components/ui/`
+  - `?? apps/web/src/lib/design-tokens.ts`
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/components/chat/capability/AssetPreviewCard.tsx apps/web/src/components/chat/capability/AssetGrid.tsx apps/web/src/components/chat/capability/AssetModal.tsx apps/web/src/components/chat/capability/BeforeAfterCompare.tsx apps/web/src/components/chat/capability/types.ts apps/web/src/components/chat/capability/index.ts` ilk kosuda import sirasi ve `role="dialog"` yerine semantik `<dialog>` beklentisiyle FAIL verdi; `AssetGrid.tsx` import sirasi duzeltildi ve `AssetModal.tsx` native `<dialog open>` kullanacak sekilde guncellendi. Tekrar kosuda PASS.
+  - Duzeltmeler sonrasi `pnpm.cmd --filter @runa/web typecheck` PASS ve `pnpm.cmd --filter @runa/web build` PASS tekrarlandi.
+  - `rg -n "any|as any|@ts-ignore|eslint-disable|TODO" apps/web/src/components/chat/capability` final kontrolde eslesme bulmadi.
+  - `git diff --stat` ve `git status --short` final raporda ayrica kaydedildi.
+- Durust kalan durum: Bu tur asset UI foundation'i kurdu ama gercek image generation/editing, before/after slider, upload/storage, provider, desktop screenshot runtime preview, RenderBlock image block'u, ChatPage entegrasyonu veya active generation progress wiring'i acmadi.
+- Sonraki onerilen gorev: web_search_result_block veya file/code artifact preview yuzeylerinden birini bu asset/capability foundation'a dar adapter olarak baglamak; yine RenderBlock/WS/provider/storage contract degistirmemek.
+
 ### Docs Governance / Track C - Desktop Companion + Device Presence Dokuman Hizalamasi - 23 Nisan 2026
 
 - `AGENTS.md`, `README.md`, `implementation-blueprint.md`, `docs/technical-architecture.md` ve `docs/post-mvp-strategy.md` desktop tarafi icin ayni authoritative dilde hizalandi. Eski "desktop-agent repoda yok / hala planli" anlatimi temizlenirken bugunku repo gercegi olarak secure bridge/runtime foundation ve `desktop.screenshot` vertical slice'i korunmus sekilde yazildi.
@@ -315,9 +522,9 @@
 
 - `apps/server/src/gateway/request-tools.ts` tool schema/property siralamasini deterministik hale getirecek sekilde dar kapsamda sertlestirildi; ayni dosyada prompt'tan turetilen kucuk relevance hint'leri ile provider-side tool ordering deneyi eklendi.
 - `apps/server/src/gateway/groq-gateway.ts` Groq request body olustururken son user prompt'una gore en alakali tool'u one aliyor ve debug summary artik hem `requested_tool_names` hem `serialized_tool_names` alanlarini raporluyor. Boylece request-hygiene denemesi canli matrix'te dogrudan gorulebiliyor.
-- `apps/server/scripts/groq-live-smoke.mjs` full-registry compatibility matrix yolunu runtime'daki canonical `bindAvailableTools()` binding'i ile hizaladi; yani full registry varyanti artik script'e ozgu registry insertion order degil, gercek runtime tool set'i ile koÅŸuyor.
+- `apps/server/scripts/groq-live-smoke.mjs` full-registry compatibility matrix yolunu runtime'daki canonical `bindAvailableTools()` binding'i ile hizaladi; yani full registry varyanti artik script'e ozgu registry insertion order degil, gercek runtime tool set'i ile koşuyor.
 - Coverage: `apps/server/src/gateway/gateway.test.ts` prompt-relevant Groq tool ordering ve yeni debug summary alanlari icin guncellendi. `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/ws/live-request.test.ts src/runtime/bind-available-tools.test.ts`, `pnpm.cmd --filter @runa/server exec tsc --noEmit` ve `pnpm.cmd --filter @runa/server lint` yesil.
-- Canli sonuc durustce karisik kaldi: file-backed `GROQ_API_KEY` ile koÅŸan `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix` turunda `full_registry + package_json_list` halen `HTTP 400 / tool_use_failed` verdi; yeni debug ozetinde `serialized_tool_names[0] = file.list` oldugu halde exact malformed body yine `file.list` markup'i urettigi icin sadece tool-order hardening'in blocker'i kapatmadigi goruldu.
+- Canli sonuc durustce karisik kaldi: file-backed `GROQ_API_KEY` ile koşan `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix` turunda `full_registry + package_json_list` halen `HTTP 400 / tool_use_failed` verdi; yeni debug ozetinde `serialized_tool_names[0] = file.list` oldugu halde exact malformed body yine `file.list` markup'i urettigi icin sadece tool-order hardening'in blocker'i kapatmadigi goruldu.
 - Ayni snapshot'ta ek bir varyans da goruldu: `minimal_file_read + readme_file_read_probe` bu kez `failed_generation = <function=file.read[]{\"path\": \"README.md\"}</function>` ile kirildi; `full_registry + readme_file_read_probe` ise PASS kaldi. Yani residual risk artik yalniz eski tek varyanta indirgenmis diye sunulmamali; Groq tarafinda prompt/tool-family bagimli malformed tool-call varyansi suruyor.
 - Koruyucu kanit korunuyor: `pnpm.cmd --filter @runa/server run test:approval-persistence-live-smoke` PASS verdi. `pnpm.cmd --filter @runa/server run test:approval-browser-authority-check` bu shell'de `exit code 0` ile dondu; komut stdout summary'si yakalanmamis olsa da authority yolunu bozan yeni bir regresyon kaniti uretilmedi.
 - Sonraki onerilen gorev: request order disindaki Groq compatibility etkenlerini daraltmak icin tool-description/schema yogunlugu ve system-context ayrimi uzerinde daha kucuk, provider-ozel ama authority-safe matrix deneyi yapmak; mevcut degisikligi genel provider fix'i diye sunmamak.
@@ -359,7 +566,7 @@
 
 ### Track A / GAP-11 Follow-Up - Browser-Independent Groq Compatibility Matrix + Exact Provider-Side Blocker Isolation - 21 Nisan 2026
 
-- `apps/server/scripts/groq-live-smoke.mjs` opt-in `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix` modu kazandi. Bu mod browser'a bagimli olmadan live `buildLiveModelRequest() -> createModelGateway().generate()` zinciri uzerinde prompt/tool varyantlarini koÅŸturup her stage icin request summary, tool count/names ve varsa exact `provider_error_debug` body kaydediyor.
+- `apps/server/scripts/groq-live-smoke.mjs` opt-in `RUNA_GROQ_LIVE_SMOKE_MODE=compatibility_matrix` modu kazandi. Bu mod browser'a bagimli olmadan live `buildLiveModelRequest() -> createModelGateway().generate()` zinciri uzerinde prompt/tool varyantlarini koşturup her stage icin request summary, tool count/names ve varsa exact `provider_error_debug` body kaydediyor.
 - Matrix'te dort varyant canli karsilastirildi: `minimal_file_list + package_json_list`, `full_registry + package_json_list`, `minimal_file_read + readme_file_read_probe`, `full_registry + readme_file_read_probe`.
 - Exact canli sonuc: tek deterministic kirilan varyant `full_registry + package_json_list` oldu. Groq `HTTP 400 / tool_use_failed` dondu ve `failed_generation` malformed `file.list` function-call markup'i gosterdi (`<function=file.list{"path": "D:\\ai\\Runa", "include_hidden": true}</function>`). Bu, browser-specific degil; gateway/provider generate seam'inde browser disinda da yeniden uretilebilen bir compatibility blocker olarak kanitlandi.
 - Ayni matrix'te `minimal_file_list + package_json_list`, `minimal_file_read + readme_file_read_probe` ve `full_registry + readme_file_read_probe` PASS verdi; yani residual risk artik genel `file.read` / README family'si degil, daha spesifik olarak full registry altindaki package-json/list authority prompt family'sindeki Groq tool-call generation varyansi olarak daraldi.
