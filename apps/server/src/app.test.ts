@@ -5,7 +5,10 @@ import Fastify, { type FastifyInstance } from 'fastify';
 
 import { buildServer } from './app.js';
 import { createLocalDevSessionToken } from './auth/supabase-auth.js';
-import { ConversationStoreWriteError } from './persistence/conversation-store.js';
+import {
+	ConversationStoreConfigurationError,
+	ConversationStoreWriteError,
+} from './persistence/conversation-store.js';
 import { registerDesktopDeviceRoutes } from './routes/desktop-devices.js';
 import type { StorageObject, StorageProviderAdapter } from './storage/storage-service.js';
 import { DesktopAgentBridgeRegistry } from './ws/desktop-agent-bridge.js';
@@ -1378,6 +1381,43 @@ describe('buildServer auth wiring', () => {
 					updated_at: '2026-04-22T10:05:00.000Z',
 				},
 			],
+		});
+	});
+
+	it('returns an empty conversation list when persistence is not configured for first-run sessions', async () => {
+		const listConversations = vi
+			.fn()
+			.mockRejectedValue(
+				new ConversationStoreConfigurationError(
+					'DATABASE_URL is required for conversation persistence.',
+				),
+			);
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			conversations: {
+				list_conversations: listConversations,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'GET',
+			url: '/conversations',
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual({
+			conversations: [],
 		});
 	});
 

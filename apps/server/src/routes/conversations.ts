@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { requireAuthenticatedRequest } from '../auth/supabase-auth.js';
 import {
 	ConversationStoreAccessError,
+	ConversationStoreConfigurationError,
 	ConversationStoreWriteError,
 	conversationScopeFromAuthContext,
 	listConversationMembers,
@@ -109,9 +110,19 @@ export async function registerConversationRoutes(
 	server.get<{ Reply: ConversationListReply }>('/conversations', async (request) => {
 		requireAuthenticatedRequest(request);
 
-		return {
-			conversations: await listConversationsRoute(conversationScopeFromAuthContext(request.auth)),
-		};
+		try {
+			return {
+				conversations: await listConversationsRoute(conversationScopeFromAuthContext(request.auth)),
+			};
+		} catch (error) {
+			if (error instanceof ConversationStoreConfigurationError) {
+				return {
+					conversations: [],
+				};
+			}
+
+			throw error;
+		}
 	});
 
 	server.get<{ Params: ConversationParams }>(

@@ -13,6 +13,15 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-23 tarihinde desktop tarafi icin "local daemon" anlatimi, bugunku secure bridge gercegi ile toplantida netlesen "desktop app + signed-in device presence + secure remote control" hedefi arasindaki ayrimi koruyacak sekilde ana dokumanlarda hizalandi.
 
+### Track C / UI Foundation Phase 12 - First-run API Graceful Handling - 24 Nisan 2026
+
+- Root cause: `/conversations` ve `/desktop/devices` server route'lari main icinde zaten vardi; browser smoke'daki 404'lerin ana nedeni Vite dev proxy'nin `/auth` ve `/ws` disinda bu HTTP route'larini server'a yonlendirmemesiydi. Conversation tarafinda ek olarak persistence konfiguru olmayan first-run dev oturumunda liste endpoint'i gereksiz sert hata verebiliyordu.
+- Secilen cozum: mixed server + web integration fix. `apps/web/vite.config.ts` icinde `/conversations` ve `/desktop` proxy entry'leri eklendi. `apps/server/src/routes/conversations.ts` yalniz `ConversationStoreConfigurationError` icin `200 { conversations: [] }` donecek sekilde daraltildi; 401/403/500 sinifi gercek okuma/yazma hatalari yutulmadi.
+- Degisen dosyalar: `apps/web/vite.config.ts`, `apps/server/src/routes/conversations.ts`, `apps/server/src/app.test.ts`, `PROGRESS.md`.
+- Browser smoke sonucu: local dev auth ile `/chat`, `/account`, `/developer`, `/dashboard -> /chat`, `/settings -> /account`, `/chat` route dongusu calisti. Browser icinden direkt fetch kontrolunde `/conversations` `200 {"conversations":[]}` ve `/desktop/devices` `200 {"devices":[]}` dondu; hedef endpoint 404'u, gorunur conversation 404 metni ve `Maximum update depth exceeded` uyarisi gorulmedi. Chat composer textarea usable kaldi.
+- Kalan durum: full `@runa/server test` route degisikliginden bagimsiz eski fixture satir sonu farkinda takiliyor (`dist/tools/file-read.test.js` sample fixture CRLF/LF farki). Hedefli `dist/app.test.js` yesil.
+- Sonraki onerilen gorev: copy polish veya modal visual harness; runtime/WS/RenderBlock davranisini yeniden acmadan ilerlemek.
+
 ### Track C / UI Foundation Phase 1 - Design Tokens + Internal Primitives - 24 Nisan 2026
 
 - `apps/web/src/lib/design-tokens.ts` eklendi. Mevcut `index.css`, `chat-styles.ts`, `AppShell.tsx` ve `ChatPage.tsx` icindeki gorsel dilden tureyen color, spacing, radius, shadow, typography, motion ve z-index token gruplari merkezi hale getirildi; yeni tema/redesign acilmadi.
