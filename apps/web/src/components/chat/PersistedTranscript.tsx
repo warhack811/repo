@@ -61,13 +61,13 @@ export function PersistedTranscript({
 	if (activeConversationMessages.length === 0) {
 		return activeConversationId ? (
 			<div className="runa-subtle-copy">
-				Bu conversation icin henuz kalici mesaj bulunmuyor. Ilk yanit tamamlandiginda burada
-				gorunecek.
+				Bu conversation için henüz kalıcı mesaj bulunmuyor. İlk yanıt tamamlandığında burada
+				görünecek.
 			</div>
 		) : (
 			<div className="runa-subtle-copy">
-				Yeni draft conversation acik. Ilk mesaji gonderdiginde otomatik olarak kalici bir
-				conversation olusturulacak.
+				Yeni draft conversation açık. İlk mesajı gönderdiğinde otomatik olarak kalıcı bir
+				conversation oluşturulacak.
 			</div>
 		);
 	}

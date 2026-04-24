@@ -132,7 +132,7 @@ export function ConversationSidebar({
 				<div style={secondaryLabelStyle}>History</div>
 				<h2 style={{ margin: 0, fontSize: '20px' }}>Conversation history</h2>
 				<div className="runa-subtle-copy">
-					Refresh sonrası aynı konuşmaya geri dönebilir, ekip içinde paylaşılan akışları ayrı rol
+					Refresh sonrası aynı sohbete geri dönebilir, ekip içinde paylaşılan akışları ayrı rol
 					badge'leriyle görebilirsin.
 				</div>
 			</div>

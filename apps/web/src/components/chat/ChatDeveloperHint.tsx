@@ -17,10 +17,10 @@ export function ChatDeveloperHint(): ReactElement {
 			className="runa-card runa-card--subtle"
 			aria-label="Developer Mode notice"
 		>
-			<div style={{ color: '#fde68a', fontWeight: 700 }}>Developer Mode kapali</div>
+			<div style={{ color: '#fde68a', fontWeight: 700 }}>Developer Mode kapalı</div>
 			<div className="runa-subtle-copy">
-				Ham timeline, gecmis calismalar ve teknik izler ikinci katmanda tutulur. Ihtiyac oldugunda
-				navigation icinden Developer Mode'u acabilirsin.
+				Ham timeline, geçmiş çalışmalar ve teknik izler ikinci katmanda tutulur. İhtiyaç olduğunda
+				navigation içinden Developer Mode'u açabilirsin.
 			</div>
 		</section>
 	);
