@@ -65,6 +65,48 @@ function createSession(overrides: Partial<AuthSession> = {}): AuthSession {
 	};
 }
 
+interface ConversationDatabaseEnvironment {
+	readonly DATABASE_URL?: string;
+	readonly LOCAL_DATABASE_URL?: string;
+	readonly SUPABASE_DATABASE_URL?: string;
+}
+
+function readConversationDatabaseEnvironment(): ConversationDatabaseEnvironment {
+	const environment = process.env as NodeJS.ProcessEnv & ConversationDatabaseEnvironment;
+
+	return {
+		DATABASE_URL: environment.DATABASE_URL,
+		LOCAL_DATABASE_URL: environment.LOCAL_DATABASE_URL,
+		SUPABASE_DATABASE_URL: environment.SUPABASE_DATABASE_URL,
+	};
+}
+
+function writeConversationDatabaseEnvironment(environment: ConversationDatabaseEnvironment): void {
+	const runtimeEnvironment = process.env as NodeJS.ProcessEnv & {
+		DATABASE_URL?: string;
+		LOCAL_DATABASE_URL?: string;
+		SUPABASE_DATABASE_URL?: string;
+	};
+
+	if (environment.DATABASE_URL === undefined) {
+		Reflect.deleteProperty(runtimeEnvironment, 'DATABASE_URL');
+	} else {
+		runtimeEnvironment.DATABASE_URL = environment.DATABASE_URL;
+	}
+
+	if (environment.LOCAL_DATABASE_URL === undefined) {
+		Reflect.deleteProperty(runtimeEnvironment, 'LOCAL_DATABASE_URL');
+	} else {
+		runtimeEnvironment.LOCAL_DATABASE_URL = environment.LOCAL_DATABASE_URL;
+	}
+
+	if (environment.SUPABASE_DATABASE_URL === undefined) {
+		Reflect.deleteProperty(runtimeEnvironment, 'SUPABASE_DATABASE_URL');
+	} else {
+		runtimeEnvironment.SUPABASE_DATABASE_URL = environment.SUPABASE_DATABASE_URL;
+	}
+}
+
 function createSupabaseJwt(overrides: Partial<AuthClaims> = {}): string {
 	const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
 	const payload = Buffer.from(JSON.stringify(createClaims(overrides))).toString('base64url');
@@ -1385,40 +1427,94 @@ describe('buildServer auth wiring', () => {
 	});
 
 	it('returns an empty conversation list when persistence is not configured for first-run sessions', async () => {
-		const listConversations = vi
-			.fn()
-			.mockRejectedValue(
-				new ConversationStoreConfigurationError(
-					'DATABASE_URL is required for conversation persistence.',
-				),
-			);
-		const server = await buildServer({
-			auth: {
-				verify_token: async () => ({
-					claims: createClaims(),
-					provider: 'supabase',
-					session: createSession(),
-					user: createUser(),
-				}),
-			},
-			conversations: {
-				list_conversations: listConversations,
-			},
-		});
-		serversToClose.push(server);
+		const originalDatabaseEnvironment = readConversationDatabaseEnvironment();
+		writeConversationDatabaseEnvironment({});
 
-		const response = await server.inject({
-			headers: {
-				authorization: 'Bearer valid-token',
-			},
-			method: 'GET',
-			url: '/conversations',
+		try {
+			const listConversations = vi
+				.fn()
+				.mockRejectedValue(
+					new ConversationStoreConfigurationError(
+						'DATABASE_URL is required for conversation persistence.',
+					),
+				);
+			const server = await buildServer({
+				auth: {
+					verify_token: async () => ({
+						claims: createClaims(),
+						provider: 'supabase',
+						session: createSession(),
+						user: createUser(),
+					}),
+				},
+				conversations: {
+					list_conversations: listConversations,
+				},
+			});
+			serversToClose.push(server);
+
+			const response = await server.inject({
+				headers: {
+					authorization: 'Bearer valid-token',
+				},
+				method: 'GET',
+				url: '/conversations',
+			});
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json()).toEqual({
+				conversations: [],
+			});
+		} finally {
+			writeConversationDatabaseEnvironment(originalDatabaseEnvironment);
+		}
+	});
+
+	it('surfaces conversation configuration errors when persistence appears configured', async () => {
+		const originalDatabaseEnvironment = readConversationDatabaseEnvironment();
+		writeConversationDatabaseEnvironment({
+			DATABASE_URL: 'postgres://configured-user:configured-pass@127.0.0.1:5432/runa',
 		});
 
-		expect(response.statusCode).toBe(200);
-		expect(response.json()).toEqual({
-			conversations: [],
-		});
+		try {
+			const listConversations = vi
+				.fn()
+				.mockRejectedValue(
+					new ConversationStoreConfigurationError(
+						'Unsupported DATABASE_TARGET "invalid". Expected one of: local, cloud, supabase.',
+					),
+				);
+			const server = await buildServer({
+				auth: {
+					verify_token: async () => ({
+						claims: createClaims(),
+						provider: 'supabase',
+						session: createSession(),
+						user: createUser(),
+					}),
+				},
+				conversations: {
+					list_conversations: listConversations,
+				},
+			});
+			serversToClose.push(server);
+
+			const response = await server.inject({
+				headers: {
+					authorization: 'Bearer valid-token',
+				},
+				method: 'GET',
+				url: '/conversations',
+			});
+
+			expect(response.statusCode).toBe(500);
+			expect(response.json()).toMatchObject({
+				message: 'Unsupported DATABASE_TARGET "invalid". Expected one of: local, cloud, supabase.',
+				statusCode: 500,
+			});
+		} finally {
+			writeConversationDatabaseEnvironment(originalDatabaseEnvironment);
+		}
 	});
 
 	it('returns persisted messages for the selected authenticated conversation', async () => {

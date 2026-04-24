@@ -80,6 +80,26 @@ function isShareConversationBody(value: unknown): value is ShareConversationBody
 	);
 }
 
+function hasConfiguredConversationDatabaseUrl(): boolean {
+	const environment = process.env as NodeJS.ProcessEnv & {
+		readonly DATABASE_URL?: string;
+		readonly LOCAL_DATABASE_URL?: string;
+		readonly SUPABASE_DATABASE_URL?: string;
+	};
+
+	return [
+		environment.DATABASE_URL,
+		environment.LOCAL_DATABASE_URL,
+		environment.SUPABASE_DATABASE_URL,
+	].some((value) => typeof value === 'string' && value.trim().length > 0);
+}
+
+function isConversationPersistenceUnconfigured(error: unknown): boolean {
+	return (
+		error instanceof ConversationStoreConfigurationError && !hasConfiguredConversationDatabaseUrl()
+	);
+}
+
 function replyWithConversationStoreError(
 	reply: FastifyReply,
 	error: ConversationStoreAccessError | ConversationStoreWriteError,
@@ -115,7 +135,7 @@ export async function registerConversationRoutes(
 				conversations: await listConversationsRoute(conversationScopeFromAuthContext(request.auth)),
 			};
 		} catch (error) {
-			if (error instanceof ConversationStoreConfigurationError) {
+			if (isConversationPersistenceUnconfigured(error)) {
 				return {
 					conversations: [],
 				};
