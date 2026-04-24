@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -97,7 +97,9 @@ function createFetchStub(phase, targetPath) {
 
 	return async (url) => {
 		if (typeof url !== 'string' || url !== 'https://api.groq.com/openai/v1/chat/completions') {
-			throw new Error(`[approval-smoke] Unexpected fetch target for phase ${phase}: ${String(url)}`);
+			throw new Error(
+				`[approval-smoke] Unexpected fetch target for phase ${phase}: ${String(url)}`,
+			);
 		}
 
 		requestCount += 1;

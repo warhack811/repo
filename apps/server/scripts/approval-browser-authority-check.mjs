@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import os from 'node:os';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const serverRoot = resolve(scriptDirectory, '..');
@@ -399,7 +399,10 @@ class CdpSession {
 	}
 
 	close() {
-		if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
+		if (
+			this.socket.readyState === WebSocket.OPEN ||
+			this.socket.readyState === WebSocket.CONNECTING
+		) {
 			this.socket.close();
 		}
 	}
@@ -497,10 +500,12 @@ function resolvePromptVariant() {
 		return promptVariants.package_json_list;
 	}
 
-	return promptVariants[requestedVariant] ?? {
-		id: requestedVariant,
-		prompt: requestedVariant,
-	};
+	return (
+		promptVariants[requestedVariant] ?? {
+			id: requestedVariant,
+			prompt: requestedVariant,
+		}
+	);
 }
 
 function resolveToolMode() {
@@ -535,11 +540,11 @@ function buildMinimalAuthorityAvailableTools() {
 					},
 				},
 			];
-		case 'package_json_list':
 		default:
 			return [
 				{
-					description: 'Lists the entries in a local workspace directory with deterministic ordering.',
+					description:
+						'Lists the entries in a local workspace directory with deterministic ordering.',
 					name: 'file.list',
 					parameters: {
 						include_hidden: {
@@ -587,7 +592,9 @@ function summarizeRunRequestPayload(payload) {
 		available_tool_names:
 			request && typeof request === 'object' && Array.isArray(request.available_tools)
 				? request.available_tools.map((tool) =>
-						tool && typeof tool === 'object' && typeof tool.name === 'string' ? tool.name : 'unknown',
+						tool && typeof tool === 'object' && typeof tool.name === 'string'
+							? tool.name
+							: 'unknown',
 					)
 				: [],
 		include_presentation_blocks: payload.include_presentation_blocks === true,
@@ -600,9 +607,7 @@ function summarizeRunRequestPayload(payload) {
 			typeof payload.provider_config?.apiKey === 'string' &&
 			payload.provider_config.apiKey.trim().length > 0,
 		user_message_preview:
-			firstMessage &&
-			typeof firstMessage === 'object' &&
-			typeof firstMessage.content === 'string'
+			firstMessage && typeof firstMessage === 'object' && typeof firstMessage.content === 'string'
 				? firstMessage.content.slice(0, 160)
 				: null,
 	};
@@ -701,8 +706,7 @@ function extractAuthorityOutcome(browserState) {
 			(message) =>
 				message?.type === 'run.request' &&
 				(typeof runId !== 'string' || message?.payload?.run_id === runId),
-		) ??
-		findLastMatchingEntry(sentMessages, (message) => message?.type === 'run.request');
+		) ?? findLastMatchingEntry(sentMessages, (message) => message?.type === 'run.request');
 	const approvalMessage =
 		findLastMatchingEntry(
 			receivedMessages,
@@ -723,7 +727,9 @@ function extractAuthorityOutcome(browserState) {
 					(block) => block?.type === 'approval_block' && block?.payload?.status === 'pending',
 				),
 		);
-	const approvalBlock = approvalMessage?.payload?.blocks?.find((block) => block?.type === 'approval_block');
+	const approvalBlock = approvalMessage?.payload?.blocks?.find(
+		(block) => block?.type === 'approval_block',
+	);
 	const approvalResolveMessage =
 		findLastMatchingEntry(
 			sentMessages,
@@ -810,7 +816,10 @@ function classifyFailure(input) {
 		return 'browser_runtime_config_drift';
 	}
 
-	if (input.serverLogs.includes('[provider.error.debug]') || input.serverLogs.includes('groq returned HTTP')) {
+	if (
+		input.serverLogs.includes('[provider.error.debug]') ||
+		input.serverLogs.includes('groq returned HTTP')
+	) {
 		return 'provider_response_error';
 	}
 
@@ -888,7 +897,9 @@ async function main() {
 		edgeProcess = await launchEdge(edgeUserDataDir);
 		await waitForHttpOk(`${cdpBaseUrl}/json/version`, 15_000);
 		const targets = await readJson(`${cdpBaseUrl}/json/list`);
-		const pageTarget = targets.find((target) => target.type === 'page' && target.webSocketDebuggerUrl);
+		const pageTarget = targets.find(
+			(target) => target.type === 'page' && target.webSocketDebuggerUrl,
+		);
 
 		if (!pageTarget?.webSocketDebuggerUrl) {
 			throw new Error('No debuggable Edge page target was created.');
@@ -1025,7 +1036,9 @@ async function main() {
 				trace_id: authorityOutcome.runFinishedMessage.payload.trace_id,
 			},
 			ws_observation: {
-				received_types: authorityOutcome.receivedMessages.map((message) => message?.type ?? 'unknown'),
+				received_types: authorityOutcome.receivedMessages.map(
+					(message) => message?.type ?? 'unknown',
+				),
 				run_request: summarizeRunRequestPayload(authorityOutcome.runRequestMessage?.payload),
 				socket_urls: sanitizeSocketUrls(finalBrowserState.ws_log?.socket_urls),
 			},
@@ -1071,7 +1084,8 @@ async function main() {
 			prompt_variant: promptVariant.id,
 			result: 'FAIL',
 			ws_observation: {
-				received_types: authorityOutcome.receivedMessages?.map((message) => message?.type ?? 'unknown') ?? [],
+				received_types:
+					authorityOutcome.receivedMessages?.map((message) => message?.type ?? 'unknown') ?? [],
 				run_request: summarizeRunRequestPayload(authorityOutcome.runRequestMessage?.payload),
 				socket_urls: sanitizeSocketUrls(browserState?.ws_log?.socket_urls),
 			},

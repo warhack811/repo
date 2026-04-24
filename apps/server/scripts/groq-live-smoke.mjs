@@ -540,28 +540,26 @@ function buildCompatibilityVariantDefinitions(modules) {
 
 	return [
 		...packageJsonVariants.flatMap((variant) =>
-			(
-				variant.tool_mode === compatibilityToolVariants.full_registry
-					? [groqHygieneProfiles.current_shape, groqHygieneProfiles.default_prompt_aware]
-					: [
-							groqHygieneProfiles.current_shape,
-							groqHygieneProfiles.stripped_descriptions,
-							groqHygieneProfiles.narrow_context_split,
-						]
+			(variant.tool_mode === compatibilityToolVariants.full_registry
+				? [groqHygieneProfiles.current_shape, groqHygieneProfiles.default_prompt_aware]
+				: [
+						groqHygieneProfiles.current_shape,
+						groqHygieneProfiles.stripped_descriptions,
+						groqHygieneProfiles.narrow_context_split,
+					]
 			).map((hygiene_profile) => ({
 				...variant,
 				hygiene_profile,
 			})),
 		),
 		...readmeVariants.flatMap((variant) =>
-			(
-				variant.tool_mode === compatibilityToolVariants.full_registry
-					? [groqHygieneProfiles.current_shape, groqHygieneProfiles.default_prompt_aware]
-					: [
-							groqHygieneProfiles.current_shape,
-							groqHygieneProfiles.stripped_descriptions,
-							groqHygieneProfiles.narrow_context_split,
-						]
+			(variant.tool_mode === compatibilityToolVariants.full_registry
+				? [groqHygieneProfiles.current_shape, groqHygieneProfiles.default_prompt_aware]
+				: [
+						groqHygieneProfiles.current_shape,
+						groqHygieneProfiles.stripped_descriptions,
+						groqHygieneProfiles.narrow_context_split,
+					]
 			).map((hygiene_profile) => ({
 				...variant,
 				hygiene_profile,
@@ -645,7 +643,9 @@ async function runCompatibilityMatrix(input) {
 		if (captured.result) {
 			stageResults.push({
 				hygiene_profile: variant.hygiene_profile.id,
-				outcome_kind: captured.result.tool_call_candidate ? 'tool_call_candidate' : 'assistant_response',
+				outcome_kind: captured.result.tool_call_candidate
+					? 'tool_call_candidate'
+					: 'assistant_response',
 				prompt_variant: variant.prompt_variant.id,
 				provider: captured.result.provider,
 				request_summary: summarizeModelRequest(modelRequest),
