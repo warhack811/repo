@@ -1,12 +1,9 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 
-import {
-	heroPanelStyle,
-	pageStyle,
-	pillStyle,
-	secondaryButtonStyle,
-} from '../../lib/chat-styles.js';
+import { heroPanelStyle, pageStyle, secondaryButtonStyle } from '../../lib/chat-styles.js';
+import { designTokens } from '../../lib/design-tokens.js';
 import { uiCopy } from '../../localization/copy.js';
+import { RunaBadge, RunaSurface } from '../ui/index.js';
 import { AppNav, type AuthenticatedPageId } from './AppNav.js';
 
 export const appShellPageStyle: CSSProperties = {
@@ -20,16 +17,16 @@ export const appShellPageStyle: CSSProperties = {
 
 const shellFrameStyle: CSSProperties = {
 	display: 'grid',
-	gap: 'clamp(16px, 3vw, 20px)',
+	gap: designTokens.spacing.shellGap,
 	minWidth: 0,
 };
 
 export const appShellPanelStyle: CSSProperties = {
-	background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 15, 27, 0.76) 100%)',
-	border: '1px solid rgba(148, 163, 184, 0.2)',
-	borderRadius: '24px',
-	boxShadow: 'var(--shadow-panel)',
-	padding: 'clamp(18px, 3vw, 24px)',
+	background: designTokens.color.background.panel,
+	border: `1px solid ${designTokens.color.border.subtle}`,
+	borderRadius: designTokens.radius.card,
+	boxShadow: designTokens.shadow.panel,
+	padding: designTokens.spacing.panel,
 	backdropFilter: 'blur(12px)',
 	position: 'relative',
 	overflow: 'hidden',
@@ -41,15 +38,13 @@ export const appShellHeroPanelStyle: CSSProperties = {
 };
 
 export const appShellSecondaryLabelStyle: CSSProperties = {
-	fontSize: '11px',
-	letterSpacing: '0.08em',
-	textTransform: 'uppercase',
-	color: '#94a3b8',
+	...designTokens.typography.label,
+	color: designTokens.color.foreground.soft,
 };
 
 export const appShellMutedTextStyle: CSSProperties = {
 	margin: 0,
-	color: '#cbd5e1',
+	color: designTokens.color.foreground.muted,
 	lineHeight: 1.6,
 };
 
@@ -62,13 +57,13 @@ export const appShellButtonRowStyle: CSSProperties = {
 
 export const appShellPrimaryButtonStyle: CSSProperties = {
 	padding: '12px 16px',
-	borderRadius: '14px',
+	borderRadius: designTokens.radius.button,
 	border: 'none',
-	background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
-	color: 'var(--color-accent-foreground)',
+	background: designTokens.color.interactive.primary,
+	color: designTokens.color.foreground.inverse,
 	fontWeight: 700,
 	cursor: 'pointer',
-	boxShadow: '0 18px 32px rgba(234, 88, 12, 0.22)',
+	boxShadow: designTokens.shadow.primaryButton,
 };
 
 export const appShellSecondaryButtonStyle: CSSProperties = {
@@ -77,9 +72,9 @@ export const appShellSecondaryButtonStyle: CSSProperties = {
 
 export const appShellMetricCardStyle: CSSProperties = {
 	padding: '14px 16px',
-	borderRadius: '18px',
+	borderRadius: designTokens.radius.soft,
 	background: 'linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%)',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
+	border: `1px solid ${designTokens.color.border.soft}`,
 	display: 'grid',
 	gap: '8px',
 	minWidth: 0,
@@ -148,14 +143,12 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 							<h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 38px)' }}>{pageCopy.title}</h1>
 							<p style={appShellMutedTextStyle}>{pageCopy.subtitle}</p>
 						</div>
-						<div
-							style={{
-								...pillStyle,
-							}}
+						<RunaBadge
 							className="runa-pill runa-app-shell-status-pill"
+							tone={authStatus === 'service' ? 'warning' : 'neutral'}
 						>
 							{statusLabel}
-						</div>
+						</RunaBadge>
 					</div>
 
 					<div className="runa-app-shell-nav">
@@ -163,13 +156,15 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 					</div>
 				</header>
 
-				<main
+				<RunaSurface
+					as="main"
 					id="authenticated-app-content"
 					style={shellMainStyle}
 					className="runa-app-shell-main"
+					tone="plain"
 				>
 					{children}
-				</main>
+				</RunaSurface>
 			</div>
 		</div>
 	);

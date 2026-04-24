@@ -26,6 +26,8 @@ import {
 	webSearchResultListStyle,
 } from '../../lib/chat-styles.js';
 import type { InspectionTargetKind, RenderBlock } from '../../ws-types.js';
+import { CapabilityCard } from './capability/index.js';
+import type { CapabilityStatus, CapabilityTone } from './capability/index.js';
 
 export interface InspectionActionState {
 	readonly detail_block_id?: string;
@@ -295,6 +297,90 @@ export function getToolResultStyles(
 	};
 }
 
+export function getToolResultCapabilityStatus(
+	status: Extract<RenderBlock, { type: 'tool_result' }>['payload']['status'],
+): CapabilityStatus {
+	return status === 'success' ? 'completed' : 'failed';
+}
+
+export function getToolResultCapabilityTone(
+	status: Extract<RenderBlock, { type: 'tool_result' }>['payload']['status'],
+): CapabilityTone {
+	return status === 'success' ? 'success' : 'danger';
+}
+
+export function renderToolResultBlock(
+	block: Extract<RenderBlock, { type: 'tool_result' }>,
+): ReactElement {
+	const toolResultStyles = getToolResultStyles(block.payload.status);
+
+	return (
+		<CapabilityCard
+			as="article"
+			key={block.id}
+			eyebrow="tool result"
+			title={block.payload.tool_name}
+			status={getToolResultCapabilityStatus(block.payload.status)}
+			tone={getToolResultCapabilityTone(block.payload.status)}
+			headerAside={
+				<span
+					style={{
+						...createStatusChipStyle(block.payload.status === 'success' ? 'success' : 'error'),
+						background: toolResultStyles.statusBackground,
+						color: toolResultStyles.statusColor,
+					}}
+				>
+					{block.payload.status}
+				</span>
+			}
+			style={{
+				...presentationBlockCardStyle,
+				borderColor: toolResultStyles.borderColor,
+				background:
+					block.payload.status === 'success'
+						? 'linear-gradient(180deg, rgba(6, 18, 16, 0.92) 0%, rgba(2, 6, 23, 0.88) 100%)'
+						: 'linear-gradient(180deg, rgba(30, 10, 10, 0.9) 0%, rgba(2, 6, 23, 0.88) 100%)',
+			}}
+		>
+			<div style={presentationSubtleTextStyle}>{block.payload.summary}</div>
+
+			<div
+				style={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: '10px',
+					flexWrap: 'wrap',
+					marginTop: '10px',
+				}}
+			>
+				<span style={secondaryLabelStyle}>call_id</span>
+				<code style={inspectionChipStyle}>{block.payload.call_id}</code>
+				{block.payload.error_code ? (
+					<span
+						style={{
+							...inspectionChipStyle,
+							color: '#fca5a5',
+							border: '1px solid rgba(248, 113, 113, 0.35)',
+							background: 'rgba(127, 29, 29, 0.24)',
+						}}
+					>
+						error_code: {block.payload.error_code}
+					</span>
+				) : null}
+			</div>
+
+			{block.payload.result_preview ? (
+				<div style={toolResultPreviewStyle}>
+					<div style={{ ...secondaryLabelStyle, marginBottom: '6px' }}>
+						preview / {block.payload.result_preview.kind}
+					</div>
+					<div>{block.payload.result_preview.summary_text}</div>
+				</div>
+			) : null}
+		</CapabilityCard>
+	);
+}
+
 export function getCodeBlockAccent(
 	diffKind: Extract<RenderBlock, { type: 'code_block' }>['payload']['diff_kind'],
 ): string {
@@ -560,37 +646,18 @@ export function renderSearchResultBlock(
 	getInspectionActionState?: GetInspectionActionState,
 ): ReactElement {
 	return (
-		<article
+		<CapabilityCard
+			as="article"
+			eyebrow="search summary"
 			key={block.id}
 			id={getPresentationBlockDomId(block.id)}
+			title={block.payload.title}
+			titleId={getPresentationBlockTitleDomId(block.id)}
+			tone="warning"
 			tabIndex={-1}
 			aria-labelledby={getPresentationBlockTitleDomId(block.id)}
 			aria-describedby={getPresentationBlockSummaryDomId(block.id)}
-			style={{
-				...presentationBlockCardStyle,
-				borderColor: 'rgba(250, 204, 21, 0.28)',
-				background: 'linear-gradient(180deg, rgba(32, 24, 8, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%)',
-			}}
-		>
-			<div
-				style={{
-					display: 'flex',
-					justifyContent: 'space-between',
-					alignItems: 'flex-start',
-					gap: '12px',
-					flexWrap: 'wrap',
-					marginBottom: '10px',
-				}}
-			>
-				<div style={{ display: 'grid', gap: '4px' }}>
-					<span style={secondaryLabelStyle}>search summary</span>
-					<h3
-						id={getPresentationBlockTitleDomId(block.id)}
-						style={{ margin: 0, fontSize: '16px', color: '#f8fafc' }}
-					>
-						{block.payload.title}
-					</h3>
-				</div>
+			headerAside={
 				<div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
 					{block.payload.is_truncated ? (
 						<span
@@ -615,7 +682,13 @@ export function renderSearchResultBlock(
 						getInspectionActionState,
 					)}
 				</div>
-			</div>
+			}
+			style={{
+				...presentationBlockCardStyle,
+				borderColor: 'rgba(250, 204, 21, 0.28)',
+				background: 'linear-gradient(180deg, rgba(32, 24, 8, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%)',
+			}}
+		>
 			<p
 				id={getPresentationBlockSummaryDomId(block.id)}
 				style={{ ...presentationSubtleTextStyle, margin: 0, color: 'hsl(var(--color-text))' }}
@@ -708,7 +781,7 @@ export function renderSearchResultBlock(
 					))
 				)}
 			</div>
-		</article>
+		</CapabilityCard>
 	);
 }
 

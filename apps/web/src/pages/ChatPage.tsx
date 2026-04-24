@@ -1,24 +1,23 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 
+import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
+import { ChatDeveloperHint } from '../components/chat/ChatDeveloperHint.js';
 import { ChatShell } from '../components/chat/ChatShell.js';
+import { ChatWorkspaceHeader } from '../components/chat/ChatWorkspaceHeader.js';
 import { ConversationSidebar } from '../components/chat/ConversationSidebar.js';
-import { DesktopTargetSelector } from '../components/chat/DesktopTargetSelector.js';
-import { FileUploadButton } from '../components/chat/FileUploadButton.js';
-import { MarkdownRenderer } from '../components/chat/MarkdownRenderer.js';
+import { CurrentRunSurface } from '../components/chat/CurrentRunSurface.js';
+import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import type { InspectionActionState } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
 import { RunTimelinePanel } from '../components/chat/RunTimelinePanel.js';
-import { VoiceComposerControls } from '../components/chat/VoiceComposerControls.js';
 import {
 	buildInspectionSurfaceMeta,
 	createInspectionDetailRequestKey,
 	getInspectionDetailBlockId,
-	getStatusAccent,
 } from '../components/chat/chat-presentation.js';
 import type { UseChatRuntimeResult } from '../hooks/useChatRuntime.js';
 import { useChatRuntimeView } from '../hooks/useChatRuntimeView.js';
@@ -28,7 +27,6 @@ import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { deriveCurrentRunProgressSurface } from '../lib/chat-runtime/current-run-progress.js';
 import { DEFAULT_INSPECTION_DETAIL_LEVEL } from '../lib/chat-runtime/types.js';
-import { heroPanelStyle, secondaryLabelStyle } from '../lib/chat-styles.js';
 import { fetchDesktopDevices } from '../lib/desktop-devices.js';
 import { uiCopy } from '../localization/copy.js';
 import {
@@ -46,97 +44,11 @@ type ChatPageProps = Readonly<{
 	runtime: UseChatRuntimeResult;
 }>;
 
-const composerCardStyle = {
-	borderRadius: '24px',
-	border: '1px solid rgba(148, 163, 184, 0.18)',
-	background: 'linear-gradient(180deg, rgba(12, 18, 31, 0.9) 0%, rgba(9, 14, 25, 0.82) 100%)',
-	padding: 'clamp(18px, 3vw, 24px)',
-	display: 'grid',
-	gap: '16px',
-	boxShadow: '0 24px 60px rgba(2, 6, 23, 0.38)',
-} as const;
-
-const composerInputStyle = {
-	width: '100%',
-	padding: '14px 16px',
-	borderRadius: '18px',
-	border: '1px solid rgba(148, 163, 184, 0.2)',
-	background: 'rgba(5, 10, 20, 0.84)',
-	color: '#f8fafc',
-	fontSize: '15px',
-	boxSizing: 'border-box',
-	resize: 'vertical',
-	minHeight: '140px',
-	boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-} as const;
-
-const primaryButtonStyle = {
-	padding: '12px 18px',
-	borderRadius: '14px',
-	border: 'none',
-	background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
-	color: '#1f1303',
-	fontWeight: 700,
-	cursor: 'pointer',
-	boxShadow: '0 18px 36px rgba(245, 158, 11, 0.2)',
-	transition: 'transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease',
-} as const;
-
-const secondaryButtonLinkStyle = {
-	display: 'inline-flex',
-	alignItems: 'center',
-	justifyContent: 'center',
-	padding: '10px 14px',
-	borderRadius: '14px',
-	border: '1px solid rgba(148, 163, 184, 0.26)',
-	background: 'rgba(9, 14, 25, 0.82)',
-	color: '#e5e7eb',
-	fontWeight: 600,
-	textDecoration: 'none',
-	transition: 'transform 180ms ease, border-color 180ms ease, background 180ms ease',
-} as const;
-
-const conversationSurfaceStyle = {
-	borderRadius: '24px',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	background: 'linear-gradient(180deg, rgba(12, 18, 31, 0.88) 0%, rgba(7, 11, 20, 0.74) 100%)',
-	padding: 'clamp(18px, 3vw, 24px)',
-	display: 'grid',
-	gap: '16px',
-	boxShadow: '0 24px 60px rgba(2, 6, 23, 0.38)',
-	transition: 'opacity 220ms ease, transform 220ms ease, border-color 220ms ease',
-} as const;
-
-const developerHintStyle = {
-	borderRadius: '18px',
-	border: '1px solid rgba(245, 158, 11, 0.24)',
-	background: 'rgba(38, 26, 8, 0.44)',
-	padding: '14px 16px',
-	display: 'grid',
-	gap: '12px',
-	transition: 'opacity 220ms ease, transform 220ms ease',
-} as const;
-
-const streamingSurfaceStyle = {
-	borderRadius: '20px',
-	border: '1px solid rgba(245, 158, 11, 0.28)',
-	background: 'linear-gradient(180deg, rgba(54, 32, 7, 0.28) 0%, rgba(15, 23, 42, 0.3) 100%)',
-	padding: '16px 18px',
-	display: 'grid',
-	gap: '10px',
-	boxShadow: '0 18px 36px rgba(15, 23, 42, 0.22)',
-} as const;
-
 const workspaceGridStyle = {
 	display: 'grid',
 	gap: '20px',
 	gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
 	alignItems: 'start',
-} as const;
-
-const persistedMessagesStyle = {
-	display: 'grid',
-	gap: '12px',
 } as const;
 
 export function ChatPage({
@@ -377,71 +289,6 @@ export function ChatPage({
 		<RunProgressPanel feedbackBanner={currentRunFeedbackBanner} progress={currentRunProgress} />
 	) : null;
 	const currentRunId = currentRunFeedback?.run_id ?? currentPresentationSurface?.run_id;
-	const shouldShowStreamingSurface =
-		currentStreamingText.trim().length > 0 &&
-		currentStreamingRunId !== null &&
-		currentStreamingRunId === currentRunId;
-	const streamingSurface = shouldShowStreamingSurface ? (
-		<div style={streamingSurfaceStyle} aria-live="polite">
-			<div style={secondaryLabelStyle}>Live response</div>
-			<MarkdownRenderer
-				className="runa-streaming-response"
-				content={currentStreamingText}
-				isStreaming
-			/>
-		</div>
-	) : null;
-
-	const persistedConversationMessages =
-		activeConversationMessages.length > 0 ? (
-			<div style={persistedMessagesStyle} aria-live="polite">
-				<div style={secondaryLabelStyle}>Persisted transcript</div>
-				{activeConversationMessages.map((message) => (
-					<div
-						key={message.message_id}
-						style={{
-							borderRadius: '18px',
-							border:
-								message.role === 'user'
-									? '1px solid rgba(245, 158, 11, 0.24)'
-									: '1px solid rgba(148, 163, 184, 0.14)',
-							background:
-								message.role === 'user' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(7, 11, 20, 0.46)',
-							padding: '14px 16px',
-							display: 'grid',
-							gap: '8px',
-						}}
-					>
-						<div
-							style={{
-								display: 'flex',
-								justifyContent: 'space-between',
-								gap: '12px',
-								flexWrap: 'wrap',
-								fontSize: '12px',
-								color: '#94a3b8',
-							}}
-						>
-							<strong style={{ color: '#e5e7eb' }}>
-								{message.role === 'user' ? 'You' : message.role === 'assistant' ? 'Runa' : 'System'}
-							</strong>
-							<span>{new Date(message.created_at).toLocaleString()}</span>
-						</div>
-						<MarkdownRenderer content={message.content} />
-					</div>
-				))}
-			</div>
-		) : activeConversationId ? (
-			<div className="runa-subtle-copy">
-				Bu conversation icin henuz kalici mesaj bulunmuyor. Ilk yanit tamamlandiginda burada
-				gorunecek.
-			</div>
-		) : (
-			<div className="runa-subtle-copy">
-				Yeni draft conversation acik. Ilk mesaji gonderdiginde otomatik olarak kalici bir
-				conversation olusturulacak.
-			</div>
-		);
 
 	const emptyRunTimelineContent = (
 		<div
@@ -523,332 +370,62 @@ export function ChatPage({
 		/>
 	) : null;
 
-	const pastPresentationContent = pastPresentationSurfaces.map((surface) => (
-		<PresentationRunSurfaceCard
-			key={surface.run_id}
-			expanded={expandedPastRunIds.includes(surface.run_id)}
+	const pastPresentationContent = (
+		<PastRunSurfaces
+			expandedPastRunIds={expandedPastRunIds}
 			inspectionAnchorIdsByDetailId={inspectionAnchorIdsByDetailId}
-			isCurrent={false}
 			onRequestInspection={requestInspection}
 			onResolveApproval={resolveApproval}
-			onToggleExpanded={(runId, nextOpen) => setPastRunExpanded(runId, nextOpen)}
+			onToggleExpanded={setPastRunExpanded}
+			pastPresentationSurfaces={pastPresentationSurfaces}
 			pendingInspectionRequestKeys={pendingInspectionRequestKeys}
 			runTransportSummaries={runTransportSummaries}
-			surface={surface}
 			getInspectionActionState={getInspectionActionState}
 		/>
-	));
+	);
 
 	return (
 		<ChatShell embedded={embedded}>
-			<section
-				className="runa-card runa-card--hero runa-ambient-panel"
-				style={heroPanelStyle}
-				aria-labelledby="chat-workspace-heading"
-				aria-describedby="chat-workspace-description"
-			>
-				<div
-					style={{
-						display: 'flex',
-						justifyContent: 'space-between',
-						alignItems: 'center',
-						gap: '12px',
-						flexWrap: 'wrap',
-					}}
-				>
-					<div style={{ maxWidth: 'min(720px, 100%)' }}>
-						<div className="runa-eyebrow">{uiCopy.appShell.chatEyebrow.toUpperCase()}</div>
-						<h1
-							id="chat-workspace-heading"
-							style={{ margin: '10px 0 6px', fontSize: 'clamp(28px, 5vw, 40px)' }}
-						>
-							{uiCopy.chat.heroTitle}
-						</h1>
-						<p
-							id="chat-workspace-description"
-							className="runa-subtle-copy"
-							style={{ maxWidth: 'min(620px, 100%)' }}
-						>
-							{uiCopy.chat.heroSubtitle}
-						</p>
-					</div>
-					<div
-						style={{
-							padding: '8px 12px',
-							borderRadius: '999px',
-							border: `1px solid ${getStatusAccent(connectionStatus)}`,
-							color: getStatusAccent(connectionStatus),
-							fontWeight: 700,
-							fontSize: '12px',
-							letterSpacing: '0.08em',
-						}}
-					>
-						{statusLabel}
-					</div>
-				</div>
-			</section>
+			<ChatWorkspaceHeader connectionStatus={connectionStatus} statusLabel={statusLabel} />
 
-			<section
-				className="runa-card runa-card--strong runa-chat-surface"
-				style={composerCardStyle}
-				aria-labelledby="chat-composer-heading"
-			>
-				<div style={{ display: 'grid', gap: '8px' }}>
-					<div style={secondaryLabelStyle}>Conversation</div>
-					<h2 id="chat-composer-heading" style={{ margin: 0, fontSize: '20px' }}>
-						Sohbetten devam et
-					</h2>
-					<div className="runa-subtle-copy">
-						Hedefini yaz, Runa akisi burada tutsun ve gerekirse seni sonraki adima tasiyacagini
-						gostersin.
-					</div>
-				</div>
-
-				{!apiKey.trim() && isRuntimeConfigReady ? (
-					<div
-						style={{
-							fontSize: '13px',
-							display: 'flex',
-							alignItems: 'center',
-							gap: '10px',
-						}}
-						className="runa-alert runa-alert--warning"
-					>
-						<span style={{ color: '#f59e0b' }}>●</span>
-						Sunucu tarafındaki varsayılan API anahtarı kullanılacak.
-					</div>
-				) : null}
-
-				{!isRuntimeConfigReady ? (
-					<output
-						aria-live="polite"
-						style={{
-							display: 'grid',
-							gap: '10px',
-							transition: 'opacity 220ms ease, transform 220ms ease',
-						}}
-						className="runa-alert runa-alert--warning"
-					>
-						<div style={{ color: '#fde68a', fontWeight: 700 }}>{uiCopy.chat.configMissing}</div>
-						<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-							<button
-								type="button"
-								onClick={() => setDeveloperMode(true)}
-								style={{
-									...primaryButtonStyle,
-									padding: '10px 14px',
-									boxShadow: 'none',
-								}}
-								className="runa-button runa-button--primary"
-							>
-								Developer Mode'u etkinlestir
-							</button>
-							<Link
-								className="runa-button runa-button--secondary"
-								style={secondaryButtonLinkStyle}
-								to="/developer"
-							>
-								{uiCopy.chat.openDeveloper}
-							</Link>
-						</div>
-					</output>
-				) : null}
-
-				<form onSubmit={submitRunRequest} style={{ display: 'grid', gap: '12px' }}>
-					<label style={{ display: 'grid', gap: '8px' }}>
-						<span style={{ color: '#e5e7eb', fontWeight: 600 }}>{uiCopy.chat.send}</span>
-						<textarea
-							value={prompt}
-							onChange={(event) => setPrompt(event.target.value)}
-							placeholder={uiCopy.chat.composerPlaceholder}
-							rows={5}
-							style={composerInputStyle}
-							className="runa-input runa-input--textarea"
-						/>
-					</label>
-
-					<DesktopTargetSelector
-						devices={desktopDevices}
-						errorMessage={desktopDeviceError}
-						isLoading={isDesktopDevicesLoading}
-						onClear={() => setSelectedDesktopTargetConnectionId(null)}
-						onRetry={() => setDesktopDevicesReloadKey((current) => current + 1)}
-						onSelect={setSelectedDesktopTargetConnectionId}
-						selectedConnectionId={selectedDesktopTargetConnectionId}
-					/>
-
-					<VoiceComposerControls
-						canReadLatestResponse={latestReadableResponse.length > 0}
-						isListening={voiceInput.isListening}
-						isSpeaking={isSpeaking}
-						isSpeechPlaybackSupported={isTextToSpeechSupported}
-						isVoiceSupported={voiceInput.isSupported}
-						onReadLatestResponse={() => speak(latestReadableResponse)}
-						onStopSpeaking={cancelTextToSpeech}
-						onToggleListening={voiceInput.toggleListening}
-						voiceStatusMessage={voiceStatusMessage}
-					/>
-
-					<div style={{ display: 'grid', gap: '10px' }}>
-						<div
-							style={{
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'space-between',
-								gap: '12px',
-								flexWrap: 'wrap',
-							}}
-						>
-							<div style={secondaryLabelStyle}>Attachments</div>
-							<FileUploadButton
-								accessToken={accessToken}
-								disabled={!isRuntimeConfigReady || isSubmitting}
-								onAttachmentUploaded={(attachment) => {
-									setAttachments([...attachments, attachment]);
-									setAttachmentUploadError(null);
-								}}
-								onUploadStateChange={({ error, isUploading }) => {
-									setAttachmentUploadError(error);
-									setIsUploadingAttachment(isUploading);
-								}}
-							/>
-						</div>
-						<div className="runa-subtle-copy">
-							Bu minimum seam simdilik `image/*`, `text/*` ve `application/json` dosyalari ile
-							sinirli. Prompt'a kisa bir niyet ekleyip dosyayi birlikte gonderebilirsin.
-						</div>
-						{attachments.length > 0 ? (
-							<div style={{ display: 'grid', gap: '10px' }}>
-								{attachments.map((attachment) => (
-									<div
-										key={attachment.blob_id}
-										style={{
-											display: 'grid',
-											gap: '8px',
-											padding: '12px 14px',
-											borderRadius: '16px',
-											border: '1px solid rgba(148, 163, 184, 0.16)',
-											background: 'rgba(9, 14, 25, 0.68)',
-										}}
-									>
-										<div
-											style={{
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'space-between',
-												gap: '12px',
-												flexWrap: 'wrap',
-											}}
-										>
-											<div style={{ display: 'grid', gap: '4px' }}>
-												<strong style={{ color: '#f8fafc' }}>
-													{attachment.filename ?? attachment.blob_id}
-												</strong>
-												<div className="runa-subtle-copy">
-													{attachment.kind} • {attachment.media_type} • {attachment.size_bytes}{' '}
-													bytes
-												</div>
-											</div>
-											<button
-												type="button"
-												onClick={() =>
-													setAttachments(
-														attachments.filter(
-															(candidate) => candidate.blob_id !== attachment.blob_id,
-														),
-													)
-												}
-												style={{
-													...secondaryButtonLinkStyle,
-													padding: '8px 12px',
-												}}
-												className="runa-button runa-button--secondary"
-											>
-												Kaldir
-											</button>
-										</div>
-										{attachment.kind === 'image' ? (
-											<img
-												alt={attachment.filename ?? 'Uploaded attachment preview'}
-												src={attachment.data_url}
-												style={{
-													maxWidth: 'min(220px, 100%)',
-													borderRadius: '14px',
-													border: '1px solid rgba(148, 163, 184, 0.16)',
-												}}
-											/>
-										) : (
-											<div
-												style={{
-													fontSize: '13px',
-													lineHeight: 1.5,
-													color: '#cbd5e1',
-													whiteSpace: 'pre-wrap',
-												}}
-											>
-												{attachment.text_content}
-											</div>
-										)}
-									</div>
-								))}
-							</div>
-						) : null}
-						{attachmentUploadError ? (
-							<div className="runa-alert runa-alert--warning">{attachmentUploadError}</div>
-						) : isUploadingAttachment ? (
-							<div className="runa-subtle-copy">Secilen dosya yukleniyor...</div>
-						) : null}
-					</div>
-
-					{lastError ? (
-						<div
-							role="alert"
-							style={{
-								lineHeight: 1.5,
-								transition: 'opacity 220ms ease, transform 220ms ease',
-							}}
-							className="runa-alert runa-alert--danger"
-						>
-							{lastError}
-						</div>
-					) : null}
-
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'center',
-							gap: '12px',
-							flexWrap: 'wrap',
-						}}
-					>
-						<div style={{ color: '#94a3b8', fontSize: '13px' }}>{statusLabel}</div>
-						<button
-							type="submit"
-							disabled={
-								isSubmitting ||
-								isUploadingAttachment ||
-								connectionStatus !== 'open' ||
-								!isRuntimeConfigReady
-							}
-							style={{
-								...primaryButtonStyle,
-								opacity:
-									isSubmitting ||
-									isUploadingAttachment ||
-									connectionStatus !== 'open' ||
-									!isRuntimeConfigReady
-										? 0.6
-										: 1,
-								width: 'min(220px, 100%)',
-							}}
-							className="runa-button runa-button--primary"
-						>
-							{submitButtonLabel}
-						</button>
-					</div>
-				</form>
-			</section>
+			<ChatComposerSurface
+				accessToken={accessToken}
+				apiKey={apiKey}
+				attachmentUploadError={attachmentUploadError}
+				attachments={attachments}
+				canReadLatestResponse={latestReadableResponse.length > 0}
+				connectionStatus={connectionStatus}
+				desktopDeviceError={desktopDeviceError}
+				desktopDevices={desktopDevices}
+				isDesktopDevicesLoading={isDesktopDevicesLoading}
+				isListening={voiceInput.isListening}
+				isRuntimeConfigReady={isRuntimeConfigReady}
+				isSpeaking={isSpeaking}
+				isSpeechPlaybackSupported={isTextToSpeechSupported}
+				isSubmitting={isSubmitting}
+				isUploadingAttachment={isUploadingAttachment}
+				isVoiceSupported={voiceInput.isSupported}
+				lastError={lastError}
+				onAttachmentUploadStateChange={({ error, isUploading }) => {
+					setAttachmentUploadError(error);
+					setIsUploadingAttachment(isUploading);
+				}}
+				onAttachmentsChange={setAttachments}
+				onClearDesktopTarget={() => setSelectedDesktopTargetConnectionId(null)}
+				onOpenDeveloperMode={() => setDeveloperMode(true)}
+				onPromptChange={setPrompt}
+				onReadLatestResponse={() => speak(latestReadableResponse)}
+				onRetryDesktopDevices={() => setDesktopDevicesReloadKey((current) => current + 1)}
+				onSelectDesktopTarget={setSelectedDesktopTargetConnectionId}
+				onStopSpeaking={cancelTextToSpeech}
+				onSubmit={submitRunRequest}
+				onToggleListening={voiceInput.toggleListening}
+				prompt={prompt}
+				selectedDesktopTargetConnectionId={selectedDesktopTargetConnectionId}
+				statusLabel={statusLabel}
+				submitButtonLabel={submitButtonLabel}
+				voiceStatusMessage={voiceStatusMessage}
+			/>
 
 			<section style={workspaceGridStyle} aria-label="Conversation workspace">
 				<ConversationSidebar
@@ -865,25 +442,16 @@ export function ChatPage({
 					onShareMember={conversations.shareConversationMember}
 					onStartNewConversation={beginDraftConversation}
 				/>
-				<div
-					className="runa-card runa-card--chat runa-chat-surface"
-					style={conversationSurfaceStyle}
-					aria-labelledby="chat-conversation-surface-heading"
-				>
-					<div style={{ display: 'grid', gap: '8px' }}>
-						<div style={secondaryLabelStyle}>{uiCopy.run.currentRunProgress}</div>
-						<h2 id="chat-conversation-surface-heading" style={{ fontSize: '20px' }}>
-							Aktif sohbet akisi
-						</h2>
-						<div className="runa-subtle-copy">
-							Guncel calisma, kalici mesajlar ve yardimci kartlar burada sakin bir akista kalir.
-						</div>
-					</div>
-					{persistedConversationMessages}
-					{currentRunProgressPanel}
-					{streamingSurface}
-					{currentPresentationContent ?? emptyRunTimelineContent}
-				</div>
+				<CurrentRunSurface
+					activeConversationId={activeConversationId}
+					activeConversationMessages={activeConversationMessages}
+					currentPresentationContent={currentPresentationContent}
+					currentRunId={currentRunId}
+					currentRunProgressPanel={currentRunProgressPanel}
+					currentStreamingRunId={currentStreamingRunId}
+					currentStreamingText={currentStreamingText}
+					emptyStateContent={emptyRunTimelineContent}
+				/>
 			</section>
 
 			{isDeveloperMode ? (
@@ -900,17 +468,7 @@ export function ChatPage({
 					onToggleRecentSessionRuns={() => setShowRecentSessionRuns((current) => !current)}
 				/>
 			) : (
-				<section
-					style={developerHintStyle}
-					className="runa-card runa-card--subtle"
-					aria-label="Developer Mode notice"
-				>
-					<div style={{ color: '#fde68a', fontWeight: 700 }}>Developer Mode kapali</div>
-					<div className="runa-subtle-copy">
-						Ham timeline, gecmis calismalar ve teknik izler ikinci katmanda tutulur. Ihtiyac
-						oldugunda navigation icinden Developer Mode'u acabilirsin.
-					</div>
-				</section>
+				<ChatDeveloperHint />
 			)}
 		</ChatShell>
 	);
