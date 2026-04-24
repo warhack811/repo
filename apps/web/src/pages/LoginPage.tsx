@@ -59,6 +59,7 @@ const statusMessageStyle: CSSProperties = {
 	borderRadius: '14px',
 	lineHeight: 1.5,
 };
+const TURKISH_LOCALE = 'tr-TR';
 
 function getStatusLabel(status: LoginPageProps['authStatus']): string {
 	return status === 'bootstrapping' ? uiCopy.auth.statusBootstrapping : uiCopy.auth.statusAnonymous;
@@ -186,12 +187,15 @@ export function LoginPage({
 						}}
 					>
 						<div style={{ display: 'grid', gap: '10px', maxWidth: 'min(720px, 100%)' }}>
-							<div className="runa-eyebrow">{uiCopy.auth.statusBootstrapping.toUpperCase()}</div>
+							<div className="runa-eyebrow">
+								{uiCopy.auth.statusBootstrapping.toLocaleUpperCase(TURKISH_LOCALE)}
+							</div>
 							<h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 38px)' }}>{uiCopy.auth.title}</h1>
 							<p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.6 }}>{uiCopy.auth.subtitle}</p>
 						</div>
 						<div
 							aria-live="polite"
+							lang="tr"
 							style={{
 								...pillStyle,
 								borderColor: getStatusAccent(authStatus),
@@ -214,7 +218,9 @@ export function LoginPage({
 						className="runa-card runa-ambient-panel"
 					>
 						<div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
-							<div style={secondaryLabelStyle}>{uiCopy.auth.statusBootstrapping}</div>
+							<div lang="tr" style={secondaryLabelStyle}>
+								{uiCopy.auth.statusBootstrapping}
+							</div>
 							<h2 id="login-bootstrap-heading" style={{ margin: 0, fontSize: '22px' }}>
 								{uiCopy.auth.bootstrapTitle}
 							</h2>
@@ -325,7 +331,9 @@ export function LoginPage({
 						className="runa-card runa-ambient-panel"
 					>
 						<div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
-							<div style={secondaryLabelStyle}>{authCardLabel}</div>
+							<div lang="tr" style={secondaryLabelStyle}>
+								{authCardLabel}
+							</div>
 							<h2 id="login-auth-form-heading" style={{ margin: 0, fontSize: '22px' }}>
 								{authCardTitle}
 							</h2>

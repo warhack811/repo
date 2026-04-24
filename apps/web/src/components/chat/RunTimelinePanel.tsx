@@ -111,7 +111,7 @@ export function RunTimelinePanel({
 									}}
 								>
 									<div style={{ display: 'grid', gap: '6px', maxWidth: 'min(720px, 100%)' }}>
-										<div style={{ ...secondaryLabelStyle, color: '#93c5fd' }}>
+										<div lang="tr" style={{ ...secondaryLabelStyle, color: '#93c5fd' }}>
 											{uiCopy.run.currentRunProgress}
 										</div>
 										<div style={{ color: '#e5e7eb', lineHeight: 1.5 }}>
@@ -159,7 +159,9 @@ export function RunTimelinePanel({
 									}}
 								>
 									<div style={{ display: 'grid', gap: '4px', maxWidth: 'min(720px, 100%)' }}>
-										<div style={secondaryLabelStyle}>{uiCopy.run.pastRuns}</div>
+										<div lang="tr" style={secondaryLabelStyle}>
+											{uiCopy.run.pastRuns}
+										</div>
 										<div style={{ color: '#cbd5e1', lineHeight: 1.5 }}>
 											{uiCopy.run.pastRunsCollapsed}
 										</div>

@@ -93,20 +93,20 @@ function getVoiceInputErrorMessage(
 ): string {
 	switch (error) {
 		case 'audio-capture':
-			return 'Mikrofon kullanilabilir degil. Cihaz baglantisini ve tarayici izinlerini kontrol et.';
+			return 'Mikrofon kullanılabilir değil. Cihaz bağlantısını ve tarayıcı izinlerini kontrol et.';
 		case 'language-not-supported':
-			return 'Tarayici secilen dilde ses tanimayi desteklemiyor.';
+			return 'Tarayıcı seçilen dilde ses tanımayı desteklemiyor.';
 		case 'network':
-			return 'Ses tanima istegi sirasinda baglanti sorunu olustu.';
+			return 'Ses tanıma isteği sırasında bağlantı sorunu oluştu.';
 		case 'no-speech':
-			return 'Ses algilanmadi. Tekrar deneyebilirsin.';
+			return 'Ses algılanmadı. Tekrar deneyebilirsin.';
 		case 'not-allowed':
 		case 'service-not-allowed':
-			return 'Mikrofon izni reddedildi. Ses girisi kullanmak istersen tarayici iznini acman gerekiyor.';
+			return 'Mikrofon izni reddedildi. Ses girişi kullanmak istersen tarayıcı iznini açman gerekiyor.';
 		case 'aborted':
 			return 'Ses dinleme durduruldu.';
 		default:
-			return 'Ses girisi baslatilamadi. Tarayicinin Web Speech API destegini kontrol et.';
+			return 'Ses girişi başlatılamadı. Tarayıcının Web Speech API desteğini kontrol et.';
 	}
 }
 
@@ -187,7 +187,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 	function startListening(): void {
 		if (!isSupported || recognitionRef.current === null) {
 			setStatus('unsupported');
-			setErrorMessage('Bu tarayici ses girisini desteklemiyor.');
+			setErrorMessage('Bu tarayıcı ses girişini desteklemiyor.');
 			return;
 		}
 
@@ -202,7 +202,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 			setErrorMessage(
 				error instanceof Error
 					? error.message
-					: 'Ses girisi baslatilirken beklenmeyen bir hata olustu.',
+					: 'Ses girişi başlatılırken beklenmeyen bir hata oluştu.',
 			);
 		}
 	}

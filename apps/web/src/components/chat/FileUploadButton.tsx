@@ -116,12 +116,12 @@ export function FileUploadButton({
 						'message' in payload &&
 						typeof payload.message === 'string'
 						? payload.message
-						: 'Upload basarisiz oldu.',
+						: 'Upload başarısız oldu.',
 				);
 			}
 
 			if (!isAttachmentResponse(payload)) {
-				throw new Error('Desteklenmeyen upload yaniti.');
+				throw new Error('Desteklenmeyen upload yanıtı.');
 			}
 
 			onAttachmentUploaded(payload.attachment);
@@ -132,7 +132,7 @@ export function FileUploadButton({
 		} catch (error: unknown) {
 			onUploadStateChange?.({
 				error:
-					error instanceof Error ? error.message : 'Upload sirasinda beklenmeyen bir hata olustu.',
+					error instanceof Error ? error.message : 'Upload sırasında beklenmeyen bir hata oluştu.',
 				isUploading: false,
 			});
 		} finally {
@@ -165,7 +165,7 @@ export function FileUploadButton({
 					opacity: disabled || isUploading ? 0.6 : 1,
 				}}
 			>
-				{isUploading ? 'Yukleniyor...' : 'Dosya ekle'}
+				{isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
 			</label>
 		</>
 	);

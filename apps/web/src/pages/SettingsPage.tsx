@@ -128,7 +128,7 @@ export function SettingsPage({
 				if (error instanceof DesktopDevicesResponseValidationError) {
 					setDesktopDevicesState({
 						message:
-							'Online cihaz listesi beklendigi sekilde donmedi. Lutfen daha sonra yeniden dene.',
+							'Online cihaz listesi beklendiği şekilde dönmedi. Lütfen daha sonra yeniden dene.',
 						status: 'error',
 					});
 					return;
@@ -138,7 +138,7 @@ export function SettingsPage({
 					message:
 						error instanceof Error
 							? error.message
-							: 'Online cihazlar su anda yuklenemedi. Lutfen daha sonra yeniden dene.',
+							: 'Online cihazlar şu anda yüklenemedi. Lütfen daha sonra yeniden dene.',
 					status: 'error',
 				});
 			}
@@ -174,7 +174,9 @@ export function SettingsPage({
 				className="runa-card runa-card--hero runa-ambient-panel"
 			>
 				<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-					<div style={appShellSecondaryLabelStyle}>{uiCopy.account.heading}</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						{uiCopy.account.heading}
+					</div>
 					<h2 id="account-heading" style={{ margin: 0, fontSize: '24px' }}>
 						{uiCopy.account.heading}
 					</h2>
@@ -243,14 +245,14 @@ export function SettingsPage({
 							<div style={deviceCardStyle}>
 								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Cihazlar kontrol ediliyor</div>
 								<div style={appShellMutedTextStyle}>
-									Hesabina bagli acik desktop companion oturumlari taraniyor.
+									Hesabına bağlı açık desktop companion oturumları taranıyor.
 								</div>
 							</div>
 						) : null}
 
 						{desktopDevicesState.status === 'error' ? (
 							<div role="alert" className="runa-alert runa-alert--warning">
-								<strong>Online cihazlar su anda gosterilemiyor. </strong>
+								<strong>Online cihazlar şu anda gösterilemiyor. </strong>
 								{desktopDevicesState.message}
 							</div>
 						) : null}
@@ -260,7 +262,7 @@ export function SettingsPage({
 							<div style={deviceCardStyle}>
 								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Henüz görünen cihaz yok</div>
 								<div style={appShellMutedTextStyle}>
-									Bu hesapla giris yapmis acik bir desktop companion bulunmadiginda burada cihaz
+									Bu hesapla giriş yapmış açık bir desktop companion bulunmadığında burada cihaz
 									listelenmez.
 								</div>
 							</div>
@@ -285,7 +287,7 @@ export function SettingsPage({
 														: `Desktop ${device.agent_id.slice(0, 8)}`}
 												</div>
 												<div style={appShellMutedTextStyle}>
-													Baglanti: {formatConnectedAt(device.connected_at)}
+													Bağlantı: {formatConnectedAt(device.connected_at)}
 												</div>
 											</div>
 											<span
@@ -325,8 +327,8 @@ export function SettingsPage({
 							Voice preferences
 						</h2>
 						<p style={appShellMutedTextStyle}>
-							Minimum voice seam burada kalir: sohbet varsayilan olarak yazili devam eder,
-							destekliyse sesli okuma ve mikrofon tetigi ikinci katmanda acilir.
+							Minimum voice seam burada kalır: sohbet varsayılan olarak yazılı devam eder,
+							destekliyse sesli okuma ve mikrofon tetiği ikinci katmanda açılır.
 						</p>
 					</div>
 
@@ -345,10 +347,10 @@ export function SettingsPage({
 						>
 							<div style={{ display: 'grid', gap: '6px' }}>
 								<span style={{ color: '#f8fafc', fontWeight: 700 }}>
-									Yeni asistan yanitlarini otomatik oku
+									Yeni asistan yanıtlarını otomatik oku
 								</span>
 								<span style={appShellMutedTextStyle}>
-									Yalniz tarayici speech synthesis destekliyorsa calisir.
+									Yalnız tarayıcı speech synthesis destekliyorsa çalışır.
 								</span>
 							</div>
 							<input
@@ -369,17 +371,17 @@ export function SettingsPage({
 								background: 'rgba(9, 14, 25, 0.68)',
 							}}
 						>
-							<div style={{ color: '#f8fafc', fontWeight: 700 }}>Tarayici yetenekleri</div>
+							<div style={{ color: '#f8fafc', fontWeight: 700 }}>Tarayıcı yetenekleri</div>
 							<div style={appShellMutedTextStyle}>
-								Mikrofon: {voiceInput.isSupported ? 'hazir' : 'desteklenmiyor'}
+								Mikrofon: {voiceInput.isSupported ? 'hazır' : 'desteklenmiyor'}
 							</div>
 							<div style={appShellMutedTextStyle}>
-								Sesli okuma: {isTextToSpeechSupported ? 'hazir' : 'desteklenmiyor'}
+								Sesli okuma: {isTextToSpeechSupported ? 'hazır' : 'desteklenmiyor'}
 							</div>
 							{voiceInput.permissionDenied ? (
 								<div className="runa-alert runa-alert--warning">
 									Mikrofon izni reddedilmiş. Chat ekranındaki voice trigger yazılı akışı bozmadan
-									pasif kalir; tekrar kullanmak istersen tarayici iznini acman yeterli.
+									pasif kalır; tekrar kullanmak istersen tarayıcı iznini açman yeterli.
 								</div>
 							) : null}
 							{isSpeaking ? (
@@ -389,7 +391,7 @@ export function SettingsPage({
 									style={appShellSecondaryButtonStyle}
 									className="runa-button runa-button--secondary"
 								>
-									Okumayi durdur
+									Okumayı durdur
 								</button>
 							) : null}
 							{(voiceInput.errorMessage ?? textToSpeechErrorMessage) ? (

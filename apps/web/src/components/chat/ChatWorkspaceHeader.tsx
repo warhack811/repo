@@ -5,6 +5,8 @@ import { uiCopy } from '../../localization/copy.js';
 import type { ConnectionStatus } from '../../ws-types.js';
 import { getStatusAccent } from './chat-presentation.js';
 
+const TURKISH_LOCALE = 'tr-TR';
+
 type ChatWorkspaceHeaderProps = Readonly<{
 	connectionStatus: ConnectionStatus;
 	statusLabel: string;
@@ -53,7 +55,9 @@ export function ChatWorkspaceHeader({
 		>
 			<div style={headerRowStyle}>
 				<div style={headerCopyStyle}>
-					<div className="runa-eyebrow">{uiCopy.appShell.chatEyebrow.toUpperCase()}</div>
+					<div className="runa-eyebrow">
+						{uiCopy.appShell.chatEyebrow.toLocaleUpperCase(TURKISH_LOCALE)}
+					</div>
 					<h1
 						id="chat-workspace-heading"
 						style={{ margin: '10px 0 6px', fontSize: 'clamp(28px, 5vw, 40px)' }}

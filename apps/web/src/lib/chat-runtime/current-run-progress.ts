@@ -48,15 +48,15 @@ function humanizeRuntimeState(state: string | undefined): string {
 		case 'MODEL_THINKING':
 			return 'Model düşünüyor';
 		case 'TOOL_EXECUTING':
-			return 'Arac calisiyor';
+			return 'Araç çalışıyor';
 		case 'TOOL_RESULT_INGESTING':
-			return 'Arac sonucu isleniyor';
+			return 'Araç sonucu işleniyor';
 		case 'WAITING_APPROVAL':
 			return 'Onay bekleniyor';
 		case 'COMPLETED':
-			return 'Tamamlandi';
+			return 'Tamamlandı';
 		case 'FAILED':
-			return 'Basarisiz';
+			return 'Başarısız';
 		default:
 			return 'Bekliyor';
 	}
@@ -365,15 +365,15 @@ function getFallbackHeadline(runSummary: RunTransportSummary | undefined): strin
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_RESULT_INGESTING') {
-		return 'Arac sonucu isleniyor';
+		return 'Araç sonucu işleniyor';
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_EXECUTING') {
-		return 'Araclar calisiyor';
+		return 'Araçlar çalışıyor';
 	}
 
 	if (runSummary?.latest_runtime_state === 'MODEL_THINKING') {
-		return 'Model calisiyor';
+		return 'Model çalışıyor';
 	}
 
 	if (runSummary?.has_accepted) {
@@ -388,7 +388,7 @@ function getFallbackDetail(
 	approvalBlock: ApprovalBlock | null,
 ): string {
 	if (approvalBlock?.payload.status === 'pending') {
-		return 'Mevcut calisma onay sinirinda durdu. Devam etmeden once istenen islemi gozden gecir.';
+		return 'Mevcut çalışma onay sınırında durdu. Devam etmeden önce istenen işlemi gözden geçir.';
 	}
 
 	if (runSummary?.final_state === 'COMPLETED') {
@@ -408,14 +408,14 @@ function getFallbackDetail(
 	}
 
 	if (runSummary?.latest_runtime_state === 'MODEL_THINKING') {
-		return 'Model sonraki adimi planliyor. Yeni cikti gelirken mevcut yuzey sabit kalir.';
+		return 'Model sonraki adımı planlıyor. Yeni çıktı gelirken mevcut yüzey sabit kalır.';
 	}
 
 	if (runSummary?.has_accepted) {
-		return 'Sunucu istegi kabul etti. Canli runtime hareketi bekleniyor.';
+		return 'Sunucu isteği kabul etti. Canlı runtime hareketi bekleniyor.';
 	}
 
-	return 'Mevcut calisma burada birinci planda kalir.';
+	return 'Mevcut çalışma burada birinci planda kalır.';
 }
 
 export function deriveCurrentRunProgressSurface(

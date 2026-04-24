@@ -72,7 +72,7 @@ export interface UseAuthResult {
 }
 
 function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : 'Bilinmeyen auth istegi hatasi.';
+	return error instanceof Error ? error.message : 'Bilinmeyen auth isteği hatası.';
 }
 
 function resolveSessionStorage(): Storage | null {
@@ -352,7 +352,7 @@ async function readResponseErrorMessage(response: Response): Promise<string> {
 	const responseText = await response.text();
 	return responseText.trim().length > 0
 		? responseText
-		: `Auth istegi ${response.status} durumu ile basarisiz oldu.`;
+		: `Auth isteği ${response.status} durumu ile başarısız oldu.`;
 }
 
 async function postAuthenticatedAction(
@@ -377,7 +377,7 @@ async function postAuthenticatedAction(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isAuthenticatedActionResponse(parsed)) {
-		throw new Error('Desteklenmeyen auth action yaniti.');
+		throw new Error('Desteklenmeyen auth action yanıtı.');
 	}
 
 	return parsed;
@@ -467,7 +467,7 @@ export function useAuth(): UseAuthResult {
 				const codeVerifier = readStoredPkceCodeVerifier();
 
 				if (!codeVerifier) {
-					setAuthError('OAuth PKCE callback code_verifier bulunamadi. Girisi yeniden baslatin.');
+					setAuthError('OAuth PKCE callback code_verifier bulunamadı. Girişi yeniden başlatın.');
 					setAuthNotice(null);
 				} else {
 					setAuthNotice(uiCopy.auth.oauthValidating);
@@ -669,7 +669,7 @@ export function useAuth(): UseAuthResult {
 			const actionResponse = await loginWithPassword(input);
 
 			if (actionResponse.outcome !== 'authenticated') {
-				throw new Error('Giris sonrasi kimligi dogrulanmis bir oturum olusmadi.');
+				throw new Error('Giriş sonrası kimliği doğrulanmış bir oturum oluşmadı.');
 			}
 
 			applyAuthenticatedState({
@@ -738,7 +738,7 @@ export function useAuth(): UseAuthResult {
 
 	function startOAuthSignIn(provider: OAuthProvider): void {
 		if (typeof window === 'undefined') {
-			throw new Error('OAuth girisi sadece tarayicida baslayabilir.');
+			throw new Error('OAuth girişi sadece tarayıcıda başlayabilir.');
 		}
 
 		setAuthError(null);
@@ -746,7 +746,7 @@ export function useAuth(): UseAuthResult {
 
 		void (async () => {
 			if (!window.crypto?.subtle) {
-				setAuthError('Tarayici PKCE icin gerekli Web Crypto destegini sunmuyor.');
+				setAuthError('Tarayıcı PKCE için gerekli Web Crypto desteğini sunmuyor.');
 				setAuthNotice(null);
 				return;
 			}

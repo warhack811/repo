@@ -21,7 +21,7 @@ function formatTimestamp(value: number | string | undefined): string {
 		return new Date(value * 1000).toISOString();
 	}
 
-	return value ?? 'mevcut degil';
+	return value ?? 'mevcut değil';
 }
 
 export function SessionCard({
@@ -35,11 +35,13 @@ export function SessionCard({
 	return (
 		<article style={appShellPanelStyle} className="runa-card">
 			<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-				<div style={appShellSecondaryLabelStyle}>oturum</div>
+				<div lang="tr" style={appShellSecondaryLabelStyle}>
+					oturum
+				</div>
 				<h3 style={{ margin: 0, fontSize: '22px' }}>Oturum durumu</h3>
 				<p style={appShellMutedTextStyle}>
-					Bu alan yalniz temel oturum bilgisini gosterir. Teknik metadata ve troubleshooting
-					ayrintilari Developer Mode icinde kalir.
+					Bu alan yalnız temel oturum bilgisini gösterir. Teknik metadata ve troubleshooting
+					ayrıntıları Developer Mode içinde kalır.
 				</p>
 			</div>
 
@@ -63,19 +65,21 @@ export function SessionCard({
 					}}
 					className="runa-metric"
 				>
-					<div style={appShellSecondaryLabelStyle}>durum</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						durum
+					</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
 						{authContext.principal.kind === 'authenticated' ||
 						authContext.principal.kind === 'service'
-							? 'Acik'
-							: 'Sinirli'}
+							? 'Açık'
+							: 'Sınırlı'}
 					</div>
 					<div style={{ color: '#cbd5e1' }}>
 						{authContext.principal.kind === 'authenticated'
-							? 'Kimligi dogrulanmis oturum'
+							? 'Kimliği doğrulanmış oturum'
 							: authContext.principal.kind === 'service'
 								? 'Servis oturumu'
-								: 'Anonim baglam'}
+								: 'Anonim bağlam'}
 					</div>
 				</div>
 				<div
@@ -85,14 +89,16 @@ export function SessionCard({
 					}}
 					className="runa-metric"
 				>
-					<div style={appShellSecondaryLabelStyle}>giris</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						giriş
+					</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
 						{authContext.user?.email ?? authContext.principal.kind}
 					</div>
 					<div style={{ color: '#cbd5e1' }}>
 						{(authContext.user?.email_verified ?? authContext.claims?.email_verified)
-							? 'E-posta dogrulandi'
-							: 'E-posta dogrulamasi aciklanmadi'}
+							? 'E-posta doğrulandı'
+							: 'E-posta doğrulaması açıklanmadı'}
 					</div>
 				</div>
 				<div
@@ -102,9 +108,11 @@ export function SessionCard({
 					}}
 					className="runa-metric"
 				>
-					<div style={appShellSecondaryLabelStyle}>basladi</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						başladı
+					</div>
 					<div style={{ color: '#f8fafc', fontSize: '15px', fontWeight: 700 }}>{issuedAt}</div>
-					<div style={{ color: '#cbd5e1' }}>Oturum acilis zamani</div>
+					<div style={{ color: '#cbd5e1' }}>Oturum açılış zamanı</div>
 				</div>
 				<div
 					style={{
@@ -113,9 +121,11 @@ export function SessionCard({
 					}}
 					className="runa-metric"
 				>
-					<div style={appShellSecondaryLabelStyle}>sona erer</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						sona erer
+					</div>
 					<div style={{ color: '#f8fafc', fontSize: '15px', fontWeight: 700 }}>{expiresAt}</div>
-					<div style={{ color: '#cbd5e1' }}>Su anki oturum suresi</div>
+					<div style={{ color: '#cbd5e1' }}>Şu anki oturum süresi</div>
 				</div>
 			</div>
 		</article>

@@ -121,10 +121,10 @@ export function DashboardPage({
 				<section style={appShellPanelStyle} aria-label="Developer Mode disabled">
 					<div style={{ display: 'grid', gap: '10px' }}>
 						<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.heading}</div>
-						<h2 style={{ margin: 0, fontSize: '20px' }}>Developer Mode kapali</h2>
+						<h2 style={{ margin: 0, fontSize: '20px' }}>Developer Mode kapalı</h2>
 						<p style={appShellMutedTextStyle}>
-							Runtime konfigurasyonu, ham transport ve troubleshooting panelleri bu tarayicida
-							sadece Developer Mode acikken gorunur.
+							Runtime konfigürasyonu, ham transport ve troubleshooting panelleri bu tarayıcıda
+							sadece Developer Mode açıkken görünür.
 						</p>
 					</div>
 				</section>
