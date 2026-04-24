@@ -1198,6 +1198,16 @@
 - Non-goal hatirlatmasi: bu tur tam CI/CD otomasyonu, prod secret management platformu veya desktop-agent deployment acmadi.
 - Sonraki onerilen dar gorev: bu Docker/compose zemini uzerine secret-backed staging deployment runbook'u ve tek bir cloud target icin manifest/pipeline baglama gorevi; runtime veya auth sistemini yeniden acmamak.
 
+### Track C / UI Foundation Phase 13 - Visible UI Copy Polish - 24 Nisan 2026
+
+- Chat, account/settings, auth, developer, desktop target, upload, voice/TTS ve runtime status yuzeylerinde kullaniciya gorunen copy temizlendi. `apps/web/src/localization/copy.ts` ana sozlukte kalan ASCII/transliterated Turkce metinler Turkce karakterli hale getirildi; hook/lib hata mesajlarinda UI'ya tasinan metinler de ayni pakette duzeltildi.
+- CSS uppercase nedeniyle tarayicida `GIRIŞ`, `HESAP ÖZETI`, `BAĞLI KIMLIKLER` gibi gorunen label bozulmalari ilgili Turkce label ogelerine `lang="tr"` ve acik `toLocaleUpperCase('tr-TR')` kullanimi eklenerek temizlendi. Teknik `Developer Mode`, `Runtime`, `Conversation`, `Desktop`, `Provider`, `Token`, `OAuth`, `Workspace`, `Run` ve benzeri urun terimleri bilerek mixed-language birakildi.
+- Mojibake taramasi `rg -n "Ã|Â|Ä|Å|â|�" apps/web/src` ile no matches verdi. Bypass taramasi `rg -n "as any|@ts-ignore|eslint-disable|TODO" apps/web/src` ile no matches verdi.
+- ASCII Turkce taramasi artik copy hatasi olarak ele alinacak eslesme uretmiyor; kalan eslesmeler `oturum` gibi zaten dogru Turkce kelimeler, `Secondary`/`appShellSecondary*` gibi identifier false-positive'leri ve teknik English terimler.
+- Browser smoke `http://localhost:5174` uzerinden authenticated local dev session ile `/chat`, `/account`, `/developer`, `/dashboard -> /chat`, `/settings -> /account` rotalarinda yapildi. Gorunur copy kontrolunde `Gonder`, `Masaustu`, `Baglanti`, `basarisiz` ve bozuk uppercase Turkce adaylari gorulmedi. `/desktop/devices` 200 dondu; `/conversations` 404'e donmedi ancak mevcut backend/env durumuyla 500 `Failed to list conversations` dondu. Smoke sirasinda `Maximum update depth exceeded` gorulmedi.
+- Degisen dosyalar yalniz `apps/web/src/**` altindaki copy/UI render dosyalari ve bu PROGRESS notudur. Runtime, WS, RenderBlock, server, desktop-agent, package veya lockfile degistirilmedi.
+- Sonraki onerilen dar gorev: modal visual harness veya approval adapter seam; copy paketi uzerinden yeni visual redesign acmamak.
+
 ## Teknik Borc (Tech Debt) & Known Gaps
 
 > **Kaynak:** 2026-04-18 tarihli kapsamli mimari denetim (Architectural Audit).

@@ -50,7 +50,9 @@ export function CurrentRunSurface({
 			aria-labelledby="chat-conversation-surface-heading"
 		>
 			<div style={headingStackStyle}>
-				<div style={secondaryLabelStyle}>{uiCopy.run.currentRunProgress}</div>
+				<div lang="tr" style={secondaryLabelStyle}>
+					{uiCopy.run.currentRunProgress}
+				</div>
 				<h2 id="chat-conversation-surface-heading" style={{ fontSize: '20px' }}>
 					Aktif sohbet akışı
 				</h2>

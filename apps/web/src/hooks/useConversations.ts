@@ -267,7 +267,7 @@ async function fetchConversationList(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isConversationListResponse(parsed)) {
-		throw new Error('Desteklenmeyen conversation list yaniti.');
+		throw new Error('Desteklenmeyen conversation list yanıtı.');
 	}
 
 	return parsed.conversations;
@@ -293,7 +293,7 @@ async function fetchConversationMessages(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isConversationMessagesResponse(parsed)) {
-		throw new Error('Desteklenmeyen conversation messages yaniti.');
+		throw new Error('Desteklenmeyen conversation messages yanıtı.');
 	}
 
 	return parsed.messages;
@@ -319,7 +319,7 @@ async function fetchConversationMembers(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isConversationMembersResponse(parsed)) {
-		throw new Error('Desteklenmeyen conversation member yaniti.');
+		throw new Error('Desteklenmeyen conversation member yanıtı.');
 	}
 
 	return parsed.members;
@@ -394,7 +394,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setConversationError(
-					error instanceof Error ? error.message : 'Conversation listesi yuklenemedi.',
+					error instanceof Error ? error.message : 'Conversation listesi yüklenemedi.',
 				);
 				setConversations([]);
 				setActiveConversationId(null);
@@ -446,7 +446,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setConversationError(
-					error instanceof Error ? error.message : 'Conversation mesajlari yuklenemedi.',
+					error instanceof Error ? error.message : 'Conversation mesajları yüklenemedi.',
 				);
 				setActiveConversationMessages([]);
 			} finally {
@@ -494,7 +494,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setMemberError(
-					error instanceof Error ? error.message : 'Conversation member listesi yuklenemedi.',
+					error instanceof Error ? error.message : 'Conversation member listesi yüklenemedi.',
 				);
 				setActiveConversationMembers([]);
 			} finally {
@@ -619,7 +619,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				setMemberError(null);
 			} catch (error) {
 				setConversationError(
-					error instanceof Error ? error.message : 'Conversation senkronizasyonu basarisiz oldu.',
+					error instanceof Error ? error.message : 'Conversation senkronizasyonu başarısız oldu.',
 				);
 			}
 		})();

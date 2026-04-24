@@ -242,10 +242,10 @@ export function buildRunFeedbackState(
 	if (input.is_submitting) {
 		return {
 			chip_label: 'sending',
-			detail: 'Runa yeni istegi canli runtime hattina iletiyor.',
+			detail: 'Runa yeni isteği canlı runtime hattına iletiyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Istek gonderiliyor',
+			title: 'İstek gönderiliyor',
 			tone: 'info',
 			trace_id: input.run_summary?.trace_id,
 		};
@@ -265,7 +265,7 @@ export function buildRunFeedbackState(
 	if (input.run_summary.final_state === 'FAILED') {
 		return {
 			chip_label: 'failed',
-			detail: 'Bu calisma tamamlanamadi. En son gorunur kartlar korunuyor.',
+			detail: 'Bu çalışma tamamlanamadı. En son görünür kartlar korunuyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Çalışma durdu',

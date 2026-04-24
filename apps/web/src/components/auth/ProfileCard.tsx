@@ -50,7 +50,7 @@ function getProfileTitle(authContext: AuthContext): string {
 		case 'service':
 			return authContext.principal.service_name;
 		case 'anonymous':
-			return 'Anonim kullanici';
+			return 'Anonim kullanıcı';
 	}
 }
 
@@ -63,9 +63,9 @@ function getProfileSubtitle(authContext: AuthContext): string {
 		case 'authenticated':
 			return authContext.principal.user_id;
 		case 'service':
-			return 'Servis kullanicisi';
+			return 'Servis kullanıcısı';
 		case 'anonymous':
-			return 'Anonim tarayici baglami';
+			return 'Anonim tarayıcı bağlamı';
 	}
 }
 
@@ -75,10 +75,10 @@ function getProfileEmail(authContext: AuthContext): string {
 	}
 
 	if (authContext.principal.kind === 'authenticated') {
-		return authContext.principal.email ?? 'Bu oturum icin e-posta aciklanmadi';
+		return authContext.principal.email ?? 'Bu oturum için e-posta açıklanmadı';
 	}
 
-	return 'Bu oturum icin e-posta aciklanmadi';
+	return 'Bu oturum için e-posta açıklanmadı';
 }
 
 function getIdentityLabel(identity: AuthIdentity): string {
@@ -93,7 +93,7 @@ function getProfileMethod(authContext: AuthContext): string {
 	const provider = authContext.user?.primary_provider ?? authContext.principal.provider;
 
 	if (provider === 'internal') {
-		return 'Yerel giris';
+		return 'Yerel giriş';
 	}
 
 	return provider;
@@ -107,7 +107,9 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 	return (
 		<article style={appShellPanelStyle} className="runa-card runa-ambient-panel">
 			<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-				<div style={appShellSecondaryLabelStyle}>profil</div>
+				<div lang="tr" style={appShellSecondaryLabelStyle}>
+					profil
+				</div>
 				<h3 style={{ margin: 0, fontSize: '22px' }}>{getProfileTitle(authContext)}</h3>
 				<p style={appShellMutedTextStyle}>{uiCopy.account.description}</p>
 			</div>
@@ -120,16 +122,18 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 					}}
 					className="runa-metric"
 				>
-					<div style={appShellSecondaryLabelStyle}>hesap ozeti</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						hesap özeti
+					</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
 						{getProfileSubtitle(authContext)}
 					</div>
 					<div style={{ color: '#cbd5e1' }}>
 						{authContext.principal.kind === 'authenticated'
-							? 'Kimligi dogrulandi'
+							? 'Kimliği doğrulandı'
 							: authContext.principal.kind === 'service'
 								? 'Servis oturumu'
-								: 'Anonim baglam'}
+								: 'Anonim bağlam'}
 					</div>
 				</div>
 				<div
@@ -139,11 +143,13 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 					}}
 					className="runa-metric"
 				>
-					<div style={appShellSecondaryLabelStyle}>e-posta</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						e-posta
+					</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
 						{getProfileEmail(authContext)}
 					</div>
-					<div style={{ color: '#cbd5e1' }}>Dogrulandi: {emailVerified ? 'evet' : 'hayir'}</div>
+					<div style={{ color: '#cbd5e1' }}>Doğrulandı: {emailVerified ? 'evet' : 'hayır'}</div>
 				</div>
 				<div
 					style={{
@@ -152,7 +158,9 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 					}}
 					className="runa-metric"
 				>
-					<div style={appShellSecondaryLabelStyle}>giris yontemi</div>
+					<div lang="tr" style={appShellSecondaryLabelStyle}>
+						giriş yöntemi
+					</div>
 					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
 						{getProfileMethod(authContext)}
 					</div>
@@ -161,7 +169,9 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 			</div>
 
 			<div style={{ display: 'grid', gap: '10px', marginTop: '18px' }}>
-				<div style={appShellSecondaryLabelStyle}>bagli kimlikler</div>
+				<div lang="tr" style={appShellSecondaryLabelStyle}>
+					bağlı kimlikler
+				</div>
 				{identities.length > 0 ? (
 					<div style={chipListStyle}>
 						{identities.map((identity) => (
@@ -172,7 +182,7 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 					</div>
 				) : (
 					<p style={appShellMutedTextStyle}>
-						Mevcut auth baglaminda bagli kimlik listesi gosterilmedi.
+						Mevcut auth bağlamında bağlı kimlik listesi gösterilmedi.
 					</p>
 				)}
 			</div>

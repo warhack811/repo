@@ -108,7 +108,7 @@ function formatActionKind(actionKind: ApprovalBlock['payload']['action_kind']): 
 		case 'shell_execution':
 			return 'Kabuk komutu';
 		case 'tool_execution':
-			return 'Arac calistirma';
+			return 'Araç çalıştırma';
 	}
 }
 
@@ -130,13 +130,13 @@ function formatStatusLabel(status: ApprovalBlock['payload']['status']): string {
 function getDefaultEmphasis(block: ApprovalBlock): string {
 	switch (block.payload.status) {
 		case 'approved':
-			return 'Karar kaydedildi ve calisma kabul edilen yol uzerinden devam edebilir.';
+			return 'Karar kaydedildi ve çalışma kabul edilen yol üzerinden devam edebilir.';
 		case 'rejected':
-			return 'Karar kaydedildi ve bu yol reddedildigi icin calisma buradan devam edemez.';
+			return 'Karar kaydedildi ve bu yol reddedildiği için çalışma buradan devam edemez.';
 		case 'cancelled':
-			return 'Bu onay artik aktif degil.';
+			return 'Bu onay artık aktif değil.';
 		case 'expired':
-			return 'Bu onayin suresi doldu.';
+			return 'Bu onayın süresi doldu.';
 		default:
 			return uiCopy.approval.pendingEmphasis;
 	}
@@ -168,7 +168,9 @@ export function ApprovalSummaryCard({
 				}}
 			>
 				<div style={{ display: 'grid', gap: '4px', minWidth: 0 }}>
-					<span style={secondaryLabelStyle}>{eyebrow}</span>
+					<span lang="tr" style={secondaryLabelStyle}>
+						{eyebrow}
+					</span>
 					<strong style={{ fontSize: '18px', color: 'hsl(var(--color-text))' }}>
 						{block.payload.title}
 					</strong>
@@ -185,6 +187,7 @@ export function ApprovalSummaryCard({
 						letterSpacing: '0.08em',
 						textTransform: 'uppercase',
 					}}
+					lang="tr"
 				>
 					{formatStatusLabel(block.payload.status)}
 				</span>
@@ -196,7 +199,9 @@ export function ApprovalSummaryCard({
 
 			{block.payload.target_label ? (
 				<div style={{ display: 'grid', gap: '8px' }}>
-					<div style={secondaryLabelStyle}>Hedef cihaz</div>
+					<div lang="tr" style={secondaryLabelStyle}>
+						Hedef cihaz
+					</div>
 					<div style={targetBadgeStyle}>{block.payload.target_label}</div>
 				</div>
 			) : null}
@@ -227,14 +232,18 @@ export function ApprovalSummaryCard({
 				</summary>
 				<div style={{ display: 'grid', gap: '10px' }}>
 					<div>
-						<div style={secondaryLabelStyle}>{uiCopy.approval.action}</div>
+						<div lang="tr" style={secondaryLabelStyle}>
+							{uiCopy.approval.action}
+						</div>
 						<div style={{ color: 'hsl(var(--color-text))' }}>
 							{formatActionKind(block.payload.action_kind)}
 						</div>
 					</div>
 					{block.payload.tool_name ? (
 						<div>
-							<div style={secondaryLabelStyle}>{uiCopy.approval.tool}</div>
+							<div lang="tr" style={secondaryLabelStyle}>
+								{uiCopy.approval.tool}
+							</div>
 							<code style={{ color: '#fde68a', fontSize: '12px' }}>{block.payload.tool_name}</code>
 						</div>
 					) : null}
@@ -248,7 +257,9 @@ export function ApprovalSummaryCard({
 					) : null}
 					{block.payload.note ? (
 						<div>
-							<div style={secondaryLabelStyle}>{uiCopy.approval.note}</div>
+							<div lang="tr" style={secondaryLabelStyle}>
+								{uiCopy.approval.note}
+							</div>
 							<div style={{ color: 'hsl(var(--color-text-muted))', lineHeight: 1.6 }}>
 								{block.payload.note}
 							</div>

@@ -81,7 +81,7 @@ export function VoiceComposerControls({
 					}}
 					className="runa-button runa-button--secondary"
 				>
-					{isSpeaking ? 'Okumayi durdur' : 'Son yaniti oku'}
+					{isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
 				</button>
 			</div>
 
@@ -89,7 +89,7 @@ export function VoiceComposerControls({
 				{voiceStatusMessage ??
 					(isVoiceSupported
 						? 'Mikrofonu açıp kısa bir not söyleyebilir veya son asistan yanıtını sesli okutabilirsin.'
-						: 'Bu tarayici Web Speech API sunmuyor. Sohbet yazili modda aynen calismaya devam eder.')}
+						: 'Bu tarayıcı Web Speech API sunmuyor. Sohbet yazılı modda aynen çalışmaya devam eder.')}
 			</div>
 		</div>
 	);

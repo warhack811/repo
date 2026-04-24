@@ -158,10 +158,10 @@ export function buildRunFeedbackState(
 	if (input.is_submitting && !input.run_summary?.has_accepted) {
 		return {
 			chip_label: 'sending',
-			detail: 'Istek gonderiliyor ve sunucunun kabul etmesi bekleniyor.',
+			detail: 'İstek gönderiliyor ve sunucunun kabul etmesi bekleniyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Istek gonderiliyor',
+			title: 'İstek gönderiliyor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -198,7 +198,7 @@ export function buildRunFeedbackState(
 				detail: 'Bu istekte presentation blocks kapalı olduğu için görünür yüzey üretilmiyor.',
 				pending_detail_count: input.pending_detail_count,
 				run_id: runId,
-				title: 'Canli runtime acik, gorunur yuzey koprusu kapali',
+				title: 'Canlı runtime açık, görünür yüzey köprüsü kapalı',
 				tone: 'warning',
 				trace_id: traceId,
 			};
@@ -221,7 +221,7 @@ export function buildRunFeedbackState(
 			detail: 'Çalışma sürüyor. Araçlar tamamlandıkça özet ve detaylar yenilenecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Araclar calisiyor',
+			title: 'Araçlar çalışıyor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -233,7 +233,7 @@ export function buildRunFeedbackState(
 			detail: 'Araç sonucu mevcut çalışma yüzeyine işleniyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Ozetler yenileniyor',
+			title: 'Özetler yenileniyor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -243,12 +243,12 @@ export function buildRunFeedbackState(
 		return {
 			chip_label: 'thinking',
 			detail: input.has_visible_surface
-				? 'Mevcut calisma sabit kalirken model yeni cikti uretmeye devam ediyor.'
+				? 'Mevcut çalışma sabit kalırken model yeni çıktı üretmeye devam ediyor.'
 				: 'Model düşünüyor. İlk görünür çıktı hazır olduğunda burada belirecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: input.has_visible_surface
-				? 'Model calismaya devam ediyor'
+				? 'Model çalışmaya devam ediyor'
 				: 'İlk görünür çıktı hazırlanıyor',
 			tone: 'info',
 			trace_id: traceId,
@@ -277,7 +277,7 @@ export function buildRunFeedbackState(
 			chip_label: 'complete',
 			detail:
 				input.include_presentation_blocks === false
-					? 'Bu istek gorunur yuzey koprusu olmadan tamamlandi.'
+					? 'Bu istek görünür yüzey köprüsü olmadan tamamlandı.'
 					: 'Çalışma tamamlandı ancak tutulmuş bir görünür yüzey oluşmadı.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,

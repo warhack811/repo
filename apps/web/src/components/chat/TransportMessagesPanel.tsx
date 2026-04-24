@@ -144,8 +144,8 @@ export function TransportMessagesPanel({
 				</div>
 			) : (
 				<div id="transport-messages-content" style={{ color: '#94a3b8', lineHeight: 1.5 }}>
-					Ham transport verisi varsayilan olarak gizli kalir. Teknik WebSocket ayrintisi veya hata
-					incelemesi gerektiginde bu alani ac.
+					Ham transport verisi varsayılan olarak gizli kalır. Teknik WebSocket ayrıntısı veya hata
+					incelemesi gerektiğinde bu alanı aç.
 				</div>
 			)}
 		</aside>

@@ -6,6 +6,8 @@ import { uiCopy } from '../../localization/copy.js';
 import { RunaBadge, RunaSurface } from '../ui/index.js';
 import { AppNav, type AuthenticatedPageId } from './AppNav.js';
 
+const TURKISH_LOCALE = 'tr-TR';
+
 export const appShellPageStyle: CSSProperties = {
 	...pageStyle,
 	minHeight: '100dvh',
@@ -139,12 +141,15 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 				>
 					<div className="runa-app-shell-header__top">
 						<div className="runa-app-shell-header__copy">
-							<div className="runa-eyebrow">{pageCopy.eyebrow.toUpperCase()}</div>
+							<div className="runa-eyebrow">
+								{pageCopy.eyebrow.toLocaleUpperCase(TURKISH_LOCALE)}
+							</div>
 							<h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 38px)' }}>{pageCopy.title}</h1>
 							<p style={appShellMutedTextStyle}>{pageCopy.subtitle}</p>
 						</div>
 						<RunaBadge
 							className="runa-pill runa-app-shell-status-pill"
+							lang="tr"
 							tone={authStatus === 'service' ? 'warning' : 'neutral'}
 						>
 							{statusLabel}
