@@ -1,7 +1,6 @@
 import type { ModelRequest } from '@runa/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { GatewayConfigurationError } from '../gateway/errors.js';
 import { runWithProvider } from './run-with-provider.js';
 
 const groqRequest: ModelRequest = {
@@ -136,19 +135,31 @@ describe('run-with-provider', () => {
 		}
 	});
 
-	it('throws a typed configuration error when provider config is missing an API key', async () => {
-		await expect(() =>
-			runWithProvider({
-				initial_state: 'INIT',
-				provider: 'groq',
-				provider_config: {
-					apiKey: '   ',
-				},
-				request: groqRequest,
-				run_id: 'run_invalid_config',
-				trace_id: 'trace_invalid_config',
-			}),
-		).rejects.toThrowError(GatewayConfigurationError);
+	it('returns FAILED when provider config is missing an API key', async () => {
+		const result = await runWithProvider({
+			initial_state: 'INIT',
+			provider: 'groq',
+			provider_config: {
+				apiKey: '   ',
+			},
+			request: groqRequest,
+			run_id: 'run_invalid_config',
+			trace_id: 'trace_invalid_config',
+		});
+
+		expect(result.status).toBe('failed');
+		expect(result.final_state).toBe('FAILED');
+
+		if (result.status === 'failed') {
+			expect(result.failure.name).toBe('GatewayConfigurationError');
+			expect(result.failure.message).toContain('Missing API key');
+			expect(result.events.map((event) => event.event_type)).toEqual([
+				'run.started',
+				'state.entered',
+				'state.entered',
+				'run.failed',
+			]);
+		}
 	});
 
 	it('returns FAILED when the provider request fails at fetch time', async () => {

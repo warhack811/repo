@@ -1,5 +1,5 @@
 import type { UploadAttachmentResponse } from '@runa/types';
-import type { ChangeEvent, CSSProperties, ReactElement } from 'react';
+import type { CSSProperties, ChangeEvent, ReactElement } from 'react';
 import { useId, useRef, useState } from 'react';
 
 import type { ModelAttachment } from '../../ws-types.js';
@@ -66,7 +66,10 @@ type FileUploadButtonProps = Readonly<{
 	accessToken?: string | null;
 	disabled?: boolean;
 	onAttachmentUploaded: (attachment: ModelAttachment) => void;
-	onUploadStateChange?: (input: { readonly error: string | null; readonly isUploading: boolean }) => void;
+	onUploadStateChange?: (input: {
+		readonly error: string | null;
+		readonly isUploading: boolean;
+	}) => void;
 }>;
 
 export function FileUploadButton({
@@ -128,7 +131,8 @@ export function FileUploadButton({
 			});
 		} catch (error: unknown) {
 			onUploadStateChange?.({
-				error: error instanceof Error ? error.message : 'Upload sirasinda beklenmeyen bir hata olustu.',
+				error:
+					error instanceof Error ? error.message : 'Upload sirasinda beklenmeyen bir hata olustu.',
 				isUploading: false,
 			});
 		} finally {

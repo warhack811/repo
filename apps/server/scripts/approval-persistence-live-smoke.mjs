@@ -1,9 +1,9 @@
+import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync, existsSync, rmSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createDatabaseConnection, ensureDatabaseSchema, resolveDatabaseConfig } from '@runa/db';
@@ -372,7 +372,9 @@ async function runToolApprovalRestartScenario(input) {
 					continue;
 				}
 
-				const approvalBlock = message.payload.blocks?.find((block) => block.type === 'approval_block');
+				const approvalBlock = message.payload.blocks?.find(
+					(block) => block.type === 'approval_block',
+				);
 
 				if (approvalBlock) {
 					return approvalBlock;
@@ -382,9 +384,12 @@ async function runToolApprovalRestartScenario(input) {
 			return null;
 		});
 
-		const pendingApprovalRow = await waitForCondition('persisted pending tool approval row', async () => {
-			return await queryApprovalRow(input.connection, pendingApprovalBlock.payload.approval_id);
-		});
+		const pendingApprovalRow = await waitForCondition(
+			'persisted pending tool approval row',
+			async () => {
+				return await queryApprovalRow(input.connection, pendingApprovalBlock.payload.approval_id);
+			},
+		);
 		approvalId = pendingApprovalBlock.payload.approval_id;
 		logStep(`tool scenario: persisted pending approval ${approvalId}`);
 
@@ -426,13 +431,13 @@ async function runToolApprovalRestartScenario(input) {
 					),
 			);
 			const approvedContents = await readFile(targetPath, 'utf8');
-			const resolvedApprovalRow = await waitForCondition(
-				'resolved tool approval row',
-				async () => {
-					const row = await queryApprovalRow(input.connection, pendingApprovalBlock.payload.approval_id);
-					return row?.status === 'approved' && row?.decision === 'approved' ? row : null;
-				},
-			);
+			const resolvedApprovalRow = await waitForCondition('resolved tool approval row', async () => {
+				const row = await queryApprovalRow(
+					input.connection,
+					pendingApprovalBlock.payload.approval_id,
+				);
+				return row?.status === 'approved' && row?.decision === 'approved' ? row : null;
+			});
 
 			return {
 				chain: createScenarioChain({
@@ -440,7 +445,9 @@ async function runToolApprovalRestartScenario(input) {
 					approval_resolve_sent: true,
 					continuation_observed: true,
 					continuation_signal_types: secondRecorder.messages
-						.filter((message) => message.payload?.run_id === runId || message.type === 'connection.ready')
+						.filter(
+							(message) => message.payload?.run_id === runId || message.type === 'connection.ready',
+						)
 						.map((message) => message.type),
 					reconnect_restart_tolerated: true,
 					terminal_run_finished_completed: false,
@@ -448,7 +455,9 @@ async function runToolApprovalRestartScenario(input) {
 				approval_id: pendingApprovalBlock.payload.approval_id,
 				persisted_pending_status: pendingApprovalRow.status,
 				reconnect_message_types: secondRecorder.messages
-					.filter((message) => message.payload?.run_id === runId || message.type === 'connection.ready')
+					.filter(
+						(message) => message.payload?.run_id === runId || message.type === 'connection.ready',
+					)
 					.map((message) => message.type),
 				replayed_tool_result_summary:
 					resolvedPresentationMessage.payload.blocks.find((block) => block.type === 'tool_result')
@@ -519,7 +528,9 @@ async function runAutoContinueRestartScenario(input) {
 					continue;
 				}
 
-				const approvalBlock = message.payload.blocks?.find((block) => block.type === 'approval_block');
+				const approvalBlock = message.payload.blocks?.find(
+					(block) => block.type === 'approval_block',
+				);
 
 				if (approvalBlock) {
 					return approvalBlock;
@@ -532,7 +543,10 @@ async function runAutoContinueRestartScenario(input) {
 		const pendingApprovalRow = await waitForCondition(
 			'persisted pending auto-continue approval row',
 			async () => {
-				const row = await queryApprovalRow(input.connection, pendingApprovalBlock.payload.approval_id);
+				const row = await queryApprovalRow(
+					input.connection,
+					pendingApprovalBlock.payload.approval_id,
+				);
 				return row?.target_label === 'agent.auto_continue' ? row : null;
 			},
 		);
@@ -574,17 +588,17 @@ async function runAutoContinueRestartScenario(input) {
 			const resolvedApprovalRow = await waitForCondition(
 				'resolved auto-continue approval row',
 				async () => {
-					const row = await queryApprovalRow(input.connection, pendingApprovalBlock.payload.approval_id);
+					const row = await queryApprovalRow(
+						input.connection,
+						pendingApprovalBlock.payload.approval_id,
+					);
 					return row?.status === 'approved' && row?.decision === 'approved' ? row : null;
 				},
 			);
-			const runRow = await waitForCondition(
-				'persisted completed run row',
-				async () => {
-					const row = await queryRunRow(input.connection, runId);
-					return row?.current_state === 'COMPLETED' ? row : null;
-				},
-			);
+			const runRow = await waitForCondition('persisted completed run row', async () => {
+				const row = await queryRunRow(input.connection, runId);
+				return row?.current_state === 'COMPLETED' ? row : null;
+			});
 			const runtimeEventTypes = await queryRunEventTypes(input.connection, runId);
 
 			return {
@@ -593,7 +607,9 @@ async function runAutoContinueRestartScenario(input) {
 					approval_resolve_sent: true,
 					continuation_observed: true,
 					continuation_signal_types: secondRecorder.messages
-						.filter((message) => message.payload?.run_id === runId || message.type === 'connection.ready')
+						.filter(
+							(message) => message.payload?.run_id === runId || message.type === 'connection.ready',
+						)
 						.map((message) => message.type),
 					reconnect_restart_tolerated: true,
 					terminal_run_finished_completed: runFinishedMessage.payload.final_state === 'COMPLETED',
@@ -601,7 +617,9 @@ async function runAutoContinueRestartScenario(input) {
 				approval_id: pendingApprovalBlock.payload.approval_id,
 				final_state: runFinishedMessage.payload.final_state,
 				message_types: secondRecorder.messages
-					.filter((message) => message.payload?.run_id === runId || message.type === 'connection.ready')
+					.filter(
+						(message) => message.payload?.run_id === runId || message.type === 'connection.ready',
+					)
 					.map((message) => message.type),
 				persisted_provider_config_keys: Object.keys(
 					pendingApprovalRow?.continuation_context?.payload?.provider_config ?? {},

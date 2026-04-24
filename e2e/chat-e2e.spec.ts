@@ -44,7 +44,7 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 test('auth bootstrap opens the chat shell', async ({ page }) => {
 	await bootstrapLocalDevChat(page);
 
-	await expect(page.getByRole('heading', { name: 'Aktif sohbet akisi' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Aktif sohbet akışı' })).toBeVisible();
 	await expect(page.getByText(/stored token seam/i)).toHaveCount(0);
 	const sessionToken = await page.evaluate(() =>
 		window.sessionStorage.getItem('runa.auth.bearer_token'),

@@ -126,15 +126,26 @@ function isConversationSummary(value: unknown): value is ConversationSummary {
 		return false;
 	}
 
+	const {
+		access_role,
+		conversation_id,
+		created_at,
+		last_message_at,
+		last_message_preview,
+		owner_user_id,
+		title,
+		updated_at,
+	} = value;
+
 	return (
-		isConversationAccessRole(value['access_role']) &&
-		typeof value['conversation_id'] === 'string' &&
-		typeof value['created_at'] === 'string' &&
-		typeof value['last_message_at'] === 'string' &&
-		typeof value['last_message_preview'] === 'string' &&
-		(value['owner_user_id'] === undefined || typeof value['owner_user_id'] === 'string') &&
-		typeof value['title'] === 'string' &&
-		typeof value['updated_at'] === 'string'
+		isConversationAccessRole(access_role) &&
+		typeof conversation_id === 'string' &&
+		typeof created_at === 'string' &&
+		typeof last_message_at === 'string' &&
+		typeof last_message_preview === 'string' &&
+		(owner_user_id === undefined || typeof owner_user_id === 'string') &&
+		typeof title === 'string' &&
+		typeof updated_at === 'string'
 	);
 }
 
@@ -143,15 +154,18 @@ function isConversationMessage(value: unknown): value is ConversationMessage {
 		return false;
 	}
 
+	const { content, conversation_id, created_at, message_id, role, run_id, sequence_no, trace_id } =
+		value;
+
 	return (
-		typeof value['content'] === 'string' &&
-		typeof value['conversation_id'] === 'string' &&
-		typeof value['created_at'] === 'string' &&
-		typeof value['message_id'] === 'string' &&
-		(value['role'] === 'assistant' || value['role'] === 'system' || value['role'] === 'user') &&
-		typeof value['sequence_no'] === 'number' &&
-		(value['run_id'] === undefined || typeof value['run_id'] === 'string') &&
-		(value['trace_id'] === undefined || typeof value['trace_id'] === 'string')
+		typeof content === 'string' &&
+		typeof conversation_id === 'string' &&
+		typeof created_at === 'string' &&
+		typeof message_id === 'string' &&
+		(role === 'assistant' || role === 'system' || role === 'user') &&
+		typeof sequence_no === 'number' &&
+		(run_id === undefined || typeof run_id === 'string') &&
+		(trace_id === undefined || typeof trace_id === 'string')
 	);
 }
 
@@ -160,13 +174,16 @@ function isConversationMember(value: unknown): value is ConversationMember {
 		return false;
 	}
 
+	const { added_by_user_id, conversation_id, created_at, member_role, member_user_id, updated_at } =
+		value;
+
 	return (
-		(value['added_by_user_id'] === undefined || typeof value['added_by_user_id'] === 'string') &&
-		typeof value['conversation_id'] === 'string' &&
-		typeof value['created_at'] === 'string' &&
-		(value['member_role'] === 'editor' || value['member_role'] === 'viewer') &&
-		typeof value['member_user_id'] === 'string' &&
-		typeof value['updated_at'] === 'string'
+		(added_by_user_id === undefined || typeof added_by_user_id === 'string') &&
+		typeof conversation_id === 'string' &&
+		typeof created_at === 'string' &&
+		(member_role === 'editor' || member_role === 'viewer') &&
+		typeof member_user_id === 'string' &&
+		typeof updated_at === 'string'
 	);
 }
 
@@ -315,9 +332,7 @@ function summarizePrompt(value: string, maxLength: number): string {
 		: `${normalized.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
-export function useConversations(
-	options: UseConversationsOptions = {},
-): UseConversationsResult {
+export function useConversations(options: UseConversationsOptions = {}): UseConversationsResult {
 	const { accessToken } = options;
 	const [conversations, setConversations] = useState<readonly ConversationSummary[]>([]);
 	const [activeConversationId, setActiveConversationId] = useState<string | null>(
@@ -378,7 +393,9 @@ export function useConversations(
 					return;
 				}
 
-				setConversationError(error instanceof Error ? error.message : 'Conversation listesi yuklenemedi.');
+				setConversationError(
+					error instanceof Error ? error.message : 'Conversation listesi yuklenemedi.',
+				);
 				setConversations([]);
 				setActiveConversationId(null);
 			} finally {
@@ -494,7 +511,8 @@ export function useConversations(
 	}, [accessToken, activeConversationId]);
 
 	const activeConversationSummary =
-		conversations.find((conversation) => conversation.conversation_id === activeConversationId) ?? null;
+		conversations.find((conversation) => conversation.conversation_id === activeConversationId) ??
+		null;
 
 	const requestHistoryMessages = useMemo(
 		() =>
@@ -566,9 +584,7 @@ export function useConversations(
 				last_message_at: now,
 				last_message_preview: preview,
 				owner_user_id: existingConversation?.owner_user_id,
-				title:
-					existingConversation?.title ??
-					(summarizePrompt(input.prompt, 64) || 'Yeni sohbet'),
+				title: existingConversation?.title ?? (summarizePrompt(input.prompt, 64) || 'Yeni sohbet'),
 				updated_at: now,
 			};
 
@@ -617,18 +633,21 @@ export function useConversations(
 			return;
 		}
 
-		const response = await fetch(`/conversations/${encodeURIComponent(activeConversationId)}/members`, {
-			body: JSON.stringify({
-				member_role: role,
-				member_user_id: memberUserId,
-			}),
-			credentials: 'same-origin',
-			headers: new Headers({
-				'content-type': 'application/json',
-				...Object.fromEntries(createRequestHeaders(accessToken).entries()),
-			}),
-			method: 'POST',
-		});
+		const response = await fetch(
+			`/conversations/${encodeURIComponent(activeConversationId)}/members`,
+			{
+				body: JSON.stringify({
+					member_role: role,
+					member_user_id: memberUserId,
+				}),
+				credentials: 'same-origin',
+				headers: new Headers({
+					'content-type': 'application/json',
+					...Object.fromEntries(createRequestHeaders(accessToken).entries()),
+				}),
+				method: 'POST',
+			},
+		);
 
 		if (!response.ok) {
 			throw new Error(await readErrorMessage(response));

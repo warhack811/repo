@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { readFile, rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -45,15 +45,15 @@ function buildCaptureScript(outputPath: string): string {
 	const escapedOutputPath = outputPath.replace(/'/g, "''");
 
 	return [
-		"Add-Type -AssemblyName System.Windows.Forms",
-		"Add-Type -AssemblyName System.Drawing",
-		"$bounds = [System.Windows.Forms.SystemInformation]::VirtualScreen",
-		"$bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height",
-		"$graphics = [System.Drawing.Graphics]::FromImage($bitmap)",
-		"$graphics.CopyFromScreen($bounds.Left, $bounds.Top, 0, 0, $bitmap.Size)",
+		'Add-Type -AssemblyName System.Windows.Forms',
+		'Add-Type -AssemblyName System.Drawing',
+		'$bounds = [System.Windows.Forms.SystemInformation]::VirtualScreen',
+		'$bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height',
+		'$graphics = [System.Drawing.Graphics]::FromImage($bitmap)',
+		'$graphics.CopyFromScreen($bounds.Left, $bounds.Top, 0, 0, $bitmap.Size)',
 		`$bitmap.Save('${escapedOutputPath}', [System.Drawing.Imaging.ImageFormat]::Png)`,
-		"$graphics.Dispose()",
-		"$bitmap.Dispose()",
+		'$graphics.Dispose()',
+		'$bitmap.Dispose()',
 	].join('\n');
 }
 

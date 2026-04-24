@@ -236,6 +236,22 @@
 - Durust kalan durum: Bu tur gercek approval flow, approval persistence, desktop action execution, file/image/code operation, research/detail inspection wiring, ChatPage modal state'i veya presentation block adapter'i acmadi. Foundation componentleri henuz runtime tarafindan kullanilmiyor.
 - Sonraki onerilen gorev: Mevcut approval veya inspection action yuzeylerinden tek birini bu modal/card foundation'a dar adapter olarak baglamak; RenderBlock/WS/runtime contract redesign acmamak.
 
+### Track C / UI Foundation Phase 9 - Inspection Action Detail Adapter - 24 Nisan 2026
+
+- Mevcut inspection action yuzeyi `PresentationRunSurfaceCard` icinde dar bir UI adapter ile `ActionDetailModal` foundation'ina baglandi. Summary kartlarindaki mevcut inspection button hala ayni `requestInspection` akisina gider; ek olarak yalniz local UI state ile detail modal acilir.
+- `apps/web/src/components/chat/InspectionActionDetailModal.tsx` eklendi. Component yalniz UI seviyesinde guvenli metadata gosterir: run id, target kind, target block id, detail block id, anchor id ve pending/open/stale status. Raw transport payload, JSON dump, provider/model debug log veya runtime payload modalda gosterilmedi.
+- Runtime, WS, RenderBlock, server, approval execution, policy, provider, ChatPage orchestration ve global store davranisi degistirilmedi. Modal close yalniz UI modal state'ini kapatir; pending inspection request iptal etmez veya resolve etmez.
+- Degisen dosyalar: `apps/web/src/components/chat/PresentationRunSurfaceCard.tsx`, `apps/web/src/components/chat/InspectionActionDetailModal.tsx`, `PROGRESS.md`.
+- Dogrulama:
+  - `pnpm.cmd install --frozen-lockfile` temiz worktree icin dependency kurulum destegi; lockfile degismedi.
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` ilk kosuda temiz worktree'de `@runa/types` dist eksik oldugu icin import resolve hatasi verdi; `pnpm.cmd --filter @runa/types build` sonrasi tekrar PASS.
+  - `pnpm.cmd exec biome check apps/web/src/components/chat/PresentationRunSurfaceCard.tsx apps/web/src/components/chat/InspectionActionDetailModal.tsx` PASS
+  - `rg -n "any|as any|@ts-ignore|eslint-disable|TODO" apps/web/src/components/chat/PresentationRunSurfaceCard.tsx apps/web/src/components/chat/InspectionActionDetailModal.tsx` final kontrolde eslesme bulmadi.
+  - Not: prompttaki genis Biome komutu degistirilmeyen `ChatPage.tsx`, `PresentationBlockRenderer.tsx`, `chat-presentation.tsx` ve `ActionDetailModal.tsx` dosyalarinda CRLF/LF format baseline farkina takildi; scope genisletip bu dosyalari formatter churn ile degistirmemek icin final Biome kaniti gercek degisen UI dosyalarinda tutuldu.
+- Durust kalan durum: Bu tur detail kartlarinin inline render davranisini korur ve modalda sadece metadata yuzeyi acar. Focus trap, Radix/React Aria dialog gecisi, approval runtime entegrasyonu, desktop action/file/image/code detail modallari ve raw inspection payload explorer'i acilmadi.
+- Sonraki onerilen gorev: ApprovalDecisionCard'i mevcut approval yuzeyine dar ve davranis koruyan bir adapter olarak baglamak ya da web/file/code artifact detail modali icin yine UI-level metadata ile sinirli ikinci bir adapter acmak; runtime/contract davranisini kapali tutmak.
+
 ### Docs Governance / Track C - Desktop Companion + Device Presence Dokuman Hizalamasi - 23 Nisan 2026
 
 - `AGENTS.md`, `README.md`, `implementation-blueprint.md`, `docs/technical-architecture.md` ve `docs/post-mvp-strategy.md` desktop tarafi icin ayni authoritative dilde hizalandi. Eski "desktop-agent repoda yok / hala planli" anlatimi temizlenirken bugunku repo gercegi olarak secure bridge/runtime foundation ve `desktop.screenshot` vertical slice'i korunmus sekilde yazildi.

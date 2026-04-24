@@ -5,8 +5,8 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'rea
 import type { AuthenticatedPageId } from './components/app/AppNav.js';
 import { AppShell } from './components/app/AppShell.js';
 import { useAuth } from './hooks/useAuth.js';
-import { useConversations } from './hooks/useConversations.js';
 import { type UseChatRuntimeResult, useChatRuntime } from './hooks/useChatRuntime.js';
+import { useConversations } from './hooks/useConversations.js';
 import { ChatPage } from './pages/ChatPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { LoginPage } from './pages/LoginPage.js';
