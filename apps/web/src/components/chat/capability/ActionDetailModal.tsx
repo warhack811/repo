@@ -47,6 +47,8 @@ const dialogStyle: CSSProperties = {
 	border: `1px solid ${designTokens.color.border.strong}`,
 	borderRadius: designTokens.radius.card,
 	boxShadow: designTokens.shadow.panel,
+	boxSizing: 'border-box',
+	color: designTokens.color.foreground.text,
 	display: 'grid',
 	gap: designTokens.spacing.lg,
 	margin: 0,
@@ -55,6 +57,8 @@ const dialogStyle: CSSProperties = {
 	minWidth: 'min(640px, 100%)',
 	overflow: 'auto',
 	padding: designTokens.spacing.panel,
+	position: 'relative',
+	width: '100%',
 };
 
 const headerStyle: CSSProperties = {
@@ -164,6 +168,8 @@ export function ActionDetailModal({
 		return null;
 	}
 
+	const hasActions = actions.length > 0;
+
 	function handleOverlayMouseDown(event: MouseEvent<HTMLDivElement>): void {
 		if (event.target === event.currentTarget) {
 			onClose();
@@ -220,12 +226,14 @@ export function ActionDetailModal({
 					</dl>
 				) : null}
 				{children}
-				<div style={footerStyle}>
-					<RunaButton onClick={onClose} type="button" variant="ghost">
-						Dismiss
-					</RunaButton>
-					<CapabilityResultActions actions={actions} />
-				</div>
+				{hasActions ? (
+					<div style={footerStyle}>
+						<RunaButton onClick={onClose} type="button" variant="ghost">
+							Dismiss
+						</RunaButton>
+						<CapabilityResultActions actions={actions} />
+					</div>
+				) : null}
 			</dialog>
 		</div>
 	);
