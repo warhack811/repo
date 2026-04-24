@@ -396,7 +396,7 @@ function getFallbackDetail(
 	}
 
 	if (runSummary?.final_state === 'FAILED') {
-		return 'Mevcut calisma basarisiz oldu. Son gorunur kartlar inceleme icin asagida kalir.';
+		return 'Mevcut çalışma başarısız oldu. Son görünür kartlar inceleme için aşağıda kalır.';
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_RESULT_INGESTING') {

@@ -88,7 +88,7 @@ export function ConversationSidebar({
 		const normalizedMemberUserId = memberUserId.trim();
 
 		if (!normalizedMemberUserId) {
-			setMemberActionError('Paylasim icin member user id gerekli.');
+			setMemberActionError('Paylaşım için member user id gerekli.');
 			return;
 		}
 
@@ -100,7 +100,7 @@ export function ConversationSidebar({
 			setMemberUserId('');
 		} catch (error) {
 			setMemberActionError(
-				error instanceof Error ? error.message : 'Conversation paylasimi basarisiz.',
+				error instanceof Error ? error.message : 'Conversation paylaşımı başarısız.',
 			);
 		} finally {
 			setIsSavingMember(false);
@@ -132,8 +132,8 @@ export function ConversationSidebar({
 				<div style={secondaryLabelStyle}>History</div>
 				<h2 style={{ margin: 0, fontSize: '20px' }}>Conversation history</h2>
 				<div className="runa-subtle-copy">
-					Refresh sonrasi ayni sohbete geri donebilir, ekip icinde paylasilan akislari ayri rol
-					badge'leriyle gorebilirsin.
+					Refresh sonrası aynı konuşmaya geri dönebilir, ekip içinde paylaşılan akışları ayrı rol
+					badge'leriyle görebilirsin.
 				</div>
 			</div>
 
@@ -143,7 +143,7 @@ export function ConversationSidebar({
 				style={actionButtonStyle}
 				className="runa-button runa-button--secondary"
 			>
-				Yeni conversation baslat
+				Yeni conversation başlat
 			</button>
 
 			{conversationError ? (
@@ -157,7 +157,7 @@ export function ConversationSidebar({
 					<div className="runa-subtle-copy">Conversation listesi yükleniyor...</div>
 				) : conversations.length === 0 ? (
 					<div className="runa-subtle-copy">
-						Henuz kalici bir conversation yok. Ilk mesaji gonderdiginde burada gorunecek.
+						Henüz kalıcı bir conversation yok. İlk mesajı gönderdiğinde burada görünecek.
 					</div>
 				) : (
 					conversations.map((conversation) => {
@@ -300,14 +300,14 @@ export function ConversationSidebar({
 								style={actionButtonStyle}
 								className="runa-button runa-button--secondary"
 							>
-								{isSavingMember ? 'Paylasiliyor...' : 'Member ekle veya guncelle'}
+								{isSavingMember ? 'Paylaşılıyor...' : 'Member ekle veya güncelle'}
 							</button>
 						</div>
 					) : (
 						<div className="runa-subtle-copy">
-							Bu conversation seninle paylasildi. {roleLabel(activeConversationSummary.access_role)}{' '}
-							rolunde oldugun icin member listesini gorebilir, yazma yetkin varsa ayni akista
-							calisabilirsin.
+							Bu conversation seninle paylaşıldı. {roleLabel(activeConversationSummary.access_role)}{' '}
+							rolünde olduğun için member listesini görebilir, yazma yetkin varsa aynı akışta
+							çalışabilirsin.
 						</div>
 					)}
 
@@ -316,7 +316,7 @@ export function ConversationSidebar({
 							<div className="runa-subtle-copy">Conversation member listesi yükleniyor...</div>
 						) : activeConversationMembers.length === 0 ? (
 							<div className="runa-subtle-copy">
-								Bu conversation icin henuz eklenmis ek uye yok.
+								Bu conversation için henüz eklenmiş ek üye yok.
 							</div>
 						) : (
 							activeConversationMembers.map((member) => (

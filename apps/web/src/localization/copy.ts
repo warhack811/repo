@@ -239,7 +239,7 @@ const copyByLocale = {
 			connecting: 'Hesap durumu kontrol ediliyor',
 			continueWithGithub: 'GitHub ile devam et',
 			continueWithGoogle: 'Google ile devam et',
-			devSession: 'Local dev oturumu baslat',
+			devSession: 'Local dev oturumu başlat',
 			email: 'E-posta adresi',
 			invalidSession: 'Bearer token gecerli bir oturuma donusmedi.',
 			localDevOnly: 'Local dev auth bootstrap sadece tarayicida baslayabilir.',
@@ -265,8 +265,8 @@ const copyByLocale = {
 			signupDescription: 'E-posta ve sifre ile hesap olustur.',
 			signupPending: 'Hesap olusturuluyor...',
 			signupVerificationNote:
-				'E-posta dogrulamasi aciksa uygulama giris ekraninda kalir ve dogrulama mesajini gosterir.',
-			startingDevSession: 'Local dev auth oturumu baslatiliyor...',
+				'E-posta doğrulaması açıksa uygulama giriş ekranında kalır ve doğrulama mesajını gösterir.',
+			startingDevSession: 'Local dev auth oturumu başlatılıyor...',
 			statusAnonymous: 'Anonim',
 			statusBootstrapping: 'Auth baglami kontrol ediliyor',
 			storedToken: 'Bu sekmede kayitli token var',
@@ -277,7 +277,7 @@ const copyByLocale = {
 			tokenAction: 'Tokeni dogrula',
 			tokenDescription: 'Var olan bir bearer tokeni dogrula.',
 			tokenFallbackNote:
-				'Token yolu, mevcut oturumlar ve troubleshooting icin guvenli bir yedek olarak kalir.',
+				'Token yolu, mevcut oturumlar ve troubleshooting için güvenli bir yedek olarak kalır.',
 			tokenPending: 'Dogrulaniyor...',
 			tokenPlaceholder: 'Bearer token yapistir',
 			unresolvedPrincipal: 'Cozulmedi',
@@ -285,7 +285,7 @@ const copyByLocale = {
 		chat: {
 			composerPlaceholder: 'Ne yapmak istedigini yaz...',
 			configMissing:
-				'Sohbet hazir ama runtime kurulumu eksik. Istek gondermeden once Developer Mode icinden gecerli bir API anahtari gir.',
+				'Sohbet hazır ama runtime kurulumu eksik. İstek göndermeden önce Developer Mode içinden geçerli bir API anahtarı gir.',
 			currentRunHeading: 'Mevcut calisma',
 			emptySurface:
 				'Henüz görünür bir çalışma yok. Yeni bir mesaj gönderdiğinde mevcut çalışma yüzeyi burada görünür.',
@@ -314,7 +314,7 @@ const copyByLocale = {
 			includePresentationBlocks: 'Presentation block iste',
 			lastError: 'Son runtime hatasi',
 			model: 'Model',
-			noMessages: 'Henuz transport mesaji yok.',
+			noMessages: 'Henüz transport mesajı yok.',
 			provider: 'Saglayici',
 			rawTransport: 'Ham transport',
 			refreshAuthContext: 'Auth durumunu yenile',
@@ -346,9 +346,9 @@ const copyByLocale = {
 				'Canli baglanti henuz hazir degil. Istek gondermeden once yeniden baglanmasini bekle.',
 			modelRequired: 'Model gerekli.',
 			promptRequired: 'Istek metni gerekli.',
-			unsupportedWsMessage: 'Desteklenmeyen WebSocket sunucu mesaji.',
+			unsupportedWsMessage: 'Desteklenmeyen WebSocket sunucu mesajı.',
 			wsClosedRetrying: 'Canli baglanti kapandi. Yeniden deneniyor...',
-			wsFailedRetrying: 'WebSocket baglantisi basarisiz oldu. Yeniden deneniyor...',
+			wsFailedRetrying: 'WebSocket bağlantısı başarısız oldu. Yeniden deneniyor...',
 			wsNotOpen: 'WebSocket acik degil.',
 			wsParsingUnknown: 'Bilinmeyen WebSocket mesaj cozumleme hatasi.',
 			unknownApprovalSubmit: 'Bilinmeyen onay gonderim hatasi.',

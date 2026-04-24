@@ -127,8 +127,8 @@ export function buildRunFeedbackState(
 		return {
 			chip_label: 'failed',
 			detail: input.has_visible_surface
-				? 'Son yuzey gorunur kalir; boylece hata oncesinde tamamlanan kismi gorebilirsin.'
-				: 'Bu basarisiz calisma icin yeni bir gorunur yuzey yok.',
+				? 'Son yüzey görünür kalır; böylece hata öncesinde tamamlanan kısmı görebilirsin.'
+				: 'Bu başarısız çalışma için yeni bir görünür yüzey yok.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Çalışma hata ile bitti',
@@ -142,7 +142,7 @@ export function buildRunFeedbackState(
 			chip_label: 'detail loading',
 			detail:
 				input.pending_detail_count === 1
-					? 'Istenen detay karti yanit geldiginde ayni akis icinde acilacak.'
+					? 'İstenen detay kartı yanıt geldiğinde aynı akış içinde açılacak.'
 					: 'İstenen detay kartları geldikçe aynı akış içinde açılacak.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
@@ -170,7 +170,7 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.has_accepted && !input.run_summary.has_runtime_event) {
 		return {
 			chip_label: 'accepted',
-			detail: 'Sunucu istegi kabul etti. Ilk gorunur cikti hazirlaniyor.',
+			detail: 'Sunucu isteği kabul etti. İlk görünür çıktı hazırlanıyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Çalışma kabul edildi',
@@ -195,7 +195,7 @@ export function buildRunFeedbackState(
 		if (input.include_presentation_blocks === false) {
 			return {
 				chip_label: 'bridge off',
-				detail: 'Bu istekte presentation blocks kapali oldugu icin gorunur yuzey uretilmiyor.',
+				detail: 'Bu istekte presentation blocks kapalı olduğu için görünür yüzey üretilmiyor.',
 				pending_detail_count: input.pending_detail_count,
 				run_id: runId,
 				title: 'Canli runtime acik, gorunur yuzey koprusu kapali',
@@ -206,7 +206,7 @@ export function buildRunFeedbackState(
 
 		return {
 			chip_label: 'warming up',
-			detail: 'Runtime basladi. Ilk gorunur yuzey hazir oldugunda burada belirecek.',
+			detail: 'Runtime başladı. İlk görünür yüzey hazır olduğunda burada belirecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'İlk özet kartları hazırlanıyor',
@@ -249,7 +249,7 @@ export function buildRunFeedbackState(
 			run_id: runId,
 			title: input.has_visible_surface
 				? 'Model calismaya devam ediyor'
-				: 'Ilk gorunur cikti hazirlaniyor',
+				: 'İlk görünür çıktı hazırlanıyor',
 			tone: 'info',
 			trace_id: traceId,
 		};

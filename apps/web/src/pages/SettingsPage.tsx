@@ -232,7 +232,7 @@ export function SettingsPage({
 						</h2>
 						<p style={appShellMutedTextStyle}>
 							Giriş yaptığın açık bir desktop companion varsa burada görünür. Bu yüzey şimdilik
-							yalniz gorunurluk saglar; cihaz secimi veya uzaktan aksiyon baslatma bu turda acilmaz.
+							yalnız görünürlük sağlar; cihaz seçimi veya uzaktan aksiyon başlatma bu turda açılmaz.
 						</p>
 					</div>
 
@@ -256,7 +256,7 @@ export function SettingsPage({
 						{desktopDevicesState.status === 'success' &&
 						desktopDevicesState.devices.length === 0 ? (
 							<div style={deviceCardStyle}>
-								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Henuz gorunen cihaz yok</div>
+								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Henüz görünen cihaz yok</div>
 								<div style={appShellMutedTextStyle}>
 									Bu hesapla giris yapmis acik bir desktop companion bulunmadiginda burada cihaz
 									listelenmez.

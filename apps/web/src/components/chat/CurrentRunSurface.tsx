@@ -55,7 +55,7 @@ export function CurrentRunSurface({
 					Aktif sohbet akışı
 				</h2>
 				<div className="runa-subtle-copy">
-					Guncel calisma, kalici mesajlar ve yardimci kartlar burada sakin bir akista kalir.
+					Güncel çalışma, kalıcı mesajlar ve yardımcı kartlar burada sakin bir akışta kalır.
 				</div>
 			</div>
 			<PersistedTranscript
