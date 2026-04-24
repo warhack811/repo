@@ -231,7 +231,7 @@ export function SettingsPage({
 							Online devices
 						</h2>
 						<p style={appShellMutedTextStyle}>
-							Giris yaptigin acik bir desktop companion varsa burada gorunur. Bu yuzey simdilik
+							Giriş yaptığın açık bir desktop companion varsa burada görünür. Bu yüzey şimdilik
 							yalniz gorunurluk saglar; cihaz secimi veya uzaktan aksiyon baslatma bu turda acilmaz.
 						</p>
 					</div>
@@ -376,7 +376,7 @@ export function SettingsPage({
 							</div>
 							{voiceInput.permissionDenied ? (
 								<div className="runa-alert runa-alert--warning">
-									Mikrofon izni reddedilmis. Chat ekranindaki voice trigger yazili akisi bozmadan
+									Mikrofon izni reddedilmiş. Chat ekranındaki voice trigger yazılı akışı bozmadan
 									pasif kalir; tekrar kullanmak istersen tarayici iznini acman yeterli.
 								</div>
 							) : null}

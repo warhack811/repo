@@ -131,7 +131,7 @@ export function buildRunFeedbackState(
 				: 'Bu basarisiz calisma icin yeni bir gorunur yuzey yok.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma hata ile bitti',
+			title: 'Çalışma hata ile bitti',
 			tone: 'error',
 			trace_id: traceId,
 		};
@@ -143,13 +143,13 @@ export function buildRunFeedbackState(
 			detail:
 				input.pending_detail_count === 1
 					? 'Istenen detay karti yanit geldiginde ayni akis icinde acilacak.'
-					: 'Istenen detay kartlari geldikce ayni akis icinde acilacak.',
+					: 'İstenen detay kartları geldikçe aynı akış içinde açılacak.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title:
 				input.pending_detail_count === 1
-					? '1 detay karti yukleniyor'
-					: `${input.pending_detail_count} detay karti yukleniyor`,
+					? '1 detay kartı yükleniyor'
+					: `${input.pending_detail_count} detay kartı yükleniyor`,
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -173,7 +173,7 @@ export function buildRunFeedbackState(
 			detail: 'Sunucu istegi kabul etti. Ilk gorunur cikti hazirlaniyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma kabul edildi',
+			title: 'Çalışma kabul edildi',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -182,7 +182,7 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.latest_runtime_state === 'WAITING_APPROVAL') {
 		return {
 			chip_label: 'approval',
-			detail: 'Calisma onay bekledigi icin duraklatildi.',
+			detail: 'Çalışma onay beklediği için duraklatıldı.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Onay bekleniyor',
@@ -209,7 +209,7 @@ export function buildRunFeedbackState(
 			detail: 'Runtime basladi. Ilk gorunur yuzey hazir oldugunda burada belirecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Ilk ozet kartlari hazirlaniyor',
+			title: 'İlk özet kartları hazırlanıyor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -218,7 +218,7 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.latest_runtime_state === 'TOOL_EXECUTING') {
 		return {
 			chip_label: 'tools',
-			detail: 'Calisma suruyor. Araclar tamamlandikca ozet ve detaylar yenilenecek.',
+			detail: 'Çalışma sürüyor. Araçlar tamamlandıkça özet ve detaylar yenilenecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Araclar calisiyor',
@@ -230,7 +230,7 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.latest_runtime_state === 'TOOL_RESULT_INGESTING') {
 		return {
 			chip_label: 'refreshing',
-			detail: 'Arac sonucu mevcut calisma yuzeyine isleniyor.',
+			detail: 'Araç sonucu mevcut çalışma yüzeyine işleniyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Ozetler yenileniyor',
@@ -244,7 +244,7 @@ export function buildRunFeedbackState(
 			chip_label: 'thinking',
 			detail: input.has_visible_surface
 				? 'Mevcut calisma sabit kalirken model yeni cikti uretmeye devam ediyor.'
-				: 'Model dusunuyor. Ilk gorunur cikti hazir oldugunda burada belirecek.',
+				: 'Model düşünüyor. İlk görünür çıktı hazır olduğunda burada belirecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: input.has_visible_surface
@@ -263,10 +263,10 @@ export function buildRunFeedbackState(
 	) {
 		return {
 			chip_label: 'live',
-			detail: 'Calisma surerken yeni ozet ve detaylar ayni akis icinde yerlesecek.',
+			detail: 'Çalışma sürerken yeni özet ve detaylar aynı akış içinde yerleşecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Canli calisma yuzeyi',
+			title: 'Canlı çalışma yüzeyi',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -278,10 +278,10 @@ export function buildRunFeedbackState(
 			detail:
 				input.include_presentation_blocks === false
 					? 'Bu istek gorunur yuzey koprusu olmadan tamamlandi.'
-					: 'Calisma tamamlandi ancak tutulmus bir gorunur yuzey olusmadi.',
+					: 'Çalışma tamamlandı ancak tutulmuş bir görünür yüzey oluşmadı.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma tamamlandi',
+			title: 'Çalışma tamamlandı',
 			tone: 'success',
 			trace_id: traceId,
 		};

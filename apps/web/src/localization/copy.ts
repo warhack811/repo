@@ -216,8 +216,8 @@ const copyByLocale = {
 		appShell: {
 			authenticatedSession: 'Kimligi dogrulanmis oturum',
 			chatEyebrow: 'calisma ortagi',
-			chatSubtitle: 'Ana yuz sohbet akisi ve calisma alani olarak kurulur.',
-			chatTitle: 'Calisma alani',
+			chatSubtitle: 'Ana yüz sohbet akışı ve çalışma alanı olarak kurulur.',
+			chatTitle: 'Çalışma alanı',
 			developerEyebrow: 'ikinci katman',
 			developerSubtitle: 'Yalniz gelistiriciye ait ayarlar ve teknik gorunurluk burada tutulur.',
 			developerTitle: 'Developer Mode',
@@ -252,7 +252,7 @@ const copyByLocale = {
 			modeLabel: 'Kimlik dogrulama modu',
 			noStoredToken: 'Bu sekmede kayitli token yok',
 			oauthDescription:
-				'Bu, gercek bir OAuth baslangic akisidir. Uygulama geri donen tokeni auth bootstrap sirasinda okur.',
+				'Bu, gerçek bir OAuth başlangıç akışıdır. Uygulama geri dönen tokeni auth bootstrap sırasında okur.',
 			oauthRedirecting: 'OAuth saglayicisina yonlendiriliyor...',
 			oauthValidating: 'OAuth ile geri donuldu. Oturum dogrulaniyor.',
 			password: 'Sifre',
@@ -288,10 +288,10 @@ const copyByLocale = {
 				'Sohbet hazir ama runtime kurulumu eksik. Istek gondermeden once Developer Mode icinden gecerli bir API anahtari gir.',
 			currentRunHeading: 'Mevcut calisma',
 			emptySurface:
-				'Henuz gorunur bir calisma yok. Yeni bir mesaj gonderdiginde mevcut calisma yuzeyi burada gorunur.',
+				'Henüz görünür bir çalışma yok. Yeni bir mesaj gönderdiğinde mevcut çalışma yüzeyi burada görünür.',
 			heroSubtitle:
-				'Sohbet, onaylar ve canli calisma yuzeyi burada birlikte kalir. Teknik kontroller Developer Mode icindedir.',
-			heroTitle: 'Calisma ortagin',
+				'Sohbet, onaylar ve canlı çalışma yüzeyi burada birlikte kalır. Teknik kontroller Developer Mode içindedir.',
+			heroTitle: 'Çalışma ortağın',
 			openDeveloper: 'Developer Mode ac',
 			runConnectionClosed: 'Baglanti kapali',
 			runConnectionConnecting: 'Baglaniyor',
@@ -300,12 +300,12 @@ const copyByLocale = {
 			sending: 'Gonderiliyor...',
 			submitConnectionConnecting: 'Canli runtime baglantisi kuruluyor...',
 			submitConnectionWaiting: 'Canli baglanti bekleniyor',
-			submitInProgress: 'Calisma suruyor...',
+			submitInProgress: 'Çalışma sürüyor...',
 		},
 		developer: {
 			apiKey: 'API anahtari',
 			configDescription:
-				'Bu ayarlar canli sohbet runtimeini besler ama ana sohbet yuzeyinde gorunmez.',
+				'Bu ayarlar canlı sohbet runtimeini besler ama ana sohbet yüzeyinde görünmez.',
 			configHeading: 'Runtime ayarlari',
 			currentDefaults: 'Mevcut varsayilanlar',
 			description:
@@ -336,8 +336,8 @@ const copyByLocale = {
 			showingLatestSteps: 'Son {count} adim gosteriliyor',
 			pastRuns: 'Gecmis calismalar',
 			pastRunsCollapsed: 'Gecmis calismalar ana sohbeti kalabaliklastirmadan burada kalir.',
-			surfaceHeading: 'Mevcut calisma yuzeyi',
-			surfaceSubtitle: 'En yeni ozet kartlari ve bagli detaylar calisma surerken burada kalir.',
+			surfaceHeading: 'Mevcut çalışma yüzeyi',
+			surfaceSubtitle: 'En yeni özet kartları ve bağlı detaylar çalışma sürerken burada kalır.',
 		},
 		runtime: {
 			apiKeyRequired: 'API anahtari gerekli.',

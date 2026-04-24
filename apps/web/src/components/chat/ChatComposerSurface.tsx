@@ -201,7 +201,7 @@ export function ChatComposerSurface({
 							style={{ boxShadow: 'none', padding: '10px 14px' }}
 							variant="primary"
 						>
-							Developer Mode'u etkinlestir
+							Developer Mode'u etkinleştir
 						</RunaButton>
 						<Link
 							className="runa-button runa-button--secondary"

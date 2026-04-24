@@ -254,10 +254,10 @@ export function buildRunFeedbackState(
 	if (!input.run_summary) {
 		return {
 			chip_label: 'accepted',
-			detail: 'Calisma kabul edildi; ilk gorunur yuzey hazirlaniyor.',
+			detail: 'Çalışma kabul edildi; ilk görünür yüzey hazırlanıyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma hazirlaniyor',
+			title: 'Çalışma hazırlanıyor',
 			tone: 'info',
 		};
 	}
@@ -268,7 +268,7 @@ export function buildRunFeedbackState(
 			detail: 'Bu calisma tamamlanamadi. En son gorunur kartlar korunuyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma durdu',
+			title: 'Çalışma durdu',
 			tone: 'error',
 			trace_id: input.run_summary.trace_id,
 		};
@@ -292,10 +292,10 @@ export function buildRunFeedbackState(
 		chip_label: input.include_presentation_blocks ? 'live' : 'thinking',
 		detail: input.has_visible_surface
 			? 'Runa mevcut kartları güncellerken akışı aynı yerde tutuyor.'
-			: 'Runa dusunuyor ve ilk yuzeyi hazirliyor.',
+			: 'Runa düşünüyor ve ilk yüzeyi hazırlıyor.',
 		pending_detail_count: input.pending_detail_count,
 		run_id: runId,
-		title: 'Calisma suruyor',
+		title: 'Çalışma sürüyor',
 		tone: 'info',
 		trace_id: input.run_summary.trace_id,
 	};

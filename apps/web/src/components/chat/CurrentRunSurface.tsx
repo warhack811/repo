@@ -52,7 +52,7 @@ export function CurrentRunSurface({
 			<div style={headingStackStyle}>
 				<div style={secondaryLabelStyle}>{uiCopy.run.currentRunProgress}</div>
 				<h2 id="chat-conversation-surface-heading" style={{ fontSize: '20px' }}>
-					Aktif sohbet akisi
+					Aktif sohbet akışı
 				</h2>
 				<div className="runa-subtle-copy">
 					Guncel calisma, kalici mesajlar ve yardimci kartlar burada sakin bir akista kalir.
