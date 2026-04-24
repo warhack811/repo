@@ -58,7 +58,7 @@ function toPersistenceDebugError(error: unknown): {
 	};
 }
 
-function resolvePersistenceDebugDatabaseSelection():
+export function resolvePersistenceDebugDatabaseSelection():
 	| PersistenceDebugDatabaseSelection
 	| {
 			readonly config_error_message: string;
