@@ -161,8 +161,8 @@ export function ChatComposerSurface({
 					Sohbetten devam et
 				</h2>
 				<div className="runa-subtle-copy">
-					Hedefini yaz, Runa akisi burada tutsun ve gerekirse seni sonraki adima tasiyacagini
-					gostersin.
+					Hedefini yaz, Runa akışı burada tutsun ve gerekirse seni sonraki adıma taşıyacağını
+					göstersin.
 				</div>
 			</div>
 
@@ -176,8 +176,8 @@ export function ChatComposerSurface({
 					}}
 					className="runa-alert runa-alert--warning"
 				>
-					<span style={{ color: '#f59e0b' }}>â—</span>
-					Sunucu tarafÄ±ndaki varsayÄ±lan API anahtarÄ± kullanÄ±lacak.
+					<span style={{ color: '#f59e0b' }}>●</span>
+					Sunucu tarafındaki varsayılan API anahtarı kullanılacak.
 				</div>
 			) : null}
 
@@ -263,8 +263,8 @@ export function ChatComposerSurface({
 						/>
 					</div>
 					<div className="runa-subtle-copy">
-						Bu minimum seam simdilik `image/*`, `text/*` ve `application/json` dosyalari ile
-						sinirli. Prompt'a kisa bir niyet ekleyip dosyayi birlikte gonderebilirsin.
+						Bu minimum seam şimdilik `image/*`, `text/*` ve `application/json` dosyaları ile
+						sınırlı. Prompt'a kısa bir niyet ekleyip dosyayı birlikte gönderebilirsin.
 					</div>
 					{attachments.length > 0 ? (
 						<div style={{ display: 'grid', gap: designTokens.spacing.sm }}>
@@ -276,8 +276,7 @@ export function ChatComposerSurface({
 												{attachment.filename ?? attachment.blob_id}
 											</strong>
 											<div className="runa-subtle-copy">
-												{attachment.kind} â€¢ {attachment.media_type} â€¢ {attachment.size_bytes}{' '}
-												bytes
+												{attachment.kind} • {attachment.media_type} • {attachment.size_bytes} bytes
 											</div>
 										</div>
 										<RunaButton
@@ -292,7 +291,7 @@ export function ChatComposerSurface({
 											style={{ padding: '8px 12px' }}
 											variant="secondary"
 										>
-											Kaldir
+											Kaldır
 										</RunaButton>
 									</div>
 									{attachment.kind === 'image' ? (
@@ -324,7 +323,7 @@ export function ChatComposerSurface({
 					{attachmentUploadError ? (
 						<div className="runa-alert runa-alert--warning">{attachmentUploadError}</div>
 					) : isUploadingAttachment ? (
-						<div className="runa-subtle-copy">Secilen dosya yukleniyor...</div>
+						<div className="runa-subtle-copy">Seçilen dosya yükleniyor...</div>
 					) : null}
 				</div>
 

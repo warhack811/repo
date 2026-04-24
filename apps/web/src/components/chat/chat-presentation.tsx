@@ -278,11 +278,11 @@ export function buildRunFeedbackState(
 		return {
 			chip_label: 'completed',
 			detail: input.has_visible_surface
-				? 'Calisma tamamlandi. Son kartlar ve detaylar burada sabit kaldı.'
-				: 'Calisma tamamlandi.',
+				? 'Çalışma tamamlandı. Son kartlar ve detaylar burada sabit kaldı.'
+				: 'Çalışma tamamlandı.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma tamamlandi',
+			title: 'Çalışma tamamlandı',
 			tone: 'success',
 			trace_id: input.run_summary.trace_id,
 		};
@@ -291,7 +291,7 @@ export function buildRunFeedbackState(
 	return {
 		chip_label: input.include_presentation_blocks ? 'live' : 'thinking',
 		detail: input.has_visible_surface
-			? 'Runa mevcut kartlari guncellerken akisi ayni yerde tutuyor.'
+			? 'Runa mevcut kartları güncellerken akışı aynı yerde tutuyor.'
 			: 'Runa dusunuyor ve ilk yuzeyi hazirliyor.',
 		pending_detail_count: input.pending_detail_count,
 		run_id: runId,
