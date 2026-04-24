@@ -2,6 +2,17 @@ export type CapabilityTone = 'danger' | 'info' | 'neutral' | 'success' | 'warnin
 
 export type CapabilityStatus = 'completed' | 'failed' | 'queued' | 'running' | 'waiting';
 
+export type ActionRiskLevel = 'high' | 'low' | 'medium';
+
+export type ApprovalDecision = 'approve' | 'reject';
+
+export type ActionDetailItem = Readonly<{
+	id: string;
+	label: string;
+	value: string;
+	tone?: CapabilityTone;
+}>;
+
 export type AssetPreviewKind = 'code' | 'document' | 'generic' | 'image' | 'screenshot';
 
 export type AssetActionTone = 'danger' | 'primary' | 'secondary';
