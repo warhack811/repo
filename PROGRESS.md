@@ -220,6 +220,22 @@
 - Durust kalan durum: Bu tur asset UI foundation'i kurdu ama gercek image generation/editing, before/after slider, upload/storage, provider, desktop screenshot runtime preview, RenderBlock image block'u, ChatPage entegrasyonu veya active generation progress wiring'i acmadi.
 - Sonraki onerilen gorev: web_search_result_block veya file/code artifact preview yuzeylerinden birini bu asset/capability foundation'a dar adapter olarak baglamak; yine RenderBlock/WS/provider/storage contract degistirmemek.
 
+### Track C / UI Foundation Phase 8 - Approval + Action Detail Modal Foundation - 24 Nisan 2026
+
+- `apps/web/src/components/chat/capability/ActionRiskBadge.tsx` eklendi. Low / medium / high risk seviyeleri icin sakin RunaBadge tabanli UI-level risk dili kuruldu; alarmist ana chat dili veya runtime policy baglantisi acilmadi.
+- `apps/web/src/components/chat/capability/ApprovalDecisionCard.tsx` eklendi. `CapabilityCard` ve `CapabilityResultActions` uzerinden approve/reject karar yuzeyi kuruldu; callback prop'lari disinda approval runtime/store veya mevcut `ApprovalPanel` davranisina baglanmiyor.
+- `apps/web/src/components/chat/capability/ActionDetailModal.tsx` eklendi. `isOpen === false` durumunda null donen, native `<dialog open>` semantigi kullanan, close action'i, optional risk badge, detail listesi, children ve action row slot'u olan ikinci katman detail modal foundation'i kuruldu. Full focus trap iddiasi yok; ileride Radix veya React Aria gibi bir modal/dialog candidate'i degerlendirilebilir.
+- `types.ts` yalniz UI-level tiplerle genisletildi: `ActionRiskLevel`, `ApprovalDecision` ve `ActionDetailItem`. `packages/types`, WS, RenderBlock, policy, auth, provider veya runtime contract tipleri degistirilmedi.
+- `index.ts` yeni component ve tip export'larini verdi. `CapabilityCard` ve `CapabilityResultActions` mevcut API'leri yeterli oldugu icin degistirilmedi.
+- Degisen dosyalar: `apps/web/src/components/chat/capability/ActionDetailModal.tsx`, `ApprovalDecisionCard.tsx`, `ActionRiskBadge.tsx`, `types.ts`, `index.ts`, `PROGRESS.md`.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd exec biome check apps/web/src/components/chat/capability/ActionDetailModal.tsx apps/web/src/components/chat/capability/ApprovalDecisionCard.tsx apps/web/src/components/chat/capability/ActionRiskBadge.tsx apps/web/src/components/chat/capability/types.ts apps/web/src/components/chat/capability/index.ts` PASS
+  - `rg -n "any|as any|@ts-ignore|eslint-disable|TODO" apps/web/src/components/chat/capability` final kontrolde eslesme bulmadi.
+- Durust kalan durum: Bu tur gercek approval flow, approval persistence, desktop action execution, file/image/code operation, research/detail inspection wiring, ChatPage modal state'i veya presentation block adapter'i acmadi. Foundation componentleri henuz runtime tarafindan kullanilmiyor.
+- Sonraki onerilen gorev: Mevcut approval veya inspection action yuzeylerinden tek birini bu modal/card foundation'a dar adapter olarak baglamak; RenderBlock/WS/runtime contract redesign acmamak.
+
 ### Docs Governance / Track C - Desktop Companion + Device Presence Dokuman Hizalamasi - 23 Nisan 2026
 
 - `AGENTS.md`, `README.md`, `implementation-blueprint.md`, `docs/technical-architecture.md` ve `docs/post-mvp-strategy.md` desktop tarafi icin ayni authoritative dilde hizalandi. Eski "desktop-agent repoda yok / hala planli" anlatimi temizlenirken bugunku repo gercegi olarak secure bridge/runtime foundation ve `desktop.screenshot` vertical slice'i korunmus sekilde yazildi.
