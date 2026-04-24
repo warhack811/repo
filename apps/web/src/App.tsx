@@ -7,6 +7,7 @@ import { AppShell } from './components/app/AppShell.js';
 import { useAuth } from './hooks/useAuth.js';
 import { type UseChatRuntimeResult, useChatRuntime } from './hooks/useChatRuntime.js';
 import { useConversations } from './hooks/useConversations.js';
+import { CapabilityPreviewPage } from './pages/CapabilityPreviewPage.js';
 import { ChatPage } from './pages/ChatPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { LoginPage } from './pages/LoginPage.js';
@@ -34,7 +35,7 @@ type DeveloperRouteProps = Readonly<{
 }>;
 
 function resolveActivePage(pathname: string): AuthenticatedPageId {
-	if (pathname === '/developer') {
+	if (pathname === '/developer' || pathname.startsWith('/developer/')) {
 		return 'developer';
 	}
 
@@ -161,6 +162,7 @@ function AuthenticatedApp(
 							/>
 						}
 					/>
+					<Route path="developer/capability-preview" element={<CapabilityPreviewPage />} />
 					<Route path="dashboard" element={<Navigate replace to="/chat" />} />
 					<Route path="settings" element={<Navigate replace to="/account" />} />
 					<Route path="*" element={<Navigate replace to="/chat" />} />
