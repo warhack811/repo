@@ -75,6 +75,11 @@ interface ConversationMessagesResponseCandidate {
 	readonly messages?: unknown;
 }
 
+interface ErrorResponseCandidate {
+	readonly code?: unknown;
+	readonly message?: unknown;
+}
+
 interface UseConversationsOptions {
 	readonly accessToken?: string | null;
 }
@@ -243,6 +248,27 @@ function createRequestHeaders(accessToken?: string | null): Headers {
 async function readErrorMessage(response: Response): Promise<string> {
 	const responseText = await response.text();
 	const trimmedText = responseText.trim();
+
+	if (trimmedText.length > 0) {
+		try {
+			const parsed = JSON.parse(trimmedText) as unknown;
+
+			if (isRecord(parsed)) {
+				const candidate = parsed as ErrorResponseCandidate;
+
+				if (typeof candidate.message !== 'string') {
+					return trimmedText;
+				}
+
+				const message = candidate.message;
+				const code = candidate.code;
+				return typeof code === 'string' ? `${message} (${code})` : message;
+			}
+		} catch {
+			return trimmedText;
+		}
+	}
+
 	return trimmedText.length > 0
 		? trimmedText
 		: `Conversation request failed with status ${response.status}.`;

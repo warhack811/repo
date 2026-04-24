@@ -1208,6 +1208,15 @@
 - Degisen dosyalar yalniz `apps/web/src/**` altindaki copy/UI render dosyalari ve bu PROGRESS notudur. Runtime, WS, RenderBlock, server, desktop-agent, package veya lockfile degistirilmedi.
 - Sonraki onerilen dar gorev: modal visual harness veya approval adapter seam; copy paketi uzerinden yeni visual redesign acmamak.
 
+### Track C / UI Foundation Phase 14 - Dev/Demo Conversation Persistence Health - 24 Nisan 2026
+
+- Root cause: PR #7 smoke sirasindaki `/conversations` 500 artik Vite proxy veya no-config fallback sinifi degil; server persistence env'i configured gordugu icin gercek conversation read/bootstrap hatasini empty state'e cevirmeden 500 olarak korudu. Bu turde `D:\ai\Runa\.env` + `.env.local` dev-script precedence'iyle yapilan DB probe `target=local`, `database_url_source=DATABASE_URL`, schema bootstrap ve empty conversation list icin PASS verdi; yani dogru local Postgres ayaginda endpoint 200 donebiliyor. Kalan risk, server prosesinin shell/IDE env override'i veya kapali/erisilemeyen local DB ile baslatilmasi.
+- Secilen cozum: Option A + B. Gercek DB misconfiguration yutulmadi; `/conversations` list read/config failure'lari `CONVERSATION_PERSISTENCE_UNAVAILABLE` kodu ve secret icermeyen `target`, `target_source`, `database_url_source` metadata'siyle donuyor. Web hook JSON error payload'ini ham string yerine message/code olarak okuyor.
+- Degisen dosyalar: `apps/server/src/persistence/database-config.ts`, `apps/server/src/routes/conversations.ts`, `apps/server/src/app.test.ts`, `apps/web/src/hooks/useConversations.ts`, `docs/dev/conversation-persistence-health.md`, `PROGRESS.md`.
+- Browser smoke sonucu: local dev server/web uzerinden authenticated dev bootstrap ile `/chat`, direct browser fetch `/conversations`, `/account`, `/developer`, `/dashboard -> /chat`, `/settings -> /account` ve direct `/desktop/devices` kontrol edildi. `/conversations` `200 {"conversations":[]}` ve `/desktop/devices` `200 {"devices":[]}` dondu; `Maximum update depth exceeded` gorulmedi.
+- Kalan durum: Tarihsel PR #7 smoke prosesinin terminal log'u mevcut degil; yeni health payload/runbook ayni sinif hatanin tekrarinda URL/secret sizdirmeden hangi DB target/source'un secildigini gosterir. Dogru dev/demo path local Postgres + `.env.local` ile netlestirildi.
+- Sonraki onerilen gorev: modal visual harness veya approval adapter.
+
 ## Teknik Borc (Tech Debt) & Known Gaps
 
 > **Kaynak:** 2026-04-18 tarihli kapsamli mimari denetim (Architectural Audit).

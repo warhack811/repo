@@ -7,6 +7,7 @@ import { buildServer } from './app.js';
 import { createLocalDevSessionToken } from './auth/supabase-auth.js';
 import {
 	ConversationStoreConfigurationError,
+	ConversationStoreReadError,
 	ConversationStoreWriteError,
 } from './persistence/conversation-store.js';
 import { registerDesktopDeviceRoutes } from './routes/desktop-devices.js';
@@ -66,6 +67,7 @@ function createSession(overrides: Partial<AuthSession> = {}): AuthSession {
 }
 
 interface ConversationDatabaseEnvironment {
+	readonly DATABASE_TARGET?: string;
 	readonly DATABASE_URL?: string;
 	readonly LOCAL_DATABASE_URL?: string;
 	readonly SUPABASE_DATABASE_URL?: string;
@@ -75,6 +77,7 @@ function readConversationDatabaseEnvironment(): ConversationDatabaseEnvironment 
 	const environment = process.env as NodeJS.ProcessEnv & ConversationDatabaseEnvironment;
 
 	return {
+		DATABASE_TARGET: environment.DATABASE_TARGET,
 		DATABASE_URL: environment.DATABASE_URL,
 		LOCAL_DATABASE_URL: environment.LOCAL_DATABASE_URL,
 		SUPABASE_DATABASE_URL: environment.SUPABASE_DATABASE_URL,
@@ -83,10 +86,17 @@ function readConversationDatabaseEnvironment(): ConversationDatabaseEnvironment 
 
 function writeConversationDatabaseEnvironment(environment: ConversationDatabaseEnvironment): void {
 	const runtimeEnvironment = process.env as NodeJS.ProcessEnv & {
+		DATABASE_TARGET?: string;
 		DATABASE_URL?: string;
 		LOCAL_DATABASE_URL?: string;
 		SUPABASE_DATABASE_URL?: string;
 	};
+
+	if (environment.DATABASE_TARGET === undefined) {
+		Reflect.deleteProperty(runtimeEnvironment, 'DATABASE_TARGET');
+	} else {
+		runtimeEnvironment.DATABASE_TARGET = environment.DATABASE_TARGET;
+	}
 
 	if (environment.DATABASE_URL === undefined) {
 		Reflect.deleteProperty(runtimeEnvironment, 'DATABASE_URL');
@@ -1509,7 +1519,67 @@ describe('buildServer auth wiring', () => {
 
 			expect(response.statusCode).toBe(500);
 			expect(response.json()).toMatchObject({
+				code: 'CONVERSATION_PERSISTENCE_UNAVAILABLE',
 				message: 'Unsupported DATABASE_TARGET "invalid". Expected one of: local, cloud, supabase.',
+				operation: 'list_conversations',
+				persistence: {
+					database_url_source: 'DATABASE_URL',
+					target: 'local',
+					target_source: 'inferred',
+				},
+				statusCode: 500,
+			});
+		} finally {
+			writeConversationDatabaseEnvironment(originalDatabaseEnvironment);
+		}
+	});
+
+	it('keeps configured conversation read failures as explicit persistence health failures', async () => {
+		const originalDatabaseEnvironment = readConversationDatabaseEnvironment();
+		writeConversationDatabaseEnvironment({
+			DATABASE_TARGET: 'local',
+			DATABASE_URL: 'postgres://configured-user:configured-pass@127.0.0.1:5432/runa',
+		});
+
+		try {
+			const listConversations = vi
+				.fn()
+				.mockRejectedValue(new ConversationStoreReadError('Failed to list conversations.'));
+			const server = await buildServer({
+				auth: {
+					verify_token: async () => ({
+						claims: createClaims(),
+						provider: 'supabase',
+						session: createSession(),
+						user: createUser(),
+					}),
+				},
+				conversations: {
+					list_conversations: listConversations,
+				},
+			});
+			serversToClose.push(server);
+
+			const response = await server.inject({
+				headers: {
+					authorization: 'Bearer valid-token',
+				},
+				method: 'GET',
+				url: '/conversations',
+			});
+
+			expect(response.statusCode).toBe(500);
+			expect(response.json()).toEqual({
+				code: 'CONVERSATION_PERSISTENCE_UNAVAILABLE',
+				error: 'Internal Server Error',
+				message:
+					'Conversation persistence is configured but unavailable. Check database target, selected URL source, connectivity, and schema bootstrap.',
+				operation: 'list_conversations',
+				persistence: {
+					database_url_source: 'DATABASE_URL',
+					target: 'local',
+					target_source: 'DATABASE_TARGET',
+				},
 				statusCode: 500,
 			});
 		} finally {
