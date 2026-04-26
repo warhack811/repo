@@ -6,8 +6,6 @@ import { uiCopy } from '../../localization/copy.js';
 import { RunaBadge, RunaSurface } from '../ui/index.js';
 import { AppNav, type AuthenticatedPageId } from './AppNav.js';
 
-const TURKISH_LOCALE = 'tr-TR';
-
 export const appShellPageStyle: CSSProperties = {
 	...pageStyle,
 	minHeight: '100dvh',
@@ -94,6 +92,11 @@ const shellMainStyle: CSSProperties = {
 	minWidth: 0,
 };
 
+const chatShellFrameStyle: CSSProperties = {
+	display: 'grid',
+	minWidth: 0,
+};
+
 const pageCopyById: Record<
 	AuthenticatedPageId,
 	{
@@ -132,6 +135,22 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 			? uiCopy.appShell.serviceSession
 			: uiCopy.appShell.authenticatedSession;
 
+	if (activePage === 'chat') {
+		return (
+			<div className="runa-page runa-page--chat-product" style={appShellPageStyle}>
+				<RunaSurface
+					as="main"
+					id="authenticated-app-content"
+					style={chatShellFrameStyle}
+					className="runa-app-shell-main runa-app-shell-main--chat"
+					tone="plain"
+				>
+					{children}
+				</RunaSurface>
+			</div>
+		);
+	}
+
 	return (
 		<div className="runa-page runa-page--app-shell" style={appShellPageStyle}>
 			<div className="runa-shell-frame runa-shell-frame--app" style={shellFrameStyle}>
@@ -141,15 +160,12 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 				>
 					<div className="runa-app-shell-header__top">
 						<div className="runa-app-shell-header__copy">
-							<div className="runa-eyebrow">
-								{pageCopy.eyebrow.toLocaleUpperCase(TURKISH_LOCALE)}
-							</div>
+							<div className="runa-eyebrow">{pageCopy.eyebrow.toUpperCase()}</div>
 							<h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 38px)' }}>{pageCopy.title}</h1>
 							<p style={appShellMutedTextStyle}>{pageCopy.subtitle}</p>
 						</div>
 						<RunaBadge
 							className="runa-pill runa-app-shell-status-pill"
-							lang="tr"
 							tone={authStatus === 'service' ? 'warning' : 'neutral'}
 						>
 							{statusLabel}

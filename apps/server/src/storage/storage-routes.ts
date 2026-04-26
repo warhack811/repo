@@ -3,6 +3,10 @@ import type { FastifyInstance } from 'fastify';
 import { requireAuthenticatedRequest } from '../auth/supabase-auth.js';
 
 import {
+	type StorageDownloadUrlSigner,
+	defaultStorageDownloadUrlSigner,
+} from './signed-download-url.js';
+import {
 	type StorageBlobKind,
 	type StorageObjectRecord,
 	type StorageService,
@@ -29,6 +33,12 @@ interface StorageBlobResponse extends StorageObjectRecord {
 
 interface StorageGetResponse {
 	readonly blob: StorageBlobResponse;
+}
+
+interface StorageDownloadQuery {
+	readonly expires_at?: string;
+	readonly filename?: string;
+	readonly signature?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -96,10 +106,38 @@ function parseBlobId(value: unknown): string {
 	return value;
 }
 
+function getOptionalQueryString(value: string | readonly string[] | undefined): string | undefined {
+	if (typeof value === 'string') {
+		return value;
+	}
+
+	return Array.isArray(value) ? value[0] : undefined;
+}
+
+function createDownloadErrorResponse(statusCode: 400 | 403, message: string) {
+	return {
+		error: statusCode === 403 ? 'Forbidden' : 'Bad Request',
+		message,
+		statusCode,
+	};
+}
+
+function createContentDisposition(filename: string | undefined): string {
+	const fallbackFilename = filename?.trim() || 'runa-download';
+	const safeFilename = fallbackFilename.replace(/[^\w .-]/g, '_').replace(/"/g, '_');
+
+	return `attachment; filename="${safeFilename}"`;
+}
+
 export async function registerStorageRoutes(
 	server: FastifyInstance,
 	service: StorageService,
+	options: Readonly<{
+		readonly download_url_signer?: StorageDownloadUrlSigner;
+	}> = {},
 ): Promise<void> {
+	const downloadUrlSigner = options.download_url_signer ?? defaultStorageDownloadUrlSigner;
+
 	server.post<{ Body: StorageUploadBody; Reply: StorageUploadResponse }>(
 		'/storage/upload',
 		async (request) => {
@@ -138,4 +176,46 @@ export async function registerStorageRoutes(
 			};
 		},
 	);
+
+	server.get<{
+		Params: { id: string };
+		Querystring: StorageDownloadQuery;
+	}>('/storage/download/:id', async (request, reply) => {
+		requireAuthenticatedRequest(request);
+		const blobId = parseBlobId(request.params.id);
+		const expiresAt = getOptionalQueryString(request.query.expires_at);
+		const signature = getOptionalQueryString(request.query.signature);
+
+		if (expiresAt === undefined || signature === undefined) {
+			return reply
+				.code(400)
+				.send(createDownloadErrorResponse(400, 'Signed download URL is missing parameters.'));
+		}
+
+		if (
+			!downloadUrlSigner.verify({
+				blob_id: blobId,
+				expires_at: expiresAt,
+				signature,
+			})
+		) {
+			return reply
+				.code(403)
+				.send(createDownloadErrorResponse(403, 'Signed download URL is invalid or expired.'));
+		}
+
+		const blob = await service.get_blob({
+			auth: request.auth,
+			blob_id: blobId,
+		});
+
+		reply
+			.header(
+				'content-disposition',
+				createContentDisposition(blob.filename ?? getOptionalQueryString(request.query.filename)),
+			)
+			.header('content-type', blob.content_type);
+
+		return reply.send(Buffer.from(blob.content));
+	});
 }

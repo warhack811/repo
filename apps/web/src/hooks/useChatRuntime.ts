@@ -1,7 +1,7 @@
 import { gatewayProviders, defaultGatewayModels as runtimeDefaultGatewayModels } from '@runa/types';
 import type { ModelAttachment, ModelMessage } from '@runa/types';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { toSortedStringArray } from '../lib/chat-runtime/collections.js';
 import {
@@ -354,42 +354,54 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		);
 	}, [desktopTargetConnectionId]);
 
-	function setApiKey(value: string): void {
-		chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
-			...currentRuntimeConfig,
-			apiKey: value,
-		}));
-	}
-
-	function setIncludePresentationBlocks(value: boolean): void {
-		chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
-			...currentRuntimeConfig,
-			includePresentationBlocks: value,
-		}));
-	}
-
-	function setModel(value: string): void {
-		chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
-			...currentRuntimeConfig,
-			model: value,
-		}));
-	}
-
-	function setProvider(nextProvider: GatewayProvider): void {
-		chatStore.setRuntimeConfigState((currentRuntimeConfig) => {
-			const trimmedModel = currentRuntimeConfig.model.trim();
-			const currentDefaultModel = runtimeDefaultGatewayModels[currentRuntimeConfig.provider];
-
-			return {
+	const setApiKey = useCallback(
+		(value: string): void => {
+			chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
 				...currentRuntimeConfig,
-				model:
-					trimmedModel.length === 0 || trimmedModel === currentDefaultModel
-						? runtimeDefaultGatewayModels[nextProvider]
-						: currentRuntimeConfig.model,
-				provider: nextProvider,
-			};
-		});
-	}
+				apiKey: value,
+			}));
+		},
+		[chatStore],
+	);
+
+	const setIncludePresentationBlocks = useCallback(
+		(value: boolean): void => {
+			chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
+				...currentRuntimeConfig,
+				includePresentationBlocks: value,
+			}));
+		},
+		[chatStore],
+	);
+
+	const setModel = useCallback(
+		(value: string): void => {
+			chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
+				...currentRuntimeConfig,
+				model: value,
+			}));
+		},
+		[chatStore],
+	);
+
+	const setProvider = useCallback(
+		(nextProvider: GatewayProvider): void => {
+			chatStore.setRuntimeConfigState((currentRuntimeConfig) => {
+				const trimmedModel = currentRuntimeConfig.model.trim();
+				const currentDefaultModel = runtimeDefaultGatewayModels[currentRuntimeConfig.provider];
+
+				return {
+					...currentRuntimeConfig,
+					model:
+						trimmedModel.length === 0 || trimmedModel === currentDefaultModel
+							? runtimeDefaultGatewayModels[nextProvider]
+							: currentRuntimeConfig.model,
+					provider: nextProvider,
+				};
+			});
+		},
+		[chatStore],
+	);
 
 	useEffect(() => {
 		persistRuntimeConfig({
@@ -400,47 +412,59 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		});
 	}, [apiKey, includePresentationBlocks, model, provider]);
 
-	function replacePendingInspectionRequestKeys(nextRequestKeys: Iterable<string>): void {
-		const nextKeySet = new Set(nextRequestKeys);
+	const replacePendingInspectionRequestKeys = useCallback(
+		(nextRequestKeys: Iterable<string>): void => {
+			const nextKeySet = new Set(nextRequestKeys);
 
-		pendingInspectionRequestKeysRef.current = nextKeySet;
-		chatStore.setPresentationState((currentPresentationState) => ({
-			...currentPresentationState,
-			pendingInspectionRequestKeys: toSortedStringArray(nextKeySet),
-		}));
-	}
+			pendingInspectionRequestKeysRef.current = nextKeySet;
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				pendingInspectionRequestKeys: toSortedStringArray(nextKeySet),
+			}));
+		},
+		[chatStore],
+	);
 
-	function replaceStaleInspectionRequestKeys(nextRequestKeys: Iterable<string>): void {
-		const nextKeySet = new Set(nextRequestKeys);
+	const replaceStaleInspectionRequestKeys = useCallback(
+		(nextRequestKeys: Iterable<string>): void => {
+			const nextKeySet = new Set(nextRequestKeys);
 
-		staleInspectionRequestKeysRef.current = nextKeySet;
-		chatStore.setPresentationState((currentPresentationState) => ({
-			...currentPresentationState,
-			staleInspectionRequestKeys: toSortedStringArray(nextKeySet),
-		}));
-	}
+			staleInspectionRequestKeysRef.current = nextKeySet;
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				staleInspectionRequestKeys: toSortedStringArray(nextKeySet),
+			}));
+		},
+		[chatStore],
+	);
 
-	function replaceExpandedPastRunIds(nextRunIds: Iterable<string>): void {
-		const nextRunIdSet = new Set(nextRunIds);
+	const replaceExpandedPastRunIds = useCallback(
+		(nextRunIds: Iterable<string>): void => {
+			const nextRunIdSet = new Set(nextRunIds);
 
-		expandedPastRunIdsRef.current = nextRunIdSet;
-		chatStore.setPresentationState((currentPresentationState) => ({
-			...currentPresentationState,
-			expandedPastRunIds: toSortedStringArray(nextRunIdSet),
-		}));
-	}
+			expandedPastRunIdsRef.current = nextRunIdSet;
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				expandedPastRunIds: toSortedStringArray(nextRunIdSet),
+			}));
+		},
+		[chatStore],
+	);
 
-	function setPastRunExpanded(runId: string, isExpanded: boolean): void {
-		const nextExpandedPastRunIds = new Set(expandedPastRunIdsRef.current);
+	const setPastRunExpanded = useCallback(
+		(runId: string, isExpanded: boolean): void => {
+			const nextExpandedPastRunIds = new Set(expandedPastRunIdsRef.current);
 
-		if (isExpanded) {
-			nextExpandedPastRunIds.add(runId);
-		} else {
-			nextExpandedPastRunIds.delete(runId);
-		}
+			if (isExpanded) {
+				nextExpandedPastRunIds.add(runId);
+			} else {
+				nextExpandedPastRunIds.delete(runId);
+			}
 
-		replaceExpandedPastRunIds(nextExpandedPastRunIds);
-	}
+			replaceExpandedPastRunIds(nextExpandedPastRunIds);
+		},
+		[replaceExpandedPastRunIds],
+	);
 
 	useEffect(() => {
 		let isDisposed = false;
@@ -817,239 +841,300 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		],
 	);
 
-	function submitRunRequest(event: FormEvent<HTMLFormElement>): void {
-		event.preventDefault();
+	const submitRunRequest = useCallback(
+		(event: FormEvent<HTMLFormElement>): void => {
+			event.preventDefault();
 
-		try {
-			const payload = createRunRequestPayload({
-				apiKey,
-				attachments,
-				conversationId: activeConversationId,
-				desktopTargetConnectionId: selectedDesktopTargetConnectionId,
-				includePresentationBlocks,
-				model,
-				messages: buildRequestMessages?.(prompt),
-				prompt,
-				provider,
-				runId: createClientId('run'),
-				traceId: createClientId('trace'),
-			});
+			try {
+				const payload = createRunRequestPayload({
+					apiKey,
+					attachments,
+					conversationId: activeConversationId,
+					desktopTargetConnectionId: selectedDesktopTargetConnectionId,
+					includePresentationBlocks,
+					model,
+					messages: buildRequestMessages?.(prompt),
+					prompt,
+					provider,
+					runId: createClientId('run'),
+					traceId: createClientId('trace'),
+				});
 
-			if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-				throw new Error(
-					connectionStatus === 'connecting'
-						? uiCopy.runtime.connectionOpening
-						: uiCopy.runtime.connectionUnavailable,
+				if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+					throw new Error(
+						connectionStatus === 'connecting'
+							? uiCopy.runtime.connectionOpening
+							: uiCopy.runtime.connectionUnavailable,
+					);
+				}
+
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					isSubmitting: true,
+					lastError: null,
+				}));
+				chatStore.setTransportState((currentTransportState) => ({
+					...currentTransportState,
+					latestRunRequestIncludesPresentationBlocks: payload.include_presentation_blocks === true,
+				}));
+				chatStore.setPresentationState((currentPresentationState) => ({
+					...currentPresentationState,
+					currentStreamingRunId: payload.run_id,
+					currentStreamingText: '',
+				}));
+				expectedPresentationRunIdRef.current = payload.run_id;
+				conversationIdByRunIdRef.current.set(payload.run_id, payload.conversation_id);
+				submittedPromptByRunIdRef.current.set(payload.run_id, prompt);
+				socketRef.current.send(JSON.stringify(createRunRequestMessage(payload)));
+				setAttachments([]);
+				setPrompt('');
+			} catch (error: unknown) {
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					isSubmitting: false,
+					lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownSubmit,
+				}));
+			}
+		},
+		[
+			apiKey,
+			attachments,
+			activeConversationId,
+			selectedDesktopTargetConnectionId,
+			includePresentationBlocks,
+			model,
+			buildRequestMessages,
+			prompt,
+			provider,
+			connectionStatus,
+			chatStore,
+		],
+	);
+
+	const resolveApproval = useCallback(
+		(approvalId: string, decision: ApprovalResolveDecision): void => {
+			try {
+				if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+					throw new Error(uiCopy.runtime.wsNotOpen);
+				}
+
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					lastError: null,
+				}));
+				socketRef.current.send(
+					JSON.stringify(
+						createApprovalResolveMessage({
+							approval_id: approvalId,
+							decision,
+						}),
+					),
 				);
+			} catch (error: unknown) {
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownApprovalSubmit,
+				}));
 			}
+		},
+		[chatStore],
+	);
 
-			chatStore.setConnectionState((currentConnectionState) => ({
-				...currentConnectionState,
-				isSubmitting: true,
-				lastError: null,
-			}));
-			chatStore.setTransportState((currentTransportState) => ({
-				...currentTransportState,
-				latestRunRequestIncludesPresentationBlocks: payload.include_presentation_blocks === true,
-			}));
-			chatStore.setPresentationState((currentPresentationState) => ({
-				...currentPresentationState,
-				currentStreamingRunId: payload.run_id,
-				currentStreamingText: '',
-			}));
-			expectedPresentationRunIdRef.current = payload.run_id;
-			conversationIdByRunIdRef.current.set(payload.run_id, payload.conversation_id);
-			submittedPromptByRunIdRef.current.set(payload.run_id, prompt);
-			socketRef.current.send(JSON.stringify(createRunRequestMessage(payload)));
-			setAttachments([]);
-			setPrompt('');
-		} catch (error: unknown) {
-			chatStore.setConnectionState((currentConnectionState) => ({
-				...currentConnectionState,
-				isSubmitting: false,
-				lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownSubmit,
-			}));
-		}
-	}
-
-	function resolveApproval(approvalId: string, decision: ApprovalResolveDecision): void {
-		try {
-			if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-				throw new Error(uiCopy.runtime.wsNotOpen);
-			}
-
-			chatStore.setConnectionState((currentConnectionState) => ({
-				...currentConnectionState,
-				lastError: null,
-			}));
-			socketRef.current.send(
-				JSON.stringify(
-					createApprovalResolveMessage({
-						approval_id: approvalId,
-						decision,
-					}),
-				),
-			);
-		} catch (error: unknown) {
-			chatStore.setConnectionState((currentConnectionState) => ({
-				...currentConnectionState,
-				lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownApprovalSubmit,
-			}));
-		}
-	}
-
-	function requestInspection(
-		runId: string,
-		targetKind: InspectionTargetKind,
-		targetId?: string,
-	): void {
-		const inspectionRequest = createInspectionRequestIdentity({
-			detail_level: DEFAULT_INSPECTION_DETAIL_LEVEL,
-			run_id: runId,
-			target_id: targetId,
-			target_kind: targetKind,
-		});
-		const previousAnchorId = inspectionAnchorIdsByDetailIdRef.current.get(
-			inspectionRequest.detailBlockId,
-		);
-		const previousRequestKey = inspectionRequestKeysByDetailIdRef.current.get(
-			inspectionRequest.detailBlockId,
-		);
-		const wasStale = staleInspectionRequestKeysRef.current.has(inspectionRequest.requestKey);
-
-		try {
-			if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-				throw new Error(uiCopy.runtime.wsNotOpen);
-			}
-
-			const runSurface = findPresentationRunSurface(presentationRunSurfacesRef.current, runId);
-
-			if (!runSurface) {
-				throw new Error('No tracked presentation run is available for inspection.');
-			}
-
-			if (presentationRunIdRef.current !== runId) {
-				setPastRunExpanded(runId, true);
-			}
-
-			const hasExistingDetail = runSurface.blocks.some(
-				(block) => block.id === inspectionRequest.detailBlockId,
-			);
-			const isStaleDetail = staleInspectionRequestKeysRef.current.has(inspectionRequest.requestKey);
-
-			if (hasExistingDetail && !isStaleDetail) {
-				scrollToPresentationBlock(inspectionRequest.detailBlockId);
-				return;
-			}
-
-			if (pendingInspectionRequestKeysRef.current.has(inspectionRequest.requestKey)) {
-				return;
-			}
-
-			chatStore.setConnectionState((currentConnectionState) => ({
-				...currentConnectionState,
-				lastError: null,
-			}));
-			const nextStaleRequestKeys = new Set(staleInspectionRequestKeysRef.current);
-			const nextPendingRequestKeys = new Set(pendingInspectionRequestKeysRef.current);
-
-			nextStaleRequestKeys.delete(inspectionRequest.requestKey);
-			nextPendingRequestKeys.add(inspectionRequest.requestKey);
-			inspectionAnchorIdsByDetailIdRef.current.set(
+	const requestInspection = useCallback(
+		(runId: string, targetKind: InspectionTargetKind, targetId?: string): void => {
+			const inspectionRequest = createInspectionRequestIdentity({
+				detail_level: DEFAULT_INSPECTION_DETAIL_LEVEL,
+				run_id: runId,
+				target_id: targetId,
+				target_kind: targetKind,
+			});
+			const previousAnchorId = inspectionAnchorIdsByDetailIdRef.current.get(
 				inspectionRequest.detailBlockId,
-				inspectionRequest.normalizedTargetId,
 			);
-			inspectionRequestKeysByDetailIdRef.current.set(
+			const previousRequestKey = inspectionRequestKeysByDetailIdRef.current.get(
 				inspectionRequest.detailBlockId,
-				inspectionRequest.requestKey,
 			);
-			replaceStaleInspectionRequestKeys(nextStaleRequestKeys);
-			replacePendingInspectionRequestKeys(nextPendingRequestKeys);
-			socketRef.current.send(
-				JSON.stringify(
-					createInspectionRequestMessage({
-						detail_level: DEFAULT_INSPECTION_DETAIL_LEVEL,
-						run_id: runId,
-						target_id: targetId,
-						target_kind: targetKind,
-					}),
-				),
-			);
-		} catch (error: unknown) {
-			const nextPendingRequestKeys = new Set(pendingInspectionRequestKeysRef.current);
-			const nextStaleRequestKeys = new Set(staleInspectionRequestKeysRef.current);
+			const wasStale = staleInspectionRequestKeysRef.current.has(inspectionRequest.requestKey);
 
-			nextPendingRequestKeys.delete(inspectionRequest.requestKey);
+			try {
+				if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+					throw new Error(uiCopy.runtime.wsNotOpen);
+				}
 
-			if (wasStale) {
-				nextStaleRequestKeys.add(inspectionRequest.requestKey);
-			}
+				const runSurface = findPresentationRunSurface(presentationRunSurfacesRef.current, runId);
 
-			replacePendingInspectionRequestKeys(nextPendingRequestKeys);
-			replaceStaleInspectionRequestKeys(nextStaleRequestKeys);
+				if (!runSurface) {
+					throw new Error('No tracked presentation run is available for inspection.');
+				}
 
-			if (previousAnchorId === undefined) {
-				inspectionAnchorIdsByDetailIdRef.current.delete(inspectionRequest.detailBlockId);
-			} else {
+				if (presentationRunIdRef.current !== runId) {
+					setPastRunExpanded(runId, true);
+				}
+
+				const hasExistingDetail = runSurface.blocks.some(
+					(block) => block.id === inspectionRequest.detailBlockId,
+				);
+				const isStaleDetail = staleInspectionRequestKeysRef.current.has(
+					inspectionRequest.requestKey,
+				);
+
+				if (hasExistingDetail && !isStaleDetail) {
+					scrollToPresentationBlock(inspectionRequest.detailBlockId);
+					return;
+				}
+
+				if (pendingInspectionRequestKeysRef.current.has(inspectionRequest.requestKey)) {
+					return;
+				}
+
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					lastError: null,
+				}));
+				const nextStaleRequestKeys = new Set(staleInspectionRequestKeysRef.current);
+				const nextPendingRequestKeys = new Set(pendingInspectionRequestKeysRef.current);
+
+				nextStaleRequestKeys.delete(inspectionRequest.requestKey);
+				nextPendingRequestKeys.add(inspectionRequest.requestKey);
 				inspectionAnchorIdsByDetailIdRef.current.set(
 					inspectionRequest.detailBlockId,
-					previousAnchorId,
+					inspectionRequest.normalizedTargetId,
 				);
-			}
-
-			if (previousRequestKey === undefined) {
-				inspectionRequestKeysByDetailIdRef.current.delete(inspectionRequest.detailBlockId);
-			} else {
 				inspectionRequestKeysByDetailIdRef.current.set(
 					inspectionRequest.detailBlockId,
-					previousRequestKey,
+					inspectionRequest.requestKey,
 				);
+				replaceStaleInspectionRequestKeys(nextStaleRequestKeys);
+				replacePendingInspectionRequestKeys(nextPendingRequestKeys);
+				socketRef.current.send(
+					JSON.stringify(
+						createInspectionRequestMessage({
+							detail_level: DEFAULT_INSPECTION_DETAIL_LEVEL,
+							run_id: runId,
+							target_id: targetId,
+							target_kind: targetKind,
+						}),
+					),
+				);
+			} catch (error: unknown) {
+				const nextPendingRequestKeys = new Set(pendingInspectionRequestKeysRef.current);
+				const nextStaleRequestKeys = new Set(staleInspectionRequestKeysRef.current);
+
+				nextPendingRequestKeys.delete(inspectionRequest.requestKey);
+
+				if (wasStale) {
+					nextStaleRequestKeys.add(inspectionRequest.requestKey);
+				}
+
+				replacePendingInspectionRequestKeys(nextPendingRequestKeys);
+				replaceStaleInspectionRequestKeys(nextStaleRequestKeys);
+
+				if (previousAnchorId === undefined) {
+					inspectionAnchorIdsByDetailIdRef.current.delete(inspectionRequest.detailBlockId);
+				} else {
+					inspectionAnchorIdsByDetailIdRef.current.set(
+						inspectionRequest.detailBlockId,
+						previousAnchorId,
+					);
+				}
+
+				if (previousRequestKey === undefined) {
+					inspectionRequestKeysByDetailIdRef.current.delete(inspectionRequest.detailBlockId);
+				} else {
+					inspectionRequestKeysByDetailIdRef.current.set(
+						inspectionRequest.detailBlockId,
+						previousRequestKey,
+					);
+				}
+
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					lastError:
+						error instanceof Error ? error.message : uiCopy.runtime.unknownInspectionSubmit,
+				}));
 			}
+		},
+		[
+			chatStore,
+			replacePendingInspectionRequestKeys,
+			replaceStaleInspectionRequestKeys,
+			setPastRunExpanded,
+		],
+	);
 
-			chatStore.setConnectionState((currentConnectionState) => ({
-				...currentConnectionState,
-				lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownInspectionSubmit,
-			}));
-		}
-	}
-
-	return {
-		accessToken,
-		attachments,
-		apiKey,
-		connectionStatus,
-		currentPresentationSurface: presentationSurfaceState.currentPresentationSurface,
-		currentRunFeedback,
-		currentStreamingRunId,
-		currentStreamingText,
-		desktopTargetConnectionId: selectedDesktopTargetConnectionId,
-		expandedPastRunIds,
-		includePresentationBlocks,
-		inspectionAnchorIdsByDetailId: inspectionAnchorIdsByDetailIdRef.current,
-		isSubmitting,
-		isRuntimeConfigReady,
-		lastError,
-		latestRunRequestIncludesPresentationBlocks,
-		messages,
-		model,
-		pastPresentationSurfaces: presentationSurfaceState.pastPresentationSurfaces,
-		pendingInspectionRequestKeys,
-		presentationRunSurfaces,
-		prompt,
-		provider,
-		requestInspection,
-		resolveApproval,
-		runTransportSummaries,
-		store: chatStore,
-		setApiKey,
-		setAttachments,
-		setDesktopTargetConnectionId: setSelectedDesktopTargetConnectionId,
-		setIncludePresentationBlocks,
-		setModel,
-		setPastRunExpanded,
-		setPrompt,
-		setProvider,
-		staleInspectionRequestKeys,
-		submitRunRequest,
-	};
+	return useMemo(
+		() => ({
+			accessToken,
+			attachments,
+			apiKey,
+			connectionStatus,
+			currentPresentationSurface: presentationSurfaceState.currentPresentationSurface,
+			currentRunFeedback,
+			currentStreamingRunId,
+			currentStreamingText,
+			desktopTargetConnectionId: selectedDesktopTargetConnectionId,
+			expandedPastRunIds,
+			includePresentationBlocks,
+			inspectionAnchorIdsByDetailId: inspectionAnchorIdsByDetailIdRef.current,
+			isSubmitting,
+			isRuntimeConfigReady,
+			lastError,
+			latestRunRequestIncludesPresentationBlocks,
+			messages,
+			model,
+			pastPresentationSurfaces: presentationSurfaceState.pastPresentationSurfaces,
+			pendingInspectionRequestKeys,
+			presentationRunSurfaces,
+			prompt,
+			provider,
+			requestInspection,
+			resolveApproval,
+			runTransportSummaries,
+			store: chatStore,
+			setApiKey,
+			setAttachments,
+			setDesktopTargetConnectionId: setSelectedDesktopTargetConnectionId,
+			setIncludePresentationBlocks,
+			setModel,
+			setPastRunExpanded,
+			setPrompt,
+			setProvider,
+			staleInspectionRequestKeys,
+			submitRunRequest,
+		}),
+		[
+			accessToken,
+			attachments,
+			apiKey,
+			connectionStatus,
+			presentationSurfaceState,
+			currentRunFeedback,
+			currentStreamingRunId,
+			currentStreamingText,
+			selectedDesktopTargetConnectionId,
+			expandedPastRunIds,
+			includePresentationBlocks,
+			isSubmitting,
+			isRuntimeConfigReady,
+			lastError,
+			latestRunRequestIncludesPresentationBlocks,
+			messages,
+			model,
+			pendingInspectionRequestKeys,
+			presentationRunSurfaces,
+			prompt,
+			provider,
+			requestInspection,
+			resolveApproval,
+			runTransportSummaries,
+			chatStore,
+			setApiKey,
+			setIncludePresentationBlocks,
+			setModel,
+			setPastRunExpanded,
+			setProvider,
+			staleInspectionRequestKeys,
+			submitRunRequest,
+		],
+	);
 }

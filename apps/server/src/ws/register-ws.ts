@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 
 import { type AuthTokenVerifier, SupabaseAuthError } from '../auth/supabase-auth.js';
 import type { SubscriptionContextResolver } from '../policy/subscription-context.js';
+import type { StorageDownloadUrlSigner } from '../storage/signed-download-url.js';
+import type { StorageService } from '../storage/storage-service.js';
 import { registerConversationCollaborationSocket } from './conversation-collaboration.js';
 import {
 	type DesktopAgentBridgeRegistry,
@@ -54,8 +56,10 @@ export function attachDesktopAgentWebSocketHandler(
 
 export interface RegisterWebSocketRoutesOptions {
 	readonly allow_service_principal?: boolean;
+	readonly create_storage_download_url?: StorageDownloadUrlSigner['create'];
 	readonly feature_gate?: VerifyWebSocketSubscriptionAccessInput['feature_gate'];
 	readonly resolve_subscription_context?: SubscriptionContextResolver;
+	readonly storage_service?: StorageService;
 	readonly verify_token: AuthTokenVerifier;
 }
 
@@ -78,6 +82,8 @@ export async function registerWebSocketRoutes(
 
 			attachRuntimeWebSocketHandler(socket, {
 				auth_context: subscriptionAccess.auth,
+				create_storage_download_url: options.create_storage_download_url,
+				storage_service: options.storage_service,
 				subscription_context: subscriptionAccess.subscription,
 			});
 		} catch (error: unknown) {

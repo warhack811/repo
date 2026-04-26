@@ -64,6 +64,63 @@ describe('adaptModelResponseToTurnOutcome', () => {
 		});
 	});
 
+	it('maps tool call candidates into a batched tool_calls outcome', () => {
+		const modelResponse: ModelResponse = {
+			finish_reason: 'stop',
+			message: {
+				content: 'Calling multiple tools',
+				role: 'assistant',
+			},
+			model: 'llama-3.3-70b-versatile',
+			provider: 'groq',
+			tool_call_candidates: [
+				{
+					call_id: 'call_adapter_batch_1',
+					tool_input: {
+						path: 'src/example.ts',
+					},
+					tool_name: 'file.read',
+				},
+				{
+					call_id: 'call_adapter_batch_2',
+					tool_input: {
+						query: 'Runa',
+					},
+					tool_name: 'web.search',
+				},
+			],
+		};
+
+		const result = adaptModelResponseToTurnOutcome({
+			model_response: modelResponse,
+		});
+
+		expect(result).toEqual({
+			outcome: {
+				kind: 'tool_calls',
+				tool_calls: [
+					{
+						call_id: 'call_adapter_batch_1',
+						kind: 'tool_call',
+						tool_input: {
+							path: 'src/example.ts',
+						},
+						tool_name: 'file.read',
+					},
+					{
+						call_id: 'call_adapter_batch_2',
+						kind: 'tool_call',
+						tool_input: {
+							query: 'Runa',
+						},
+						tool_name: 'web.search',
+					},
+				],
+			},
+			status: 'completed',
+		});
+	});
+
 	it('preserves assistant text when no tool call candidate exists', () => {
 		const result = adaptModelResponseToTurnOutcome({
 			model_response: {
@@ -132,6 +189,35 @@ describe('adaptModelResponseToTurnOutcome', () => {
 				code: 'INVALID_TOOL_CALL_CANDIDATE',
 				message:
 					'Model response tool_call_candidate must include non-empty call_id, tool_name, and tool_input fields.',
+			},
+			status: 'failed',
+		});
+	});
+
+	it('fails clearly for invalid tool call candidates array shapes', () => {
+		const result = adaptModelResponseToTurnOutcome({
+			model_response: {
+				finish_reason: 'stop',
+				message: {
+					content: 'Broken tool call candidates',
+					role: 'assistant',
+				},
+				model: 'llama-3.3-70b-versatile',
+				provider: 'groq',
+				tool_call_candidates: [
+					{
+						tool_name: 'file.read',
+					},
+				],
+			},
+		});
+
+		expect(result).toEqual({
+			failure: {
+				cause: undefined,
+				code: 'INVALID_TOOL_CALL_CANDIDATE',
+				message:
+					'Model response tool_call_candidates must include valid non-empty call_id, tool_name, and tool_input fields.',
 			},
 			status: 'failed',
 		});

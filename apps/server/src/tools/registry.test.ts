@@ -77,16 +77,46 @@ describe('ToolRegistry', () => {
 	it('creates a built-in registry that includes the approval-gated desktop family', () => {
 		const registry = createBuiltInToolRegistry();
 
+		expect(registry.has('browser.click')).toBe(true);
+		expect(registry.has('browser.extract')).toBe(true);
+		expect(registry.has('browser.fill')).toBe(true);
+		expect(registry.has('browser.navigate')).toBe(true);
 		expect(registry.has('desktop.click')).toBe(true);
+		expect(registry.has('desktop.clipboard.read')).toBe(true);
+		expect(registry.has('desktop.clipboard.write')).toBe(true);
 		expect(registry.has('desktop.keypress')).toBe(true);
+		expect(registry.has('desktop.launch')).toBe(true);
 		expect(registry.has('desktop.scroll')).toBe(true);
 		expect(registry.has('desktop.screenshot')).toBe(true);
 		expect(registry.has('desktop.type')).toBe(true);
+		expect(registry.has('desktop.verify_state')).toBe(true);
+		expect(registry.has('desktop.vision_analyze')).toBe(true);
+		expect(registry.has('file.share')).toBe(true);
+		expect(registry.has('file.watch')).toBe(true);
+		expect(registry.has('memory.delete')).toBe(true);
+		expect(registry.has('memory.list')).toBe(true);
+		expect(registry.has('memory.save')).toBe(true);
+		expect(registry.has('memory.search')).toBe(true);
+		expect(registry.listNames()).toContain('browser.click');
+		expect(registry.listNames()).toContain('browser.extract');
+		expect(registry.listNames()).toContain('browser.fill');
+		expect(registry.listNames()).toContain('browser.navigate');
 		expect(registry.listNames()).toContain('desktop.click');
+		expect(registry.listNames()).toContain('desktop.clipboard.read');
+		expect(registry.listNames()).toContain('desktop.clipboard.write');
 		expect(registry.listNames()).toContain('desktop.keypress');
+		expect(registry.listNames()).toContain('desktop.launch');
 		expect(registry.listNames()).toContain('desktop.scroll');
 		expect(registry.listNames()).toContain('desktop.screenshot');
 		expect(registry.listNames()).toContain('desktop.type');
+		expect(registry.listNames()).toContain('desktop.verify_state');
+		expect(registry.listNames()).toContain('desktop.vision_analyze');
+		expect(registry.listNames()).toContain('file.share');
+		expect(registry.listNames()).toContain('file.watch');
+		expect(registry.listNames()).toContain('memory.delete');
+		expect(registry.listNames()).toContain('memory.list');
+		expect(registry.listNames()).toContain('memory.save');
+		expect(registry.listNames()).toContain('memory.search');
 	});
 
 	it('keeps built-in names authoritative when another tool tries to reuse them', () => {

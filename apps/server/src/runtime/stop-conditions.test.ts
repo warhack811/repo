@@ -92,9 +92,15 @@ describe('evaluateStopConditions', () => {
 		});
 	});
 
-	it('returns a terminal failure for tool errors when tool failures are configured to stop', () => {
+	it('returns a terminal failure for tool errors when fail_on_tool_error is explicitly true', () => {
 		const decision = evaluateStopConditions(
 			createSnapshot({
+				config: {
+					max_turns: 5,
+					stop_conditions: {
+						fail_on_tool_error: true,
+					},
+				},
 				tool_result: {
 					call_id: 'call_stop_conditions_tool_error',
 					error_code: 'EXECUTION_FAILED',
@@ -111,6 +117,58 @@ describe('evaluateStopConditions', () => {
 			loop_state: 'FAILED',
 			reason: {
 				call_id: 'call_stop_conditions_tool_error',
+				disposition: 'terminal',
+				error_code: 'EXECUTION_FAILED',
+				kind: 'tool_failure',
+				loop_state: 'FAILED',
+				retryable: false,
+				tool_name: 'shell.exec',
+				turn_count: 1,
+			},
+		});
+	});
+
+	it('returns continue on a single tool error by default (soft failure mode)', () => {
+		const decision = evaluateStopConditions(
+			createSnapshot({
+				tool_result: {
+					call_id: 'call_soft_failure',
+					error_code: 'EXECUTION_FAILED',
+					error_message: 'Tool execution failed.',
+					retryable: false,
+					status: 'error',
+					tool_name: 'shell.exec',
+				},
+			}),
+		);
+
+		expect(decision).toEqual({
+			decision: 'continue',
+			loop_state: 'RUNNING',
+		});
+	});
+
+	it('returns a terminal failure after 3 consecutive tool failures in soft mode', () => {
+		const decision = evaluateStopConditions(
+			createSnapshot({
+				consecutive_tool_failure_count: 3,
+				tool_result: {
+					call_id: 'call_consecutive_failure',
+					error_code: 'EXECUTION_FAILED',
+					error_message: 'Tool execution failed.',
+					retryable: false,
+					status: 'error',
+					tool_name: 'shell.exec',
+				},
+			}),
+		);
+
+		expect(decision).toEqual({
+			decision: 'terminal',
+			loop_state: 'FAILED',
+			reason: {
+				call_id: 'call_consecutive_failure',
+				consecutive_count: 3,
 				disposition: 'terminal',
 				error_code: 'EXECUTION_FAILED',
 				kind: 'tool_failure',

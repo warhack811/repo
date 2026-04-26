@@ -17,6 +17,8 @@ import type {
 } from '../persistence/conversation-store.js';
 import type { MemoryStore } from '../persistence/memory-store.js';
 import type { PersistRunStateInput } from '../persistence/run-store.js';
+import type { StorageDownloadUrlSigner } from '../storage/signed-download-url.js';
+import type { StorageService } from '../storage/storage-service.js';
 import type { ToolRegistry } from '../tools/registry.js';
 import type { DesktopAgentBridgeRegistry } from './desktop-agent-bridge.js';
 import type { WebSocketPolicyWiring } from './policy-wiring.js';
@@ -59,11 +61,13 @@ export interface RuntimeWebSocketHandlerOptions extends RuntimePresentationHooks
 	readonly approvalStore?: ApprovalStore;
 	readonly auth_context?: AuthContext;
 	readonly conversationStore?: ConversationOrchestrationStore;
+	readonly create_storage_download_url?: StorageDownloadUrlSigner['create'];
 	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 	readonly memoryStore?: MemoryOrchestrationStore;
 	readonly persistEvents?: (events: readonly RuntimeEvent[]) => Promise<void>;
 	readonly persistRunState?: (input: PersistRunStateInput) => Promise<void>;
 	readonly policy_wiring?: WebSocketPolicyWiring;
+	readonly storage_service?: StorageService;
 	readonly subscription_context?: SubscriptionContext;
 	readonly toolRegistry?: ToolRegistry;
 }
@@ -80,6 +84,7 @@ export interface RunToolWebSocketResult extends PresentationCompatibleRunResult 
 	readonly status: 'approval_required' | 'completed' | 'failed';
 	readonly tool_arguments?: ToolCallInput['arguments'];
 	readonly tool_result?: ToolResult;
+	readonly tool_result_history?: readonly ToolResult[];
 	readonly turn_count: number;
 	readonly workspace_layer?: WorkspaceLayer;
 }

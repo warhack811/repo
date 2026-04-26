@@ -22,6 +22,7 @@ import {
 } from '../presentation/map-approval-result.js';
 import { mapToolResultToCodeBlock } from '../presentation/map-code-result.js';
 import { mapToolResultToDiffBlock } from '../presentation/map-diff-result.js';
+import { mapToolResultToFileDownloadBlock } from '../presentation/map-file-download.js';
 import { mapInspectionDetailToBlock } from '../presentation/map-inspection-detail.js';
 import { mapRunTimelineToBlock } from '../presentation/map-run-timeline.js';
 import { mapRuntimeEventsToRenderBlocks } from '../presentation/map-runtime-events.js';
@@ -82,6 +83,7 @@ export interface PresentationCompatibleRunResult {
 	readonly status: 'approval_required' | 'completed' | 'failed';
 	readonly tool_arguments?: unknown;
 	readonly tool_result?: ToolResult;
+	readonly tool_result_history?: readonly ToolResult[];
 	readonly turn_count?: number;
 	readonly workspace_layer?: WorkspaceLayer;
 }
@@ -231,6 +233,8 @@ export function createToolResultPresentationBlocks(
 		const toolResultBlock = mapToolResultToBlock(input);
 		const codeBlock = mapToolResultToCodeBlock(input);
 		const diffBlock = input.tool_name === 'git.diff' ? mapToolResultToDiffBlock(input) : undefined;
+		const fileDownloadBlock =
+			input.tool_name === 'file.share' ? mapToolResultToFileDownloadBlock(input) : undefined;
 		const searchResultBlock =
 			input.tool_name === 'search.codebase' ? mapToolResultToSearchResultBlock(input) : undefined;
 		const webSearchResultBlock =
@@ -243,6 +247,10 @@ export function createToolResultPresentationBlocks(
 
 		if (diffBlock) {
 			blocks.push(diffBlock);
+		}
+
+		if (fileDownloadBlock) {
+			blocks.push(fileDownloadBlock);
 		}
 
 		if (searchResultBlock) {
@@ -478,13 +486,21 @@ export function createAutomaticApprovalPresentationInputs(
 		return [];
 	}
 
+	const isAutoContinueApproval = result.approval_request.target?.label === 'agent.auto_continue';
+	const isDesktopApproval =
+		result.approval_request.tool_name?.startsWith('desktop.') === true ||
+		result.approval_request.target?.tool_name?.startsWith('desktop.') === true;
+	const toolResultHistory =
+		result.tool_result_history ??
+		(result.tool_result === undefined ? undefined : [result.tool_result]);
 	const continuationContext =
-		result.approval_request.target?.label === 'agent.auto_continue' &&
+		(isAutoContinueApproval || isDesktopApproval) &&
 		result.tool_result !== undefined &&
 		typeof result.turn_count === 'number'
 			? {
 					payload,
 					tool_result: result.tool_result,
+					tool_result_history: toolResultHistory,
 					turn_count: result.turn_count,
 					working_directory: workingDirectory,
 				}

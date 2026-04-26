@@ -1,12 +1,16 @@
 import type {
 	AnyRuntimeEvent,
 	ApprovalTarget,
+	ModelMessage,
 	ModelRequest,
 	ModelResponse,
+	ModelToolCallCandidate,
 	RuntimeEvent,
 	RuntimeState,
 	ToolDefinition,
+	ToolErrorCode,
 	ToolResult,
+	ToolRuntimeEvent,
 	TurnProgressEvent,
 } from '@runa/types';
 
@@ -49,6 +53,19 @@ import type {
 import { runToolStep } from '../runtime/run-tool-step.js';
 import { buildRunStartedEvent, buildStateEnteredEvent } from '../runtime/runtime-events.js';
 import { buildRunFailedEvent } from '../runtime/runtime-events.js';
+import { runSequentialSubAgentDelegation } from '../runtime/sequential-sub-agent.js';
+import type {
+	ScheduledToolCandidate,
+	ToolEffectClass,
+	ToolResourceKey,
+} from '../runtime/tool-scheduler.js';
+import {
+	classifyToolEffectClass,
+	classifyToolResourceKey,
+	planToolExecutionBatches,
+} from '../runtime/tool-scheduler.js';
+import { createDesktopVerifyStateTool } from '../tools/desktop-verify-state.js';
+import { createDesktopVisionAnalyzeTool } from '../tools/desktop-vision-analyze.js';
 import { ToolRegistry } from '../tools/registry.js';
 import { createLogger, startLogSpan } from '../utils/logger.js';
 import {
@@ -87,7 +104,7 @@ import {
 	persistApprovalPresentationInputs,
 	rememberInspectionContext,
 } from './presentation.js';
-import { getDefaultToolRegistry, getPolicyWiring } from './runtime-dependencies.js';
+import { getDefaultToolRegistryAsync, getPolicyWiring } from './runtime-dependencies.js';
 import {
 	type WebSocketConnection,
 	createAcceptedMessage,
@@ -393,13 +410,16 @@ interface FinalizeLiveRunResultOptions {
 
 interface ExecuteLiveRunOptions {
 	readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
+	readonly create_storage_download_url?: RuntimeWebSocketHandlerOptions['create_storage_download_url'];
 	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 	readonly initial_runtime_state?: RuntimeState;
 	readonly initial_tool_result?: ToolResult;
+	readonly initial_tool_results?: readonly ToolResult[];
 	readonly initial_turn_count?: number;
 	readonly memoryStore?: MemoryOrchestrationStore;
 	readonly policy_wiring?: WebSocketPolicyWiring;
-	readonly registry: ReturnType<typeof getDefaultToolRegistry>;
+	readonly registry: ToolRegistry;
+	readonly storage_service?: RuntimeWebSocketHandlerOptions['storage_service'];
 	readonly workingDirectory: string;
 	readonly workspace_layer?: WorkspaceLayer;
 }
@@ -408,10 +428,19 @@ function createRuntimeToolRegistry(
 	baseRegistry: ToolRegistry,
 	options: Readonly<{
 		readonly memoryStore?: MemoryOrchestrationStore;
+		readonly modelGateway: Pick<ReturnType<typeof createModelGateway>, 'generate'>;
+		readonly resolveToolResult: (callId: string) => ToolResult | undefined;
 	}>,
 ): ToolRegistry {
 	const runtimeRegistry = new ToolRegistry();
-	runtimeRegistry.registerMany(baseRegistry.list().map((entry) => entry.tool));
+	runtimeRegistry.registerMany(
+		baseRegistry
+			.list()
+			.map((entry) => entry.tool)
+			.filter(
+				(tool) => tool.name !== 'desktop.vision_analyze' && tool.name !== 'desktop.verify_state',
+			),
+	);
 
 	if (canPersistLiveMemory(options.memoryStore) && !runtimeRegistry.has('search.memory')) {
 		runtimeRegistry.register(
@@ -421,6 +450,19 @@ function createRuntimeToolRegistry(
 		);
 	}
 
+	runtimeRegistry.register(
+		createDesktopVisionAnalyzeTool({
+			model_gateway: options.modelGateway,
+			resolve_tool_result: options.resolveToolResult,
+		}),
+	);
+	runtimeRegistry.register(
+		createDesktopVerifyStateTool({
+			model_gateway: options.modelGateway,
+			resolve_tool_result: options.resolveToolResult,
+		}),
+	);
+
 	return runtimeRegistry;
 }
 
@@ -429,13 +471,23 @@ function createRunModelTurnFailureResult(
 		readonly current_state: RuntimeState;
 		readonly error_message: string;
 		readonly model_response?: ModelResponse;
-		readonly model_turn_outcome?: ToolCallOutcome;
+		readonly model_turn_outcome?: Exclude<
+			RunModelTurnResult['model_turn_outcome'],
+			undefined | { readonly kind: 'assistant_response' }
+		>;
 		readonly resolved_model_request?: ModelRequest;
+		readonly tool_result?: ToolResult;
+		readonly tool_results?: readonly ToolResult[];
 	}>,
 ): RunModelTurnFailureResult {
+	const failureToolOutcome =
+		input.model_turn_outcome?.kind === 'tool_calls'
+			? input.model_turn_outcome.tool_calls[0]
+			: input.model_turn_outcome;
+
 	return {
 		continuation_result: {
-			call_id: input.model_turn_outcome?.call_id,
+			call_id: failureToolOutcome?.call_id,
 			events: [],
 			failure: {
 				code: 'TOOL_DISPATCH_FAILED',
@@ -450,7 +502,7 @@ function createRunModelTurnFailureResult(
 				},
 			],
 			status: 'failed',
-			tool_name: input.model_turn_outcome?.tool_name,
+			tool_name: failureToolOutcome?.tool_name,
 		},
 		failure: {
 			code: 'TURN_CONTINUATION_FAILED',
@@ -461,7 +513,284 @@ function createRunModelTurnFailureResult(
 		model_turn_outcome: input.model_turn_outcome,
 		resolved_model_request: input.resolved_model_request,
 		status: 'failed',
+		tool_result: input.tool_result,
+		tool_results: input.tool_results,
 	};
+}
+
+type OrderedToolCallCandidate = NonNullable<ModelResponse['tool_call_candidate']>;
+type ToolPermissionDecision = Awaited<
+	ReturnType<WebSocketPolicyWiring['evaluateToolPermission']>
+>['decision'];
+
+interface PreparedToolExecutionCandidate extends ScheduledToolCandidate<OrderedToolCallCandidate> {
+	readonly permission_decision: ToolPermissionDecision;
+	readonly tool_definition: ToolDefinition;
+}
+
+interface PreparedToolExecutionPlan {
+	readonly blocked_failure?:
+		| {
+				readonly candidate: OrderedToolCallCandidate;
+				readonly error_message: string;
+		  }
+		| undefined;
+	readonly prepared_candidates: readonly PreparedToolExecutionCandidate[];
+}
+
+interface ExecutedToolCandidateResult {
+	readonly candidate: OrderedToolCallCandidate;
+	readonly events: readonly ToolRuntimeEvent[];
+	readonly tool_result: ToolResult;
+}
+
+function getOrderedToolCallCandidates(
+	modelResponse: ModelResponse,
+): readonly OrderedToolCallCandidate[] {
+	if (
+		modelResponse.tool_call_candidates !== undefined &&
+		modelResponse.tool_call_candidates.length > 0
+	) {
+		return modelResponse.tool_call_candidates;
+	}
+
+	return modelResponse.tool_call_candidate === undefined ? [] : [modelResponse.tool_call_candidate];
+}
+
+function toToolCallOutcome(candidate: OrderedToolCallCandidate): ToolCallOutcome {
+	return {
+		call_id: candidate.call_id,
+		kind: 'tool_call',
+		tool_input: candidate.tool_input,
+		tool_name: candidate.tool_name,
+	};
+}
+
+function mapRunToolFailureCodeToToolErrorCode(
+	failureCode:
+		| 'APPROVAL_REQUEST_FAILED'
+		| 'INVALID_CURRENT_STATE'
+		| 'PERSISTENCE_FAILED'
+		| 'TOOL_EXECUTION_FAILED'
+		| 'TOOL_INPUT_MISMATCH'
+		| 'TOOL_NOT_FOUND',
+): ToolErrorCode {
+	switch (failureCode) {
+		case 'TOOL_INPUT_MISMATCH':
+			return 'INVALID_INPUT';
+		case 'TOOL_NOT_FOUND':
+			return 'NOT_FOUND';
+		default:
+			return 'EXECUTION_FAILED';
+	}
+}
+
+function createSyntheticToolErrorResult(
+	candidate: OrderedToolCallCandidate,
+	errorCode: ToolErrorCode,
+	errorMessage: string,
+	retryable = false,
+): Extract<ToolResult, { readonly status: 'error' }> {
+	return {
+		call_id: candidate.call_id,
+		error_code: errorCode,
+		error_message: errorMessage,
+		retryable,
+		status: 'error',
+		tool_name: candidate.tool_name,
+	};
+}
+
+async function prepareToolExecutionPlan(
+	socket: WebSocketConnection,
+	candidates: readonly OrderedToolCallCandidate[],
+	registry: ToolRegistry,
+	policyWiring: WebSocketPolicyWiring,
+): Promise<PreparedToolExecutionPlan> {
+	const preparedCandidates: PreparedToolExecutionCandidate[] = [];
+
+	for (const candidate of candidates) {
+		const toolDefinition = registry.get(candidate.tool_name);
+
+		if (!toolDefinition) {
+			return {
+				blocked_failure: {
+					candidate,
+					error_message: `Tool not found in registry: ${candidate.tool_name}`,
+				},
+				prepared_candidates: preparedCandidates,
+			};
+		}
+
+		const permissionEvaluation = await policyWiring.evaluateToolPermission(socket, {
+			call_id: candidate.call_id,
+			tool_definition: toolDefinition,
+		});
+		const preparedCandidate: PreparedToolExecutionCandidate = {
+			candidate,
+			effect_class: classifyToolEffectClass(toolDefinition),
+			permission_decision: permissionEvaluation.decision,
+			requires_approval: permissionEvaluation.decision.decision === 'require_approval',
+			resource_key: classifyToolResourceKey(toolDefinition),
+			tool_definition: toolDefinition,
+		};
+
+		if (permissionEvaluation.decision.decision === 'deny') {
+			return {
+				blocked_failure: {
+					candidate,
+					error_message: `Permission denied for ${candidate.tool_name}.`,
+				},
+				prepared_candidates: preparedCandidates,
+			};
+		}
+
+		if (permissionEvaluation.decision.decision === 'pause') {
+			return {
+				blocked_failure: {
+					candidate,
+					error_message:
+						'Session is paused after consecutive permission denials; approval is required before continuing.',
+				},
+				prepared_candidates: preparedCandidates,
+			};
+		}
+
+		preparedCandidates.push(preparedCandidate);
+
+		if (preparedCandidate.requires_approval) {
+			break;
+		}
+	}
+
+	return {
+		prepared_candidates: preparedCandidates,
+	};
+}
+
+async function executePreparedToolCandidate(
+	turnLogger: ReturnType<typeof createLogger>,
+	socket: WebSocketConnection,
+	input: RunModelTurnInput,
+	policyWiring: WebSocketPolicyWiring,
+	preparedCandidate: PreparedToolExecutionCandidate,
+	sequenceStart: number,
+): Promise<ExecutedToolCandidateResult> {
+	await policyWiring.recordOutcome(socket, {
+		decision: preparedCandidate.permission_decision,
+		outcome: 'allowed',
+	});
+
+	const toolSpan = startLogSpan(turnLogger, 'tool.execute', {
+		call_id: preparedCandidate.candidate.call_id,
+		tool_name: preparedCandidate.candidate.tool_name,
+	});
+
+	const toolStepResult = await runToolStep({
+		bypass_approval_gate: true,
+		current_state: input.current_state,
+		event_context: {
+			sequence_start: sequenceStart,
+		},
+		execution_context: input.execution_context,
+		registry: input.registry,
+		run_id: input.run_id,
+		tool_input: {
+			arguments: preparedCandidate.candidate.tool_input,
+			call_id: preparedCandidate.candidate.call_id,
+			tool_name: preparedCandidate.candidate.tool_name,
+		},
+		tool_name: preparedCandidate.candidate.tool_name,
+		trace_id: input.trace_id,
+	});
+
+	if (toolStepResult.status === 'completed') {
+		toolSpan.end({
+			call_id: toolStepResult.tool_result.call_id,
+			tool_result_status: toolStepResult.tool_result.status,
+			tool_name: toolStepResult.tool_name,
+		});
+
+		return {
+			candidate: preparedCandidate.candidate,
+			events: toolStepResult.events,
+			tool_result: toolStepResult.tool_result,
+		};
+	}
+
+	if (toolStepResult.status === 'failed') {
+		toolSpan.fail(new Error(toolStepResult.failure.message), {
+			tool_name: preparedCandidate.candidate.tool_name,
+		});
+
+		return {
+			candidate: preparedCandidate.candidate,
+			events: toolStepResult.events,
+			tool_result: createSyntheticToolErrorResult(
+				preparedCandidate.candidate,
+				mapRunToolFailureCodeToToolErrorCode(toolStepResult.failure.code),
+				toolStepResult.failure.message,
+			),
+		};
+	}
+
+	toolSpan.fail(new Error('Policy allow path unexpectedly requested approval again.'), {
+		tool_name: preparedCandidate.candidate.tool_name,
+	});
+
+	return {
+		candidate: preparedCandidate.candidate,
+		events: toolStepResult.events,
+		tool_result: createSyntheticToolErrorResult(
+			preparedCandidate.candidate,
+			'EXECUTION_FAILED',
+			'Policy allow path unexpectedly requested approval again.',
+		),
+	};
+}
+
+function createOrderedToolResultContinuationText(
+	originalUserTurn: string,
+	toolResults: readonly ToolResult[],
+): string {
+	const renderedResults = toolResults.map((toolResult, index) => {
+		if (toolResult.status === 'success') {
+			return `[${index + 1}] ${toolResult.tool_name} (succeeded): ${JSON.stringify(toolResult.output)}`;
+		}
+
+		return `[${index + 1}] ${toolResult.tool_name} (failed with ${toolResult.error_code}): ${toolResult.error_message}`;
+	});
+
+	return `${originalUserTurn}\n\nOrdered tool results:\n${renderedResults.join('\n')}`;
+}
+
+function replaceFinalUserMessage(
+	messages: readonly ModelMessage[],
+	toolResults: readonly ToolResult[],
+): readonly ModelMessage[] {
+	if (toolResults.length <= 1) {
+		return messages;
+	}
+
+	const lastMessage = messages[messages.length - 1];
+
+	if (lastMessage?.role !== 'user') {
+		return [
+			...messages,
+			{
+				content: createOrderedToolResultContinuationText('', toolResults),
+				role: 'user',
+			},
+		];
+	}
+
+	return [
+		...messages.slice(0, -1),
+		{
+			...lastMessage,
+			content: createOrderedToolResultContinuationText(lastMessage.content, toolResults),
+		},
+	];
 }
 
 async function generateModelResponseWithStreaming(
@@ -649,230 +978,557 @@ async function runPolicyAwareModelTurn(
 		};
 	}
 
-	const toolDefinition = input.registry.get(adaptedOutcomeResult.outcome.tool_name);
+	const orderedToolCallCandidates = getOrderedToolCallCandidates(modelResponse);
+	const primaryToolCallOutcome =
+		adaptedOutcomeResult.outcome.kind === 'tool_calls'
+			? adaptedOutcomeResult.outcome.tool_calls[0]
+			: adaptedOutcomeResult.outcome;
 
-	if (!toolDefinition) {
+	if (!primaryToolCallOutcome) {
 		return createRunModelTurnFailureResult({
 			current_state: input.current_state,
-			error_message: `Tool not found in registry: ${adaptedOutcomeResult.outcome.tool_name}`,
+			error_message: 'Model returned tool calls, but no primary tool call outcome was available.',
 			model_response: modelResponse,
-			model_turn_outcome: adaptedOutcomeResult.outcome,
 			resolved_model_request: resolvedModelRequest,
 		});
 	}
 
-	const permissionEvaluation = await policyWiring.evaluateToolPermission(socket, {
-		call_id: adaptedOutcomeResult.outcome.call_id,
-		tool_definition: toolDefinition,
-	});
+	if (orderedToolCallCandidates.length <= 1) {
+		const toolDefinition = input.registry.get(primaryToolCallOutcome.tool_name);
 
-	switch (permissionEvaluation.decision.decision) {
-		case 'allow': {
-			turnLogger.info('tool.permission.allowed', {
-				call_id: adaptedOutcomeResult.outcome.call_id,
-				tool_name: adaptedOutcomeResult.outcome.tool_name,
-			});
-			await policyWiring.recordOutcome(socket, {
-				decision: permissionEvaluation.decision,
-				outcome: 'allowed',
-			});
-			const toolSpan = startLogSpan(turnLogger, 'tool.execute', {
-				call_id: adaptedOutcomeResult.outcome.call_id,
-				tool_name: adaptedOutcomeResult.outcome.tool_name,
-			});
-
-			const toolStepResult = await runToolStep({
-				bypass_approval_gate: true,
+		if (!toolDefinition) {
+			return createRunModelTurnFailureResult({
 				current_state: input.current_state,
-				execution_context: input.execution_context,
-				registry: input.registry,
-				run_id: input.run_id,
-				tool_input: {
-					arguments: adaptedOutcomeResult.outcome.tool_input,
-					call_id: adaptedOutcomeResult.outcome.call_id,
-					tool_name: adaptedOutcomeResult.outcome.tool_name,
-				},
-				tool_name: adaptedOutcomeResult.outcome.tool_name,
-				trace_id: input.trace_id,
+				error_message: `Tool not found in registry: ${primaryToolCallOutcome.tool_name}`,
+				model_response: modelResponse,
+				model_turn_outcome: primaryToolCallOutcome,
+				resolved_model_request: resolvedModelRequest,
 			});
+		}
 
-			if (toolStepResult.status === 'failed') {
-				toolSpan.fail(new Error(toolStepResult.failure.message), {
-					tool_name: adaptedOutcomeResult.outcome.tool_name,
-				});
-				return createRunModelTurnFailureResult({
-					current_state: input.current_state,
-					error_message: toolStepResult.failure.message,
-					model_response: modelResponse,
-					model_turn_outcome: adaptedOutcomeResult.outcome,
-					resolved_model_request: resolvedModelRequest,
-				});
-			}
+		const permissionEvaluation = await policyWiring.evaluateToolPermission(socket, {
+			call_id: primaryToolCallOutcome.call_id,
+			tool_definition: toolDefinition,
+		});
 
-			if (toolStepResult.status === 'approval_required') {
-				toolSpan.fail(new Error('Policy allow path unexpectedly requested approval again.'), {
-					tool_name: adaptedOutcomeResult.outcome.tool_name,
+		switch (permissionEvaluation.decision.decision) {
+			case 'allow': {
+				turnLogger.info('tool.permission.allowed', {
+					call_id: primaryToolCallOutcome.call_id,
+					tool_name: primaryToolCallOutcome.tool_name,
 				});
-				return createRunModelTurnFailureResult({
-					current_state: input.current_state,
-					error_message: 'Policy allow path unexpectedly requested approval again.',
-					model_response: modelResponse,
-					model_turn_outcome: adaptedOutcomeResult.outcome,
-					resolved_model_request: resolvedModelRequest,
+				const executedCandidate = await executePreparedToolCandidate(
+					turnLogger,
+					socket,
+					input,
+					policyWiring,
+					{
+						candidate: orderedToolCallCandidates[0] ?? {
+							call_id: primaryToolCallOutcome.call_id,
+							tool_input: primaryToolCallOutcome.tool_input,
+							tool_name: primaryToolCallOutcome.tool_name,
+						},
+						effect_class: classifyToolEffectClass(toolDefinition),
+						permission_decision: permissionEvaluation.decision,
+						requires_approval: false,
+						resource_key: classifyToolResourceKey(toolDefinition),
+						tool_definition: toolDefinition,
+					},
+					101,
+				);
+				const ingestionResult = ingestToolResult({
+					call_id: executedCandidate.tool_result.call_id,
+					current_state: 'TOOL_RESULT_INGESTING',
+					run_id: input.run_id,
+					tool_name: executedCandidate.tool_result.tool_name,
+					tool_result: executedCandidate.tool_result,
+					trace_id: input.trace_id,
 				});
-			}
 
-			const ingestionResult = ingestToolResult({
-				call_id: adaptedOutcomeResult.outcome.call_id,
-				current_state: toolStepResult.final_state,
-				run_id: input.run_id,
-				tool_name: toolStepResult.tool_name,
-				tool_result: toolStepResult.tool_result,
-				trace_id: input.trace_id,
-			});
+				if (ingestionResult.status === 'failed') {
+					return createRunModelTurnFailureResult({
+						current_state: input.current_state,
+						error_message: ingestionResult.failure.message,
+						model_response: modelResponse,
+						model_turn_outcome: primaryToolCallOutcome,
+						resolved_model_request: resolvedModelRequest,
+						tool_result: executedCandidate.tool_result,
+						tool_results: [executedCandidate.tool_result],
+					});
+				}
 
-			if (ingestionResult.status === 'failed') {
-				toolSpan.fail(new Error(ingestionResult.failure.message), {
-					tool_name: adaptedOutcomeResult.outcome.tool_name,
-				});
-				return createRunModelTurnFailureResult({
-					current_state: input.current_state,
-					error_message: ingestionResult.failure.message,
-					model_response: modelResponse,
-					model_turn_outcome: adaptedOutcomeResult.outcome,
-					resolved_model_request: resolvedModelRequest,
-				});
-			}
-
-			toolSpan.end({
-				call_id: ingestionResult.call_id,
-				tool_result_status: ingestionResult.tool_result.status,
-				tool_name: ingestionResult.tool_name,
-			});
-
-			return {
-				continuation_result: {
-					call_id: ingestionResult.call_id,
-					events: toolStepResult.events,
+				return {
+					continuation_result: {
+						call_id: ingestionResult.call_id,
+						events: executedCandidate.events,
+						final_state: ingestionResult.final_state,
+						ingested_result: ingestionResult.ingested_result,
+						outcome_kind: 'tool_call',
+						state_transitions: [
+							{ from: input.current_state, to: 'TOOL_EXECUTING' },
+							{ from: 'TOOL_EXECUTING', to: 'TOOL_RESULT_INGESTING' },
+						],
+						status: 'completed',
+						suggested_next_state: ingestionResult.suggested_next_state,
+						tool_name: ingestionResult.tool_name,
+						tool_result: ingestionResult.tool_result,
+					},
 					final_state: ingestionResult.final_state,
 					ingested_result: ingestionResult.ingested_result,
-					outcome_kind: 'tool_call',
-					state_transitions: toolStepResult.state_transitions,
+					model_response: modelResponse,
+					model_turn_outcome: primaryToolCallOutcome,
+					resolved_model_request: resolvedModelRequest,
 					status: 'completed',
 					suggested_next_state: ingestionResult.suggested_next_state,
-					tool_name: ingestionResult.tool_name,
 					tool_result: ingestionResult.tool_result,
-				},
-				final_state: ingestionResult.final_state,
-				ingested_result: ingestionResult.ingested_result,
-				model_response: modelResponse,
-				model_turn_outcome: adaptedOutcomeResult.outcome,
-				resolved_model_request: resolvedModelRequest,
-				status: 'completed',
-				suggested_next_state: ingestionResult.suggested_next_state,
-				tool_result: ingestionResult.tool_result,
-			};
-		}
-		case 'require_approval': {
-			turnLogger.info('tool.permission.approval_required', {
-				call_id: adaptedOutcomeResult.outcome.call_id,
-				tool_name: adaptedOutcomeResult.outcome.tool_name,
-			});
-			const approvalResult = requestApproval({
-				call_id: adaptedOutcomeResult.outcome.call_id,
-				current_state: input.current_state,
-				requires_reason: permissionEvaluation.decision.approval_requirement.requires_reason,
-				run_id: input.run_id,
-				target: resolveDesktopApprovalTarget({
-					auth_context: options.auth_context,
-					call_id: adaptedOutcomeResult.outcome.call_id,
-					desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
-					target_connection_id: options.desktop_target_connection_id,
-					tool_name: adaptedOutcomeResult.outcome.tool_name,
-				}),
-				tool_definition:
-					permissionEvaluation.decision.reason === 'approval_required_by_policy'
-						? cloneToolDefinitionWithApprovalRequired(toolDefinition)
-						: toolDefinition,
-				trace_id: input.trace_id,
-			});
+				};
+			}
+			case 'require_approval': {
+				turnLogger.info('tool.permission.approval_required', {
+					call_id: primaryToolCallOutcome.call_id,
+					tool_name: primaryToolCallOutcome.tool_name,
+				});
+				const approvalResult = requestApproval({
+					call_id: primaryToolCallOutcome.call_id,
+					current_state: input.current_state,
+					requires_reason: permissionEvaluation.decision.approval_requirement.requires_reason,
+					run_id: input.run_id,
+					target: resolveDesktopApprovalTarget({
+						auth_context: options.auth_context,
+						call_id: primaryToolCallOutcome.call_id,
+						desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
+						target_connection_id: options.desktop_target_connection_id,
+						tool_name: primaryToolCallOutcome.tool_name,
+					}),
+					tool_definition:
+						permissionEvaluation.decision.reason === 'approval_required_by_policy'
+							? cloneToolDefinitionWithApprovalRequired(toolDefinition)
+							: toolDefinition,
+					trace_id: input.trace_id,
+				});
 
-			if (approvalResult.status !== 'approval_required') {
+				if (approvalResult.status !== 'approval_required') {
+					return createRunModelTurnFailureResult({
+						current_state: input.current_state,
+						error_message:
+							approvalResult.status === 'failed'
+								? approvalResult.failure.message
+								: 'Policy approval path did not produce an approval request.',
+						model_response: modelResponse,
+						model_turn_outcome: primaryToolCallOutcome,
+						resolved_model_request: resolvedModelRequest,
+					});
+				}
+
+				policyWiring.rememberApprovalDecision(
+					socket,
+					approvalResult.approval_request.approval_id,
+					permissionEvaluation.decision,
+				);
+
+				return {
+					approval_event: approvalResult.approval_event,
+					approval_request: approvalResult.approval_request,
+					continuation_result: {
+						approval_event: approvalResult.approval_event,
+						approval_request: approvalResult.approval_request,
+						call_id: primaryToolCallOutcome.call_id,
+						events: [],
+						final_state: approvalResult.final_state,
+						outcome_kind: 'tool_call',
+						state_transitions: approvalResult.state_transitions,
+						status: 'approval_required',
+						tool_name: primaryToolCallOutcome.tool_name,
+					},
+					final_state: approvalResult.final_state,
+					model_response: modelResponse,
+					model_turn_outcome: primaryToolCallOutcome,
+					resolved_model_request: resolvedModelRequest,
+					status: 'approval_required',
+				};
+			}
+			case 'deny': {
+				turnLogger.warn('tool.permission.denied', {
+					call_id: primaryToolCallOutcome.call_id,
+					tool_name: primaryToolCallOutcome.tool_name,
+				});
+				const outcomeResult = await policyWiring.recordOutcome(socket, {
+					decision: permissionEvaluation.decision,
+					outcome: 'denied',
+				});
+				const denialMessage =
+					outcomeResult.pause_transition === 'entered'
+						? `Permission denied for ${primaryToolCallOutcome.tool_name}; session paused after consecutive denials.`
+						: `Permission denied for ${primaryToolCallOutcome.tool_name}.`;
+
+				return createRunModelTurnFailureResult({
+					current_state: input.current_state,
+					error_message: denialMessage,
+					model_response: modelResponse,
+					model_turn_outcome: primaryToolCallOutcome,
+					resolved_model_request: resolvedModelRequest,
+				});
+			}
+			case 'pause':
+				turnLogger.warn('tool.permission.paused', {
+					call_id: primaryToolCallOutcome.call_id,
+					tool_name: primaryToolCallOutcome.tool_name,
+				});
 				return createRunModelTurnFailureResult({
 					current_state: input.current_state,
 					error_message:
-						approvalResult.status === 'failed'
-							? approvalResult.failure.message
-							: 'Policy approval path did not produce an approval request.',
+						'Session is paused after consecutive permission denials; approval is required before continuing.',
 					model_response: modelResponse,
-					model_turn_outcome: adaptedOutcomeResult.outcome,
+					model_turn_outcome: primaryToolCallOutcome,
 					resolved_model_request: resolvedModelRequest,
+				});
+		}
+	}
+
+	const preparedPlan = await prepareToolExecutionPlan(
+		socket,
+		orderedToolCallCandidates,
+		input.registry,
+		policyWiring,
+	);
+	const scheduledPlan = planToolExecutionBatches(preparedPlan.prepared_candidates);
+	const preparedCandidatesByCallId = new Map(
+		preparedPlan.prepared_candidates.map((candidate) => [candidate.candidate.call_id, candidate]),
+	);
+	const fallbackParallelFailureCandidate =
+		orderedToolCallCandidates.at(-1) ?? orderedToolCallCandidates[0];
+
+	if (!fallbackParallelFailureCandidate) {
+		return createRunModelTurnFailureResult({
+			current_state: input.current_state,
+			error_message: 'Model returned a parallel tool schedule without candidates.',
+			model_response: modelResponse,
+			model_turn_outcome: primaryToolCallOutcome,
+			resolved_model_request: resolvedModelRequest,
+		});
+	}
+
+	const executedCandidates: ExecutedToolCandidateResult[] = [];
+	const executedEvents: ToolRuntimeEvent[] = [];
+
+	for (const [batchIndex, batch] of scheduledPlan.batches.entries()) {
+		if (batch.execution_mode === 'parallel') {
+			const preparedBatchCandidates = batch.candidates.map((candidate) =>
+				preparedCandidatesByCallId.get(candidate.candidate.call_id),
+			);
+
+			if (preparedBatchCandidates.some((candidate) => candidate === undefined)) {
+				const missingCandidate = batch.candidates.find(
+					(candidate) => preparedCandidatesByCallId.get(candidate.candidate.call_id) === undefined,
+				);
+
+				return createRunModelTurnFailureResult({
+					current_state: input.current_state,
+					error_message: `Prepared tool candidate missing for ${missingCandidate?.candidate.tool_name ?? 'unknown'}/${missingCandidate?.candidate.call_id ?? 'unknown'}.`,
+					model_response: modelResponse,
+					model_turn_outcome:
+						missingCandidate === undefined
+							? primaryToolCallOutcome
+							: toToolCallOutcome(missingCandidate.candidate),
+					resolved_model_request: resolvedModelRequest,
+					tool_result: executedCandidates.at(-1)?.tool_result,
+					tool_results: executedCandidates.map(
+						(executedCandidate) => executedCandidate.tool_result,
+					),
 				});
 			}
 
-			policyWiring.rememberApprovalDecision(
-				socket,
-				approvalResult.approval_request.approval_id,
-				permissionEvaluation.decision,
+			const safePreparedBatchCandidates = preparedBatchCandidates.filter(
+				(candidate): candidate is PreparedToolExecutionCandidate => candidate !== undefined,
 			);
 
-			return {
-				approval_event: approvalResult.approval_event,
-				approval_request: approvalResult.approval_request,
-				continuation_result: {
-					approval_event: approvalResult.approval_event,
-					approval_request: approvalResult.approval_request,
-					call_id: adaptedOutcomeResult.outcome.call_id,
-					events: [],
-					final_state: approvalResult.final_state,
-					outcome_kind: 'tool_call',
-					state_transitions: approvalResult.state_transitions,
-					status: 'approval_required',
-					tool_name: adaptedOutcomeResult.outcome.tool_name,
-				},
-				final_state: approvalResult.final_state,
-				model_response: modelResponse,
-				model_turn_outcome: adaptedOutcomeResult.outcome,
-				resolved_model_request: resolvedModelRequest,
-				status: 'approval_required',
-			};
-		}
-		case 'deny': {
-			turnLogger.warn('tool.permission.denied', {
-				call_id: adaptedOutcomeResult.outcome.call_id,
-				tool_name: adaptedOutcomeResult.outcome.tool_name,
-			});
-			const outcomeResult = await policyWiring.recordOutcome(socket, {
-				decision: permissionEvaluation.decision,
-				outcome: 'denied',
-			});
-			const denialMessage =
-				outcomeResult.pause_transition === 'entered'
-					? `Permission denied for ${adaptedOutcomeResult.outcome.tool_name}; session paused after consecutive denials.`
-					: `Permission denied for ${adaptedOutcomeResult.outcome.tool_name}.`;
+			const settledResults = await Promise.allSettled(
+				safePreparedBatchCandidates.map((candidate, candidateIndex) =>
+					executePreparedToolCandidate(
+						turnLogger,
+						socket,
+						input,
+						policyWiring,
+						candidate,
+						100 + batchIndex * 100 + candidateIndex * 10,
+					),
+				),
+			);
 
+			for (const settledResult of settledResults) {
+				if (settledResult.status === 'rejected') {
+					return createRunModelTurnFailureResult({
+						current_state: input.current_state,
+						error_message:
+							settledResult.reason instanceof Error
+								? settledResult.reason.message
+								: 'Parallel tool execution failed unexpectedly.',
+						model_response: modelResponse,
+						model_turn_outcome: toToolCallOutcome(fallbackParallelFailureCandidate),
+						resolved_model_request: resolvedModelRequest,
+						tool_result: executedCandidates.at(-1)?.tool_result,
+						tool_results: executedCandidates.map((candidate) => candidate.tool_result),
+					});
+				}
+
+				executedCandidates.push(settledResult.value);
+				executedEvents.push(...settledResult.value.events);
+			}
+			continue;
+		}
+
+		for (const [candidateIndex, candidate] of batch.candidates.entries()) {
+			try {
+				const preparedCandidate = preparedCandidatesByCallId.get(candidate.candidate.call_id);
+
+				if (!preparedCandidate) {
+					return createRunModelTurnFailureResult({
+						current_state: input.current_state,
+						error_message: `Prepared tool candidate missing for ${candidate.candidate.tool_name}/${candidate.candidate.call_id}.`,
+						model_response: modelResponse,
+						model_turn_outcome: toToolCallOutcome(candidate.candidate),
+						resolved_model_request: resolvedModelRequest,
+						tool_result: executedCandidates.at(-1)?.tool_result,
+						tool_results: executedCandidates.map(
+							(executedCandidate) => executedCandidate.tool_result,
+						),
+					});
+				}
+
+				const executedCandidate = await executePreparedToolCandidate(
+					turnLogger,
+					socket,
+					input,
+					policyWiring,
+					preparedCandidate,
+					100 + batchIndex * 100 + candidateIndex * 10,
+				);
+				executedCandidates.push(executedCandidate);
+				executedEvents.push(...executedCandidate.events);
+			} catch (error: unknown) {
+				return createRunModelTurnFailureResult({
+					current_state: input.current_state,
+					error_message:
+						error instanceof Error
+							? error.message
+							: 'Sequential tool execution failed unexpectedly.',
+					model_response: modelResponse,
+					model_turn_outcome: toToolCallOutcome(candidate.candidate),
+					resolved_model_request: resolvedModelRequest,
+					tool_result: executedCandidates.at(-1)?.tool_result,
+					tool_results: executedCandidates.map(
+						(executedCandidate) => executedCandidate.tool_result,
+					),
+				});
+			}
+		}
+	}
+
+	const orderedExecutedCandidates = executedCandidates
+		.slice()
+		.sort(
+			(left, right) =>
+				orderedToolCallCandidates.findIndex(
+					(candidate) => candidate.call_id === left.candidate.call_id,
+				) -
+				orderedToolCallCandidates.findIndex(
+					(candidate) => candidate.call_id === right.candidate.call_id,
+				),
+		);
+	const orderedToolResults = orderedExecutedCandidates.map(
+		(executedCandidate) => executedCandidate.tool_result,
+	);
+	const lastExecutedToolResult = orderedToolResults.at(-1);
+	const blockedApprovalCandidate =
+		scheduledPlan.blocked_candidate === undefined
+			? undefined
+			: preparedCandidatesByCallId.get(scheduledPlan.blocked_candidate.candidate.call_id);
+
+	if (blockedApprovalCandidate) {
+		turnLogger.info('tool.permission.approval_required.batch', {
+			call_id: blockedApprovalCandidate.candidate.call_id,
+			tool_name: blockedApprovalCandidate.candidate.tool_name,
+		});
+		const approvalDecision = blockedApprovalCandidate.permission_decision;
+
+		if (approvalDecision.decision !== 'require_approval') {
 			return createRunModelTurnFailureResult({
 				current_state: input.current_state,
-				error_message: denialMessage,
+				error_message: 'Tool scheduler blocked on a non-approval decision unexpectedly.',
 				model_response: modelResponse,
-				model_turn_outcome: adaptedOutcomeResult.outcome,
+				model_turn_outcome: toToolCallOutcome(blockedApprovalCandidate.candidate),
 				resolved_model_request: resolvedModelRequest,
+				tool_result: lastExecutedToolResult,
+				tool_results: orderedToolResults,
 			});
 		}
-		case 'pause':
-			turnLogger.warn('tool.permission.paused', {
-				call_id: adaptedOutcomeResult.outcome.call_id,
-				tool_name: adaptedOutcomeResult.outcome.tool_name,
-			});
+
+		const approvalResult = requestApproval({
+			call_id: blockedApprovalCandidate.candidate.call_id,
+			current_state: input.current_state,
+			requires_reason: approvalDecision.approval_requirement.requires_reason,
+			run_id: input.run_id,
+			target: resolveDesktopApprovalTarget({
+				auth_context: options.auth_context,
+				call_id: blockedApprovalCandidate.candidate.call_id,
+				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
+				target_connection_id: options.desktop_target_connection_id,
+				tool_name: blockedApprovalCandidate.candidate.tool_name,
+			}),
+			tool_definition:
+				approvalDecision.reason === 'approval_required_by_policy'
+					? cloneToolDefinitionWithApprovalRequired(blockedApprovalCandidate.tool_definition)
+					: blockedApprovalCandidate.tool_definition,
+			trace_id: input.trace_id,
+		});
+
+		if (approvalResult.status !== 'approval_required') {
 			return createRunModelTurnFailureResult({
 				current_state: input.current_state,
 				error_message:
-					'Session is paused after consecutive permission denials; approval is required before continuing.',
+					approvalResult.status === 'failed'
+						? approvalResult.failure.message
+						: 'Policy approval path did not produce an approval request.',
 				model_response: modelResponse,
-				model_turn_outcome: adaptedOutcomeResult.outcome,
+				model_turn_outcome: toToolCallOutcome(blockedApprovalCandidate.candidate),
 				resolved_model_request: resolvedModelRequest,
+				tool_result: lastExecutedToolResult,
+				tool_results: orderedToolResults,
 			});
+		}
+
+		policyWiring.rememberApprovalDecision(
+			socket,
+			approvalResult.approval_request.approval_id,
+			approvalDecision,
+		);
+
+		return {
+			approval_event: approvalResult.approval_event,
+			approval_request: approvalResult.approval_request,
+			continuation_result: {
+				approval_event: approvalResult.approval_event,
+				approval_request: approvalResult.approval_request,
+				call_id: blockedApprovalCandidate.candidate.call_id,
+				events: executedEvents,
+				final_state: approvalResult.final_state,
+				outcome_kind: 'tool_call',
+				state_transitions: approvalResult.state_transitions,
+				status: 'approval_required',
+				tool_name: blockedApprovalCandidate.candidate.tool_name,
+			},
+			final_state: approvalResult.final_state,
+			model_response: modelResponse,
+			model_turn_outcome: toToolCallOutcome(blockedApprovalCandidate.candidate),
+			resolved_model_request: resolvedModelRequest,
+			status: 'approval_required',
+			tool_result: lastExecutedToolResult,
+			tool_results: orderedToolResults,
+		};
 	}
+
+	if (preparedPlan.blocked_failure) {
+		const deniedCandidate = preparedPlan.blocked_failure.candidate;
+		const deniedToolDefinition = input.registry.get(deniedCandidate.tool_name);
+
+		if (deniedToolDefinition) {
+			const permissionEvaluation = await policyWiring.evaluateToolPermission(socket, {
+				call_id: deniedCandidate.call_id,
+				tool_definition: deniedToolDefinition,
+			});
+
+			if (permissionEvaluation.decision.decision === 'deny') {
+				const outcomeResult = await policyWiring.recordOutcome(socket, {
+					decision: permissionEvaluation.decision,
+					outcome: 'denied',
+				});
+				const denialMessage =
+					outcomeResult.pause_transition === 'entered'
+						? `Permission denied for ${deniedCandidate.tool_name}; session paused after consecutive denials.`
+						: preparedPlan.blocked_failure.error_message;
+
+				return createRunModelTurnFailureResult({
+					current_state: input.current_state,
+					error_message: denialMessage,
+					model_response: modelResponse,
+					model_turn_outcome: toToolCallOutcome(deniedCandidate),
+					resolved_model_request: resolvedModelRequest,
+					tool_result: lastExecutedToolResult,
+					tool_results: orderedToolResults,
+				});
+			}
+		}
+
+		return createRunModelTurnFailureResult({
+			current_state: input.current_state,
+			error_message: preparedPlan.blocked_failure.error_message,
+			model_response: modelResponse,
+			model_turn_outcome: toToolCallOutcome(deniedCandidate),
+			resolved_model_request: resolvedModelRequest,
+			tool_result: lastExecutedToolResult,
+			tool_results: orderedToolResults,
+		});
+	}
+
+	if (!lastExecutedToolResult) {
+		return createRunModelTurnFailureResult({
+			current_state: input.current_state,
+			error_message: 'Model returned tool calls, but no executable tool candidate was scheduled.',
+			model_response: modelResponse,
+			model_turn_outcome: primaryToolCallOutcome,
+			resolved_model_request: resolvedModelRequest,
+		});
+	}
+
+	const terminalCandidate =
+		orderedExecutedCandidates.at(-1)?.candidate ?? fallbackParallelFailureCandidate;
+	const ingestionResult = ingestToolResult({
+		call_id: lastExecutedToolResult.call_id,
+		current_state: 'TOOL_RESULT_INGESTING',
+		run_id: input.run_id,
+		tool_name: lastExecutedToolResult.tool_name,
+		tool_result: lastExecutedToolResult,
+		trace_id: input.trace_id,
+	});
+
+	if (ingestionResult.status === 'failed') {
+		return createRunModelTurnFailureResult({
+			current_state: input.current_state,
+			error_message: ingestionResult.failure.message,
+			model_response: modelResponse,
+			model_turn_outcome: toToolCallOutcome(terminalCandidate),
+			resolved_model_request: resolvedModelRequest,
+			tool_result: lastExecutedToolResult,
+			tool_results: orderedToolResults,
+		});
+	}
+
+	return {
+		continuation_result: {
+			call_id: ingestionResult.call_id,
+			events: executedEvents,
+			final_state: ingestionResult.final_state,
+			ingested_result: ingestionResult.ingested_result,
+			outcome_kind: 'tool_call',
+			state_transitions: [
+				{ from: input.current_state, to: 'TOOL_EXECUTING' },
+				{ from: 'TOOL_EXECUTING', to: 'TOOL_RESULT_INGESTING' },
+			],
+			status: 'completed',
+			suggested_next_state: ingestionResult.suggested_next_state,
+			tool_name: ingestionResult.tool_name,
+			tool_result: ingestionResult.tool_result,
+		},
+		final_state: ingestionResult.final_state,
+		ingested_result: ingestionResult.ingested_result,
+		model_response: modelResponse,
+		model_turn_outcome: toToolCallOutcome(terminalCandidate),
+		resolved_model_request: resolvedModelRequest,
+		status: 'completed',
+		suggested_next_state: ingestionResult.suggested_next_state,
+		tool_result: ingestionResult.tool_result,
+		tool_results: orderedToolResults,
+	};
 }
 
 async function executeLiveRun(
@@ -893,13 +1549,44 @@ async function executeLiveRun(
 	const workspaceLayer =
 		options.workspace_layer ?? (await buildLiveWorkspaceLayer(payload, options.workingDirectory));
 	const policyWiring = getPolicyWiring(options);
-	const runtimeRegistry = createRuntimeToolRegistry(options.registry, {
-		memoryStore: options.memoryStore,
-	});
 	const gateway = createModelGateway({
 		config: payload.provider_config,
 		provider: payload.provider,
 	});
+	const toolResultsByCallId = new Map<string, ToolResult>();
+	const toolResultHistory: ToolResult[] = [];
+	const rememberToolResult = (toolResult: ToolResult | undefined): void => {
+		if (toolResult === undefined) {
+			return;
+		}
+
+		if (!toolResultsByCallId.has(toolResult.call_id)) {
+			toolResultHistory.push(toolResult);
+		}
+
+		toolResultsByCallId.set(toolResult.call_id, toolResult);
+	};
+
+	for (const toolResult of options.initial_tool_results ?? []) {
+		rememberToolResult(toolResult);
+	}
+
+	rememberToolResult(options.initial_tool_result);
+
+	const runtimeRegistry = createRuntimeToolRegistry(options.registry, {
+		memoryStore: options.memoryStore,
+		modelGateway: gateway,
+		resolveToolResult: (callId) => toolResultsByCallId.get(callId),
+	});
+	const liveExecutionContext = {
+		auth_context: options.auth_context,
+		create_storage_download_url: options.create_storage_download_url,
+		desktop_bridge: (
+			options.desktopAgentBridgeRegistry ?? defaultDesktopAgentBridgeRegistry
+		).createInvoker(options.auth_context, payload.desktop_target_connection_id),
+		storage_service: options.storage_service,
+		working_directory: options.workingDirectory,
+	};
 	const events: AnyRuntimeEvent[] = [];
 	const runtimeEvents: RuntimeEvent[] = [];
 	let previousRuntimeState: RuntimeState = options.initial_runtime_state ?? 'INIT';
@@ -923,23 +1610,43 @@ async function executeLiveRun(
 	});
 
 	const loop = runAgentLoop({
-		build_model_request: async (input) =>
-			buildLiveModelRequest(payload, options.workingDirectory, {
+		build_model_request: async (input) => {
+			const modelRequest = await buildLiveModelRequest(payload, options.workingDirectory, {
 				current_state: input.snapshot.current_runtime_state,
 				latest_tool_result: input.snapshot.tool_result,
 				memoryStore: options.memoryStore,
 				workspace_layer: workspaceLayer,
-			}),
+			});
+
+			if (
+				input.snapshot.current_runtime_state === 'TOOL_RESULT_INGESTING' &&
+				(input.snapshot.tool_results?.length ?? 0) > 1
+			) {
+				return {
+					...modelRequest,
+					messages: replaceFinalUserMessage(
+						modelRequest.messages,
+						input.snapshot.tool_results ?? [],
+					),
+				};
+			}
+
+			return modelRequest;
+		},
 		config: {
 			max_turns: 200,
 			stop_conditions: {},
 		},
 		continue_gate: continueGate,
 		execution_context: {
-			desktop_bridge: (
-				options.desktopAgentBridgeRegistry ?? defaultDesktopAgentBridgeRegistry
-			).createInvoker(options.auth_context, payload.desktop_target_connection_id),
-			working_directory: options.workingDirectory,
+			...liveExecutionContext,
+			delegate_agent: (request) =>
+				runSequentialSubAgentDelegation({
+					execution_context: liveExecutionContext,
+					model_gateway: gateway,
+					registry: runtimeRegistry,
+					request,
+				}),
 		},
 		initial_runtime_state: options.initial_runtime_state,
 		initial_tool_result: options.initial_tool_result,
@@ -954,6 +1661,11 @@ async function executeLiveRun(
 				desktop_target_connection_id: payload.desktop_target_connection_id,
 			}),
 		on_yield: ({ snapshot, yield: loopYield }) => {
+			for (const toolResult of snapshot.tool_results ?? []) {
+				rememberToolResult(toolResult);
+			}
+			rememberToolResult(snapshot.tool_result);
+
 			if (
 				payload.include_presentation_blocks !== true ||
 				loopYield.type !== 'turn.completed' ||
@@ -1014,6 +1726,10 @@ async function executeLiveRun(
 
 		if (iteration.done) {
 			const finalSnapshot = iteration.value.final_snapshot;
+			for (const toolResult of finalSnapshot.tool_results ?? []) {
+				rememberToolResult(toolResult);
+			}
+			rememberToolResult(finalSnapshot.tool_result);
 			appendTerminalRuntimeEventsIfNeeded(
 				appendAndSendRuntimeEvent,
 				payload,
@@ -1046,6 +1762,8 @@ async function executeLiveRun(
 				status: toLoopRunStatus(finalSnapshot),
 				tool_arguments: finalSnapshot.tool_arguments,
 				tool_result: finalSnapshot.tool_result,
+				tool_results: finalSnapshot.tool_results,
+				tool_result_history: toolResultHistory,
 				turn_count: finalSnapshot.turn_count,
 				workspace_layer: workspaceLayer,
 			};
@@ -1211,22 +1929,29 @@ export async function resumeApprovedAutoContinue(
 	options: RuntimeWebSocketHandlerOptions & {
 		readonly approvalStore: ApprovalStore;
 	},
+	override?: Readonly<{
+		readonly initial_tool_result?: ToolResult;
+		readonly initial_turn_count?: number;
+	}>,
 ): Promise<boolean> {
 	if (pendingApproval.auto_continue_context === undefined) {
 		return false;
 	}
 
 	const pendingContext = pendingApproval.auto_continue_context;
-	const toolRegistry = options.toolRegistry ?? getDefaultToolRegistry();
+	const toolRegistry = options.toolRegistry ?? (await getDefaultToolRegistryAsync());
 	const continuationResult = await executeLiveRun(_socket, pendingContext.payload, {
 		auth_context: options.auth_context,
+		create_storage_download_url: options.create_storage_download_url,
 		desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 		initial_runtime_state: 'TOOL_RESULT_INGESTING',
-		initial_tool_result: pendingContext.tool_result,
-		initial_turn_count: pendingContext.turn_count,
+		initial_tool_result: override?.initial_tool_result ?? pendingContext.tool_result,
+		initial_tool_results: pendingContext.tool_result_history,
+		initial_turn_count: override?.initial_turn_count ?? pendingContext.turn_count,
 		memoryStore: options.memoryStore,
 		policy_wiring: options.policy_wiring,
 		registry: toolRegistry,
+		storage_service: options.storage_service,
 		workingDirectory: pendingContext.working_directory,
 	});
 
@@ -1369,17 +2094,19 @@ export async function handleRunRequestMessage(
 	sendServerMessage(socket, createAcceptedMessage(resolvedPayload));
 	await broadcastConversationRunAccepted(socket, resolvedPayload);
 
-	const toolRegistry = options.toolRegistry ?? getDefaultToolRegistry();
+	const toolRegistry = options.toolRegistry ?? (await getDefaultToolRegistryAsync());
 	const workingDirectory = getLiveWorkingDirectory();
 	let result: RunToolWebSocketResult;
 
 	try {
 		result = await executeLiveRun(socket, resolvedPayload, {
 			auth_context: options.auth_context,
+			create_storage_download_url: options.create_storage_download_url,
 			desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 			memoryStore: options.memoryStore,
 			policy_wiring: options.policy_wiring,
 			registry: toolRegistry,
+			storage_service: options.storage_service,
 			workingDirectory,
 		});
 	} catch (error: unknown) {

@@ -11,6 +11,7 @@ import type {
 	RuntimeState,
 	StopReason,
 	ToolArguments,
+	ToolExecutionSignal,
 	ToolResult,
 	TurnCompletedYield,
 	TurnProgressEvent,
@@ -36,6 +37,7 @@ const MAX_RECENT_TOOL_CALLS = 20;
 
 export interface AgentLoopCancellationSignal {
 	readonly actor?: 'system' | 'user';
+	readonly tool_signal?: ToolExecutionSignal;
 	is_cancelled(): boolean;
 }
 
@@ -43,6 +45,7 @@ export interface AgentLoopSnapshot {
 	readonly approval_request?: ApprovalRequest;
 	readonly assistant_text?: string;
 	readonly config: Pick<AgentLoopConfig, 'max_turns' | 'stop_conditions' | 'token_limits'>;
+	readonly consecutive_tool_failure_count?: number;
 	readonly current_loop_state: LoopState;
 	readonly current_runtime_state?: RuntimeState;
 	readonly failure?: StopConditionFailure;
@@ -59,6 +62,7 @@ export interface AgentLoopSnapshot {
 	readonly token_usage?: AgentLoopTokenUsage;
 	readonly tool_arguments?: ToolArguments;
 	readonly tool_result?: ToolResult;
+	readonly tool_results?: readonly ToolResult[];
 	readonly trace_id: string;
 	readonly turn_count: number;
 }
@@ -89,6 +93,7 @@ export interface AgentLoopTurnResult {
 	}>[];
 	readonly tool_arguments?: ToolArguments;
 	readonly tool_result?: ToolResult;
+	readonly tool_results?: readonly ToolResult[];
 }
 
 export type AgentLoopTurnExecutor = (input: AgentLoopTurnInput) => Promise<AgentLoopTurnResult>;
@@ -130,6 +135,7 @@ export interface CreateAgentLoopInput {
 	readonly initial_loop_state?: Extract<LoopState, 'PAUSED' | 'RUNNING' | 'WAITING'>;
 	readonly initial_runtime_state?: RuntimeState;
 	readonly initial_tool_result?: ToolResult;
+	readonly initial_tool_results?: readonly ToolResult[];
 	readonly initial_turn_count?: number;
 	readonly on_yield?: AgentLoopYieldObserver;
 	readonly run_id: string;
@@ -164,6 +170,7 @@ function buildStopConditionsSnapshot(
 			stop_conditions: snapshot.config.stop_conditions,
 			token_limits: snapshot.config.token_limits,
 		},
+		consecutive_tool_failure_count: snapshot.consecutive_tool_failure_count,
 		current_loop_state: snapshot.current_loop_state,
 		current_runtime_state: snapshot.current_runtime_state,
 		failure: snapshot.failure,
@@ -183,10 +190,12 @@ function createInitialSnapshot(input: CreateAgentLoopInput): AgentLoopSnapshot {
 			stop_conditions: input.config.stop_conditions,
 			token_limits: input.config.token_limits,
 		},
+		consecutive_tool_failure_count: 0,
 		current_loop_state: input.initial_loop_state ?? 'RUNNING',
 		current_runtime_state: input.initial_runtime_state ?? 'MODEL_THINKING',
 		run_id: input.run_id,
 		tool_result: input.initial_tool_result,
+		tool_results: input.initial_tool_results,
 		trace_id: input.trace_id,
 		turn_count: input.initial_turn_count ?? 0,
 	};
@@ -317,6 +326,34 @@ function mergeTokenUsage(
 	};
 }
 
+function resolveConsecutiveToolFailureCount(
+	snapshot: AgentLoopSnapshot,
+	result: AgentLoopTurnResult,
+): number {
+	const nextToolResults = result.tool_results;
+
+	if (nextToolResults !== undefined && nextToolResults.length > 0) {
+		return nextToolResults.some((toolResult) => toolResult.status === 'success')
+			? 0
+			: (snapshot.consecutive_tool_failure_count ?? 0) + 1;
+	}
+
+	const nextToolResult = result.tool_result ?? snapshot.tool_result;
+
+	// No tool result in this turn — preserve previous count.
+	if (nextToolResult === undefined) {
+		return snapshot.consecutive_tool_failure_count ?? 0;
+	}
+
+	// Tool succeeded — reset the counter.
+	if (nextToolResult.status !== 'error') {
+		return 0;
+	}
+
+	// Tool failed — increment.
+	return (snapshot.consecutive_tool_failure_count ?? 0) + 1;
+}
+
 function applyTurnResult(
 	snapshot: AgentLoopSnapshot,
 	result: AgentLoopTurnResult,
@@ -330,6 +367,7 @@ function applyTurnResult(
 		...snapshot,
 		approval_request: result.approval_request,
 		assistant_text: result.assistant_text,
+		consecutive_tool_failure_count: resolveConsecutiveToolFailureCount(snapshot, result),
 		current_loop_state: resolveLoopStateFromTurnResult(result, snapshot),
 		current_runtime_state: result.current_runtime_state ?? snapshot.current_runtime_state,
 		failure: result.failure,
@@ -340,6 +378,7 @@ function applyTurnResult(
 		resolved_model_request: result.resolved_model_request,
 		...(tokenUsage === undefined ? {} : { token_usage: tokenUsage }),
 		tool_result: result.tool_result ?? snapshot.tool_result,
+		tool_results: result.tool_results ?? snapshot.tool_results,
 		state_transitions: result.state_transitions,
 		tool_arguments: result.tool_arguments ?? snapshot.tool_arguments,
 		turn_count: snapshot.turn_count + 1,
@@ -369,6 +408,7 @@ function applyPostTurnOverrideResult(
 		resolved_model_request: result.resolved_model_request,
 		...(tokenUsage === undefined ? {} : { token_usage: tokenUsage }),
 		tool_result: result.tool_result ?? snapshot.tool_result,
+		tool_results: result.tool_results ?? snapshot.tool_results,
 		state_transitions: result.state_transitions,
 		tool_arguments: result.tool_arguments ?? snapshot.tool_arguments,
 		turn_count: snapshot.turn_count,
@@ -508,6 +548,31 @@ function updateRecentToolCalls(
 	previousSnapshot: AgentLoopSnapshot,
 	nextSnapshot: AgentLoopSnapshot,
 ): readonly ToolCallSignature[] {
+	const nextToolResults = nextSnapshot.tool_results;
+
+	if (nextToolResults !== undefined && nextToolResults.length > 0) {
+		const previousCallIds = new Set(
+			previousSnapshot.tool_results?.map((toolResult) => toolResult.call_id),
+		);
+		let updatedRecentToolCalls = recentToolCalls;
+
+		for (const toolResult of nextToolResults) {
+			if (previousCallIds.has(toolResult.call_id)) {
+				continue;
+			}
+
+			updatedRecentToolCalls = appendRecentToolCall(updatedRecentToolCalls, {
+				args_hash:
+					toolResult.call_id === nextSnapshot.tool_result?.call_id
+						? computeArgsHash(nextSnapshot.tool_arguments)
+						: computeArgsHash({ call_id: toolResult.call_id }),
+				tool_name: toolResult.tool_name,
+			});
+		}
+
+		return updatedRecentToolCalls;
+	}
+
 	if (nextSnapshot.tool_result === undefined) {
 		return recentToolCalls;
 	}

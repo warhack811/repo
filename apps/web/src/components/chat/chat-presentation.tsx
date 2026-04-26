@@ -22,23 +22,11 @@ import type {
 	RuntimeEventServerMessage,
 	WebSocketServerBridgeMessage,
 } from '../../ws-types.js';
-import { ApprovalPanel } from '../approval/ApprovalPanel.js';
-import { MarkdownRenderer } from './MarkdownRenderer.js';
-import {
-	renderCodeBlock,
-	renderDiffBlock,
-	renderRunTimelineBlock,
-	renderSearchResultBlock,
-	renderToolResultBlock,
-	renderTraceDebugBlock,
-	renderWebSearchResultBlock,
-	renderWorkspaceInspectionBlock,
-	summarizeEventListBlock,
-} from './PresentationBlockRenderer.js';
 import type {
 	GetInspectionActionState,
 	InspectionSummaryRenderBlock,
 } from './PresentationBlockRenderer.js';
+import { BlockRenderer } from './blocks/BlockRenderer.js';
 
 interface MutableRunTransportSummary {
 	final_state?: RunTransportSummary['final_state'];
@@ -242,10 +230,10 @@ export function buildRunFeedbackState(
 	if (input.is_submitting) {
 		return {
 			chip_label: 'sending',
-			detail: 'Runa yeni isteği canlı runtime hattına iletiyor.',
+			detail: 'Runa yeni istegi canli runtime hattina iletiyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'İstek gönderiliyor',
+			title: 'Istek gonderiliyor',
 			tone: 'info',
 			trace_id: input.run_summary?.trace_id,
 		};
@@ -265,7 +253,7 @@ export function buildRunFeedbackState(
 	if (input.run_summary.final_state === 'FAILED') {
 		return {
 			chip_label: 'failed',
-			detail: 'Bu çalışma tamamlanamadı. En son görünür kartlar korunuyor.',
+			detail: 'Bu calisma tamamlanamadi. En son gorunur kartlar korunuyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Çalışma durdu',
@@ -670,67 +658,21 @@ export function renderPresentationBlock(
 	getInspectionActionState?: GetInspectionActionState,
 	inspectionDetailRelations?: ReadonlyMap<string, InspectionDetailRelation>,
 	presentationCorrelationLabel?: string | null,
-): ReactElement {
-	switch (block.type) {
-		case 'text':
-			return (
-				<article key={block.id} style={eventCardStyle}>
-					<strong style={{ display: 'block', marginBottom: '8px' }}>text</strong>
-					<MarkdownRenderer content={block.payload.text} />
-				</article>
-			);
-		case 'status':
-			return (
-				<article key={block.id} style={eventCardStyle}>
-					<strong style={{ display: 'block', marginBottom: '8px' }}>status</strong>
-					<div style={{ color: '#fbbf24', textTransform: 'uppercase', fontSize: '12px' }}>
-						{block.payload.level}
-					</div>
-					<div style={{ color: 'hsl(var(--color-text))', marginTop: '6px' }}>
-						{block.payload.message}
-					</div>
-				</article>
-			);
-		case 'event_list':
-			return (
-				<article key={block.id} style={eventCardStyle}>
-					<strong style={{ display: 'block', marginBottom: '8px' }}>event_list</strong>
-					<div style={{ color: 'hsl(var(--color-text-muted))' }}>
-						{summarizeEventListBlock(block)}
-					</div>
-				</article>
-			);
-		case 'code_block':
-			return renderCodeBlock(block);
-		case 'diff_block':
-			return renderDiffBlock(block, onRequestInspection, getInspectionActionState);
-		case 'inspection_detail_block':
-			return renderInspectionDetailBlock(block, inspectionDetailRelations?.get(block.id));
-		case 'run_timeline_block':
-			return renderRunTimelineBlock(
-				block,
-				onRequestInspection,
-				getInspectionActionState,
-				presentationCorrelationLabel,
-			);
-		case 'search_result_block':
-			return renderSearchResultBlock(block, onRequestInspection, getInspectionActionState);
-		case 'web_search_result_block':
-			return renderWebSearchResultBlock(block);
-		case 'trace_debug_block':
-			return renderTraceDebugBlock(
-				block,
-				onRequestInspection,
-				getInspectionActionState,
-				presentationCorrelationLabel,
-			);
-		case 'workspace_inspection_block':
-			return renderWorkspaceInspectionBlock(block, onRequestInspection, getInspectionActionState);
-		case 'approval_block':
-			return <ApprovalPanel key={block.id} block={block} onResolveApproval={onResolveApproval} />;
-		case 'tool_result':
-			return renderToolResultBlock(block);
-	}
+	isDeveloperMode = false,
+): ReactElement | null {
+	return (
+		<BlockRenderer
+			block={block}
+			isDeveloperMode={isDeveloperMode}
+			onRequestInspection={onRequestInspection}
+			onResolveApproval={onResolveApproval}
+			presentationCorrelationLabel={presentationCorrelationLabel}
+			getInspectionActionState={getInspectionActionState}
+			renderInspectionDetailBlock={(detailBlock) =>
+				renderInspectionDetailBlock(detailBlock, inspectionDetailRelations?.get(detailBlock.id))
+			}
+		/>
+	);
 }
 
 export function isRunFinishedMessage(

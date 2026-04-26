@@ -44,6 +44,7 @@ interface RawModelResponseShape {
 	readonly provider?: unknown;
 	readonly response_id?: unknown;
 	readonly tool_call_candidate?: unknown;
+	readonly tool_call_candidates?: unknown;
 	readonly usage?: unknown;
 }
 
@@ -102,6 +103,12 @@ function isToolCallCandidate(
 	);
 }
 
+function isToolCallCandidates(
+	value: unknown,
+): value is NonNullable<ModelResponse['tool_call_candidates']> {
+	return Array.isArray(value) && value.every((entry) => isToolCallCandidate(entry));
+}
+
 function isModelResponse(value: unknown): value is ModelResponse {
 	if (!isRecord(value)) {
 		return false;
@@ -117,7 +124,9 @@ function isModelResponse(value: unknown): value is ModelResponse {
 		(candidate.response_id === undefined || typeof candidate.response_id === 'string') &&
 		(candidate.usage === undefined || isRecord(candidate.usage)) &&
 		(candidate.tool_call_candidate === undefined ||
-			isToolCallCandidate(candidate.tool_call_candidate))
+			isToolCallCandidate(candidate.tool_call_candidate)) &&
+		(candidate.tool_call_candidates === undefined ||
+			isToolCallCandidates(candidate.tool_call_candidates))
 	);
 }
 
@@ -131,6 +140,19 @@ function hasInvalidToolCallCandidate(value: unknown): boolean {
 	return (
 		candidate.tool_call_candidate !== undefined &&
 		!isToolCallCandidate(candidate.tool_call_candidate)
+	);
+}
+
+function hasInvalidToolCallCandidates(value: unknown): boolean {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as RawModelResponseShape;
+
+	return (
+		candidate.tool_call_candidates !== undefined &&
+		!isToolCallCandidates(candidate.tool_call_candidates)
 	);
 }
 
@@ -152,6 +174,20 @@ function toToolCallOutcome(
 	};
 }
 
+function toToolCallsOutcome(
+	toolCallCandidates: NonNullable<ModelResponse['tool_call_candidates']>,
+): ModelTurnOutcome {
+	return {
+		kind: 'tool_calls',
+		tool_calls: toolCallCandidates.map((toolCallCandidate) => ({
+			call_id: toolCallCandidate.call_id,
+			kind: 'tool_call',
+			tool_input: toolCallCandidate.tool_input,
+			tool_name: toolCallCandidate.tool_name,
+		})),
+	};
+}
+
 export function adaptModelResponseToTurnOutcome(
 	input: AdaptModelResponseToTurnOutcomeInput,
 ): AdaptModelResponseToTurnOutcomeResult {
@@ -160,6 +196,16 @@ export function adaptModelResponseToTurnOutcome(
 			failure: createFailure(
 				'INVALID_TOOL_CALL_CANDIDATE',
 				'Model response tool_call_candidate must include non-empty call_id, tool_name, and tool_input fields.',
+			),
+			status: 'failed',
+		};
+	}
+
+	if (hasInvalidToolCallCandidates(input.model_response)) {
+		return {
+			failure: createFailure(
+				'INVALID_TOOL_CALL_CANDIDATE',
+				'Model response tool_call_candidates must include valid non-empty call_id, tool_name, and tool_input fields.',
 			),
 			status: 'failed',
 		};
@@ -175,13 +221,16 @@ export function adaptModelResponseToTurnOutcome(
 		};
 	}
 
+	const toolCallCandidates = input.model_response.tool_call_candidates;
 	const toolCallCandidate = input.model_response.tool_call_candidate;
 
 	return {
 		outcome:
-			toolCallCandidate !== undefined
-				? toToolCallOutcome(toolCallCandidate)
-				: toAssistantResponseOutcome(input.model_response),
+			toolCallCandidates !== undefined && toolCallCandidates.length > 0
+				? toToolCallsOutcome(toolCallCandidates)
+				: toolCallCandidate !== undefined
+					? toToolCallOutcome(toolCallCandidate)
+					: toAssistantResponseOutcome(input.model_response),
 		status: 'completed',
 	};
 }

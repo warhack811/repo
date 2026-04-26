@@ -4,19 +4,21 @@ import type { ModelAttachment, ModelRequest } from './gateway.js';
 import type { ApprovalDecisionKind, UsageLimitRejection } from './policy.js';
 import type { ToolArguments, ToolErrorCode } from './tools.js';
 
-export const gatewayProviders = ['claude', 'gemini', 'groq', 'openai'] as const;
+export const gatewayProviders = ['claude', 'gemini', 'groq', 'openai', 'sambanova'] as const;
 
 export type GatewayProvider = (typeof gatewayProviders)[number];
 
 export const defaultGatewayModels: Readonly<Record<GatewayProvider, string>> = {
 	claude: 'claude-sonnet-4-5',
 	gemini: 'gemini-3-flash-preview',
-	groq: 'llama-3.3-70b-versatile',
+	groq: 'qwen/qwen3-32b',
 	openai: 'gpt-4.1-mini',
+	sambanova: 'DeepSeek-V3.1-cb',
 };
 
 export interface GatewayProviderConfig {
 	readonly apiKey: string;
+	readonly baseUrl?: string;
 	readonly defaultMaxOutputTokens?: number;
 	readonly defaultModel?: string;
 }
@@ -72,7 +74,10 @@ export type DesktopAgentProtocolVersion = typeof desktopAgentProtocolVersion;
 
 export const desktopAgentToolNames = [
 	'desktop.click',
+	'desktop.clipboard.read',
+	'desktop.clipboard.write',
 	'desktop.keypress',
+	'desktop.launch',
 	'desktop.scroll',
 	'desktop.screenshot',
 	'desktop.type',

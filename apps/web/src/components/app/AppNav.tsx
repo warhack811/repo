@@ -84,28 +84,33 @@ type AppNavProps = Readonly<{
 
 export function AppNav({ activePage }: AppNavProps): ReactElement {
 	const { isDeveloperMode, toggleDeveloperMode } = useDeveloperMode();
+	const shouldShowDeveloperToggle = activePage !== 'chat';
 	const visibleNavItems = appNavItems.filter(
 		(item) => item.id !== 'developer' || isDeveloperMode || activePage === 'developer',
 	);
 
 	return (
 		<nav aria-label={uiCopy.appNav.navLabel} style={{ display: 'grid', gap: '12px' }}>
-			<div className="runa-nav-meta">
-				<div className="runa-subtle-copy" style={{ fontSize: '13px' }}>
-					{isDeveloperMode
-						? 'Developer surfaces are visible for this browser.'
-						: 'Main navigation stays focused on conversation by default.'}
+			{shouldShowDeveloperToggle ? (
+				<div className="runa-nav-meta">
+					<div className="runa-subtle-copy" style={{ fontSize: '13px' }}>
+						{isDeveloperMode
+							? 'Developer surfaces are visible for this browser.'
+							: 'Main navigation stays focused on conversation by default.'}
+					</div>
+					<button
+						type="button"
+						aria-pressed={isDeveloperMode}
+						onClick={toggleDeveloperMode}
+						className={`runa-developer-toggle${
+							isDeveloperMode ? ' runa-developer-toggle--active' : ''
+						}`}
+					>
+						<span>{uiCopy.appNav.developerLabel}</span>
+						<span className="runa-developer-toggle__switch" aria-hidden="true" />
+					</button>
 				</div>
-				<button
-					type="button"
-					aria-pressed={isDeveloperMode}
-					onClick={toggleDeveloperMode}
-					className={`runa-developer-toggle${isDeveloperMode ? ' runa-developer-toggle--active' : ''}`}
-				>
-					<span>{uiCopy.appNav.developerLabel}</span>
-					<span className="runa-developer-toggle__switch" aria-hidden="true" />
-				</button>
-			</div>
+			) : null}
 			<div style={navGridStyle}>
 				{visibleNavItems.map((item) => {
 					const isActive = item.id === activePage;
@@ -123,7 +128,7 @@ export function AppNav({ activePage }: AppNavProps): ReactElement {
 							}}
 						>
 							<span style={{ ...pillStyle, width: 'fit-content', padding: '6px 10px' }}>
-								{isActive ? 'Primary' : 'Secondary'}
+								{isActive ? 'Acik' : 'Git'}
 							</span>
 							<span style={navLabelStyle}>{item.label}</span>
 							<span style={navDescriptionStyle}>{item.description}</span>

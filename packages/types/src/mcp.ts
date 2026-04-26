@@ -7,14 +7,28 @@ export interface McpClientInfo {
 	readonly version: string;
 }
 
-export interface McpServerConfig {
+interface McpServerConfigBase {
 	readonly args?: readonly string[];
-	readonly command: string;
 	readonly cwd?: string;
 	readonly env?: Readonly<Record<string, string>>;
+	readonly headers?: Readonly<Record<string, string>>;
 	readonly id: string;
 	readonly timeout_ms?: number;
+	readonly url?: string;
 }
+
+export interface McpStdioServerConfig extends McpServerConfigBase {
+	readonly command: string;
+	readonly transport?: 'stdio';
+}
+
+export interface McpHttpServerConfig extends McpServerConfigBase {
+	readonly command?: string;
+	readonly transport: 'http';
+	readonly url: string;
+}
+
+export type McpServerConfig = McpHttpServerConfig | McpStdioServerConfig;
 
 export interface McpToolDefinition {
 	readonly description?: string;

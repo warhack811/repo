@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,11 +34,14 @@ describe('fileReadTool', () => {
 			throw new Error('Expected a success result for file.read.');
 		}
 
+		const expectedContent = await readFile(existingFixturePath, 'utf8');
+		const expectedStats = await stat(existingFixturePath);
+
 		expect(result.output).toEqual({
-			content: 'hello from file.read fixture\n',
+			content: expectedContent,
 			encoding: 'utf8',
 			path: existingFixturePath,
-			size_bytes: 29,
+			size_bytes: expectedStats.size,
 		});
 	});
 

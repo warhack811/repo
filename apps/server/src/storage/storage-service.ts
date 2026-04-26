@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { AuthContext } from '@runa/types';
 
 export const storageBlobKinds = [
+	'attachment_document',
 	'attachment_image',
 	'attachment_text',
 	'screenshot',

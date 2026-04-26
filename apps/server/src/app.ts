@@ -23,6 +23,7 @@ import {
 import { registerDesktopDeviceRoutes } from './routes/desktop-devices.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerUploadRoutes } from './routes/upload.js';
+import { createStorageDownloadUrlSigner } from './storage/signed-download-url.js';
 import { registerStorageRoutes } from './storage/storage-routes.js';
 import {
 	type StorageProviderAdapter,
@@ -133,6 +134,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 	const storageService = createStorageService({
 		adapter: storageAdapter,
 	});
+	const storageDownloadUrlSigner = createStorageDownloadUrlSigner();
 
 	server.addHook(
 		'onRequest',
@@ -163,12 +165,16 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 	await registerConversationRoutes(server, conversations);
 	await registerUploadRoutes(server, storageService);
 	serverLogger.info('server.storage_routes.registering');
-	await registerStorageRoutes(server, storageService);
+	await registerStorageRoutes(server, storageService, {
+		download_url_signer: storageDownloadUrlSigner,
+	});
 	serverLogger.info('server.websocket_routes.registering');
 	await registerWebSocketRoutes(server, {
 		allow_service_principal: subscription?.websocket?.allow_service_principal,
 		feature_gate: subscription?.websocket?.feature_gate,
 		resolve_subscription_context: subscription?.resolve_context,
+		storage_service: storageService,
+		create_storage_download_url: storageDownloadUrlSigner.create,
 		verify_token: resolvedVerifyToken,
 	});
 	serverLogger.info('server.build.completed');

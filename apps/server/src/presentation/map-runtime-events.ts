@@ -6,6 +6,8 @@ import type {
 	TextBlock,
 } from '@runa/types';
 
+import { mapAssistantTextToStructuredBlocks } from './map-structured-output.js';
+
 interface PresentationContext {
 	readonly created_at: string;
 	readonly run_id: string;
@@ -136,7 +138,7 @@ function createSummaryBlocks(
 	if (completionText) {
 		return [
 			createStatusBlock(context, 'success', 'Run completed successfully.'),
-			createTextBlock(context, completionText),
+			...mapAssistantTextToStructuredBlocks(context, completionText),
 		];
 	}
 

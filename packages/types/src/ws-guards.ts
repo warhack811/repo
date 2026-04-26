@@ -46,11 +46,14 @@ interface AttachmentCandidate {
 	readonly kind?: unknown;
 	readonly media_type?: unknown;
 	readonly size_bytes?: unknown;
+	readonly storage_ref?: unknown;
 	readonly text_content?: unknown;
+	readonly text_preview?: unknown;
 }
 
 interface ProviderConfigCandidate {
 	readonly apiKey?: unknown;
+	readonly baseUrl?: unknown;
 	readonly defaultMaxOutputTokens?: unknown;
 	readonly defaultModel?: unknown;
 }
@@ -706,7 +709,7 @@ function isMessageArray(value: unknown): value is RunRequestPayload['request']['
 }
 
 function isModelAttachmentKind(value: unknown): value is ModelAttachment['kind'] {
-	return value === 'image' || value === 'text';
+	return value === 'image' || value === 'text' || value === 'document';
 }
 
 function isModelAttachment(value: unknown): value is ModelAttachment {
@@ -721,7 +724,9 @@ function isModelAttachment(value: unknown): value is ModelAttachment {
 		kind,
 		media_type: mediaType,
 		size_bytes: sizeBytes,
+		storage_ref: storageRef,
 		text_content: textContent,
+		text_preview: textPreview,
 	} = value;
 
 	if (
@@ -735,10 +740,30 @@ function isModelAttachment(value: unknown): value is ModelAttachment {
 	}
 
 	if (kind === 'image') {
-		return typeof dataUrl === 'string' && textContent === undefined;
+		return (
+			typeof dataUrl === 'string' &&
+			storageRef === undefined &&
+			textContent === undefined &&
+			textPreview === undefined
+		);
 	}
 
-	return typeof textContent === 'string' && dataUrl === undefined;
+	if (kind === 'document') {
+		return (
+			typeof filename === 'string' &&
+			typeof storageRef === 'string' &&
+			dataUrl === undefined &&
+			textContent === undefined &&
+			(textPreview === undefined || typeof textPreview === 'string')
+		);
+	}
+
+	return (
+		typeof textContent === 'string' &&
+		dataUrl === undefined &&
+		storageRef === undefined &&
+		textPreview === undefined
+	);
 }
 
 function isAttachmentArray(value: unknown): value is readonly ModelAttachment[] {
@@ -760,10 +785,11 @@ export function isProviderConfig(value: unknown): value is RunRequestPayload['pr
 		return false;
 	}
 
-	const { apiKey, defaultMaxOutputTokens, defaultModel } = value;
+	const { apiKey, baseUrl, defaultMaxOutputTokens, defaultModel } = value;
 
 	return (
 		typeof apiKey === 'string' &&
+		(baseUrl === undefined || typeof baseUrl === 'string') &&
 		(defaultModel === undefined || typeof defaultModel === 'string') &&
 		(defaultMaxOutputTokens === undefined || typeof defaultMaxOutputTokens === 'number')
 	);

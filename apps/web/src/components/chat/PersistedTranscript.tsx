@@ -33,14 +33,14 @@ const messageMetaStyle: CSSProperties = {
 
 function getRoleLabel(role: ConversationMessage['role']): string {
 	if (role === 'user') {
-		return 'You';
+		return 'Sen';
 	}
 
 	if (role === 'assistant') {
 		return 'Runa';
 	}
 
-	return 'System';
+	return 'Sistem';
 }
 
 function createMessageCardStyle(role: ConversationMessage['role']): CSSProperties {
@@ -61,20 +61,18 @@ export function PersistedTranscript({
 	if (activeConversationMessages.length === 0) {
 		return activeConversationId ? (
 			<div className="runa-subtle-copy">
-				Bu conversation için henüz kalıcı mesaj bulunmuyor. İlk yanıt tamamlandığında burada
-				görünecek.
+				Bu sohbet icin henuz kayitli mesaj yok. Ilk yanit tamamlandiginda burada gorunecek.
 			</div>
 		) : (
 			<div className="runa-subtle-copy">
-				Yeni draft conversation açık. İlk mesajı gönderdiğinde otomatik olarak kalıcı bir
-				conversation oluşturulacak.
+				Yeni bir sohbet hazir. Ilk mesajini gonderdiginde Runa bu akisi senin icin kaydeder.
 			</div>
 		);
 	}
 
 	return (
 		<div style={persistedMessagesStyle} aria-live="polite">
-			<div style={secondaryLabelStyle}>Persisted transcript</div>
+			<div style={secondaryLabelStyle}>Sohbet gecmisi</div>
 			{activeConversationMessages.map((message) => (
 				<div key={message.message_id} style={createMessageCardStyle(message.role)}>
 					<div style={messageMetaStyle}>

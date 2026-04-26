@@ -2,7 +2,6 @@ import type { CSSProperties, ReactElement, ReactNode } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
 import { secondaryLabelStyle } from '../../lib/chat-styles.js';
-import { uiCopy } from '../../localization/copy.js';
 import { PersistedTranscript } from './PersistedTranscript.js';
 import { StreamingMessageSurface } from './StreamingMessageSurface.js';
 
@@ -43,21 +42,25 @@ export function CurrentRunSurface({
 	currentStreamingText,
 	emptyStateContent,
 }: CurrentRunSurfaceProps): ReactElement {
+	const isBusy =
+		currentStreamingText.trim().length > 0 ||
+		currentRunProgressPanel !== null ||
+		currentPresentationContent !== null;
+
 	return (
-		<div
+		<section
 			className="runa-card runa-card--chat runa-chat-surface"
 			style={conversationSurfaceStyle}
 			aria-labelledby="chat-conversation-surface-heading"
+			aria-busy={isBusy}
 		>
 			<div style={headingStackStyle}>
-				<div lang="tr" style={secondaryLabelStyle}>
-					{uiCopy.run.currentRunProgress}
-				</div>
+				<div style={secondaryLabelStyle}>Sohbet</div>
 				<h2 id="chat-conversation-surface-heading" style={{ fontSize: '20px' }}>
-					Aktif sohbet akışı
+					Sohbet akisi
 				</h2>
 				<div className="runa-subtle-copy">
-					Güncel çalışma, kalıcı mesajlar ve yardımcı kartlar burada sakin bir akışta kalır.
+					Mesajlar, yanitlar ve gerekirse onay bekleyen adimlar burada sakin bir akis halinde kalir.
 				</div>
 			</div>
 			<PersistedTranscript
@@ -71,6 +74,6 @@ export function CurrentRunSurface({
 				currentStreamingText={currentStreamingText}
 			/>
 			{currentPresentationContent ?? emptyStateContent}
-		</div>
+		</section>
 	);
 }

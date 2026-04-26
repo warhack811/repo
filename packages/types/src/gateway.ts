@@ -7,7 +7,7 @@ export interface ModelMessage {
 	readonly content: string;
 }
 
-export const modelAttachmentKinds = ['image', 'text'] as const;
+export const modelAttachmentKinds = ['image', 'text', 'document'] as const;
 
 export type ModelAttachmentKind = (typeof modelAttachmentKinds)[number];
 
@@ -29,7 +29,14 @@ export interface ModelTextAttachment extends BaseModelAttachment {
 	readonly text_content: string;
 }
 
-export type ModelAttachment = ModelImageAttachment | ModelTextAttachment;
+export interface ModelDocumentAttachment extends BaseModelAttachment {
+	readonly filename: string;
+	readonly kind: 'document';
+	readonly storage_ref: string;
+	readonly text_preview?: string;
+}
+
+export type ModelAttachment = ModelDocumentAttachment | ModelImageAttachment | ModelTextAttachment;
 
 export interface UploadAttachmentResponse {
 	readonly attachment: ModelAttachment;
@@ -110,6 +117,7 @@ export interface ModelResponse {
 	};
 	readonly finish_reason: ModelFinishReason;
 	readonly tool_call_candidate?: ModelToolCallCandidate;
+	readonly tool_call_candidates?: readonly ModelToolCallCandidate[];
 	readonly usage?: ModelUsage;
 	readonly response_id?: string;
 }

@@ -13,9 +13,15 @@
 	},
 	"dependencies": {
 		"@runa/types": "workspace:*",
+		"highlight.js": "^11.11.1",
+		"lucide-react": "^1.11.0",
+		"motion": "^12.38.0",
 		"react": "^19.2.0",
 		"react-dom": "^19.2.0",
-		"react-router-dom": "^7.14.1"
+		"react-markdown": "^10.1.0",
+		"react-router-dom": "^7.14.1",
+		"rehype-highlight": "^7.0.2",
+		"remark-gfm": "^4.0.1"
 	},
 	"devDependencies": {
 		"@types/react": "^19.2.14",

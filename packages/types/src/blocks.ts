@@ -12,13 +12,18 @@ export type BlockSchemaVersion = 1;
 
 export type RenderBlockType =
 	| 'approval_block'
+	| 'code_artifact'
 	| 'code_block'
 	| 'diff_block'
 	| 'event_list'
+	| 'file_download'
+	| 'file_reference'
 	| 'inspection_detail_block'
+	| 'plan'
 	| 'run_timeline_block'
 	| 'search_result_block'
 	| 'status'
+	| 'table'
 	| 'text'
 	| 'trace_debug_block'
 	| 'tool_result'
@@ -65,6 +70,44 @@ export interface DiffBlockPayload {
 	readonly path?: string;
 	readonly summary: string;
 	readonly title?: string;
+}
+
+export interface CodeArtifactBlockPayload {
+	readonly content: string;
+	readonly is_truncated: boolean;
+	readonly language: string;
+	readonly line_count: number;
+	readonly filename?: string;
+}
+
+export interface PlanBlockStep {
+	readonly status: 'done' | 'pending' | 'skipped';
+	readonly text: string;
+}
+
+export interface PlanBlockPayload {
+	readonly steps: readonly PlanBlockStep[];
+	readonly title: string;
+}
+
+export interface TableBlockPayload {
+	readonly headers: readonly string[];
+	readonly rows: readonly (readonly string[])[];
+	readonly caption?: string;
+}
+
+export interface FileReferenceBlockPayload {
+	readonly path: string;
+	readonly line_end?: number;
+	readonly line_start?: number;
+	readonly snippet?: string;
+}
+
+export interface FileDownloadBlockPayload {
+	readonly filename: string;
+	readonly url: string;
+	readonly expires_at?: string;
+	readonly size_bytes?: number;
 }
 
 export interface SearchResultBlockMatch {
@@ -211,11 +254,16 @@ export interface ApprovalBlockPayload {
 
 export interface RenderBlockMap {
 	readonly approval_block: ApprovalBlockPayload;
+	readonly code_artifact: CodeArtifactBlockPayload;
 	readonly code_block: CodeBlockPayload;
 	readonly diff_block: DiffBlockPayload;
+	readonly file_download: FileDownloadBlockPayload;
+	readonly file_reference: FileReferenceBlockPayload;
 	readonly inspection_detail_block: InspectionDetailBlockPayload;
+	readonly plan: PlanBlockPayload;
 	readonly text: TextBlockPayload;
 	readonly status: StatusBlockPayload;
+	readonly table: TableBlockPayload;
 	readonly event_list: EventListBlockPayload;
 	readonly run_timeline_block: RunTimelineBlockPayload;
 	readonly search_result_block: SearchResultBlockPayload;
@@ -240,13 +288,23 @@ export type EventListBlock = RenderBlockOf<'event_list'>;
 
 export type CodeBlock = RenderBlockOf<'code_block'>;
 
+export type CodeArtifactBlock = RenderBlockOf<'code_artifact'>;
+
 export type DiffBlock = RenderBlockOf<'diff_block'>;
 
+export type FileDownloadBlock = RenderBlockOf<'file_download'>;
+
+export type FileReferenceBlock = RenderBlockOf<'file_reference'>;
+
 export type InspectionDetailBlock = RenderBlockOf<'inspection_detail_block'>;
+
+export type PlanBlock = RenderBlockOf<'plan'>;
 
 export type RunTimelineBlock = RenderBlockOf<'run_timeline_block'>;
 
 export type SearchResultBlock = RenderBlockOf<'search_result_block'>;
+
+export type TableBlock = RenderBlockOf<'table'>;
 
 export type TraceDebugBlock = RenderBlockOf<'trace_debug_block'>;
 
@@ -263,10 +321,15 @@ export type RenderBlock =
 	| StatusBlock
 	| EventListBlock
 	| CodeBlock
+	| CodeArtifactBlock
 	| DiffBlock
+	| FileDownloadBlock
+	| FileReferenceBlock
 	| InspectionDetailBlock
+	| PlanBlock
 	| RunTimelineBlock
 	| SearchResultBlock
+	| TableBlock
 	| TraceDebugBlock
 	| ToolResultBlock
 	| WebSearchResultBlock

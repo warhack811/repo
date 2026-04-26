@@ -126,6 +126,14 @@ describe('buildLiveModelRequest', () => {
 						size_bytes: 12,
 						text_content: 'Merhaba Runa',
 					},
+					{
+						blob_id: 'blob_doc_1',
+						filename: 'brief.pdf',
+						kind: 'document',
+						media_type: 'application/pdf',
+						size_bytes: 4096,
+						storage_ref: 'blob_doc_1',
+					},
 				],
 			},
 			'D:/ai/Runa',
@@ -139,6 +147,14 @@ describe('buildLiveModelRequest', () => {
 				media_type: 'text/plain',
 				size_bytes: 12,
 				text_content: 'Merhaba Runa',
+			},
+			{
+				blob_id: 'blob_doc_1',
+				filename: 'brief.pdf',
+				kind: 'document',
+				media_type: 'application/pdf',
+				size_bytes: 4096,
+				storage_ref: 'blob_doc_1',
 			},
 		]);
 	});

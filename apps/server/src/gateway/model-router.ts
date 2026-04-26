@@ -31,7 +31,13 @@ export interface ResolvedModelRoute {
 }
 
 function isGatewayProvider(value: unknown): value is GatewayProvider {
-	return value === 'claude' || value === 'gemini' || value === 'groq' || value === 'openai';
+	return (
+		value === 'claude' ||
+		value === 'gemini' ||
+		value === 'groq' ||
+		value === 'openai' ||
+		value === 'sambanova'
+	);
 }
 
 function isModelRouteIntent(value: unknown): value is ModelRouteIntent {
@@ -124,6 +130,9 @@ export function resolveModelRoute(
 ): ResolvedModelRoute {
 	const metadata = readModelRouterMetadata(input.request);
 
+	// Router is disabled by default during development (Groq-only).
+	// Post-launch: change to `metadata?.enabled === false` to activate
+	// intelligent routing with Claude Opus as the primary provider.
 	if (metadata?.enabled !== true) {
 		return {
 			allow_provider_fallback: false,

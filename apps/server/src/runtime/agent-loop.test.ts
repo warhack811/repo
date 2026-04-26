@@ -167,6 +167,7 @@ describe('createAgentLoop', () => {
 					max_turns: 3,
 					stop_conditions: {},
 				},
+				consecutive_tool_failure_count: 0,
 				current_loop_state: 'COMPLETED',
 				current_runtime_state: 'COMPLETED',
 				failure: undefined,
@@ -175,8 +176,14 @@ describe('createAgentLoop', () => {
 					finish_reason: 'stop',
 					outcome_kind: 'assistant_response',
 				},
+				model_response: undefined,
+				pending_tool_call: undefined,
+				resolved_model_request: undefined,
 				run_id: 'run_agent_loop',
+				state_transitions: undefined,
+				tool_arguments: undefined,
 				tool_result: undefined,
+				tool_results: undefined,
 				trace_id: 'trace_agent_loop',
 				turn_count: 1,
 			},
@@ -648,6 +655,264 @@ describe('createAgentLoop', () => {
 			status: 'success',
 			tool_name: 'file.read',
 		});
+	});
+
+	it('preserves carry-forward tool_results data across continue transitions', async () => {
+		let observedToolResults:
+			| readonly [
+					{
+						readonly call_id: string;
+						readonly output: {
+							readonly content: string;
+						};
+						readonly status: 'success';
+						readonly tool_name: 'file.read';
+					},
+					{
+						readonly call_id: string;
+						readonly output: {
+							readonly content: string;
+						};
+						readonly status: 'success';
+						readonly tool_name: 'file.read';
+					},
+			  ]
+			| undefined;
+		let callCount = 0;
+
+		const loop = createAgentLoop(
+			createAgentLoopInput({
+				config: {
+					max_turns: 2,
+					stop_conditions: {
+						stop_on_model_finish_reason: ['max_tokens'],
+					},
+				},
+				async execute_turn(input) {
+					callCount += 1;
+
+					if (callCount === 1) {
+						return {
+							current_loop_state: 'RUNNING',
+							current_runtime_state: 'MODEL_THINKING',
+							tool_results: [
+								{
+									call_id: 'call_agent_loop_tool_results_1',
+									output: {
+										content: 'first artifact',
+									},
+									status: 'success',
+									tool_name: 'file.read' as const,
+								},
+								{
+									call_id: 'call_agent_loop_tool_results_2',
+									output: {
+										content: 'second artifact',
+									},
+									status: 'success',
+									tool_name: 'file.read' as const,
+								},
+							],
+						};
+					}
+
+					observedToolResults = input.snapshot.tool_results as typeof observedToolResults;
+
+					return {
+						current_loop_state: 'COMPLETED',
+						current_runtime_state: 'COMPLETED',
+						model: {
+							finish_reason: 'stop',
+							outcome_kind: 'assistant_response',
+						},
+					};
+				},
+			}),
+		);
+
+		let finalResult: Awaited<ReturnType<ReturnType<typeof createAgentLoop>['next']>> | undefined;
+
+		while (true) {
+			const iteration = await loop.next();
+
+			if (iteration.done) {
+				finalResult = iteration;
+				break;
+			}
+		}
+
+		expect(observedToolResults).toEqual([
+			{
+				call_id: 'call_agent_loop_tool_results_1',
+				output: {
+					content: 'first artifact',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+			{
+				call_id: 'call_agent_loop_tool_results_2',
+				output: {
+					content: 'second artifact',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+		]);
+		expect(finalResult?.value.final_snapshot.tool_results).toEqual([
+			{
+				call_id: 'call_agent_loop_tool_results_1',
+				output: {
+					content: 'first artifact',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+			{
+				call_id: 'call_agent_loop_tool_results_2',
+				output: {
+					content: 'second artifact',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+		]);
+	});
+
+	it('increments consecutive tool failure count once when a batched turn returns only error tool_results', async () => {
+		const loop = createAgentLoop(
+			createAgentLoopInput({
+				config: {
+					max_turns: 1,
+					stop_conditions: {},
+				},
+				async execute_turn() {
+					return {
+						current_loop_state: 'FAILED',
+						current_runtime_state: 'FAILED',
+						tool_results: [
+							{
+								call_id: 'call_agent_loop_error_batch_1',
+								error_code: 'EXECUTION_FAILED',
+								error_message: 'first failed',
+								status: 'error',
+								tool_name: 'file.read' as const,
+							},
+							{
+								call_id: 'call_agent_loop_error_batch_2',
+								error_code: 'EXECUTION_FAILED',
+								error_message: 'second failed',
+								status: 'error',
+								tool_name: 'web.search' as const,
+							},
+						],
+					};
+				},
+			}),
+		);
+
+		let finalResult: Awaited<ReturnType<ReturnType<typeof createAgentLoop>['next']>> | undefined;
+
+		while (true) {
+			const iteration = await loop.next();
+
+			if (iteration.done) {
+				finalResult = iteration;
+				break;
+			}
+		}
+
+		expect(finalResult.value.final_snapshot.consecutive_tool_failure_count).toBe(1);
+	});
+
+	it('resets consecutive tool failure count when a batched turn includes at least one success', async () => {
+		let callCount = 0;
+		let observedFailureCount = -1;
+		const loop = createAgentLoop(
+			createAgentLoopInput({
+				config: {
+					max_turns: 3,
+					stop_conditions: {
+						stop_on_model_finish_reason: ['max_tokens'],
+					},
+				},
+				async execute_turn(input) {
+					callCount += 1;
+
+					if (callCount === 1) {
+						return {
+							current_loop_state: 'RUNNING',
+							current_runtime_state: 'MODEL_THINKING',
+							tool_results: [
+								{
+									call_id: 'call_agent_loop_error_then_reset_1',
+									error_code: 'EXECUTION_FAILED',
+									error_message: 'first failed',
+									status: 'error',
+									tool_name: 'file.read' as const,
+								},
+								{
+									call_id: 'call_agent_loop_error_then_reset_2',
+									error_code: 'EXECUTION_FAILED',
+									error_message: 'second failed',
+									status: 'error',
+									tool_name: 'web.search' as const,
+								},
+							],
+						};
+					}
+
+					if (callCount === 2) {
+						observedFailureCount = input.snapshot.consecutive_tool_failure_count ?? -1;
+
+						return {
+							current_loop_state: 'RUNNING',
+							current_runtime_state: 'MODEL_THINKING',
+							tool_results: [
+								{
+									call_id: 'call_agent_loop_mixed_success_1',
+									error_code: 'EXECUTION_FAILED',
+									error_message: 'secondary failed',
+									status: 'error',
+									tool_name: 'web.search' as const,
+								},
+								{
+									call_id: 'call_agent_loop_mixed_success_2',
+									output: {
+										content: 'artifact',
+									},
+									status: 'success',
+									tool_name: 'file.read' as const,
+								},
+							],
+						};
+					}
+
+					return {
+						current_loop_state: 'COMPLETED',
+						current_runtime_state: 'COMPLETED',
+						model: {
+							finish_reason: 'stop',
+							outcome_kind: 'assistant_response',
+						},
+					};
+				},
+			}),
+		);
+
+		let finalResult: Awaited<ReturnType<ReturnType<typeof createAgentLoop>['next']>> | undefined;
+
+		while (true) {
+			const iteration = await loop.next();
+
+			if (iteration.done) {
+				finalResult = iteration;
+				break;
+			}
+		}
+
+		expect(observedFailureCount).toBe(1);
+		expect(finalResult?.value.final_snapshot.consecutive_tool_failure_count).toBe(0);
 	});
 
 	it('stops when cumulative token usage reaches the configured total token threshold', async () => {

@@ -29,6 +29,22 @@
 		}
 	},
 	"files": {
-		"ignore": ["node_modules", "dist", ".turbo", "*.md", "tsconfig*.json"]
+		"ignore": [
+			"node_modules",
+			".turbo",
+			"**/dist/**",
+			"**/dist-electron/**",
+			"**/build/**",
+			"**/release/**",
+			"test-results/**",
+			"playwright-report/**",
+			"*.md",
+			"tsconfig*.json",
+			"packages/db/check_tables.mjs",
+			"packages/db/test_db.mjs",
+			"packages/db/test_local_db.mjs",
+			"test_loop.mjs",
+			"test_ui.mjs"
+		]
 	}
 }

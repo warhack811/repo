@@ -2,8 +2,10 @@ import type {
 	McpCallToolRequest,
 	McpCallToolResult,
 	McpClientInfo,
+	McpHttpServerConfig,
 	McpProtocolVersion,
 	McpServerConfig,
+	McpStdioServerConfig,
 	McpToolContent,
 	McpToolDefinition,
 	ToolCallableArrayParameter,
@@ -13,6 +15,7 @@ import type {
 	ToolResultError,
 } from '@runa/types';
 
+import { executeMcpHttpSession } from './http-transport.js';
 import {
 	McpTransportError,
 	executeMcpStdioSession,
@@ -61,6 +64,32 @@ export class McpClientError extends Error {
 		super(message);
 		this.name = 'McpClientError';
 	}
+}
+
+function getTransport(config: McpServerConfig): 'http' | 'stdio' {
+	return config.transport ?? 'stdio';
+}
+
+function assertStdioConfig(config: McpServerConfig): McpStdioServerConfig {
+	if (config.transport === 'http') {
+		throw new McpClientError(`MCP server ${config.id} does not support synchronous HTTP calls.`, {
+			server_id: config.id,
+			transport: getTransport(config),
+		});
+	}
+
+	return config;
+}
+
+function assertHttpConfig(config: McpServerConfig): McpHttpServerConfig {
+	if (config.transport !== 'http') {
+		throw new McpClientError(`MCP server ${config.id} is not configured for HTTP transport.`, {
+			server_id: config.id,
+			transport: getTransport(config),
+		});
+	}
+
+	return config;
 }
 
 function createInitializeMessages(request: unknown): readonly unknown[] {
@@ -355,14 +384,52 @@ export class McpClient {
 	constructor(readonly config: McpServerConfig) {}
 
 	listToolsSync(): readonly McpToolDefinition[] {
+		const stdioConfig = assertStdioConfig(this.config);
 		const sessionResult = executeMcpStdioSessionSync(
-			this.config,
+			stdioConfig,
 			createInitializeMessages({
 				id: 'runa.tools.list',
 				jsonrpc: '2.0',
 				method: 'tools/list',
 				params: {},
 			}),
+		);
+
+		assertInitializeSucceeded(sessionResult.responses, stdioConfig, sessionResult.stderr);
+		const listResponse = findResponseById(sessionResult.responses, 'runa.tools.list');
+		assertNoJsonRpcError(listResponse, stdioConfig, sessionResult.stderr);
+		return mapToolListResult(listResponse.result, stdioConfig);
+	}
+
+	async listTools(
+		options: Readonly<{ signal?: AbortSignal }> = {},
+	): Promise<readonly McpToolDefinition[]> {
+		if (getTransport(this.config) === 'stdio') {
+			const sessionResult = await executeMcpStdioSession(
+				assertStdioConfig(this.config),
+				createInitializeMessages({
+					id: 'runa.tools.list',
+					jsonrpc: '2.0',
+					method: 'tools/list',
+					params: {},
+				}),
+			);
+
+			assertInitializeSucceeded(sessionResult.responses, this.config, sessionResult.stderr);
+			const listResponse = findResponseById(sessionResult.responses, 'runa.tools.list');
+			assertNoJsonRpcError(listResponse, this.config, sessionResult.stderr);
+			return mapToolListResult(listResponse.result, this.config);
+		}
+
+		const sessionResult = await executeMcpHttpSession(
+			assertHttpConfig(this.config),
+			createInitializeMessages({
+				id: 'runa.tools.list',
+				jsonrpc: '2.0',
+				method: 'tools/list',
+				params: {},
+			}),
+			options,
 		);
 
 		assertInitializeSucceeded(sessionResult.responses, this.config, sessionResult.stderr);
@@ -372,18 +439,25 @@ export class McpClient {
 	}
 
 	async callTool(request: McpCallToolRequest): Promise<McpCallToolResult> {
-		const sessionResult = await executeMcpStdioSession(
-			this.config,
-			createInitializeMessages({
-				id: 'runa.tools.call',
-				jsonrpc: '2.0',
-				method: 'tools/call',
-				params: {
-					arguments: request.arguments,
-					name: request.name,
-				},
-			}),
-		);
+		const callMessage = {
+			id: 'runa.tools.call',
+			jsonrpc: '2.0',
+			method: 'tools/call',
+			params: {
+				arguments: request.arguments,
+				name: request.name,
+			},
+		};
+		const sessionResult =
+			getTransport(this.config) === 'http'
+				? await executeMcpHttpSession(
+						assertHttpConfig(this.config),
+						createInitializeMessages(callMessage),
+					)
+				: await executeMcpStdioSession(
+						assertStdioConfig(this.config),
+						createInitializeMessages(callMessage),
+					);
 
 		assertInitializeSucceeded(sessionResult.responses, this.config, sessionResult.stderr);
 		const callResponse = findResponseById(sessionResult.responses, 'runa.tools.call');
