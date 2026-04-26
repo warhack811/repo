@@ -32,6 +32,8 @@
 		"ignore": [
 			"node_modules",
 			".turbo",
+			".claude",
+			".codex-screenshots",
 			"**/dist/**",
 			"**/dist-electron/**",
 			"**/build/**",
@@ -40,6 +42,9 @@
 			"playwright-report/**",
 			"*.md",
 			"tsconfig*.json",
+			"dom.txt",
+			"server_logs.txt",
+			"scratch_*",
 			"packages/db/check_tables.mjs",
 			"packages/db/test_db.mjs",
 			"packages/db/test_local_db.mjs",
