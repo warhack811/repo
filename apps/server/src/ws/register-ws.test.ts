@@ -20,7 +20,11 @@ import type { WebSocketServerBridgeMessage } from './messages.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { composeWorkspaceContext } from '../context/compose-workspace-context.js';
-import type { ApprovalStore, PendingApprovalEntry } from '../persistence/approval-store.js';
+import type {
+	ApprovalStore,
+	PendingApprovalEntry,
+	PersistApprovalRequestInput,
+} from '../persistence/approval-store.js';
 import type { MemoryStore } from '../persistence/memory-store.js';
 import type { PersistRunStateInput } from '../persistence/run-store.js';
 import { createPermissionEngine } from '../policy/permission-engine.js';
@@ -494,6 +498,92 @@ function createGroqAssistantResponse(input: {
 					message: {
 						content: input.content,
 						role: 'assistant',
+					},
+				},
+			],
+			id: input.response_id,
+			model: 'llama-3.3-70b-versatile',
+			usage: {
+				completion_tokens: 12,
+				prompt_tokens: 8,
+				total_tokens: 20,
+			},
+		}),
+		{
+			headers: {
+				'content-type': 'application/json',
+			},
+			status: 200,
+		},
+	);
+}
+
+function createGroqToolCallResponse(input: {
+	readonly arguments: Readonly<Record<string, unknown>>;
+	readonly call_id: string;
+	readonly response_id: string;
+	readonly tool_name: string;
+}): Response {
+	return new Response(
+		JSON.stringify({
+			choices: [
+				{
+					finish_reason: 'tool_calls',
+					message: {
+						role: 'assistant',
+						tool_calls: [
+							{
+								function: {
+									arguments: input.arguments,
+									name: input.tool_name,
+								},
+								id: input.call_id,
+								type: 'function',
+							},
+						],
+					},
+				},
+			],
+			id: input.response_id,
+			model: 'llama-3.3-70b-versatile',
+			usage: {
+				completion_tokens: 12,
+				prompt_tokens: 8,
+				total_tokens: 20,
+			},
+		}),
+		{
+			headers: {
+				'content-type': 'application/json',
+			},
+			status: 200,
+		},
+	);
+}
+
+function createGroqMultiToolCallResponse(input: {
+	readonly response_id: string;
+	readonly tool_calls: readonly Readonly<{
+		readonly arguments: Readonly<Record<string, unknown>>;
+		readonly call_id: string;
+		readonly tool_name: string;
+	}>[];
+}): Response {
+	return new Response(
+		JSON.stringify({
+			choices: [
+				{
+					finish_reason: 'tool_calls',
+					message: {
+						role: 'assistant',
+						tool_calls: input.tool_calls.map((toolCall) => ({
+							function: {
+								arguments: toolCall.arguments,
+								name: toolCall.tool_name,
+							},
+							id: toolCall.call_id,
+							type: 'function',
+						})),
 					},
 				},
 			],
@@ -2565,7 +2655,11 @@ describe('register-ws', () => {
 				'state.entered',
 				'run.completed',
 			]);
-			expect(requestedToolNames).toEqual(['file.read']);
+			expect(requestedToolNames).toEqual([
+				'desktop.verify_state',
+				'desktop.vision_analyze',
+				'file.read',
+			]);
 			expect(persistEvents).toHaveBeenCalledTimes(1);
 			expect(persistEvents.mock.calls[0]?.[0].map((event) => event.event_type)).toEqual([
 				'run.started',
@@ -2648,6 +2742,613 @@ describe('register-ws', () => {
 					},
 				]);
 			}
+		});
+	});
+
+	it('continues a desktop vision loop through approval replay and verify_state', async () => {
+		const socket = new MockSocket();
+		const policyWiring = await enableAutoContinueForSocket(socket);
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const approvalStore = createApprovalStore();
+		const registry = new ToolRegistry();
+		const pngBytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 118, 105, 115, 105, 111, 110]);
+		const pngBase64 = pngBytes.toString('base64');
+		const requestBodies: Array<{
+			readonly messages?: ReadonlyArray<{
+				readonly content?: unknown;
+			}>;
+			readonly tools?: unknown;
+		}> = [];
+		const fetchResponses = [
+			createGroqToolCallResponse({
+				arguments: {},
+				call_id: 'call_vision_loop_before_screenshot',
+				response_id: 'chatcmpl_vision_loop_1',
+				tool_name: 'desktop.screenshot',
+			}),
+			createGroqToolCallResponse({
+				arguments: {
+					screenshot_call_id: 'call_vision_loop_before_screenshot',
+					task: 'Click the Settings button',
+				},
+				call_id: 'call_vision_loop_analyze',
+				response_id: 'chatcmpl_vision_loop_2',
+				tool_name: 'desktop.vision_analyze',
+			}),
+			createGroqAssistantResponse({
+				content: JSON.stringify({
+					element_description: 'Settings button',
+					reasoning_summary: 'The Settings button is visible in the toolbar.',
+					requires_user_confirmation: false,
+					visibility: 'visible',
+					x: 320,
+					y: 240,
+				}),
+				response_id: 'chatcmpl_vision_loop_analyze_model',
+			}),
+			createGroqToolCallResponse({
+				arguments: {
+					x: 320,
+					y: 240,
+				},
+				call_id: 'call_vision_loop_click',
+				response_id: 'chatcmpl_vision_loop_3',
+				tool_name: 'desktop.click',
+			}),
+			createGroqToolCallResponse({
+				arguments: {},
+				call_id: 'call_vision_loop_after_screenshot',
+				response_id: 'chatcmpl_vision_loop_4',
+				tool_name: 'desktop.screenshot',
+			}),
+			createGroqToolCallResponse({
+				arguments: {
+					after_screenshot_call_id: 'call_vision_loop_after_screenshot',
+					before_screenshot_call_id: 'call_vision_loop_before_screenshot',
+					expected_change: 'Settings panel is open',
+				},
+				call_id: 'call_vision_loop_verify',
+				response_id: 'chatcmpl_vision_loop_5',
+				tool_name: 'desktop.verify_state',
+			}),
+			createGroqAssistantResponse({
+				content: JSON.stringify({
+					needs_retry: false,
+					needs_user_help: false,
+					observed_change: 'The Settings panel is open.',
+					verified: true,
+				}),
+				response_id: 'chatcmpl_vision_loop_verify_model',
+			}),
+			createGroqAssistantResponse({
+				content: 'Verified: the Settings panel is open.',
+				response_id: 'chatcmpl_vision_loop_6',
+			}),
+		];
+
+		registry.register(
+			createFakeTool(
+				'desktop.screenshot',
+				async (input) => ({
+					call_id: input.call_id,
+					output: {
+						base64_data: pngBase64,
+						byte_length: pngBytes.byteLength,
+						format: 'png',
+						mime_type: 'image/png',
+					},
+					status: 'success',
+					tool_name: 'desktop.screenshot',
+				}),
+				{
+					capability_class: 'desktop',
+					requires_approval: false,
+					risk_level: 'low',
+					side_effect_level: 'read',
+				},
+			),
+		);
+		registry.register(
+			createFakeTool(
+				'desktop.click',
+				async (input) => ({
+					call_id: input.call_id,
+					output: {
+						clicked: true,
+						position: input.arguments,
+					},
+					status: 'success',
+					tool_name: 'desktop.click',
+				}),
+				{
+					capability_class: 'desktop',
+					requires_approval: true,
+					risk_level: 'high',
+					side_effect_level: 'execute',
+				},
+			),
+		);
+		attachRuntimeWebSocketHandler(socket);
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (_input, init) => {
+				if (init && typeof init === 'object' && 'body' in init && typeof init.body === 'string') {
+					requestBodies.push(
+						JSON.parse(init.body) as {
+							readonly messages?: ReadonlyArray<{
+								readonly content?: unknown;
+							}>;
+							readonly tools?: unknown;
+						},
+					);
+				}
+
+				const nextResponse = fetchResponses.shift();
+
+				if (!nextResponse) {
+					throw new Error('Unexpected fetch call in desktop vision loop test.');
+				}
+
+				return nextResponse;
+			}),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					include_presentation_blocks: true,
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Open Settings using the desktop', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_desktop_vision_loop_1',
+					trace_id: 'trace_ws_desktop_vision_loop_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				persistEvents,
+				policy_wiring: policyWiring,
+				toolRegistry: registry,
+			},
+		);
+
+		const initialMessages = parseMessages(socket);
+		const initialApprovalBlock = initialMessages
+			.flatMap((message) => (message.type === 'presentation.blocks' ? message.payload.blocks : []))
+			.find(
+				(block): block is Extract<RenderBlock, { type: 'approval_block' }> =>
+					block.type === 'approval_block' && block.payload.tool_name === 'desktop.click',
+			);
+
+		if (!initialApprovalBlock) {
+			throw new Error('Expected desktop click approval before continuing the vision loop.');
+		}
+
+		const persistedDesktopApproval = approvalStore.persistApprovalRequestMock.mock.calls
+			.map((call): PersistApprovalRequestInput => call[0] as PersistApprovalRequestInput)
+			.find((input) => input.approval_request.tool_name === 'desktop.click');
+
+		expect(
+			persistedDesktopApproval?.auto_continue_context?.tool_result_history?.map(
+				(toolResult) => toolResult.call_id,
+			),
+		).toEqual(['call_vision_loop_before_screenshot', 'call_vision_loop_analyze']);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					approval_id: initialApprovalBlock.payload.approval_id,
+					decision: 'approved',
+					note: 'Click approved for vision loop test',
+				},
+				type: 'approval.resolve',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				persistEvents,
+				policy_wiring: policyWiring,
+				toolRegistry: registry,
+			},
+		);
+
+		const finalMessages = parseMessages(socket);
+		const finishedMessage = finalMessages
+			.filter(
+				(message): message is Extract<WebSocketServerBridgeMessage, { type: 'run.finished' }> =>
+					message.type === 'run.finished',
+			)
+			.at(-1);
+		const toolResultBlocks = finalMessages
+			.flatMap((message) => (message.type === 'presentation.blocks' ? message.payload.blocks : []))
+			.filter(
+				(block): block is Extract<RenderBlock, { type: 'tool_result' }> =>
+					block.type === 'tool_result',
+			);
+		const hasImageAttachmentRequest = requestBodies.some((body) =>
+			(body.messages ?? []).some(
+				(message) =>
+					Array.isArray(message.content) &&
+					message.content.some((part) => {
+						if (typeof part !== 'object' || part === null || Array.isArray(part)) {
+							return false;
+						}
+
+						const candidate = part as {
+							readonly image_url?: unknown;
+							readonly type?: unknown;
+						};
+
+						return candidate.type === 'image_url' && typeof candidate.image_url === 'object';
+					}),
+			),
+		);
+
+		expect(finishedMessage).toMatchObject({
+			payload: {
+				final_state: 'COMPLETED',
+				status: 'completed',
+			},
+			type: 'run.finished',
+		});
+		expect(toolResultBlocks.map((block) => block.payload.tool_name)).toEqual(
+			expect.arrayContaining([
+				'desktop.screenshot',
+				'desktop.vision_analyze',
+				'desktop.click',
+				'desktop.verify_state',
+			]),
+		);
+		expect(hasImageAttachmentRequest).toBe(true);
+		expect(fetchResponses).toHaveLength(0);
+	});
+
+	it('keeps multi-tool read batches deterministic even when parallel completions finish out of order', async () => {
+		const socket = new MockSocket();
+		const policyWiring = await enableAutoContinueForSocket(socket);
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const registry = new ToolRegistry();
+		const requestBodies: string[] = [];
+
+		registry.register(
+			createFakeTool(
+				'file.read',
+				async (input) => {
+					await new Promise((resolve) => setTimeout(resolve, 10));
+
+					return {
+						call_id: input.call_id,
+						output: {
+							content: 'alpha file contents',
+						},
+						status: 'success',
+						tool_name: 'file.read',
+					};
+				},
+				{
+					requires_approval: false,
+					risk_level: 'low',
+					side_effect_level: 'read',
+				},
+			),
+		);
+		registry.register(
+			createFakeTool(
+				'web.search',
+				async (input) => ({
+					call_id: input.call_id,
+					output: {
+						query: 'latest docs',
+						results: ['doc result'],
+					},
+					status: 'success',
+					tool_name: 'web.search',
+				}),
+				{
+					capability_class: 'search',
+					requires_approval: false,
+					risk_level: 'low',
+					side_effect_level: 'read',
+				},
+			),
+		);
+
+		attachRuntimeWebSocketHandler(socket);
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (_input, init) => {
+				if (init && typeof init === 'object' && 'body' in init && typeof init.body === 'string') {
+					requestBodies.push(init.body);
+				}
+
+				if (requestBodies.length === 1) {
+					return createGroqMultiToolCallResponse({
+						response_id: 'chatcmpl_ws_parallel_tools_1',
+						tool_calls: [
+							{
+								arguments: {
+									path: 'docs/alpha.md',
+								},
+								call_id: 'call_ws_parallel_file_read',
+								tool_name: 'file.read',
+							},
+							{
+								arguments: {
+									query: 'latest docs',
+								},
+								call_id: 'call_ws_parallel_web_search',
+								tool_name: 'web.search',
+							},
+						],
+					});
+				}
+
+				if (requestBodies.length === 2) {
+					return createGroqAssistantResponse({
+						content: 'I checked the file and the web results.',
+						response_id: 'chatcmpl_ws_parallel_tools_2',
+					});
+				}
+
+				throw new Error('Unexpected fetch call in parallel tool scheduler test.');
+			}),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Read the file and search the web', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_parallel_tools_1',
+					trace_id: 'trace_ws_parallel_tools_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				approvalStore: createApprovalStore().store,
+				persistEvents,
+				policy_wiring: policyWiring,
+				toolRegistry: registry,
+			},
+		);
+
+		expect(requestBodies).toHaveLength(2);
+
+		const continuationMessages = parseGroqMessagesFromRequestBody(requestBodies[1] ?? '');
+		const continuationUserMessage = continuationMessages.at(-1);
+
+		expect(continuationUserMessage).toMatchObject({
+			role: 'user',
+		});
+		expect(continuationUserMessage?.content).toContain('[1] file.read (succeeded)');
+		expect(continuationUserMessage?.content).toContain('[2] web.search (succeeded)');
+		expect(continuationUserMessage?.content.indexOf('[1] file.read')).toBeLessThan(
+			continuationUserMessage?.content.indexOf('[2] web.search') ?? Number.POSITIVE_INFINITY,
+		);
+	});
+
+	it('stops later multi-tool candidates behind approval and replays only the approved tool after approval.resolve', async () => {
+		const socket = new MockSocket();
+		const policyWiring = await enableAutoContinueForSocket(socket);
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const approvalStore = createApprovalStore();
+		const registry = new ToolRegistry();
+		const executeCounts = {
+			file_read: 0,
+			file_write: 0,
+			web_search: 0,
+		};
+
+		registry.register(
+			createFakeTool(
+				'file.read',
+				async (input) => {
+					executeCounts.file_read += 1;
+
+					return {
+						call_id: input.call_id,
+						output: {
+							content: 'prefetched file',
+						},
+						status: 'success',
+						tool_name: 'file.read',
+					};
+				},
+				{
+					requires_approval: false,
+					risk_level: 'low',
+					side_effect_level: 'read',
+				},
+			),
+		);
+		registry.register(
+			createFakeTool(
+				'file.write',
+				async (input) => {
+					executeCounts.file_write += 1;
+					const toolArguments = input.arguments as {
+						readonly path?: string;
+					};
+
+					return {
+						call_id: input.call_id,
+						output: {
+							path: toolArguments.path,
+							written: true,
+						},
+						status: 'success',
+						tool_name: 'file.write',
+					};
+				},
+				{
+					requires_approval: true,
+					risk_level: 'medium',
+					side_effect_level: 'write',
+				},
+			),
+		);
+		registry.register(
+			createFakeTool(
+				'web.search',
+				async (input) => {
+					executeCounts.web_search += 1;
+
+					return {
+						call_id: input.call_id,
+						output: {
+							results: ['should not run before approval'],
+						},
+						status: 'success',
+						tool_name: 'web.search',
+					};
+				},
+				{
+					capability_class: 'search',
+					requires_approval: false,
+					risk_level: 'low',
+					side_effect_level: 'read',
+				},
+			),
+		);
+
+		attachRuntimeWebSocketHandler(socket);
+
+		let fetchCount = 0;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => {
+				fetchCount += 1;
+
+				if (fetchCount === 1) {
+					return createGroqMultiToolCallResponse({
+						response_id: 'chatcmpl_ws_parallel_approval_1',
+						tool_calls: [
+							{
+								arguments: {
+									path: 'docs/context.md',
+								},
+								call_id: 'call_ws_parallel_approval_read',
+								tool_name: 'file.read',
+							},
+							{
+								arguments: {
+									content: 'approved content',
+									path: 'docs/output.md',
+								},
+								call_id: 'call_ws_parallel_approval_write',
+								tool_name: 'file.write',
+							},
+							{
+								arguments: {
+									query: 'should wait',
+								},
+								call_id: 'call_ws_parallel_approval_search',
+								tool_name: 'web.search',
+							},
+						],
+					});
+				}
+
+				if (fetchCount === 2) {
+					return createGroqAssistantResponse({
+						content: 'Approved tool executed; no further queued tool was replayed automatically.',
+						response_id: 'chatcmpl_ws_parallel_approval_2',
+					});
+				}
+
+				throw new Error('Unexpected fetch call in parallel approval scheduler test.');
+			}),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					include_presentation_blocks: true,
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Read, then write, then maybe search', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_parallel_approval_1',
+					trace_id: 'trace_ws_parallel_approval_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				persistEvents,
+				policy_wiring: policyWiring,
+				toolRegistry: registry,
+			},
+		);
+
+		expect(executeCounts).toEqual({
+			file_read: 1,
+			file_write: 0,
+			web_search: 0,
+		});
+
+		const pendingApproval = approvalStore.persistApprovalRequestMock.mock.calls
+			.map((call): PersistApprovalRequestInput => call[0] as PersistApprovalRequestInput)
+			.find((call) => call.approval_request.tool_name === 'file.write');
+
+		expect(pendingApproval?.approval_request.call_id).toBe('call_ws_parallel_approval_write');
+
+		const approvalMessage = parseMessages(socket)
+			.flatMap((message) => (message.type === 'presentation.blocks' ? message.payload.blocks : []))
+			.find(
+				(block): block is Extract<RenderBlock, { type: 'approval_block' }> =>
+					block.type === 'approval_block' && block.payload.tool_name === 'file.write',
+			);
+
+		if (!approvalMessage) {
+			throw new Error('Expected file.write approval block in parallel approval scheduler test.');
+		}
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					approval_id: approvalMessage.payload.approval_id,
+					decision: 'approved',
+				},
+				type: 'approval.resolve',
+			}),
+			{
+				approvalStore: approvalStore.store,
+				persistEvents,
+				policy_wiring: policyWiring,
+				toolRegistry: registry,
+			},
+		);
+
+		expect(executeCounts).toEqual({
+			file_read: 1,
+			file_write: 1,
+			web_search: 0,
 		});
 	});
 
@@ -2768,7 +3469,7 @@ describe('register-ws', () => {
 		});
 	});
 
-	it('emits run.failed and run.finished when a live tool result fails after ingestion', async () => {
+	it('stops at approval when a live tool result fails after ingestion and auto-continue is disabled', async () => {
 		await withTempDirectory(async (directory) => {
 			const socket = new MockSocket();
 			const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
@@ -2862,20 +3563,18 @@ describe('register-ws', () => {
 				'model.completed',
 				'state.entered',
 				'state.entered',
-				'run.failed',
+				'state.entered',
 			]);
-			expect(finishedMessage).toMatchObject({
-				payload: {
-					final_state: 'FAILED',
-					run_id: 'run_ws_live_tool_failure_1',
-					status: 'failed',
-				},
-				type: 'run.finished',
-			});
-
-			if (finishedMessage?.type === 'run.finished') {
-				expect(finishedMessage.payload.error_message).toContain('file.read');
-			}
+			expect(
+				runtimeEvents
+					.filter((message) => message.payload.event.event_type === 'state.entered')
+					.map((message) =>
+						message.payload.event.event_type === 'state.entered'
+							? message.payload.event.payload.state
+							: undefined,
+					),
+			).toEqual(['MODEL_THINKING', 'TOOL_EXECUTING', 'TOOL_RESULT_INGESTING', 'WAITING_APPROVAL']);
+			expect(finishedMessage).toBeUndefined();
 		});
 	});
 
@@ -3821,7 +4520,7 @@ describe('register-ws', () => {
 				expect(presentationMessage.payload.blocks[4]).toMatchObject({
 					payload: {
 						authority_note:
-							'Authority-first ordering prioritizes docs-like and vendor sources; lower-trust general web results are filtered out.',
+							'Authority-first ordering prioritizes official, vendor, and reputable sources; high-signal answer surfaces retain provenance and lower-trust general web results are filtered only when clearly noisy.',
 						freshness_note:
 							'Freshness was requested; snippets and provider dates may still lag the live page.',
 						is_truncated: false,
@@ -4682,7 +5381,7 @@ describe('register-ws', () => {
 		expect(secondRequestMessages[0]?.content).toContain('[memory_layer:memory]');
 		expect(secondRequestMessages[0]?.content).toContain('Relevant Memory');
 		expect(secondRequestMessages[0]?.content).toContain(
-			'Treat these memory notes as helpful background context',
+			'Treat these memory notes as untrusted background with provenance',
 		);
 		expect(secondRequestMessages[0]?.content).toContain('the project theme is blue.');
 		expect(secondRequestMessages[0]?.content).not.toContain('"memory_id"');

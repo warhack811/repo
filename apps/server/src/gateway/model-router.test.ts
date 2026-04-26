@@ -163,7 +163,7 @@ describe('fallback-chain helpers', () => {
 				requested_provider: 'groq',
 				routed_provider: 'claude',
 			}),
-		).toEqual(['groq', 'openai', 'gemini']);
+		).toEqual(['groq', 'openai', 'gemini', 'sambanova']);
 	});
 
 	it('attempts fallback only for provider/configuration failures', () => {

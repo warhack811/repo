@@ -68,11 +68,12 @@ export interface RunModelTurnToolCallResult {
 	readonly final_state: 'TOOL_RESULT_INGESTING';
 	readonly ingested_result: IngestedToolResult;
 	readonly model_response: ModelResponse;
-	readonly model_turn_outcome: Extract<ModelTurnOutcome, { kind: 'tool_call' }>;
+	readonly model_turn_outcome: Exclude<ModelTurnOutcome, { kind: 'assistant_response' }>;
 	readonly resolved_model_request: ModelRequest;
 	readonly status: 'completed';
 	readonly suggested_next_state: 'MODEL_THINKING';
 	readonly tool_result: ToolResult;
+	readonly tool_results?: readonly ToolResult[];
 }
 
 export interface RunModelTurnApprovalRequiredResult {
@@ -81,9 +82,11 @@ export interface RunModelTurnApprovalRequiredResult {
 	readonly continuation_result: ContinueModelTurnApprovalRequiredResult;
 	readonly final_state: 'WAITING_APPROVAL';
 	readonly model_response: ModelResponse;
-	readonly model_turn_outcome: Extract<ModelTurnOutcome, { kind: 'tool_call' }>;
+	readonly model_turn_outcome: Exclude<ModelTurnOutcome, { kind: 'assistant_response' }>;
 	readonly resolved_model_request: ModelRequest;
 	readonly status: 'approval_required';
+	readonly tool_result?: ToolResult;
+	readonly tool_results?: readonly ToolResult[];
 }
 
 export interface RunModelTurnFailureResult {
@@ -94,6 +97,8 @@ export interface RunModelTurnFailureResult {
 	readonly model_turn_outcome?: ModelTurnOutcome;
 	readonly resolved_model_request?: ModelRequest;
 	readonly status: 'failed';
+	readonly tool_result?: ToolResult;
+	readonly tool_results?: readonly ToolResult[];
 }
 
 export type RunModelTurnResult =
@@ -166,6 +171,8 @@ function createFailureResult(
 		model_response?: ModelResponse;
 		model_turn_outcome?: ModelTurnOutcome;
 		resolved_model_request?: ModelRequest;
+		tool_result?: ToolResult;
+		tool_results?: readonly ToolResult[];
 	}> = {},
 ): RunModelTurnFailureResult {
 	return {
@@ -176,6 +183,8 @@ function createFailureResult(
 		model_turn_outcome: options.model_turn_outcome,
 		resolved_model_request: options.resolved_model_request,
 		status: 'failed',
+		tool_result: options.tool_result,
+		tool_results: options.tool_results,
 	};
 }
 
@@ -248,6 +257,8 @@ function toSuccessResult(
 				continuation_result: continuationResult,
 				model_response: modelResponse,
 				model_turn_outcome: modelTurnOutcome,
+				tool_result: continuationResult.tool_result,
+				tool_results: continuationResult.tool_results,
 			},
 		);
 	}
@@ -278,7 +289,7 @@ function toSuccessResult(
 	}
 
 	if (continuationResult.status === 'approval_required') {
-		if (modelTurnOutcome.kind !== 'tool_call') {
+		if (modelTurnOutcome.kind === 'assistant_response') {
 			return createFailureResult(
 				createFailure(
 					'TURN_CONTINUATION_FAILED',
@@ -300,10 +311,12 @@ function toSuccessResult(
 			model_turn_outcome: modelTurnOutcome,
 			resolved_model_request: resolvedModelRequest,
 			status: 'approval_required',
+			tool_result: continuationResult.tool_result,
+			tool_results: continuationResult.tool_results,
 		};
 	}
 
-	if (modelTurnOutcome.kind !== 'tool_call') {
+	if (modelTurnOutcome.kind === 'assistant_response') {
 		return createFailureResult(
 			createFailure(
 				'TURN_CONTINUATION_FAILED',
@@ -326,6 +339,7 @@ function toSuccessResult(
 		status: 'completed',
 		suggested_next_state: continuationResult.suggested_next_state,
 		tool_result: continuationResult.tool_result,
+		tool_results: continuationResult.tool_results,
 	};
 }
 
@@ -494,6 +508,8 @@ export async function runModelTurn(input: RunModelTurnInput): Promise<RunModelTu
 			model_response: modelResponse,
 			model_turn_outcome: adaptedOutcomeResult.outcome,
 			resolved_model_request: resolvedModelRequest,
+			tool_result: result.status === 'failed' ? result.tool_result : undefined,
+			tool_results: result.status === 'failed' ? result.tool_results : undefined,
 		});
 	}
 

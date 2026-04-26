@@ -6,6 +6,7 @@ import type {
 	ModelStreamChunk,
 } from '@runa/types';
 
+import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
 import { postJson } from './provider-http.js';
@@ -162,7 +163,7 @@ function buildClaudeAttachmentContent(
 		}
 
 		return {
-			text: `Attached text file (${attachment.filename ?? attachment.blob_id}, ${attachment.media_type}):\n${attachment.text_content}`,
+			text: describeAttachmentForTextPart(attachment),
 			type: 'text' as const,
 		};
 	});

@@ -1,5 +1,5 @@
 import type { ModelMessage } from '@runa/types';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const ACTIVE_CONVERSATION_STORAGE_KEY = 'runa.chat.active_conversation_id';
 
@@ -75,10 +75,36 @@ interface ConversationMessagesResponseCandidate {
 	readonly messages?: unknown;
 }
 
-interface ErrorResponseCandidate {
-	readonly code?: unknown;
-	readonly message?: unknown;
-}
+type ConversationSummaryCandidate = Record<string, unknown> & {
+	readonly access_role?: unknown;
+	readonly conversation_id?: unknown;
+	readonly created_at?: unknown;
+	readonly last_message_at?: unknown;
+	readonly last_message_preview?: unknown;
+	readonly owner_user_id?: unknown;
+	readonly title?: unknown;
+	readonly updated_at?: unknown;
+};
+
+type ConversationMessageCandidate = Record<string, unknown> & {
+	readonly content?: unknown;
+	readonly conversation_id?: unknown;
+	readonly created_at?: unknown;
+	readonly message_id?: unknown;
+	readonly role?: unknown;
+	readonly run_id?: unknown;
+	readonly sequence_no?: unknown;
+	readonly trace_id?: unknown;
+};
+
+type ConversationMemberCandidate = Record<string, unknown> & {
+	readonly added_by_user_id?: unknown;
+	readonly conversation_id?: unknown;
+	readonly created_at?: unknown;
+	readonly member_role?: unknown;
+	readonly member_user_id?: unknown;
+	readonly updated_at?: unknown;
+};
 
 interface UseConversationsOptions {
 	readonly accessToken?: string | null;
@@ -131,26 +157,17 @@ function isConversationSummary(value: unknown): value is ConversationSummary {
 		return false;
 	}
 
-	const {
-		access_role,
-		conversation_id,
-		created_at,
-		last_message_at,
-		last_message_preview,
-		owner_user_id,
-		title,
-		updated_at,
-	} = value;
+	const candidate = value as ConversationSummaryCandidate;
 
 	return (
-		isConversationAccessRole(access_role) &&
-		typeof conversation_id === 'string' &&
-		typeof created_at === 'string' &&
-		typeof last_message_at === 'string' &&
-		typeof last_message_preview === 'string' &&
-		(owner_user_id === undefined || typeof owner_user_id === 'string') &&
-		typeof title === 'string' &&
-		typeof updated_at === 'string'
+		isConversationAccessRole(candidate.access_role) &&
+		typeof candidate.conversation_id === 'string' &&
+		typeof candidate.created_at === 'string' &&
+		typeof candidate.last_message_at === 'string' &&
+		typeof candidate.last_message_preview === 'string' &&
+		(candidate.owner_user_id === undefined || typeof candidate.owner_user_id === 'string') &&
+		typeof candidate.title === 'string' &&
+		typeof candidate.updated_at === 'string'
 	);
 }
 
@@ -159,18 +176,17 @@ function isConversationMessage(value: unknown): value is ConversationMessage {
 		return false;
 	}
 
-	const { content, conversation_id, created_at, message_id, role, run_id, sequence_no, trace_id } =
-		value;
+	const candidate = value as ConversationMessageCandidate;
 
 	return (
-		typeof content === 'string' &&
-		typeof conversation_id === 'string' &&
-		typeof created_at === 'string' &&
-		typeof message_id === 'string' &&
-		(role === 'assistant' || role === 'system' || role === 'user') &&
-		typeof sequence_no === 'number' &&
-		(run_id === undefined || typeof run_id === 'string') &&
-		(trace_id === undefined || typeof trace_id === 'string')
+		typeof candidate.content === 'string' &&
+		typeof candidate.conversation_id === 'string' &&
+		typeof candidate.created_at === 'string' &&
+		typeof candidate.message_id === 'string' &&
+		(candidate.role === 'assistant' || candidate.role === 'system' || candidate.role === 'user') &&
+		typeof candidate.sequence_no === 'number' &&
+		(candidate.run_id === undefined || typeof candidate.run_id === 'string') &&
+		(candidate.trace_id === undefined || typeof candidate.trace_id === 'string')
 	);
 }
 
@@ -179,16 +195,15 @@ function isConversationMember(value: unknown): value is ConversationMember {
 		return false;
 	}
 
-	const { added_by_user_id, conversation_id, created_at, member_role, member_user_id, updated_at } =
-		value;
+	const candidate = value as ConversationMemberCandidate;
 
 	return (
-		(added_by_user_id === undefined || typeof added_by_user_id === 'string') &&
-		typeof conversation_id === 'string' &&
-		typeof created_at === 'string' &&
-		(member_role === 'editor' || member_role === 'viewer') &&
-		typeof member_user_id === 'string' &&
-		typeof updated_at === 'string'
+		(candidate.added_by_user_id === undefined || typeof candidate.added_by_user_id === 'string') &&
+		typeof candidate.conversation_id === 'string' &&
+		typeof candidate.created_at === 'string' &&
+		(candidate.member_role === 'editor' || candidate.member_role === 'viewer') &&
+		typeof candidate.member_user_id === 'string' &&
+		typeof candidate.updated_at === 'string'
 	);
 }
 
@@ -248,27 +263,6 @@ function createRequestHeaders(accessToken?: string | null): Headers {
 async function readErrorMessage(response: Response): Promise<string> {
 	const responseText = await response.text();
 	const trimmedText = responseText.trim();
-
-	if (trimmedText.length > 0) {
-		try {
-			const parsed = JSON.parse(trimmedText) as unknown;
-
-			if (isRecord(parsed)) {
-				const candidate = parsed as ErrorResponseCandidate;
-
-				if (typeof candidate.message !== 'string') {
-					return trimmedText;
-				}
-
-				const message = candidate.message;
-				const code = candidate.code;
-				return typeof code === 'string' ? `${message} (${code})` : message;
-			}
-		} catch {
-			return trimmedText;
-		}
-	}
-
 	return trimmedText.length > 0
 		? trimmedText
 		: `Conversation request failed with status ${response.status}.`;
@@ -293,7 +287,7 @@ async function fetchConversationList(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isConversationListResponse(parsed)) {
-		throw new Error('Desteklenmeyen conversation list yanıtı.');
+		throw new Error('Desteklenmeyen conversation list yaniti.');
 	}
 
 	return parsed.conversations;
@@ -319,7 +313,7 @@ async function fetchConversationMessages(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isConversationMessagesResponse(parsed)) {
-		throw new Error('Desteklenmeyen conversation messages yanıtı.');
+		throw new Error('Desteklenmeyen conversation messages yaniti.');
 	}
 
 	return parsed.messages;
@@ -345,7 +339,7 @@ async function fetchConversationMembers(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isConversationMembersResponse(parsed)) {
-		throw new Error('Desteklenmeyen conversation member yanıtı.');
+		throw new Error('Desteklenmeyen conversation member yaniti.');
 	}
 
 	return parsed.members;
@@ -420,7 +414,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setConversationError(
-					error instanceof Error ? error.message : 'Conversation listesi yüklenemedi.',
+					error instanceof Error ? error.message : 'Conversation listesi yuklenemedi.',
 				);
 				setConversations([]);
 				setActiveConversationId(null);
@@ -472,7 +466,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setConversationError(
-					error instanceof Error ? error.message : 'Conversation mesajları yüklenemedi.',
+					error instanceof Error ? error.message : 'Conversation mesajlari yuklenemedi.',
 				);
 				setActiveConversationMessages([]);
 			} finally {
@@ -520,7 +514,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setMemberError(
-					error instanceof Error ? error.message : 'Conversation member listesi yüklenemedi.',
+					error instanceof Error ? error.message : 'Conversation member listesi yuklenemedi.',
 				);
 				setActiveConversationMembers([]);
 			} finally {
@@ -549,180 +543,213 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 		[activeConversationMessages],
 	);
 
-	function beginDraftConversation(): void {
+	const beginDraftConversation = useCallback((): void => {
 		setActiveConversationId(null);
 		setActiveConversationMessages([]);
 		setActiveConversationMembers([]);
 		setConversationError(null);
 		setMemberError(null);
-	}
+	}, []);
 
-	function selectConversation(conversationId: string): void {
+	const selectConversation = useCallback((conversationId: string): void => {
 		setActiveConversationId(conversationId);
 		setConversationError(null);
 		setMemberError(null);
-	}
+	}, []);
 
-	function buildRequestMessages(prompt: string): readonly ModelMessage[] {
-		const normalizedPrompt = prompt.trim();
-		return [
-			...requestHistoryMessages,
-			{
-				content: normalizedPrompt,
-				role: 'user',
-			},
-		];
-	}
-
-	function handleRunAccepted(input: {
-		readonly conversationId?: string;
-		readonly prompt: string;
-	}): void {
-		const now = new Date().toISOString();
-		const conversationId = input.conversationId?.trim();
-
-		if (!conversationId) {
-			return;
-		}
-
-		const preview = summarizePrompt(input.prompt, 160);
-
-		setActiveConversationId(conversationId);
-		setActiveConversationMessages((currentMessages) => [
-			...currentMessages,
-			{
-				content: input.prompt.trim(),
-				conversation_id: conversationId,
-				created_at: now,
-				message_id: `optimistic:${now}`,
-				role: 'user',
-				sequence_no: currentMessages.length + 1,
-			},
-		]);
-		setConversations((currentConversations) => {
-			const existingConversation = currentConversations.find(
-				(conversation) => conversation.conversation_id === conversationId,
-			);
-			const nextConversation: ConversationSummary = {
-				access_role: existingConversation?.access_role ?? 'owner',
-				conversation_id: conversationId,
-				created_at: existingConversation?.created_at ?? now,
-				last_message_at: now,
-				last_message_preview: preview,
-				owner_user_id: existingConversation?.owner_user_id,
-				title: existingConversation?.title ?? (summarizePrompt(input.prompt, 64) || 'Yeni sohbet'),
-				updated_at: now,
-			};
-
+	const buildRequestMessages = useCallback(
+		(prompt: string): readonly ModelMessage[] => {
+			const normalizedPrompt = prompt.trim();
 			return [
-				nextConversation,
-				...currentConversations.filter(
-					(conversation) => conversation.conversation_id !== conversationId,
-				),
+				...requestHistoryMessages,
+				{
+					content: normalizedPrompt,
+					role: 'user',
+				},
 			];
-		});
-	}
+		},
+		[requestHistoryMessages],
+	);
 
-	function handleRunFinished(input: { readonly conversationId?: string }): void {
-		const conversationId = input.conversationId ?? activeConversationId;
+	const handleRunAccepted = useCallback(
+		(input: {
+			readonly conversationId?: string;
+			readonly prompt: string;
+		}): void => {
+			const now = new Date().toISOString();
+			const conversationId = input.conversationId?.trim();
 
-		if (!conversationId) {
-			return;
-		}
-
-		void (async () => {
-			try {
-				const [nextConversations, nextMessages, nextMembers] = await Promise.all([
-					fetchConversationList(accessToken),
-					fetchConversationMessages(conversationId, accessToken),
-					fetchConversationMembers(conversationId, accessToken),
-				]);
-				setConversations(nextConversations);
-				setActiveConversationId(conversationId);
-				setActiveConversationMessages(nextMessages);
-				setActiveConversationMembers(nextMembers);
-				setConversationError(null);
-				setMemberError(null);
-			} catch (error) {
-				setConversationError(
-					error instanceof Error ? error.message : 'Conversation senkronizasyonu başarısız oldu.',
-				);
+			if (!conversationId) {
+				return;
 			}
-		})();
-	}
 
-	async function shareConversationMember(
-		memberUserId: string,
-		role: Exclude<ConversationAccessRole, 'owner'>,
-	): Promise<void> {
-		if (!activeConversationId) {
-			return;
-		}
+			const preview = summarizePrompt(input.prompt, 160);
 
-		const response = await fetch(
-			`/conversations/${encodeURIComponent(activeConversationId)}/members`,
-			{
-				body: JSON.stringify({
-					member_role: role,
-					member_user_id: memberUserId,
-				}),
-				credentials: 'same-origin',
-				headers: new Headers({
-					'content-type': 'application/json',
-					...Object.fromEntries(createRequestHeaders(accessToken).entries()),
-				}),
-				method: 'POST',
-			},
-		);
+			setActiveConversationId(conversationId);
+			setActiveConversationMessages((currentMessages) => [
+				...currentMessages,
+				{
+					content: input.prompt.trim(),
+					conversation_id: conversationId,
+					created_at: now,
+					message_id: `optimistic:${now}`,
+					role: 'user',
+					sequence_no: currentMessages.length + 1,
+				},
+			]);
+			setConversations((currentConversations) => {
+				const existingConversation = currentConversations.find(
+					(conversation) => conversation.conversation_id === conversationId,
+				);
+				const nextConversation: ConversationSummary = {
+					access_role: existingConversation?.access_role ?? 'owner',
+					conversation_id: conversationId,
+					created_at: existingConversation?.created_at ?? now,
+					last_message_at: now,
+					last_message_preview: preview,
+					owner_user_id: existingConversation?.owner_user_id,
+					title:
+						existingConversation?.title ?? (summarizePrompt(input.prompt, 64) || 'Yeni sohbet'),
+					updated_at: now,
+				};
 
-		if (!response.ok) {
-			throw new Error(await readErrorMessage(response));
-		}
+				return [
+					nextConversation,
+					...currentConversations.filter(
+						(conversation) => conversation.conversation_id !== conversationId,
+					),
+				];
+			});
+		},
+		[],
+	);
 
-		const nextMembers = await fetchConversationMembers(activeConversationId, accessToken);
-		setActiveConversationMembers(nextMembers);
-		setMemberError(null);
-	}
+	const handleRunFinished = useCallback(
+		(input: { readonly conversationId?: string }): void => {
+			const conversationId = input.conversationId ?? activeConversationId;
 
-	async function removeConversationMember(memberUserId: string): Promise<void> {
-		if (!activeConversationId) {
-			return;
-		}
+			if (!conversationId) {
+				return;
+			}
 
-		const response = await fetch(
-			`/conversations/${encodeURIComponent(activeConversationId)}/members/${encodeURIComponent(memberUserId)}`,
-			{
-				credentials: 'same-origin',
-				headers: createRequestHeaders(accessToken),
-				method: 'DELETE',
-			},
-		);
+			void (async () => {
+				try {
+					const [nextConversations, nextMessages, nextMembers] = await Promise.all([
+						fetchConversationList(accessToken),
+						fetchConversationMessages(conversationId, accessToken),
+						fetchConversationMembers(conversationId, accessToken),
+					]);
+					setConversations(nextConversations);
+					setActiveConversationId(conversationId);
+					setActiveConversationMessages(nextMessages);
+					setActiveConversationMembers(nextMembers);
+					setConversationError(null);
+					setMemberError(null);
+				} catch (error) {
+					setConversationError(
+						error instanceof Error ? error.message : 'Conversation senkronizasyonu basarisiz oldu.',
+					);
+				}
+			})();
+		},
+		[accessToken, activeConversationId],
+	);
 
-		if (!response.ok && response.status !== 204) {
-			throw new Error(await readErrorMessage(response));
-		}
+	const shareConversationMember = useCallback(
+		async (memberUserId: string, role: Exclude<ConversationAccessRole, 'owner'>): Promise<void> => {
+			if (!activeConversationId) {
+				return;
+			}
 
-		const nextMembers = await fetchConversationMembers(activeConversationId, accessToken);
-		setActiveConversationMembers(nextMembers);
-		setMemberError(null);
-	}
+			const response = await fetch(
+				`/conversations/${encodeURIComponent(activeConversationId)}/members`,
+				{
+					body: JSON.stringify({
+						member_role: role,
+						member_user_id: memberUserId,
+					}),
+					credentials: 'same-origin',
+					headers: new Headers({
+						'content-type': 'application/json',
+						...Object.fromEntries(createRequestHeaders(accessToken).entries()),
+					}),
+					method: 'POST',
+				},
+			);
 
-	return {
-		activeConversationId,
-		activeConversationMembers,
-		activeConversationMessages,
-		activeConversationSummary,
-		beginDraftConversation,
-		buildRequestMessages,
-		conversationError,
-		conversations,
-		handleRunAccepted,
-		handleRunFinished,
-		isConversationLoading,
-		isMemberLoading,
-		memberError,
-		removeConversationMember,
-		selectConversation,
-		shareConversationMember,
-	};
+			if (!response.ok) {
+				throw new Error(await readErrorMessage(response));
+			}
+
+			const nextMembers = await fetchConversationMembers(activeConversationId, accessToken);
+			setActiveConversationMembers(nextMembers);
+			setMemberError(null);
+		},
+		[accessToken, activeConversationId],
+	);
+
+	const removeConversationMember = useCallback(
+		async (memberUserId: string): Promise<void> => {
+			if (!activeConversationId) {
+				return;
+			}
+
+			const response = await fetch(
+				`/conversations/${encodeURIComponent(activeConversationId)}/members/${encodeURIComponent(memberUserId)}`,
+				{
+					credentials: 'same-origin',
+					headers: createRequestHeaders(accessToken),
+					method: 'DELETE',
+				},
+			);
+
+			if (!response.ok && response.status !== 204) {
+				throw new Error(await readErrorMessage(response));
+			}
+
+			const nextMembers = await fetchConversationMembers(activeConversationId, accessToken);
+			setActiveConversationMembers(nextMembers);
+			setMemberError(null);
+		},
+		[accessToken, activeConversationId],
+	);
+
+	return useMemo(
+		() => ({
+			activeConversationId,
+			activeConversationMembers,
+			activeConversationMessages,
+			activeConversationSummary,
+			beginDraftConversation,
+			buildRequestMessages,
+			conversationError,
+			conversations,
+			handleRunAccepted,
+			handleRunFinished,
+			isConversationLoading,
+			isMemberLoading,
+			memberError,
+			removeConversationMember,
+			selectConversation,
+			shareConversationMember,
+		}),
+		[
+			activeConversationId,
+			activeConversationMembers,
+			activeConversationMessages,
+			activeConversationSummary,
+			beginDraftConversation,
+			buildRequestMessages,
+			conversationError,
+			conversations,
+			handleRunAccepted,
+			handleRunFinished,
+			isConversationLoading,
+			isMemberLoading,
+			memberError,
+			removeConversationMember,
+			selectConversation,
+			shareConversationMember,
+		],
+	);
 }

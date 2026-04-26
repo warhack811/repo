@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import type {
 	AuthContext,
@@ -72,7 +72,7 @@ export interface UseAuthResult {
 }
 
 function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : 'Bilinmeyen auth isteği hatası.';
+	return error instanceof Error ? error.message : 'Bilinmeyen auth istegi hatasi.';
 }
 
 function resolveSessionStorage(): Storage | null {
@@ -352,7 +352,7 @@ async function readResponseErrorMessage(response: Response): Promise<string> {
 	const responseText = await response.text();
 	return responseText.trim().length > 0
 		? responseText
-		: `Auth isteği ${response.status} durumu ile başarısız oldu.`;
+		: `Auth istegi ${response.status} durumu ile basarisiz oldu.`;
 }
 
 async function postAuthenticatedAction(
@@ -377,7 +377,7 @@ async function postAuthenticatedAction(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isAuthenticatedActionResponse(parsed)) {
-		throw new Error('Desteklenmeyen auth action yanıtı.');
+		throw new Error('Desteklenmeyen auth action yaniti.');
 	}
 
 	return parsed;
@@ -397,23 +397,26 @@ export function useAuth(): UseAuthResult {
 	);
 	const hasBootstrappedAuthContextRef = useRef(false);
 
-	function applyAuthenticatedState(input: {
-		readonly authContext: AuthContext;
-		readonly bearerToken: string;
-		readonly status: Extract<AuthStatus, 'authenticated' | 'service'>;
-		readonly session?: AuthSessionTokens;
-	}): void {
-		writeStoredBearerToken(input.bearerToken);
-		storeSessionTokens(input.session ?? { access_token: input.bearerToken });
-		setAuthContext(input.authContext);
-		setAuthError(null);
-		setAuthStatus(input.status);
-		setBearerToken(input.bearerToken);
-		setHasStoredBearerToken(true);
-		setSessionExpiresAt(readStoredSessionExpiresAt());
-	}
+	const applyAuthenticatedState = useCallback(
+		(input: {
+			readonly authContext: AuthContext;
+			readonly bearerToken: string;
+			readonly status: Extract<AuthStatus, 'authenticated' | 'service'>;
+			readonly session?: AuthSessionTokens;
+		}): void => {
+			writeStoredBearerToken(input.bearerToken);
+			storeSessionTokens(input.session ?? { access_token: input.bearerToken });
+			setAuthContext(input.authContext);
+			setAuthError(null);
+			setAuthStatus(input.status);
+			setBearerToken(input.bearerToken);
+			setHasStoredBearerToken(true);
+			setSessionExpiresAt(readStoredSessionExpiresAt());
+		},
+		[],
+	);
 
-	function clearLocalStoredAuthState(): void {
+	const clearLocalStoredAuthState = useCallback((): void => {
 		clearStoredBearerToken();
 		clearStoredSessionSecrets();
 		clearStoredPkceCodeVerifier();
@@ -421,18 +424,33 @@ export function useAuth(): UseAuthResult {
 		setBearerToken(null);
 		setHasStoredBearerToken(false);
 		setSessionExpiresAt(null);
-	}
+	}, []);
 
-	async function applyAnonymousFallback(): Promise<void> {
+	const applyAnonymousFallback = useCallback(async (): Promise<void> => {
 		const anonymousResponse = await fetchAuthContext();
 		setAuthContext(anonymousResponse.auth);
 		setAuthStatus(anonymousResponse.principal_kind);
 		setBearerToken(null);
 		setHasStoredBearerToken(false);
 		setSessionExpiresAt(readStoredSessionExpiresAt());
-	}
+	}, []);
 
-	async function refreshAuthContext(): Promise<void> {
+	const bootstrapAuthContext = useEffectEvent(() => {
+		void refreshAuthContext();
+	});
+
+	const scheduleAuthRefresh = useEffectEvent(() => {
+		void refreshAuthContext();
+	});
+
+	const isRefreshingRef = useRef(false);
+
+	const refreshAuthContext = useCallback(async (): Promise<void> => {
+		if (isRefreshingRef.current) {
+			return;
+		}
+
+		isRefreshingRef.current = true;
 		setIsAuthBootstrapPending(true);
 		let storedBearerToken: string | null = null;
 		let authenticatedActionResponse:
@@ -467,7 +485,7 @@ export function useAuth(): UseAuthResult {
 				const codeVerifier = readStoredPkceCodeVerifier();
 
 				if (!codeVerifier) {
-					setAuthError('OAuth PKCE callback code_verifier bulunamadı. Girişi yeniden başlatın.');
+					setAuthError('OAuth PKCE callback code_verifier bulunamadi. Girisi yeniden baslatin.');
 					setAuthNotice(null);
 				} else {
 					setAuthNotice(uiCopy.auth.oauthValidating);
@@ -558,59 +576,63 @@ export function useAuth(): UseAuthResult {
 			}
 		} finally {
 			setIsAuthBootstrapPending(false);
+			isRefreshingRef.current = false;
 		}
-	}
+	}, [applyAnonymousFallback, applyAuthenticatedState]);
 
-	async function authenticateWithToken(token: string): Promise<void> {
-		const normalizedToken = token.trim();
+	const authenticateWithToken = useCallback(
+		async (token: string): Promise<void> => {
+			const normalizedToken = token.trim();
 
-		if (normalizedToken.length === 0) {
-			setAuthError(uiCopy.auth.bearerTokenRequired);
-			setAuthNotice(null);
-			setAuthStatus('anonymous');
-			return;
-		}
-
-		setIsAuthActionPending(true);
-
-		try {
-			const authResponse = await fetchAuthContext({
-				bearerToken: normalizedToken,
-			});
-
-			if (authResponse.principal_kind === 'anonymous') {
-				throw new Error(uiCopy.auth.invalidSession);
-			}
-
-			applyAuthenticatedState({
-				authContext: authResponse.auth,
-				bearerToken: normalizedToken,
-				status: authResponse.principal_kind,
-			});
-			clearStoredSessionSecrets();
-			setAuthNotice(null);
-		} catch (error: unknown) {
-			clearLocalStoredAuthState();
-
-			try {
-				await applyAnonymousFallback();
-			} catch (fallbackError: unknown) {
-				setAuthContext(null);
-				setAuthStatus('anonymous');
-				setAuthError(getErrorMessage(fallbackError));
+			if (normalizedToken.length === 0) {
+				setAuthError(uiCopy.auth.bearerTokenRequired);
 				setAuthNotice(null);
-				setIsAuthActionPending(false);
+				setAuthStatus('anonymous');
 				return;
 			}
 
-			setAuthError(getErrorMessage(error));
-			setAuthNotice(null);
-		} finally {
-			setIsAuthActionPending(false);
-		}
-	}
+			setIsAuthActionPending(true);
 
-	async function clearAuthToken(): Promise<void> {
+			try {
+				const authResponse = await fetchAuthContext({
+					bearerToken: normalizedToken,
+				});
+
+				if (authResponse.principal_kind === 'anonymous') {
+					throw new Error(uiCopy.auth.invalidSession);
+				}
+
+				applyAuthenticatedState({
+					authContext: authResponse.auth,
+					bearerToken: normalizedToken,
+					status: authResponse.principal_kind,
+				});
+				clearStoredSessionSecrets();
+				setAuthNotice(null);
+			} catch (error: unknown) {
+				clearLocalStoredAuthState();
+
+				try {
+					await applyAnonymousFallback();
+				} catch (fallbackError: unknown) {
+					setAuthContext(null);
+					setAuthStatus('anonymous');
+					setAuthError(getErrorMessage(fallbackError));
+					setAuthNotice(null);
+					setIsAuthActionPending(false);
+					return;
+				}
+
+				setAuthError(getErrorMessage(error));
+				setAuthNotice(null);
+			} finally {
+				setIsAuthActionPending(false);
+			}
+		},
+		[applyAnonymousFallback, applyAuthenticatedState, clearLocalStoredAuthState],
+	);
+
+	const clearAuthToken = useCallback(async (): Promise<void> => {
 		setIsAuthActionPending(true);
 		clearLocalStoredAuthState();
 
@@ -626,9 +648,9 @@ export function useAuth(): UseAuthResult {
 		} finally {
 			setIsAuthActionPending(false);
 		}
-	}
+	}, [applyAnonymousFallback, clearLocalStoredAuthState]);
 
-	async function logoutAction(): Promise<void> {
+	const logoutAction = useCallback(async (): Promise<void> => {
 		setAuthError(null);
 		setAuthNotice(null);
 		setIsAuthActionPending(true);
@@ -658,87 +680,93 @@ export function useAuth(): UseAuthResult {
 		} finally {
 			setIsAuthActionPending(false);
 		}
-	}
+	}, [applyAnonymousFallback, clearLocalStoredAuthState]);
 
-	async function loginWithPasswordAction(input: AuthEmailPasswordCredentials): Promise<void> {
-		setAuthError(null);
-		setAuthNotice(null);
-		setIsAuthActionPending(true);
-
-		try {
-			const actionResponse = await loginWithPassword(input);
-
-			if (actionResponse.outcome !== 'authenticated') {
-				throw new Error('Giriş sonrası kimliği doğrulanmış bir oturum oluşmadı.');
-			}
-
-			applyAuthenticatedState({
-				authContext: actionResponse.auth,
-				bearerToken: actionResponse.session.access_token,
-				session: actionResponse.session,
-				status: actionResponse.principal_kind,
-			});
-		} catch (error: unknown) {
-			try {
-				await applyAnonymousFallback();
-			} catch (fallbackError: unknown) {
-				setAuthContext(null);
-				setAuthStatus('anonymous');
-				setAuthError(getErrorMessage(fallbackError));
-				setAuthNotice(null);
-				setIsAuthActionPending(false);
-				return;
-			}
-
-			setAuthError(getErrorMessage(error));
+	const loginWithPasswordAction = useCallback(
+		async (input: AuthEmailPasswordCredentials): Promise<void> => {
+			setAuthError(null);
 			setAuthNotice(null);
-		} finally {
-			setIsAuthActionPending(false);
-		}
-	}
+			setIsAuthActionPending(true);
 
-	async function signupWithPasswordAction(input: AuthPasswordSignupRequest): Promise<void> {
-		setAuthError(null);
-		setAuthNotice(null);
-		setIsAuthActionPending(true);
+			try {
+				const actionResponse = await loginWithPassword(input);
 
-		try {
-			const actionResponse = await signupWithPassword(input);
+				if (actionResponse.outcome !== 'authenticated') {
+					throw new Error('Giris sonrasi kimligi dogrulanmis bir oturum olusmadi.');
+				}
 
-			if (actionResponse.outcome === 'authenticated') {
 				applyAuthenticatedState({
 					authContext: actionResponse.auth,
 					bearerToken: actionResponse.session.access_token,
 					session: actionResponse.session,
 					status: actionResponse.principal_kind,
 				});
-				return;
-			}
+			} catch (error: unknown) {
+				try {
+					await applyAnonymousFallback();
+				} catch (fallbackError: unknown) {
+					setAuthContext(null);
+					setAuthStatus('anonymous');
+					setAuthError(getErrorMessage(fallbackError));
+					setAuthNotice(null);
+					setIsAuthActionPending(false);
+					return;
+				}
 
-			await applyAnonymousFallback();
-			setAuthNotice(actionResponse.message);
-		} catch (error: unknown) {
-			try {
-				await applyAnonymousFallback();
-			} catch (fallbackError: unknown) {
-				setAuthContext(null);
-				setAuthStatus('anonymous');
-				setAuthError(getErrorMessage(fallbackError));
+				setAuthError(getErrorMessage(error));
 				setAuthNotice(null);
+			} finally {
 				setIsAuthActionPending(false);
-				return;
 			}
+		},
+		[applyAnonymousFallback, applyAuthenticatedState],
+	);
 
-			setAuthError(getErrorMessage(error));
+	const signupWithPasswordAction = useCallback(
+		async (input: AuthPasswordSignupRequest): Promise<void> => {
+			setAuthError(null);
 			setAuthNotice(null);
-		} finally {
-			setIsAuthActionPending(false);
-		}
-	}
+			setIsAuthActionPending(true);
 
-	function startOAuthSignIn(provider: OAuthProvider): void {
+			try {
+				const actionResponse = await signupWithPassword(input);
+
+				if (actionResponse.outcome === 'authenticated') {
+					applyAuthenticatedState({
+						authContext: actionResponse.auth,
+						bearerToken: actionResponse.session.access_token,
+						session: actionResponse.session,
+						status: actionResponse.principal_kind,
+					});
+					return;
+				}
+
+				await applyAnonymousFallback();
+				setAuthNotice(actionResponse.message);
+			} catch (error: unknown) {
+				try {
+					await applyAnonymousFallback();
+				} catch (fallbackError: unknown) {
+					setAuthContext(null);
+					setAuthStatus('anonymous');
+					setAuthError(getErrorMessage(fallbackError));
+					setAuthNotice(null);
+					setIsAuthActionPending(false);
+					return;
+				}
+
+				setAuthError(getErrorMessage(error));
+				setAuthNotice(null);
+			} finally {
+				setIsAuthActionPending(false);
+			}
+		},
+		[applyAnonymousFallback, applyAuthenticatedState],
+	);
+
+	const startOAuthSignIn = useCallback((provider: OAuthProvider): void => {
 		if (typeof window === 'undefined') {
-			throw new Error('OAuth girişi sadece tarayıcıda başlayabilir.');
+			throw new Error('OAuth girisi sadece tarayicida baslayabilir.');
 		}
 
 		setAuthError(null);
@@ -746,7 +774,7 @@ export function useAuth(): UseAuthResult {
 
 		void (async () => {
 			if (!window.crypto?.subtle) {
-				setAuthError('Tarayıcı PKCE için gerekli Web Crypto desteğini sunmuyor.');
+				setAuthError('Tarayici PKCE icin gerekli Web Crypto destegini sunmuyor.');
 				setAuthNotice(null);
 				return;
 			}
@@ -774,9 +802,9 @@ export function useAuth(): UseAuthResult {
 				setAuthNotice(null);
 			}
 		})();
-	}
+	}, []);
 
-	function startLocalDevSession(): void {
+	const startLocalDevSession = useCallback((): void => {
 		if (typeof window === 'undefined' || !isLocalDevAuthUiEnabled()) {
 			throw new Error(uiCopy.auth.localDevOnly);
 		}
@@ -788,14 +816,7 @@ export function useAuth(): UseAuthResult {
 				`${window.location.origin}${window.location.pathname}${window.location.search}`,
 			),
 		);
-	}
-
-	const bootstrapAuthContext = useEffectEvent(() => {
-		void refreshAuthContext();
-	});
-	const scheduleAuthRefresh = useEffectEvent(() => {
-		void refreshAuthContext();
-	});
+	}, []);
 
 	useEffect(() => {
 		if (hasBootstrappedAuthContextRef.current) {
@@ -833,25 +854,46 @@ export function useAuth(): UseAuthResult {
 		};
 	}, [bearerToken, scheduleAuthRefresh]);
 
-	return {
-		authContext,
-		authError,
-		authNotice,
-		authStatus,
-		authorizationRole: resolveAuthorizationRole(authContext),
-		bearerToken,
-		hasStoredBearerToken,
-		isAuthActionPending,
-		isAuthBootstrapPending,
-		isAuthPending: isAuthActionPending || isAuthBootstrapPending,
-		sessionState: resolveSessionState(sessionExpiresAt),
-		authenticateWithToken,
-		clearAuthToken,
-		loginWithPassword: loginWithPasswordAction,
-		logout: logoutAction,
-		refreshAuthContext,
-		signupWithPassword: signupWithPasswordAction,
-		startLocalDevSession,
-		startOAuthSignIn,
-	};
+	return useMemo(
+		() => ({
+			authContext,
+			authError,
+			authNotice,
+			authStatus,
+			authorizationRole: resolveAuthorizationRole(authContext),
+			bearerToken,
+			hasStoredBearerToken,
+			isAuthActionPending,
+			isAuthBootstrapPending,
+			isAuthPending: isAuthActionPending || isAuthBootstrapPending,
+			sessionState: resolveSessionState(sessionExpiresAt),
+			authenticateWithToken,
+			clearAuthToken,
+			loginWithPassword: loginWithPasswordAction,
+			logout: logoutAction,
+			refreshAuthContext,
+			signupWithPassword: signupWithPasswordAction,
+			startLocalDevSession,
+			startOAuthSignIn,
+		}),
+		[
+			authContext,
+			authError,
+			authNotice,
+			authStatus,
+			bearerToken,
+			hasStoredBearerToken,
+			isAuthActionPending,
+			isAuthBootstrapPending,
+			sessionExpiresAt,
+			authenticateWithToken,
+			clearAuthToken,
+			loginWithPasswordAction,
+			logoutAction,
+			refreshAuthContext,
+			signupWithPasswordAction,
+			startLocalDevSession,
+			startOAuthSignIn,
+		],
+	);
 }

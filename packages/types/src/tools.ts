@@ -1,25 +1,46 @@
+import type { AuthContext } from './auth.js';
+
 export type ToolNamespace =
+	| 'agent'
+	| 'browser'
 	| 'desktop'
 	| 'edit'
 	| 'file'
 	| 'git'
+	| 'memory'
 	| 'mcp'
 	| 'plugin'
 	| 'search'
 	| 'shell';
 
 export type KnownToolName =
+	| 'agent.delegate'
+	| 'browser.click'
+	| 'browser.extract'
+	| 'browser.fill'
+	| 'browser.navigate'
 	| 'desktop.click'
+	| 'desktop.clipboard.read'
+	| 'desktop.clipboard.write'
 	| 'desktop.keypress'
+	| 'desktop.launch'
 	| 'desktop.scroll'
 	| 'desktop.screenshot'
 	| 'desktop.type'
+	| 'desktop.verify_state'
+	| 'desktop.vision_analyze'
 	| 'edit.patch'
 	| 'file.list'
 	| 'file.read'
+	| 'file.share'
+	| 'file.watch'
 	| 'file.write'
 	| 'git.diff'
 	| 'git.status'
+	| 'memory.delete'
+	| 'memory.list'
+	| 'memory.save'
+	| 'memory.search'
 	| 'search.codebase'
 	| 'search.memory'
 	| 'search.grep'
@@ -34,7 +55,15 @@ export type ToolRiskLevel = 'low' | 'medium' | 'high';
 
 export type ToolSideEffectLevel = 'none' | 'read' | 'write' | 'execute';
 
-export type ToolCapabilityClass = 'desktop' | 'external' | 'file_system' | 'search' | 'shell';
+export type ToolCapabilityClass =
+	| 'agent'
+	| 'browser'
+	| 'desktop'
+	| 'external'
+	| 'file_system'
+	| 'memory'
+	| 'search'
+	| 'shell';
 
 export type ToolCallableScalarType = 'boolean' | 'number' | 'string';
 
@@ -74,12 +103,71 @@ export interface ToolArtifactRef {
 
 export interface ToolExecutionSignal {
 	readonly aborted: boolean;
+	readonly reason?: unknown;
+	addEventListener?(
+		type: 'abort',
+		listener: () => void,
+		options?: Readonly<{
+			readonly once?: boolean;
+		}>,
+	): void;
+	removeEventListener?(type: 'abort', listener: () => void): void;
+}
+
+export type AgentDelegateRole = 'coder' | 'researcher' | 'reviewer';
+
+export interface AgentDelegationRequest {
+	readonly context?: string;
+	readonly depth: number;
+	readonly max_turns: number;
+	readonly parent_run_id: string;
+	readonly role: AgentDelegateRole;
+	readonly task: string;
+	readonly tool_allowlist: readonly ToolName[];
+	readonly trace_id: string;
+}
+
+export interface AgentDelegationEvidence {
+	readonly label: string;
+	readonly value: string;
+}
+
+export interface AgentDelegationResult {
+	readonly evidence: readonly AgentDelegationEvidence[];
+	readonly role: AgentDelegateRole;
+	readonly status: 'completed' | 'failed';
+	readonly summary: string;
+	readonly turns_used: number;
 }
 
 export interface ToolExecutionContext {
+	readonly auth_context?: AuthContext;
+	readonly create_storage_download_url?: (input: {
+		readonly blob_id: string;
+		readonly filename?: string;
+	}) => {
+		readonly expires_at: string;
+		readonly url: string;
+	};
 	readonly desktop_bridge?: DesktopBridgeInvoker;
+	readonly delegate_agent?: (input: AgentDelegationRequest) => Promise<AgentDelegationResult>;
+	readonly metadata?: Readonly<Record<string, unknown>>;
 	readonly run_id: string;
 	readonly signal?: ToolExecutionSignal;
+	readonly storage_service?: {
+		upload_blob(input: {
+			readonly auth: AuthContext;
+			readonly content_base64: string;
+			readonly content_type: string;
+			readonly filename?: string;
+			readonly kind: 'tool_output';
+			readonly run_id?: string;
+			readonly trace_id?: string;
+		}): Promise<{
+			readonly blob_id: string;
+			readonly size_bytes: number;
+		}>;
+	};
 	readonly trace_id: string;
 	readonly working_directory?: string;
 }

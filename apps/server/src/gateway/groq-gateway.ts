@@ -7,6 +7,7 @@ import type {
 } from '@runa/types';
 
 import { createLogger } from '../utils/logger.js';
+import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
 import { postJson } from './provider-http.js';
@@ -138,12 +139,26 @@ interface GroqToolCallAccumulator {
 	tool_name?: string;
 }
 
-function buildAttachmentTextPart(attachment: Extract<ModelAttachment, { readonly kind: 'text' }>): {
+interface GroqToolCallParseIssue {
+	readonly call_id?: string;
+	readonly index: number;
+	readonly reason: 'invalid_call_id' | 'invalid_tool_input' | 'invalid_tool_name';
+	readonly tool_name?: string;
+}
+
+interface ParsedGroqToolCallCandidates {
+	readonly tool_call_candidate?: ModelResponse['tool_call_candidate'];
+	readonly tool_call_candidates?: ModelResponse['tool_call_candidates'];
+}
+
+function buildAttachmentTextPart(
+	attachment: Exclude<ModelAttachment, { readonly kind: 'image' }>,
+): {
 	readonly text: string;
 	readonly type: 'text';
 } {
 	return {
-		text: `Attached text file (${attachment.filename ?? attachment.blob_id}, ${attachment.media_type}):\n${attachment.text_content}`,
+		text: describeAttachmentForTextPart(attachment),
 		type: 'text',
 	};
 }
@@ -423,29 +438,104 @@ function buildGroqDebugContext(
 	};
 }
 
-function parseGroqToolCallCandidate(
-	response: GroqChatCompletionResponse,
-): ModelResponse['tool_call_candidate'] {
-	const firstToolCall = response.choices?.[0]?.message?.tool_calls?.[0];
-
-	if (!firstToolCall) {
-		return undefined;
+function resolveGroqToolCallParseIssue(
+	index: number,
+	toolCall: {
+		readonly function?: {
+			readonly arguments?: unknown;
+			readonly name?: unknown;
+		};
+		readonly id?: unknown;
+	},
+): GroqToolCallParseIssue {
+	if (typeof toolCall.id !== 'string' || toolCall.id.trim().length === 0) {
+		return {
+			index,
+			reason: 'invalid_call_id',
+			tool_name: typeof toolCall.function?.name === 'string' ? toolCall.function.name : undefined,
+		};
 	}
 
-	const candidate = parseToolCallCandidateParts({
-		call_id: firstToolCall.id,
-		tool_input: firstToolCall.function?.arguments,
-		tool_name: firstToolCall.function?.name,
-	});
+	if (
+		typeof toolCall.function?.name !== 'string' ||
+		toolCall.function.name.trim().length === 0 ||
+		!toolCall.function.name.includes('.')
+	) {
+		return {
+			call_id: toolCall.id,
+			index,
+			reason: 'invalid_tool_name',
+		};
+	}
 
-	if (!candidate) {
+	return {
+		call_id: toolCall.id,
+		index,
+		reason: 'invalid_tool_input',
+		tool_name: toolCall.function.name,
+	};
+}
+
+function parseGroqToolCallCandidates(
+	toolCalls:
+		| ReadonlyArray<{
+				readonly function?: {
+					readonly arguments?: unknown;
+					readonly name?: unknown;
+				};
+				readonly id?: unknown;
+		  }>
+		| undefined,
+	context: 'generate' | 'stream',
+): ParsedGroqToolCallCandidates {
+	if (toolCalls === undefined || toolCalls.length === 0) {
+		return {};
+	}
+
+	const candidates: Exclude<ModelResponse['tool_call_candidate'], undefined>[] = [];
+	const issues: GroqToolCallParseIssue[] = [];
+
+	for (const [index, toolCall] of toolCalls.entries()) {
+		const candidate = parseToolCallCandidateParts({
+			call_id: toolCall.id,
+			tool_input: toolCall.function?.arguments,
+			tool_name: toolCall.function?.name,
+		});
+
+		if (candidate) {
+			if (candidates.length < 5) {
+				candidates.push(candidate);
+			}
+
+			continue;
+		}
+
+		issues.push(resolveGroqToolCallParseIssue(index, toolCall));
+	}
+
+	if (issues.length > 0 && candidates.length === 0) {
 		throw new GatewayResponseError(
 			'groq',
-			'Groq response contained an invalid tool call candidate.',
+			`Groq ${context} response contained only invalid tool call candidates.`,
+			{
+				invalid_candidates: issues,
+			},
 		);
 	}
 
-	return candidate;
+	if (issues.length > 0) {
+		groqLogger.warn('gateway.tool_calls.partial_parse_failed', {
+			context,
+			invalid_candidates: issues,
+			total_tool_calls: toolCalls.length,
+			valid_candidates: candidates.length,
+		});
+	}
+
+	return {
+		tool_call_candidate: candidates[0],
+		tool_call_candidates: candidates.length > 0 ? candidates : undefined,
+	};
 }
 
 function parseGroqResponse(payload: unknown): ModelResponse {
@@ -457,9 +547,13 @@ function parseGroqResponse(payload: unknown): ModelResponse {
 	const choice = response.choices?.[0];
 	const content = choice?.message?.content;
 	const role = choice?.message?.role;
-	const toolCallCandidate = parseGroqToolCallCandidate(response);
+	const parsedToolCalls = parseGroqToolCallCandidates(choice?.message?.tool_calls, 'generate');
 	const messageContent =
-		typeof content === 'string' ? content : toolCallCandidate !== undefined ? '' : undefined;
+		typeof content === 'string'
+			? content
+			: parsedToolCalls.tool_call_candidate !== undefined
+				? ''
+				: undefined;
 
 	if (!response.model || !choice || typeof messageContent !== 'string' || role !== 'assistant') {
 		throw new GatewayResponseError(
@@ -477,7 +571,8 @@ function parseGroqResponse(payload: unknown): ModelResponse {
 		model: response.model,
 		provider: 'groq',
 		response_id: response.id,
-		tool_call_candidate: toolCallCandidate,
+		tool_call_candidate: parsedToolCalls.tool_call_candidate,
+		tool_call_candidates: parsedToolCalls.tool_call_candidates,
 		usage: {
 			input_tokens: response.usage?.prompt_tokens,
 			output_tokens: response.usage?.completion_tokens,
@@ -540,29 +635,19 @@ async function* parseGroqSseEvents(body: NonNullable<Response['body']>): AsyncIt
 
 function parseGroqToolCallAccumulator(
 	toolCallsByIndex: ReadonlyMap<number, GroqToolCallAccumulator>,
-): ModelResponse['tool_call_candidate'] {
-	const firstToolCall = [...toolCallsByIndex.entries()]
-		.sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
-		.map(([, toolCall]) => toolCall)[0];
-
-	if (!firstToolCall) {
-		return undefined;
-	}
-
-	const candidate = parseToolCallCandidateParts({
-		call_id: firstToolCall.call_id,
-		tool_input: firstToolCall.arguments_text,
-		tool_name: firstToolCall.tool_name,
-	});
-
-	if (!candidate) {
-		throw new GatewayResponseError(
-			'groq',
-			'Groq streaming response contained an invalid tool call candidate.',
-		);
-	}
-
-	return candidate;
+): ParsedGroqToolCallCandidates {
+	return parseGroqToolCallCandidates(
+		[...toolCallsByIndex.entries()]
+			.sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
+			.map(([, toolCall]) => ({
+				function: {
+					arguments: toolCall.arguments_text,
+					name: toolCall.tool_name,
+				},
+				id: toolCall.call_id,
+			})),
+		'stream',
+	);
 }
 
 export class GroqGateway implements ModelGateway {
@@ -737,7 +822,7 @@ export class GroqGateway implements ModelGateway {
 			finishReason = firstChoice?.finish_reason ?? finishReason;
 		}
 
-		const toolCallCandidate = parseGroqToolCallAccumulator(toolCallsByIndex);
+		const parsedToolCalls = parseGroqToolCallAccumulator(toolCallsByIndex);
 		const resolvedModel = responseModel ?? request.model ?? this.#config.defaultModel;
 
 		if (!resolvedModel) {
@@ -751,13 +836,19 @@ export class GroqGateway implements ModelGateway {
 			response: {
 				finish_reason: mapGroqFinishReason(finishReason),
 				message: {
-					content: outputText.length > 0 ? outputText : toolCallCandidate ? '' : outputText,
+					content:
+						outputText.length > 0
+							? outputText
+							: parsedToolCalls.tool_call_candidate
+								? ''
+								: outputText,
 					role: 'assistant',
 				},
 				model: resolvedModel,
 				provider: this.provider,
 				response_id: responseId,
-				tool_call_candidate: toolCallCandidate,
+				tool_call_candidate: parsedToolCalls.tool_call_candidate,
+				tool_call_candidates: parsedToolCalls.tool_call_candidates,
 				usage: {
 					input_tokens: inputTokens,
 					output_tokens: completionTokens,

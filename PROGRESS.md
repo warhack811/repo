@@ -7,21 +7,320 @@
 
 ## Mevcut Durum Ozeti
 
-- **Tarih:** 23 Nisan 2026
-- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, GAP-12 ilk secure bridge slice'i acildi
+- **Tarih:** 27 Nisan 2026
+- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, GAP-12 desktop-agent bridge/input/launch shell zemini ilerledi
 - **Vizyon:** Basit kullanicidan teknik uzmana kadar herkesin kullanabilecegi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI calisma ortagi.
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
-- **Son Onemli Olay:** 2026-04-23 tarihinde desktop tarafi icin "local daemon" anlatimi, bugunku secure bridge gercegi ile toplantida netlesen "desktop app + signed-in device presence + secure remote control" hedefi arasindaki ayrimi koruyacak sekilde ana dokumanlarda hizalandi.
+- **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
 
-### Track C / UI Foundation Phase 12 - First-run API Graceful Handling - 24 Nisan 2026
+### Root TASK / UI-PHASE Closure Audit - 27 Nisan 2026
 
-- Root cause: `/conversations` ve `/desktop/devices` server route'lari main icinde zaten vardi; browser smoke'daki 404'lerin ana nedeni Vite dev proxy'nin `/auth` ve `/ws` disinda bu HTTP route'larini server'a yonlendirmemesiydi. Conversation tarafinda ek olarak persistence konfiguru olmayan first-run dev oturumunda liste endpoint'i gereksiz sert hata verebiliyordu.
-- Secilen cozum: mixed server + web integration fix. `apps/web/vite.config.ts` icinde `/conversations` ve `/desktop` proxy entry'leri eklendi. `apps/server/src/routes/conversations.ts` yalniz `ConversationStoreConfigurationError` icin `200 { conversations: [] }` donecek sekilde daraltildi; 401/403/500 sinifi gercek okuma/yazma hatalari yutulmadi.
-- Degisen dosyalar: `apps/web/vite.config.ts`, `apps/server/src/routes/conversations.ts`, `apps/server/src/app.test.ts`, `PROGRESS.md`.
-- Browser smoke sonucu: local dev auth ile `/chat`, `/account`, `/developer`, `/dashboard -> /chat`, `/settings -> /account`, `/chat` route dongusu calisti. Browser icinden direkt fetch kontrolunde `/conversations` `200 {"conversations":[]}` ve `/desktop/devices` `200 {"devices":[]}` dondu; hedef endpoint 404'u, gorunur conversation 404 metni ve `Maximum update depth exceeded` uyarisi gorulmedi. Chat composer textarea usable kaldi.
-- PR #5 patch notu: `/conversations` icin first-run no-config empty davranisi korunurken `ConversationStoreConfigurationError` fallback'i yalniz DB URL env'leri gercekten yokken calisacak sekilde daraltildi. DB config mevcut gorunurken gelen conversation configuration error'lari artik empty list'e cevrilmiyor; hedefli `dist/app.test.js` coverage'i bu ayrimi kanitliyor.
-- Kalan durum: full `@runa/server test` route degisikliginden bagimsiz eski fixture satir sonu farkinda takiliyor (`dist/tools/file-read.test.js` sample fixture CRLF/LF farki). Hedefli `dist/app.test.js` yesil.
-- Sonraki onerilen gorev: copy polish veya modal visual harness; runtime/WS/RenderBlock davranisini yeniden acmadan ilerlemek.
+- Kokteki `TASK-01` ... `TASK-12` ve `UI-PHASE-1` ... `UI-PHASE-7` belgeleri, mevcut `PROGRESS.md` kapanis notlari ve repo dosyalariyla tekrar karsilastirildi. Yeni kod patch'i gerektiren test/build/lint kirigi bulunmadi.
+- Gunluk kod sagligi tekrar dogrulandi:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/db typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd --filter @runa/db build` PASS
+  - `$env:GO_BIN='C:\Program Files\Go\bin\go.exe'; pnpm.cmd --filter @runa/desktop-agent build` PASS
+- Targeted root-task test audit yesil:
+  - Vision/search/browser/parallel scheduler: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/desktop-vision-analyze.test.ts src/tools/desktop-verify-state.test.ts src/tools/web-search.test.ts src/runtime/tool-scheduler.test.ts src/tools/browser-manager.test.ts src/tools/browser-navigate.test.ts src/tools/browser-extract.test.ts src/tools/browser-click.test.ts src/tools/browser-fill.test.ts` PASS (`9` dosya / `38` test)
+  - Desktop utility/MCP/structured output: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/desktop-clipboard.test.ts src/tools/desktop-launch.test.ts src/tools/file-watch.test.ts src/mcp/http-transport.test.ts src/mcp/client.test.ts src/mcp/registry-bridge.test.ts src/presentation/output-parser.test.ts` PASS (`7` dosya / `38` test)
+  - Memory/multi-agent: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/memory-tools.test.ts src/context/compose-memory-context.test.ts src/context/build-memory-prompt-layer.test.ts src/context/orchestrate-memory-read.test.ts src/runtime/sequential-sub-agent.test.ts src/runtime/sub-agent-scheduler.test.ts src/tools/agent-delegate.test.ts` PASS (`7` dosya / `29` test)
+  - Upload/file-share/download: `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/routes/upload.test.ts src/gateway/gateway.test.ts src/ws/live-request.test.ts src/tools/file-share.test.ts src/storage/storage-routes.test.ts src/presentation/map-file-download.test.ts` PASS (`6` dosya / `75` test)
+  - Web/UI polish/file upload: `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/pages/FirstImpressionPolish.test.tsx src/components/chat/ChatFirstShell.test.tsx src/components/chat/ConversationSidebar.test.tsx src/components/desktop/DevicePresencePanel.test.tsx src/components/settings/ProjectMemorySummary.test.tsx src/components/chat/UIPhase5Surfaces.test.tsx src/components/chat/blocks/BlockRenderer.test.tsx src/lib/motion.test.ts src/components/chat/FileUploadButton.test.ts` PASS (`9` dosya / `21` test)
+  - Desktop native input: `pnpm.cmd --filter @runa/desktop-agent exec vitest run --configLoader runner src/native-input-driver.test.ts src/go-sidecar-input-driver.test.ts` PASS (`2` dosya / `7` test)
+  - DB unit/RLS schema: `pnpm.cmd --filter @runa/db test -- src/rls.test.ts src/schema.test.ts src/smoke.test.ts` PASS (`3` dosya / `15` test)
+- Biome/lint audit yesil:
+  - `pnpm.cmd --filter @runa/server lint` PASS
+  - `pnpm.cmd --filter @runa/web exec biome check src` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent exec biome check src electron scripts package.json electron-builder.yml NATIVE-INPUT-STRATEGY.md ELECTRON-DEPENDENCY-RFC.md` PASS
+  - `pnpm.cmd --filter @runa/db exec biome check src scripts` PASS
+  - `pnpm.cmd --filter @runa/types exec biome check src` PASS
+- Live/proof audit:
+  - `pnpm.cmd --filter @runa/server exec node scripts/local-file-transfer-proof.mjs` PASS; signed relative download, invalid signature `403` ve user-scope denial kanitlandi.
+  - `pnpm.cmd --filter @runa/desktop-agent exec node scripts/benchmark-native-input-go.mjs` PASS; `scroll_noop` native sidecar benchmark sonucu `average_ms=2.025`, `p95_ms=0.893`, `max_ms=43.056`, `iterations=25`.
+  - Serper live audit `.env` icindeki `SERPER_API_KEY` ile PASS; `organic` ve `news` aramalari Serper'dan `2` sonuc dondurdu. Bu iki canli sorguda answer box / knowledge graph provider tarafindan donmedi; ilgili parser davranisi deterministic unit testlerle kanitli.
+- Bloklu veya release-gunu tekrar kosulmasi gereken kanitlar:
+  - Docker Desktop bu ortamda acik degil: `docker compose ps` ve `docker compose up -d postgres` Docker engine pipe bulunamadigi icin FAIL/BLOCKED. Bu nedenle `packages/db/scripts/local-memory-rls-proof.mjs` bu oturumda FAIL verdi; daha onceki local proof tekrar edilemedi.
+  - LM Studio `localhost:1234` bu oturumda cevap vermiyor. `pnpm.cmd --filter @runa/server exec node scripts/lmstudio-vision-smoke.mjs` `fetch failed` ile FAIL; vision implementation unit/integration testleri yesil olsa da canli local model smoke bugunku ortamda tekrar kanitlanmadi.
+  - `TASK-09C` icin gercek mouse click / keyboard injection canli smoke'u kosulmadi; guvenli `scroll_noop` benchmark ve health path yesil. Gercek input rehearsal kullanici kontrollu hedef pencere/focus ile release gunu kosulmali.
+  - `TASK-12C` browser click/download E2E ve Supabase cloud bucket/CDN kaniti bu audit turunda kosulmadi; local signed-download proof ve route tests yesil.
+  - `UI-PHASE-7` Lighthouse skoru halen kosulmadi; onceki a11y smoke ve bu turdaki web test/build/Biome yesil.
+- Sonuc: Kok task/UI-PHASE belgelerinin kod/test/build/lint tarafinda bugunku audit icin yeni patch gerektiren eksigi bulunmadi. "Eksiksiz ve kusursuz production closure" iddiasi icin Docker local DB/RLS proof, LM Studio veya hedef cloud vision live smoke, gercek desktop input rehearsal, browser download E2E ve Lighthouse gibi ortam/proof kapilari ayrica yesil yapilmalidir.
+
+### Track C - First-Impression Polish Pass - 27 Nisan 2026
+
+- `apps/web` odakli first-impression polish pass tamamlandi. Server/runtime/types/db/desktop-agent/package/lockfile davranisina dokunulmadi; kapsam login, empty chat, composer, sidebar error copy, account/settings, device presence, project memory ve CSS polish ile sinirli tutuldu.
+- `LoginPage` ilk ekranda `principal`, `transport`, `stored token seam` gibi ham auth/operator etiketlerini gostermeyecek sekilde sade giris akisiyle toparlandi. Yerel gelistirme oturumu, token dogrulama, auth refresh ve token clear aksiyonlari davranisi korunarak kapali `Gelistirici girisi` detayina tasindi; e-posta/OAuth normal giris yolu onde kaldi.
+- `EmptyState` ve `ChatComposerSurface` ilk prompt deneyimi icin daha dogal is baslatan copy ile guncellendi. Developer/runtime eksikligi ve default baglanti uyarilari yalniz Developer Mode acikken gorunur; attachment ve error copy'si daha az teknik hale getirildi.
+- `SettingsPage` teknik session kartini varsayilan account yuzeyinden cikardi; account, ses tercihleri, device presence, project memory ve developer secondary-layer bolumleri daha sakin ayrildi. Device presence ve project memory fake success uretmeden bos/unavailable durumlarini urun diliyle gosteriyor.
+- `ConversationSidebar` real browser QA sirasinda yakalanan ham JSON/500 hata sizintisini yumusatti: `/conversations` 500 donse bile varsayilan yuzeyde `Internal Server Error` / `statusCode` gosterilmiyor, kullanici dostu hata metni cikiyor.
+- Yeni/updated coverage: `apps/web/src/pages/FirstImpressionPolish.test.tsx`, `ConversationSidebar.test.tsx`, `ChatFirstShell.test.tsx`, `DevicePresencePanel.test.tsx`, `ProjectMemorySummary.test.tsx`.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/pages/FirstImpressionPolish.test.tsx src/components/chat/ChatFirstShell.test.tsx src/components/chat/ConversationSidebar.test.tsx src/components/desktop/DevicePresencePanel.test.tsx src/components/settings/ProjectMemorySummary.test.tsx` PASS (`5` dosya / `10` test)
+  - `pnpm.cmd --filter @runa/web exec biome check src/pages/LoginPage.tsx src/pages/SettingsPage.tsx src/pages/FirstImpressionPolish.test.tsx src/components/auth/AuthModeTabs.tsx src/components/chat/EmptyState.tsx src/components/chat/ChatComposerSurface.tsx src/components/chat/ChatFirstShell.test.tsx src/components/chat/ConversationSidebar.tsx src/components/chat/ConversationSidebar.test.tsx src/components/desktop/DevicePresencePanel.tsx src/components/desktop/DevicePresencePanel.test.tsx src/components/settings/ProjectMemorySummary.tsx src/components/settings/ProjectMemorySummary.test.tsx src/index.css` PASS
+  - `pnpm.cmd --filter @runa/web build` PASS
+- Browser QA: local server + web dev server ile `http://localhost:5173/` acildi. In-app browser real-server smoke'ta login ve chat render edildi; local DB olmadigi icin `/conversations` 500 donmesine ragmen sidebar'da ham JSON hata gorunmedigi dogrulandi. Docker Desktop bu ortamda calismadigi icin local Postgres ayaga kaldirilamadi.
+- Screenshot QA: Playwright ile `320x700`, `768x900`, `1440x1000` viewports icin login/chat/account yuzeyleri kosuldu; `/conversations` ve `/desktop/devices` GET istekleri bos listeyle stub'lanarak UI first-impression yuzeyi izole edildi. Console error/pageerror `0`; ham `principal`, `stored token seam`, `Mevcut tarayici auth durumu`, `Raw Transport`, `Model Override`, `minimum seam`, `Internal Server Error`, `statusCode` metinleri gorunmedi. Kanitlar: `.codex-screenshots/first-impression-polish/320x700-login.png`, `320x700-chat.png`, `320x700-account.png`, `768x900-login.png`, `768x900-chat.png`, `768x900-account.png`, `1440x1000-login.png`, `1440x1000-chat.png`, `1440x1000-account.png`, `browser-qa-summary.json`.
+- Durust kalan durum: Bu pass UI first-impression kalitesini kapatir; full production browser QA icin local/cloud DB'nin calisir olmasi ve gercek `/conversations` endpoint'inin 500 donmemesi ayrica dogrulanmali.
+
+### Track C - TASK-09A/09B Native Input Strategy + Driver Abstraction - 26 Nisan 2026
+
+- `TASK-09-NATIVE-INPUT-NUTJS.md` kapsaminda native dependency eklemeden once gereken mini-RFC ve abstraction seam'i kapatildi. `apps/desktop-agent/NATIVE-INPUT-STRATEGY.md` Nut.js'e kilitlenmeden PowerShell, Nut.js, Go sidecar ve Rust sidecar seceneklerini Windows-first packaging, crash isolation, benchmark ve approval etkisiyle karsilastiriyor.
+- RFC onerisi: PowerShell mevcut guvenli fallback olarak kalacak; ilk native acceleration deneyi icin Go sidecar oneriliyor. Gerekce: Electron ABI/native module rebuild riskini Nut.js'e gore azaltmasi, crash isolation'i process boundary ile saglamasi ve packaging/signing/AV kanitini explicit sidecar kontratina tasimasi.
+- `apps/desktop-agent/src/native-input-driver.ts` ile `DesktopNativeInputDriver`, `ClickInput`, `TypeInput`, `KeypressInput`, `ScrollInput`, `NativeInputHealth` ve mevcut `DesktopAgentInputExecutionResult` contract'i ayrildi. Bu, ileride native driver eklenirken server-side desktop tools veya WS kontratlarini degistirmeden ilerleme zemini kuruyor.
+- `apps/desktop-agent/src/powershell-input-driver.ts` mevcut Windows PowerShell input implementation'ini driver adapter olarak sarar hale getirildi. `apps/desktop-agent/src/input.ts` validasyon + dispatch katmanina inceltildi; mevcut `desktop.click`, `desktop.type`, `desktop.keypress`, `desktop.scroll` output contract'i korunuyor ve success metadata'sina `driver_kind: powershell` ekleniyor.
+- Crash/timeout yolu sertlestirildi: driver artik `ETIMEDOUT` hatasini `TIMEOUT` + `retryable=true` typed sonucuna ceviriyor; invalid input driver spawn etmeden reddediliyor; unsupported platform mevcut typed error yolunu koruyor.
+- `apps/desktop-agent/src/native-input-driver.test.ts` eklendi: PowerShell driver routing, invalid input pre-driver rejection, timeout mapping ve health metadata test edildi.
+- Degistirilmeyen alanlar: `apps/server/src/tools/desktop-*.ts`, `packages/types/src/ws.ts`, `apps/desktop-agent/src/session.ts`, `apps/desktop-agent/src/auth.ts`, `apps/desktop-agent/src/ws-bridge.ts` davranisina dokunulmadi. Yeni native dependency, sidecar binary veya packaging build step'i eklenmedi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd exec vitest run apps/desktop-agent/src/native-input-driver.test.ts --environment node` PASS (`4` test)
+  - `pnpm.cmd exec biome check apps/desktop-agent/src/input.ts apps/desktop-agent/src/native-input-driver.ts apps/desktop-agent/src/powershell-input-driver.ts apps/desktop-agent/src/native-input-driver.test.ts apps/desktop-agent/src/index.ts apps/desktop-agent/NATIVE-INPUT-STRATEGY.md` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent build` PASS
+- Durust kalan durum: `TASK-09C` bilincli olarak acilmadi. Belgeye gore native driver yalniz RFC kabulunden ve dependency/sidecar onayindan sonra uygulanabilir; bu turda bu onay verilmeden Nut.js/Go/Rust dependency eklenmedi ve benchmark/native-driver claim'i yazilmadi. Sonraki adim: RFC kabul edilirse Go sidecar IPC/lifecycle/timeout/heartbeat/kill cleanup ve gercek benchmark gorevi acilmali.
+
+### Track C - TASK-09C Go Sidecar Native Input Driver - 26 Nisan 2026
+
+- User kararina gore `TASK-09C` icin secilen native path Go sidecar olarak uygulandi. Nut.js/native Node binding eklenmedi; PowerShell driver guvenli fallback olarak korunuyor.
+- `apps/desktop-agent/sidecars/native-input-go/` altinda Windows-first tek binary sidecar eklendi. JSON-lines stdin/stdout IPC protokolu `health`, `click`, `type`, `keypress`, `scroll` komutlarini destekliyor; native input tarafinda `user32.dll` API'leri kullaniliyor.
+- `apps/desktop-agent/scripts/build-native-input-go.mjs` build seami eklendi ve `apps/desktop-agent/package.json` build zinciri sidecar'i `dist-electron/sidecars/native-input-go.exe` altina uretir hale getirildi. `electron-builder.yml` icindeki mevcut `dist-electron/**/*` paketi sidecar'i release artefact'ina dahil edecek sekilde yeterli kaldi.
+- `apps/desktop-agent/src/go-sidecar-input-driver.ts` eklendi. Driver binary discovery, persistent child process lifecycle, request id/pending map, timeout, dispose/kill cleanup ve typed error mapping sagliyor. `RUNA_DESKTOP_INPUT_DRIVER=go_sidecar` veya dependency injection ile secilebiliyor; default driver davranisi backward-compatible olarak PowerShell kaldi.
+- Crash/timeout/abort coverage eklendi: missing binary `health()` sonucu `unavailable` donuyor; fake sidecar spawn ile explicit Go driver dispatch test edildi; sessiz sidecar timeout oldugunda process kill cleanup kanitlandi.
+- Benchmark/proof: `apps/desktop-agent/scripts/benchmark-native-input-go.mjs` derlenmis sidecar'a guvenli `scroll_noop` komutu gondererek IPC/native command yolunu olctu. Canli sonuc: `average_ms=0.674`, `p95_ms=0.411`, `max_ms=14.756`, `iterations=25`, `result=PASS`.
+- Live sidecar health smoke derlenmis binary uzerinden PASS verdi: `{"id":"health-1","status":"success","output":{"capabilities":["click","type","keypress","scroll"],"kind":"go_sidecar","platform":"windows"}}`.
+- Dogrulama:
+  - `$env:GO_BIN='C:\Program Files\Go\bin\go.exe'; pnpm.cmd --filter @runa/desktop-agent run build:sidecar` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent exec vitest run --configLoader runner src/native-input-driver.test.ts src/go-sidecar-input-driver.test.ts` PASS (`2` dosya / `7` test)
+  - `pnpm.cmd --filter @runa/desktop-agent exec biome check src/go-sidecar-input-driver.ts src/go-sidecar-input-driver.test.ts src/input.ts src/native-input-driver.ts src/native-input-driver.test.ts src/index.ts package.json scripts/build-native-input-go.mjs scripts/benchmark-native-input-go.mjs` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent exec node scripts/benchmark-native-input-go.mjs` PASS
+  - `$env:GO_BIN='C:\Program Files\Go\bin\go.exe'; pnpm.cmd --filter @runa/desktop-agent build` PASS
+- Durust kalan durum: benchmark guvenli `scroll_noop` komutuyla kosuldu; gercek mouse click/keyboard injection canli smoke'u bu turda bilincli olarak kosulmadi, cunku mevcut desktop focus'unu degistirip kullanici ortaminda istenmeyen etki yaratabilir. Driver ve sidecar command path'i test/proof seviyesinde kapandi; release gunu signing/AV ve gercek packaged-runtime input rehearsal ayrica kosulmali.
+
+### Track A / Track C - TASK-02 Local-First Vision Strategy Refresh - 26 Nisan 2026
+
+- User kararina gore vision smoke stratejisi local-first olarak netlestirildi: LM Studio / OpenAI-compatible endpoint development proof icin birinci yol; production/cloud provider gecisi daha sonra endpoint/key degisimiyle yapilacak.
+- `apps/server/src/gateway/openai-gateway.ts` guvenli default'u koruyarak genisletildi. Loopback LM Studio endpoint'leri varsayilan olarak calisir; non-loopback OpenAI-compatible endpoint yalniz `RUNA_OPENAI_COMPAT_ALLOW_REMOTE=1` ile acilir. Boylece local dev kapisi acik, remote override ise explicit kalir.
+- `.env.server.example` ve `.env-örnek` icine local vision smoke alanlari eklendi: `OPENAI_API_KEY`, `RUNA_OPENAI_BASE_URL`, `LMSTUDIO_BASE_URL`, `LMSTUDIO_MODEL`, `LMSTUDIO_API_KEY`, `RUNA_OPENAI_COMPAT_ALLOW_REMOTE`.
+- Mevcut `desktop.vision_analyze` ve `desktop.verify_state` tool contract'i korunarak test edildi. Tool'lar screenshot artifact uydurmuyor; onceki `desktop.screenshot` sonucundan gercek PNG attachment cozerse `ModelGateway.generate()` uzerinden analiz/verify yapiyor.
+- Live LM Studio preflight PASS: `http://localhost:1234/v1/models` qwen model listesini dondurdu; canli smoke `LMSTUDIO_MODEL=qwen/qwen3.5-9b` ile kosuldu. Model id'de "vision" yazmiyor, fakat LM Studio OpenAI-compatible endpoint image attachment kabul etti ve smoke PASS verdi.
+- Live smoke sonucu: `desktop.vision_analyze` kirmizi buton icin `visibility=visible`, `confidence=0.95`, `requires_user_confirmation=true` dondu; `desktop.verify_state` sonraki screenshot icin `verified=true` ve yesil success panel degisimini gozlemledi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/desktop-vision-analyze.test.ts src/tools/desktop-verify-state.test.ts src/gateway/gateway.test.ts` PASS (`3` dosya / `65` test)
+  - `pnpm.cmd --filter @runa/server exec tsc --noEmit` PASS
+  - `pnpm.cmd --filter @runa/server exec biome check src/tools/desktop-vision-analyze.ts src/tools/desktop-vision-analyze.test.ts src/tools/desktop-verify-state.ts src/tools/desktop-verify-state.test.ts src/tools/registry.ts src/context/compose-context.ts src/gateway/openai-gateway.ts src/gateway/gateway.test.ts scripts/lmstudio-vision-smoke.mjs ../../packages/types/src/tools.ts ../../.env.server.example ../../.env-örnek` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `$env:LMSTUDIO_BASE_URL='http://localhost:1234/v1'; $env:LMSTUDIO_MODEL='qwen/qwen3.5-9b'; $env:LMSTUDIO_API_KEY='lmstudio-local'; pnpm.cmd --filter @runa/server exec node scripts/lmstudio-vision-smoke.mjs` PASS
+- Durust kalan durum: bu proof local/dev LM Studio smoke'tur; cloud Gemini/OpenAI production quality veya signed desktop release claim'i yapmaz. Yayin gunu hedef cloud provider icin ayri live credential + live smoke PASS gerekecek.
+
+### Track A / Track B - TASK-08 Local Memory RLS Proof - 26 Nisan 2026
+
+- `TASK-08-SEMANTIC-MEMORY.md` icindeki privacy-first memory hattinin local DB/RLS kaniti icin `packages/db/scripts/local-memory-rls-proof.mjs` eklendi. Urun runtime davranisi genisletilmedi; script local proof icin transactional calisir ve sonunda rollback yapar.
+- Proof script'i gercek `memories` tablosunu kullanir, `tenant_id`, `workspace_id`, `user_id` scope kolonlarini garanti eder, transaction icinde RLS'i enable/force eder ve `memories_select_rls_probe_policy` ile tenant/user izolasyonu uygular.
+- RLS bypass riskini azaltmak icin transaction icinde ayrik `runa_memory_rls_probe_user` role'u olusturulur, yalniz `SELECT` yetkisi verilir ve `SET LOCAL ROLE` ile non-owner okuma yapilir. Proof role, policy ve proof rows rollback ile temizlenir.
+- Local Docker Postgres 5432 dolu oldugu icin `POSTGRES_PORT=55432` ile kaldirildi. Canli proof PASS: `LOCAL_MEMORY_RLS_PROOF {"database_url_host":"localhost:55432","proof_table":"memories","result":"PASS","rls_policy":"memories_select_rls_probe_policy","rollback":true,"visible_counts":{"tenant_a_user_a":1,"tenant_a_user_b":1,"tenant_b_user_a":1}}`.
+- Memory tool privacy coverage tekrar dogrulandi: explicit save, sensitive content rejection, inferred/conversation consent gate, list/search provenance ve same-scope soft delete davranisi yesil.
+- Dogrulama:
+  - `$env:POSTGRES_PORT='55432'; docker compose up -d postgres` PASS
+  - `$env:DATABASE_URL='postgresql://runa:runa@localhost:55432/runa'; pnpm.cmd --filter @runa/db exec node scripts/local-memory-rls-proof.mjs` PASS
+  - `pnpm.cmd --filter @runa/db typecheck` PASS
+  - `pnpm.cmd --filter @runa/db test -- src/rls.test.ts src/schema.test.ts src/smoke.test.ts` PASS (`3` dosya / `15` test)
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/memory-tools.test.ts src/context/compose-memory-context.test.ts src/context/build-memory-prompt-layer.test.ts src/context/orchestrate-memory-read.test.ts` PASS (`4` dosya / `19` test)
+  - `pnpm.cmd --filter @runa/db build` PASS
+  - `pnpm.cmd --filter @runa/server exec biome check src/tools/memory-save.ts src/tools/memory-search.ts src/tools/memory-delete.ts src/tools/memory-list.ts src/tools/memory-tool-policy.ts src/tools/memory-tools.test.ts src/context/compose-memory-context.ts src/context/compose-memory-context.test.ts src/context/build-memory-prompt-layer.ts src/context/build-memory-prompt-layer.test.ts src/context/orchestrate-memory-read.ts src/context/orchestrate-memory-read.test.ts ../../packages/db/src/rls.ts ../../packages/db/src/rls.test.ts ../../packages/db/scripts/local-memory-rls-proof.mjs` PASS
+- Durust kalan durum: full semantic embedding provider/RFC ve inferred memory UI bu proof'un kapsami degil. Bu closure explicit/privacy memory + local DB/RLS izolasyon kanitidir.
+
+### Track B / Track C - TASK-12 Local File Transfer / Signed Download Proof - 26 Nisan 2026
+
+- `TASK-12-FILE-TRANSFER.md` icindeki file share + scoped signed download hattina local proof script'i eklendi: `apps/server/scripts/local-file-transfer-proof.mjs`.
+- Script gercek `file.share` tool'unu local in-memory `StorageService` ile calistirir, signed relative download URL uretir, `/storage/download/:id` route'unu Fastify inject ile indirir, bad signature icin 403 bekler ve cross-user storage access'in ownership mismatch ile reddedildigini kanitlar.
+- Canli proof PASS: `LOCAL_FILE_TRANSFER_PROOF {"blob_id":"blob_local_file_transfer_proof","content_disposition":"attachment; filename=\"proof.md\"","download_status":200,"expires_at":"2026-04-26T14:55:00.000Z","filename":"proof.md","invalid_signature_status":403,"result":"PASS","size_bytes":67,"storage_ref":"blob_local_file_transfer_proof","url_is_relative":true,"user_scope_denied":true}`.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/server exec node scripts/local-file-transfer-proof.mjs` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/file-share.test.ts src/storage/storage-routes.test.ts src/presentation/map-file-download.test.ts` PASS (`3` dosya / `9` test)
+  - `pnpm.cmd --filter @runa/server exec biome check scripts/local-file-transfer-proof.mjs` PASS
+- Durust kalan durum: bu proof local/in-memory storage adapter ile kosuldu; Supabase cloud bucket credential'i veya production CDN/browser download E2E claim'i degildir. Security contract tarafinda public/suresiz URL uretilmedigi, imza dogrulandigi ve user scope korundugu kanitlandi.
+
+### Track A - TASK-11A Run-Scoped Cancellation Foundation - 26 Nisan 2026
+
+- `TASK-11-MULTI-AGENT.md` icindeki 11A cancellation foundation kapatildi. Full multi-agent veya `agent.delegate` tool'u acilmadi; once parent/child cancellation, tool abort signal propagation ve process cleanup zemini kuruldu.
+- `packages/types/src/tools.ts` icindeki `ToolExecutionSignal` runtime-only signal seami `reason`, `addEventListener` ve `removeEventListener` ile genisletildi. Mevcut `aborted` flag'i korundu; tool contract'i serializable payload haline getirilmedi.
+- `apps/server/src/runtime/run-cancellation.ts` eklendi. `RunCancellationScope` parent run icin `AbortController` lifecycle'ini, agent-loop cancellation signal'ini ve tool execution signal'ini tek yerde topluyor. Child scope fan-out destekleniyor; parent cancel edilince child scope'lar da cancel ediliyor.
+- `apps/server/src/runtime/process-registry.ts` eklendi. Run-scoped process registry child process handle'larini run_id ile kaydediyor, cancel cleanup'ta Windows icin injectable process-tree killer seam'i ve fallback `kill('SIGTERM')` yollariyla zombie process riskini hedefliyor. Default Windows path `taskkill /PID <pid> /T /F` olarak tanimli; testler deterministic injectable killer ile kosuldu.
+- `apps/server/src/runtime/run-agent-loop.ts` artik `RunCancellationScope` tarafindan saglanan tool signal'i `ToolExecutionContext.signal` icine otomatik thread ediyor; caller zaten explicit signal vermisse mevcut signal korunuyor. `agent-loop.ts` cancellation interface'i additive `tool_signal` alanini kabul ediyor.
+- `apps/server/src/runtime/run-cancellation.test.ts` eklendi: parent cancel -> child scope cancel -> child process cleanup path'i, process registry unregister davranisi ve `runAgentLoop` icinden tool execution context'e ayni cancellation signal'in tasinmasi test edildi.
+- Degistirilmeyen alanlar: gateway provider implementasyonlari, desktop-agent, web, approval policy ve mevcut stop condition semantigi yeniden tasarlanmadi. Multi-agent depth/allowlist/delegation 11B'ye birakildi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/runtime/run-cancellation.test.ts` PASS (`2` test)
+  - `pnpm.cmd --filter @runa/server exec tsc --noEmit` PASS
+  - `pnpm.cmd --filter @runa/server exec biome check src/runtime/run-cancellation.ts src/runtime/process-registry.ts src/runtime/run-cancellation.test.ts src/runtime/run-agent-loop.ts src/runtime/agent-loop.ts ../../packages/types/src/tools.ts` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/runtime/agent-loop.test.ts src/runtime/run-agent-loop.test.ts src/runtime/run-model-turn-loop-adapter.test.ts src/runtime/run-cancellation.test.ts` PASS (`31` test)
+- Durust kalan durum: 11B henuz acilmadi; sub-agent max_turns/budget/allowlist/depth ve approval-required tool default-deny davranisi `agent.delegate` tool'u ile birlikte uygulanmali. 11A yalniz lifecycle ve cleanup temelini kapatir.
+
+### Track A - TASK-11B Sequential `agent.delegate` Foundation - 26 Nisan 2026
+
+- `TASK-11-MULTI-AGENT.md` icindeki 11B sequential delegation zemini kapatildi. Parallel delegation/swarm acilmadi; nested sub-agent depth hard-deny ve role-based conservative allowlist ile sinirli tek delegation tool'u eklendi.
+- `packages/types/src/tools.ts` `agent` namespace'i ve `agent.delegate` known tool'u ile genisletildi. `AgentDelegateRole`, `AgentDelegationRequest`, `AgentDelegationResult` ve `ToolExecutionContext.delegate_agent` contract'i eklendi. `ToolExecutionContext.metadata.sub_agent_depth` gibi runtime-only metadata tasimaya izin verecek dar optional metadata alani acildi.
+- `apps/server/src/runtime/sub-agent-runner.ts` role bazli delegation plan seami olarak eklendi. `researcher`, `reviewer`, `coder` rolleri icin allowlist conservative tutuldu: approval-required, desktop, browser, shell, write ve execute tool'lar default olarak sub-agent'a verilmiyor. Default sub-agent `max_turns=8`, max depth `1`.
+- `apps/server/src/tools/agent-delegate.ts` eklendi ve `apps/server/src/tools/registry.ts` built-in registry'ye baglandi. Tool input'u yalniz `sub_agent_role`, `task`, opsiyonel `context` kabul ediyor; nested delegation `PERMISSION_DENIED` donuyor. Runtime context `delegate_agent` handler saglarsa sequential delegation sonucunu `summary`, `evidence`, `turns_used` ile donduruyor; handler yoksa acik `sub_agent_runner_unavailable` sonucu uretiyor.
+- `apps/server/src/runtime/tool-scheduler.ts` `agent` effect/resource class'ini taniyor; agent delegation read-only parallel batch'e karismiyor ve sequential resource olarak planlaniyor.
+- Test coverage:
+  - `apps/server/src/tools/agent-delegate.test.ts`: bounded reviewer delegation, depth deny, allowlist'in high-risk/approval-required tool icermemesi ve built-in registry wiring.
+  - Mevcut `tool-scheduler`, `registry`, `agent-loop`, `run-agent-loop` testleriyle adjacent runtime davranisi tekrar dogrulandi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec tsc --noEmit` PASS
+  - `pnpm.cmd --filter @runa/server exec biome check src/tools/agent-delegate.ts src/tools/agent-delegate.test.ts src/tools/registry.ts src/runtime/sub-agent-runner.ts src/runtime/tool-scheduler.ts src/runtime/run-cancellation.ts src/runtime/process-registry.ts src/runtime/run-cancellation.test.ts src/runtime/run-agent-loop.ts src/runtime/agent-loop.ts ../../packages/types/src/tools.ts` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/agent-delegate.test.ts src/runtime/run-cancellation.test.ts src/tools/registry.test.ts src/runtime/tool-scheduler.test.ts src/runtime/agent-loop.test.ts src/runtime/run-agent-loop.test.ts` PASS (`40` test)
+- Durust kalan durum: 11B, actual production sub-agent runner'ini WS runtime'a otomatik baglamaz; bunun icin runtime composition tarafinda `delegate_agent` handler saglanmasi gerekir. Parallel delegation 11C henuz acilmadi; max-2 scheduler, cancellation fan-out ve deterministic merge orada kapatilacak.
+
+### Track A - TASK-11C Parallel Sub-Agent Scheduler Foundation - 26 Nisan 2026
+
+- `TASK-11-MULTI-AGENT.md` icindeki 11C parallel delegation zemini, user-facing swarm acmadan internal scheduler olarak kapatildi. `agent.delegate` tool'u hala sequential ve conservative kaliyor; paralel davranis yalniz runtime scheduler seami olarak hazirlandi.
+- `apps/server/src/runtime/sub-agent-scheduler.ts` eklendi. Scheduler `ParallelSubAgentJob` listesini max `2` paralel is ile kosuyor; `max_parallel` daha buyuk verilse bile 2'ye clamp ediliyor. Her job kendi `AgentDelegationRequest.max_turns` degerini `DEFAULT_SUB_AGENT_MAX_TURNS` ustune cikaramiyor; boylece budget isolation temel davranisi enforce ediliyor.
+- Parent cancellation fan-out 11A scope'u uzerinden kullanildi: scheduler her job icin child `RunCancellationScope` olusturuyor, handler'a bu child scope'u veriyor ve parent cancel edildiginde child process cleanup chain'i calisabiliyor.
+- Deterministic merge semantigi eklendi: sub-agent'lar out-of-order tamamlansa bile sonuclar input order/index sirasiyla donuyor. Partial failure local tutuluyor; bir sub-agent throw ederse ilgili result `failed` olarak isaretleniyor ve diger tamamlanan sonuclar korunuyor.
+- `apps/server/src/runtime/sub-agent-scheduler.test.ts` eklendi: max-2 concurrency, out-of-order completion deterministic merge, partial failure semantics ve parent cancel -> child scope/process cleanup fan-out test edildi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec tsc --noEmit` PASS
+  - `pnpm.cmd --filter @runa/server exec biome check src/runtime/sub-agent-scheduler.ts src/runtime/sub-agent-scheduler.test.ts src/runtime/sub-agent-runner.ts src/tools/agent-delegate.ts src/tools/agent-delegate.test.ts src/runtime/run-cancellation.ts src/runtime/process-registry.ts src/runtime/run-cancellation.test.ts src/tools/registry.ts src/runtime/tool-scheduler.ts src/runtime/run-agent-loop.ts src/runtime/agent-loop.ts ../../packages/types/src/tools.ts` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/runtime/sub-agent-scheduler.test.ts src/tools/agent-delegate.test.ts src/runtime/run-cancellation.test.ts src/tools/registry.test.ts src/runtime/tool-scheduler.test.ts src/runtime/agent-loop.test.ts src/runtime/run-agent-loop.test.ts` PASS (`44` test)
+- Durust kalan durum: 11C scheduler hazir, fakat otomatik parallel sub-agent orchestration ve UI/presentation trace gorunurlugu acilmadi. Sequential `delegate_agent` runtime wiring'i 11D'de ayrica kapatildi.
+
+### Track A - TASK-11D Sequential Sub-Agent Runtime Wiring - 26 Nisan 2026
+
+- `TASK-11` icin daha once kalan production composition boslugu dar kapsamla kapatildi: `agent.delegate` artik WS live runtime icinde gercek `delegate_agent` handler'i aliyor; handler yokken donen `sub_agent_runner_unavailable` yolu live composition icin varsayilan olmaktan cikti.
+- `apps/server/src/runtime/sequential-sub-agent.ts` eklendi. Runner parent snapshot'i mutate etmeden, role allowlist'ten yeni dar `ToolRegistry` olusturuyor; sub-agent model request'i bounded system/user prompt, `available_tools`, `sub_agent` metadata, parent run id ve trace id ile kuruluyor.
+- Sub-agent execution conservative kalir: nested delegation registry'de yoktur ve execution context icinde `delegate_agent` bilincli olarak undefined yapilir; high-risk/approval-required desktop/browser/shell/write tool'lar role allowlist'e otomatik girmez; `max_turns` `AgentDelegationRequest` uzerinden uygulanir.
+- `apps/server/src/ws/run-execution.ts` icinde live execution context'e `delegate_agent` handler'i baglandi. Handler ayni `ModelGateway`, runtime tool registry ve auth/storage/desktop context seamiyle bounded sub-agent kosar; parent run'in ana event/result akisini degistirmez.
+- Coverage eklendi: `apps/server/src/runtime/sequential-sub-agent.test.ts` allowlist-only model request, deterministic sub-run id/metadata ve missing allowlist tool fail-closed davranisini test ediyor. Mevcut `agent.delegate`, cancellation, scheduler, registry ve tool-scheduler testleri tekrar kosuldu.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/server exec tsc --noEmit` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/runtime/sequential-sub-agent.test.ts src/tools/agent-delegate.test.ts src/runtime/sub-agent-scheduler.test.ts src/runtime/run-cancellation.test.ts src/tools/registry.test.ts src/runtime/tool-scheduler.test.ts` PASS (`6` dosya / `23` test)
+  - `pnpm.cmd --filter @runa/server exec biome check src/runtime/sequential-sub-agent.ts src/runtime/sequential-sub-agent.test.ts src/tools/agent-delegate.ts src/runtime/sub-agent-runner.ts src/runtime/sub-agent-scheduler.ts src/ws/run-execution.ts ../../packages/types/src/tools.ts` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+- Durust kalan durum: bu sequential runtime wiring'dir; user-facing parallel swarm, sub-agent trace UI, long-running sub-agent persistence ve approval propagation UX'i henuz acilmadi. Parallel scheduler foundation mevcut ama live auto-parallel orchestration bilincli olarak kapali.
+
+### Track A / Track C - TASK-02 Vision Loop Runtime Closure - 25 Nisan 2026
+
+- `TASK-02-VISION-LOOP.md` kapsaminda `desktop.vision_analyze` ve `desktop.verify_state` tool'lari server-side, additive `ToolDefinition` olarak eklendi. Mevcut `desktop.screenshot`, `desktop.click`, `desktop.type`, `desktop.keypress`, `desktop.scroll`, gateway adapter'lari ve `apps/desktop-agent/**` davranisina dokunulmadi.
+- `packages/types/src/tools.ts` bilinen tool listesi `desktop.vision_analyze` ve `desktop.verify_state` ile genisletildi; `apps/server/src/tools/registry.ts` built-in registry'ye iki tool'u ekliyor.
+- `desktop.vision_analyze`, onceki `desktop.screenshot` sonucundan gercek base64 PNG artifact'i resolver uzerinden bulabilirse `ModelImageAttachment` olusturuyor ve yalniz `ModelGateway.generate()` ile analiz istiyor. Credential/login/submit/delete/purchase gibi riskli task siniflari HITL icin `requires_user_confirmation=true` tarafina cautious normalize ediliyor; confidence yalniz opsiyonel yardimci alan olarak kaliyor.
+- `desktop.verify_state`, before/after screenshot artifact'lerini ayri attachment olarak modele verip `verified`, `observed_change`, `needs_retry`, `needs_user_help` sonucunu donduruyor. Failed verify, success claim'i degil acik `verified=false` sonucu olarak ele aliniyor.
+- Live runtime wiring tamamlandi: `run-execution.ts` artik per-run call-id tabanli `tool_result_history` tutuyor, `desktop.vision_analyze` ve `desktop.verify_state` instance'larini ayni run icindeki `ModelGateway` ve gercek screenshot resolver ile enjekte ediyor. Fake base64 uretilmiyor; screenshot call id bulunamazsa typed blocker error yollari korunuyor.
+- Desktop approval continuation tamamlandi: `desktop.click` gibi onay gerektiren action beklerken onceki screenshot/vision result history pending approval context'ine yaziliyor. `approval.resolve` onayindan sonra action replay sonucu yeni initial tool result olarak agent loop'a geri veriliyor; loop action -> screenshot -> verify_state -> final cevap akisini surduruyor.
+- `approval-store` continuation context'i opsiyonel `tool_result_history` ile genisletildi ve persistence sanitization mevcut provider secret minimization davranisini koruyor. Non-desktop approval'lara gereksiz continuation context eklenmiyor.
+- `apps/server/src/context/compose-context.ts` icindeki `TOOL_STRATEGY_RULES` listesine yalniz additive desktop automation verify-loop kurali eklendi: screenshot -> vision_analyze -> approval if needed -> action -> screenshot -> verify_state.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts src/ws/presentation.test.ts src/tools/desktop-vision-analyze.test.ts src/tools/desktop-verify-state.test.ts src/tools/registry.test.ts src/persistence/approval-store.test.ts` PASS (78 test)
+  - `pnpm.cmd exec biome check apps/server/src/ws/run-execution.ts apps/server/src/ws/approval-handlers.ts apps/server/src/ws/presentation.ts apps/server/src/ws/presentation.test.ts apps/server/src/ws/orchestration-types.ts apps/server/src/ws/register-ws.test.ts apps/server/src/persistence/approval-store.ts apps/server/src/tools/desktop-vision-analyze.ts apps/server/src/tools/desktop-vision-analyze.test.ts apps/server/src/tools/desktop-verify-state.ts apps/server/src/tools/desktop-verify-state.test.ts apps/server/src/tools/registry.ts packages/types/src/tools.ts apps/server/src/context/compose-context.ts` PASS
+- Durust kalan durum: Groq veya baska bir live vision provider ile gercek ekran goruntusu uzerinden canli smoke bu turda kosulmadi; bu nedenle "Groq vision production-ready calisiyor" claim'i yok. Contract ve runtime verify-loop path'i test doubles ile E2E kanitlandi.
+
+### Track C / TASK-01 Final Closure - Packaged Electron Main Process-Liveness Kanıtı - 25 Nisan 2026
+
+- `TASK-01-ELECTRON-DESKTOP-APP.md` kapsamındaki en kritik blocker olan "packaged app sessizce exit code 0 ile kapanıyor" sorunu çözüldü. Bu çözüm 3 farklı root-cause alanını adresledi.
+- **Top-Level Await Fix:** Packaged Electron main process V8 context'i ESM top-level await'i desteklemediği için uygulama sessizce kapanıyordu. `apps/desktop-agent/electron/main.ts` entry point'i `app.whenReady().then(...)` zincirine çevrildi ve boot-liveness sağlandı.
+- **Renderer Bundle & Asar Path Fix:** Renderer HTML'in asar içinde dışarı çıkmaya çalışan `../../dist-electron/` yolları asar file-system abstraction'ını kırdığı için renderer asset'leri doğrudan `dist-electron/electron/renderer/` altına kopyalanacak şekilde `package.json` build script'leri güncellendi.
+- **İkili Build Output Sadeleştirmesi:** `electron-builder.yml` dosyasında `dist/` ve kaynak dosyalar çıkarıldı, yalnizca `dist-electron/` klasörü paketlendi. Bu sayede module duplicate riski onarıldı ve `app.asar` boyutu optimize edildi.
+- Doğrulama:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent build` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent dist:win` PASS
+  - Packaged Execution Smoke: `release\win-unpacked\Runa Desktop.exe` çalıştırıldı ve boot logları kontrol edildi (`boot:module-loaded`, `boot:app-ready`, `window:did-finish-load` zinciri eksiksiz görüldü).
+- Durum: `TASK-01` artık release-grade process-liveness, UI render ve installer gereksinimlerini sağlamış durumdadır.
+
+### Track C / TASK-01B - Electron Desktop Session Persistence - 25 Nisan 2026
+
+- `TASK-01-ELECTRON-DESKTOP-APP.md` icindeki `TASK-01B` alt gorevi uygulandi: Electron desktop shell artik main-process tarafinda persistent session storage kullanabiliyor.
+- Yeni `apps/desktop-agent/src/electron-session-storage.ts` dosya tabanli `DesktopAgentSessionStorage` implementasyonu eklendi. Yeni dependency eklenmedi; session JSON'u Electron `userData` dizini altindaki `desktop-session.json` dosyasina atomik temp-file + rename akisiyle yaziliyor, load tarafinda shape validation ve mevcut `normalizeDesktopAgentPersistedSession()` seami korunuyor.
+- `apps/desktop-agent/electron/main.ts`, storage'i `app.getPath('userData')` ile olusturup `createDesktopAgentLaunchController()` icine enjekte ediyor. Renderer'a raw session veya filesystem authority verilmedi; preload/IPC boundary 01A'daki haliyle korunuyor.
+- `DesktopAgentSessionRuntime.signOut()` icindeki queued `stop()` cagrisi dar bir lifecycle bugfix ile giderildi. Eski akista sign-out kendi queued operation'i icinden tekrar queue'ya girerek storage clear adimina ulasamama riski tasiyordu; yeni akis bridge'i kapatip storage'i temizleyerek `signed_out` snapshot'ina donuyor.
+- `apps/desktop-agent/src/index.ts` yeni storage export'unu aciyor. `apps/server/**`, `apps/web/**`, `packages/types/**`, WS kontratlari ve desktop bridge/input/screenshot davranislari degistirilmedi.
+- Pre-existing dirty tree notu: bu tura baslamadan once repo genis olcekte dirty idi; ozellikle server/web/provider dosyalari, root task dokumanlari ve daha once acilmis Electron 01A dosyalari mevcut degisiklik/untracked durumdaydi. Bu tur kapsaminda yalniz desktop-agent 01B seam'i ve bu `PROGRESS.md` kaydi hedeflendi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd exec biome check apps/desktop-agent/src/electron-session-storage.ts apps/desktop-agent/electron/main.ts apps/desktop-agent/src/index.ts apps/desktop-agent/src/session.ts` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent build` PASS
+  - Node smoke: build output uzerinden file storage save/load ve `runtime.signOut()` storage clear lifecycle'i PASS; structured sonuc `{"result":"PASS","persisted_session_loaded":true,"sign_out_status":"signed_out","storage_cleared":true}`.
+- Durust kalan durum: Electron GUI smoke'u bu turda calistirilmadi; local app start'i icin gercek desktop-agent env/session degerleri gerekir. Tray, auto-start, packaging, installer, updater ve OS keychain/credential vault kullanimi halen `TASK-01C/01D` veya ayri security hardening konusu.
+
+### Track C / TASK-01C - Electron Tray + Lifecycle - 25 Nisan 2026
+
+- `TASK-01-ELECTRON-DESKTOP-APP.md` icindeki `TASK-01C` alt gorevi uygulandi: Electron shell icin tray state mapping ve temel desktop lifecycle ayrimi eklendi.
+- `apps/desktop-agent/electron/main.ts` artik `DesktopAgentShell` snapshot'ini main-process tarafinda ayrica olusturup izliyor; bu snapshot tray state'ine daraltildi: `needs_sign_in`, `connecting`, `connected`, `error`, `stopped`. `ready` shell durumu bilincli olarak `stopped` tray durumuna map ediliyor; boylece signed-in ama aktif bridge baglantisi olmayan durum ayrik gorunebiliyor.
+- Tray menu davranislari ayrildi: `Open/Focus Runa Desktop`, `Connect/Reconnect`, `Disconnect`, `Sign out` ve `Quit Runa Desktop`. Boylece pencereyi kapatmak sign-out veya quit anlamina gelmiyor; disconnect de session silmeden bridge'i durdurabiliyor.
+- `apps/desktop-agent/src/electron-window-host.ts` sinifi pencere lifecycle'i icin additive helper'lar kazandi: `show()`, `hide()`, `isVisible()` ve close interception. Normal pencere kapatma istegi artik app'i kapatmak yerine pencereyi gizliyor; gercek quit sirasinda main-process `allow_close` yoluna geciyor ve shutdown sirasinda host cleanup'i bozulmuyor.
+- Quit davranisi tray/uygulama kapanisinda ayri ele alindi: main-process `before-quit` uzerinden `controller.stop()` calistiriyor, tray'i destroy ediyor ve session'i silmeden runtime'i kapatarak uygulamayi kapatiyor. `Sign out` ise mevcut 01B persistence semantiğiyle session'i temizliyor. Auto-start icin `app.setLoginItemSettings()` benzeri bir wiring bilincli olarak eklenmedi; tray menude yalniz `Launch at sign-in: Off` gorunur durumda ve varsayilan kapalilik korunuyor.
+- Pre-existing dirty tree notu: desktop-agent klasorunde bu tura gelmeden once 01A/01B ile ilgili untracked/modified dosyalar zaten vardi. Bu turda yalniz `apps/desktop-agent/electron/main.ts`, `apps/desktop-agent/src/electron-window-host.ts` ve bu `PROGRESS.md` kaydi hedeflendi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd exec biome check apps/desktop-agent/electron/main.ts apps/desktop-agent/src/electron-window-host.ts` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent build` PASS
+  - Electron smoke: dummy `RUNA_DESKTOP_AGENT_ID` ve `RUNA_DESKTOP_AGENT_SERVER_URL` ile `pnpm.cmd --filter @runa/desktop-agent start:electron` child process olarak baslatildi; process 8 saniye boyunca crash etmeden ayakta kaldi ve sonra test amacli kapatildi. STDERR tarafinda yalniz mevcut `start-electron.mjs` icindeki `shell: true` nedeniyle gelen Node deprecation warning'i goruldu; yeni tray/lifecycle koduna ait runtime crash sinyali gorulmedi.
+- Durust kalan durum: Bu tur tray icon'un gorsel varligi ve menu etkileşimi manuel olarak gorulmedi; smoke yalniz runtime ayakta kalma seviyesinde kanit verdi. Native OS autostart, updater, installer ve signed release packaging halen `TASK-01D` veya sonraki hardening konusu.
+
+### Track C / TASK-01D - Packaging / Installer / Updater Wiring - 25 Nisan 2026
+
+- `TASK-01-ELECTRON-DESKTOP-APP.md` icindeki `TASK-01D` alt gorevi dar kapsamda uygulandi: Windows installer packaging acildi ve updater seami varsayilan kapali olacak sekilde wire edildi.
+- `apps/desktop-agent/ELECTRON-DEPENDENCY-RFC.md` 01D uzantisiyla guncellendi. `electron-builder` packaging dependency'si ve `electron-updater` runtime wiring'i icin scope, risk ve "wiring only" siniri netlestirildi; signed release veya canli update feed claim'i bilincli olarak acilmadi.
+- `apps/desktop-agent/package.json` icine `electron-updater` dependency'si, `electron-builder` devDependency'si ve `dist:win` script'i eklendi. `apps/desktop-agent/electron-builder.yml` ile installer config acildi: `release/` output, explicit file set, NSIS target, unsigned local host icin `npmRebuild: false`, `nodeGypRebuild: false` ve `win.signAndEditExecutable: false`.
+- `apps/desktop-agent/electron/main.ts` icine updater wiring'i dar ve opt-in olarak eklendi. `RUNA_DESKTOP_ENABLE_UPDATER=1` olmadikca herhangi bir update check calismiyor; packaged app + explicit env opt-in kosulu saglansa bile hata durumunda yalniz warning log'u uretip app'i dusurmuyor. Gercek publish endpoint metadata'si bu turda kurulmadigi icin bu seam "works" degil, yalniz "wired" seviyesinde kabul edildi.
+- Packaging dogrulamasinda iki host-seviye problem gorulup dar config ile cozuldu: ilk denemede builder workspace node_modules agacinda gereksiz native rebuild adimina takildi; bu nedenle rebuild kapatildi. Ikinci denemede Windows code-sign helper archive extraction symlink privilege hatasina takildi; unsigned local artifact icin executable edit/sign adimi kapatilarak NSIS installer olusumu tamamlandi.
+- Artifact kaniti gercektir: `apps/desktop-agent/release/runa-desktop-0.1.0-setup.exe` ve `apps/desktop-agent/release/runa-desktop-0.1.0-setup.exe.blockmap` uretildi. `win-unpacked/` klasoru da release output'una yazildi. Bu artifact bugunku hostta unsigned ve default Electron icon ile uretildi; release-grade branding/signing iddiasi yoktur.
+- Pre-existing dirty tree notu: desktop-agent disinda repo zaten dirty idi. Bu tur packaging dependency kurulumu nedeniyle `pnpm-lock.yaml` da degisti; server/web/types koduna girilmedi.
+- Dogrulama:
+  - `pnpm.cmd add -D electron-builder@^26.0.12 --filter @runa/desktop-agent` tamamlandi
+  - `pnpm.cmd add electron-updater@^6.6.2 --filter @runa/desktop-agent` tamamlandi
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd exec biome check apps/desktop-agent/package.json apps/desktop-agent/electron/main.ts` PASS
+- `pnpm.cmd --filter @runa/desktop-agent build` PASS
+- `pnpm.cmd --filter @runa/desktop-agent dist:win` PASS
+- Durust kalan durum: updater icin gercek GitHub Releases veya test update server yok; bu nedenle live update smoke kosulmadi ve "auto-update calisiyor" denmiyor. `package.json` icinde author bilgisi ve ozel app icon dosyalari da henuz yok; builder fallback/default icon ile paketledi.
+
+### Track C / TASK-01A + TASK-01D Follow-up - React Renderer Completion + Packaging Polish - 25 Nisan 2026
+
+- `TASK-01-ELECTRON-DESKTOP-APP.md` acisindan acik kalan 01A renderer eksigi kapatildi: `apps/desktop-agent/electron/renderer/` altinda artik gercek minimal React renderer var. `App.tsx`, `styles.css`, `global.d.ts` ve bundler wiring ile desktop launch surface plain inline HTML yerine React tarafinda render ediliyor.
+- `apps/desktop-agent/src/launch-html.ts` tarafinda renderer'in guvenli sekilde parse edebilmesi icin `data-field` / `data-action-role` isaretleyicileri eklendi; renderer yalniz preload bridge uzerinden gelen HTML document payload'ini view model'e ceviriyor. Renderer'a token, filesystem veya desktop authority acilmadi.
+- `apps/desktop-agent/package.json`, `tsconfig.renderer.json` ve `apps/desktop-agent/ELECTRON-DEPENDENCY-RFC.md` renderer gereksinimlerine gore guncellendi. `react`, `react-dom`, `esbuild`, `@types/react` ve `@types/react-dom` bu dar renderer seam'i icin eklendi; RFC bu dependency acilisini ve risk sinirlarini kayda aldi.
+- Packaging polish tarafinda `package.json` icine `author` eklendi; `apps/desktop-agent/build/icon.png` ve `build/icon.ico` olusturuldu; `electron-builder.yml` app/NSIS icon alanlarini bu asset'lere baglayacak sekilde guncellendi. Installer artik default Electron fallback'i yerine Runa icon asset'i ile uretiliyor.
+- ESM preload yukleme davranisi Electron resmi notlarina gore sertlestirildi: preload giris noktasi `.mjs` olarak derleniyor ve BrowserWindow `preload_path` buna gore ayarlaniyor. Main/window-host import stili de packaged debug turlari sirasinda birkac kez daraltildi; geriye task disi kontrat degisikligi birakilmadi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent build` PASS
+  - `pnpm.cmd exec biome check apps/desktop-agent/electron/main.ts apps/desktop-agent/src/electron-window-host.ts apps/desktop-agent/electron/preload.mts apps/desktop-agent/electron/renderer/App.tsx apps/desktop-agent/package.json apps/desktop-agent/tsconfig.electron.json apps/desktop-agent/tsconfig.renderer.json apps/desktop-agent/electron-builder.yml apps/desktop-agent/src/launch-html.ts` PASS (hedefli turlarda)
+  - Dev smoke: dummy `RUNA_DESKTOP_AGENT_ID` ve `RUNA_DESKTOP_AGENT_SERVER_URL` ile `pnpm.cmd --filter @runa/desktop-agent start:electron` process'i 10 saniye boyunca ayakta kaldi; gorunen tek stderr mevcut `start-electron.mjs` icindeki `shell: true` deprecation warning'i oldu.
+  - Installer smoke: `pnpm.cmd --filter @runa/desktop-agent dist:win` PASS; `release/runa-desktop-0.1.0-setup.exe` uretildi ve sessiz kurulum ile temp hedefe dosyalar cikarilabildi.
+- Durust kalan durum: packaged runtime smoke henuz yesil kanit seviyesine cikmadi. Hem `release/win-unpacked/Runa Desktop.exe` hem de sessiz kurulumdan gelen `Runa Desktop.exe` 8-10 saniyelik smoke turlarinda `exit_code=0` ile erken kapandi; app-level boot log seami dahi tetiklenmedigi icin sorun Electron packaging/entry noktasinda daha erken bir seviyede olabilir. Bu nedenle `TASK-01` icin "kusursuz release-grade kapanis" claim'i henuz yazilmamali; gercek blocker packaged app'in process-liveness kanitinin eksik olmasidir.
+
+### Track A / Gateway - SambaNova Provider Adapter - 25 Nisan 2026
+
+- SambaNova, mevcut `ModelGateway` omurgasina ayri ve additive provider olarak eklendi. WS/runtime/approval/ToolRegistry contract'lari yeniden tasarlanmadi.
+- Shared provider union ve default model listesi `sambanova` ile genisletildi; default model kullanicinin paylastigi curl ornegine hizali olarak `DeepSeek-V3.1-cb`.
+- `apps/server/src/gateway/sambanova-gateway.ts` eklendi. Adapter `https://api.sambanova.ai/v1/chat/completions` endpoint'ine `Authorization: Bearer ...` ile gider, `generate()` ve `stream()` yollarini destekler, `max_output_tokens` alanini SambaNova request shape'inde `max_tokens` olarak gonderir ve OpenAI-compatible tool call parsing seam'ini korur.
+- Env fallback seami `SAMBANOVA_API_KEY` ile acildi: `config-resolver.ts` server env'den key okuyabilir, approval persistence minimization ise server env varsa persisted request-only key'i bosaltma davranisini SambaNova icin de korur.
+- Kullanici key girebilsin diye `.env` icine `SAMBANOVA_API_KEY=` alani, takip edilebilir sablonlar icin de `.env-örnek` ve `.env.server.example` alanlari eklendi.
+- Frontend provider secimi mevcut `gatewayProviders/defaultGatewayModels` kontratindan beslendigi icin SambaNova secenegi web tarafina kontrat uzerinden yansir; yeni UI dependency veya ayri runtime paneli eklenmedi.
+- Dogrulama:
+  - `pnpm.cmd exec biome check packages/types/src/ws.ts apps/server/src/gateway/config-resolver.ts apps/server/src/persistence/approval-store.ts apps/server/src/gateway/fallback-chain.ts apps/server/src/gateway/model-router.ts apps/server/src/gateway/factory.ts apps/server/src/gateway/sambanova-gateway.ts apps/server/src/gateway/gateway.test.ts .env-örnek .env.server.example` PASS
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts` PASS (48 tests)
+- Durust kalan durum: Canli SambaNova smoke kosulmadi; elde gercek `SAMBANOVA_API_KEY` olmadigi icin bu tur yalniz contract/request-shape ve stream parser seviyesinde kanitlandi.
 
 ### Track C / UI Foundation Phase 1 - Design Tokens + Internal Primitives - 24 Nisan 2026
 
@@ -230,46 +529,23 @@
 - Durust kalan durum: Bu tur asset UI foundation'i kurdu ama gercek image generation/editing, before/after slider, upload/storage, provider, desktop screenshot runtime preview, RenderBlock image block'u, ChatPage entegrasyonu veya active generation progress wiring'i acmadi.
 - Sonraki onerilen gorev: web_search_result_block veya file/code artifact preview yuzeylerinden birini bu asset/capability foundation'a dar adapter olarak baglamak; yine RenderBlock/WS/provider/storage contract degistirmemek.
 
-### Track C / UI Foundation Phase 8 - Approval + Action Detail Modal Foundation - 24 Nisan 2026
+### Track C / Sprint 11 Backfill - Desktop Agent Local Runtime, Input Bridge ve Launch Shell - 24 Nisan 2026
 
-- `apps/web/src/components/chat/capability/ActionRiskBadge.tsx` eklendi. Low / medium / high risk seviyeleri icin sakin RunaBadge tabanli UI-level risk dili kuruldu; alarmist ana chat dili veya runtime policy baglantisi acilmadi.
-- `apps/web/src/components/chat/capability/ApprovalDecisionCard.tsx` eklendi. `CapabilityCard` ve `CapabilityResultActions` uzerinden approve/reject karar yuzeyi kuruldu; callback prop'lari disinda approval runtime/store veya mevcut `ApprovalPanel` davranisina baglanmiyor.
-- `apps/web/src/components/chat/capability/ActionDetailModal.tsx` eklendi. `isOpen === false` durumunda null donen, native `<dialog open>` semantigi kullanan, close action'i, optional risk badge, detail listesi, children ve action row slot'u olan ikinci katman detail modal foundation'i kuruldu. Full focus trap iddiasi yok; ileride Radix veya React Aria gibi bir modal/dialog candidate'i degerlendirilebilir.
-- `types.ts` yalniz UI-level tiplerle genisletildi: `ActionRiskLevel`, `ApprovalDecision` ve `ActionDetailItem`. `packages/types`, WS, RenderBlock, policy, auth, provider veya runtime contract tipleri degistirilmedi.
-- `index.ts` yeni component ve tip export'larini verdi. `CapabilityCard` ve `CapabilityResultActions` mevcut API'leri yeterli oldugu icin degistirilmedi.
-- Degisen dosyalar: `apps/web/src/components/chat/capability/ActionDetailModal.tsx`, `ApprovalDecisionCard.tsx`, `ActionRiskBadge.tsx`, `types.ts`, `index.ts`, `PROGRESS.md`.
-- Dogrulama:
-  - `pnpm.cmd --filter @runa/web typecheck` PASS
-  - `pnpm.cmd --filter @runa/web build` PASS
-  - `pnpm.cmd exec biome check apps/web/src/components/chat/capability/ActionDetailModal.tsx apps/web/src/components/chat/capability/ApprovalDecisionCard.tsx apps/web/src/components/chat/capability/ActionRiskBadge.tsx apps/web/src/components/chat/capability/types.ts apps/web/src/components/chat/capability/index.ts` PASS
-  - `rg -n "any|as any|@ts-ignore|eslint-disable|TODO" apps/web/src/components/chat/capability` final kontrolde eslesme bulmadi.
-- Durust kalan durum: Bu tur gercek approval flow, approval persistence, desktop action execution, file/image/code operation, research/detail inspection wiring, ChatPage modal state'i veya presentation block adapter'i acmadi. Foundation componentleri henuz runtime tarafindan kullanilmiyor.
-- Sonraki onerilen gorev: Mevcut approval veya inspection action yuzeylerinden tek birini bu modal/card foundation'a dar adapter olarak baglamak; RenderBlock/WS/runtime contract redesign acmamak.
-
-### Track C / UI Foundation Phase 9 - Inspection Action Detail Adapter - 24 Nisan 2026
-
-- Mevcut inspection action yuzeyi `PresentationRunSurfaceCard` icinde dar bir UI adapter ile `ActionDetailModal` foundation'ina baglandi. Summary kartlarindaki mevcut inspection button hala ayni `requestInspection` akisina gider; ek olarak yalniz local UI state ile detail modal acilir.
-- `apps/web/src/components/chat/InspectionActionDetailModal.tsx` eklendi. Component yalniz UI seviyesinde guvenli metadata gosterir: run id, target kind, target block id, detail block id, anchor id ve pending/open/stale status. Raw transport payload, JSON dump, provider/model debug log veya runtime payload modalda gosterilmedi.
-- Runtime, WS, RenderBlock, server, approval execution, policy, provider, ChatPage orchestration ve global store davranisi degistirilmedi. Modal close yalniz UI modal state'ini kapatir; pending inspection request iptal etmez veya resolve etmez.
-- Degisen dosyalar: `apps/web/src/components/chat/PresentationRunSurfaceCard.tsx`, `apps/web/src/components/chat/InspectionActionDetailModal.tsx`, `PROGRESS.md`.
-- Dogrulama:
-  - `pnpm.cmd install --frozen-lockfile` temiz worktree icin dependency kurulum destegi; lockfile degismedi.
-  - `pnpm.cmd --filter @runa/web typecheck` PASS
-  - `pnpm.cmd --filter @runa/web build` ilk kosuda temiz worktree'de `@runa/types` dist eksik oldugu icin import resolve hatasi verdi; `pnpm.cmd --filter @runa/types build` sonrasi tekrar PASS.
-  - `pnpm.cmd exec biome check apps/web/src/components/chat/PresentationRunSurfaceCard.tsx apps/web/src/components/chat/InspectionActionDetailModal.tsx` PASS
-  - `rg -n "any|as any|@ts-ignore|eslint-disable|TODO" apps/web/src/components/chat/PresentationRunSurfaceCard.tsx apps/web/src/components/chat/InspectionActionDetailModal.tsx` final kontrolde eslesme bulmadi.
-  - Not: prompttaki genis Biome komutu degistirilmeyen `ChatPage.tsx`, `PresentationBlockRenderer.tsx`, `chat-presentation.tsx` ve `ActionDetailModal.tsx` dosyalarinda CRLF/LF format baseline farkina takildi; scope genisletip bu dosyalari formatter churn ile degistirmemek icin final Biome kaniti gercek degisen UI dosyalarinda tutuldu.
-- Durust kalan durum: Bu tur detail kartlarinin inline render davranisini korur ve modalda sadece metadata yuzeyi acar. Focus trap, Radix/React Aria dialog gecisi, approval runtime entegrasyonu, desktop action/file/image/code detail modallari ve raw inspection payload explorer'i acilmadi.
-- Sonraki onerilen gorev: ApprovalDecisionCard'i mevcut approval yuzeyine dar ve davranis koruyan bir adapter olarak baglamak ya da web/file/code artifact detail modali icin yine UI-level metadata ile sinirli ikinci bir adapter acmak; runtime/contract davranisini kapali tutmak.
-
-### Track C / UI Foundation Phase 11 - Authenticated Route Render Loop Fix - 24 Nisan 2026
-
-- Root cause: `SettingsPage` desktop-device load effect'i `useEffectEvent` wrapper'ini dependency olarak izliyordu. `/account` ve `/settings` acildiginda `/desktop/devices` 404 path'i state'i tekrar tekrar guncelleyerek React `Maximum update depth exceeded` warning'ini tetikledi.
-- Degisen dosyalar: `apps/web/src/pages/SettingsPage.tsx`, `PROGRESS.md`.
-- Fix: desktop-device fetch akisi tek `useEffect` icine alindi ve effect dependency'si primitive `authContext.principal.kind` ile sinirlandi. Authenticated olmayan durumda bos success state korunuyor; authenticated durumda ayni fetch/error mesajlari ve abort guard'lari korunuyor.
-- Dogrulama: `pnpm.cmd install --frozen-lockfile`, `pnpm.cmd --filter @runa/db build`, `pnpm.cmd --filter @runa/types build`, `pnpm.cmd --filter @runa/web typecheck`, `pnpm.cmd --filter @runa/web build`, degisen dosya icin `pnpm.cmd exec biome check apps/web/src/pages/SettingsPage.tsx` PASS.
-- Browser smoke: local dev auth ile `/chat -> /account -> /developer -> /dashboard -> /settings -> /chat` route cycle tekrarlandi; `Maximum update depth exceeded` yeniden gorulmedi.
-- Kalan durum: `/conversations` ve `/desktop/devices` 404 davranislari bu gorevin kapsaminda degistirilmedi. Copy polish, 404 handling ve modal smoke follow-up olarak kaldi.
+- Takip duzeltmesi: onceki sohbet pencerelerinde acilan desktop-agent ara dilimlerinin tamami `PROGRESS.md` icinde ayri ayri gorunmuyordu. Bu bolum mevcut repo snapshot'ina dayanarak ledger'i toparlar; yeni native dependency, packaging veya OAuth/native window claim'i uretmez.
+- `apps/desktop-agent/src/session.ts` local desktop session runtime zeminini tasiyor. Bootstrap/stored session yukleme, session clone/save/clear semantigi, expiring-session refresh icin mevcut `/auth/session/refresh` handoff'u, `setSession(...)`, `signOut()`, `start()/stop()` ve bridge close/error lifecycle'i ayni runtime sinirinda tutuldu.
+- `apps/desktop-agent/src/shell.ts` runtime snapshot'larini user-facing shell status diline ceviriyor: `bootstrapping`, `ready`, `connecting`, `connected`, `error`, `needs_sign_in`. `launch-surface.ts` bu statuslari consumer-grade title/message/action view model'lerine map ediyor.
+- `apps/desktop-agent/src/window-host.ts`, `launch-controller.ts` ve `launch-html.ts` host-agnostic launch document/action contract'ini aciyor. `connect`, `retry`, `sign_in`, `sign_out` ve `submit_session` action seamlari typed durumda; `sign_in` gercek OAuth/browser flow acmadan `awaiting_session_input` durumuna geciyor.
+- Minimal session-input handoff artik daha net: `launch-html.ts` `Sign in required` / `Paste your session` / `Continue` / `Cancel` copy'siyle access-token ve refresh-token alanlarini ureten dependency-free document contract'i sagliyor; `launch-controller.ts` `submit_session` payload'ini normalize edip mevcut session handoff zincirine veriyor.
+- `apps/desktop-agent/src/auth.ts` desktop session semantigini `AuthSessionTokens` ile uyumlu tutuyor. Access token, refresh token ve opsiyonel expiry normalize ediliyor; invalid/eksik session-input payload'lari teknik stack veya sessiz fallback yerine consumer-grade hata mesajina donuyor.
+- `apps/desktop-agent/src/input.ts` desktop input ailesinin local-agent tarafindaki execute seam'ini tasiyor. `desktop.click`, `desktop.type`, `desktop.keypress` ve `desktop.scroll` icin Windows-first PowerShell/SendKeys/user32 tabanli execution, argument validation ve typed error result yolu var; yeni native package acilmadi.
+- `apps/desktop-agent/src/ws-bridge.ts` agent hello mesajinda `desktop.click`, `desktop.keypress`, `desktop.scroll`, `desktop.screenshot` ve `desktop.type` capability'lerini advertise ediyor; server'dan gelen `desktop-agent.execute` mesajlarini screenshot veya input execution'a dispatch ediyor ve heartbeat ping'e pong ile cevap veriyor.
+- Server tarafinda mevcut `desktop_bridge` invoker seami artik screenshot disinda input tool ailesi icin de kullaniliyor; `apps/server/src/tools/desktop-{click,type,keypress,scroll}.ts` bridge varsa ilgili desktop-agent capability'sine gidiyor, yoksa mevcut server-host fallback davranisini koruyor.
+- Task-local kanit:
+- `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+- `pnpm.cmd --filter @runa/desktop-agent build` PASS
+- `pnpm.cmd exec biome check apps/desktop-agent/src/window-host.ts apps/desktop-agent/src/launch-controller.ts apps/desktop-agent/src/launch-html.ts apps/desktop-agent/src/auth.ts apps/desktop-agent/src/index.ts apps/desktop-agent/package.json` PASS
+- Durust kalan durum: bu backfill, repo ledger'ini mevcut kod gercegiyle hizaladi. Hala acik olan alanlar actual desktop window host implementation'i, signed-in device presence'in web tarafinda urunlesmesi, release-grade liveness/reconnect cleanup, native app packaging/installer ve browser.interact gibi sonraki capability'lerdir.
+- Sonraki onerilen gorev: future desktop wrapper icin bu host-agnostic launch document/action contract'ini gercek ince window host implementation'ina baglamak; packaging/installer veya OAuth flow'u hala ayri turda ele alinmali.
 
 ### Docs Governance / Track C - Desktop Companion + Device Presence Dokuman Hizalamasi - 23 Nisan 2026
 
@@ -1198,25 +1474,6 @@
 - Non-goal hatirlatmasi: bu tur tam CI/CD otomasyonu, prod secret management platformu veya desktop-agent deployment acmadi.
 - Sonraki onerilen dar gorev: bu Docker/compose zemini uzerine secret-backed staging deployment runbook'u ve tek bir cloud target icin manifest/pipeline baglama gorevi; runtime veya auth sistemini yeniden acmamak.
 
-### Track C / UI Foundation Phase 13 - Visible UI Copy Polish - 24 Nisan 2026
-
-- Chat, account/settings, auth, developer, desktop target, upload, voice/TTS ve runtime status yuzeylerinde kullaniciya gorunen copy temizlendi. `apps/web/src/localization/copy.ts` ana sozlukte kalan ASCII/transliterated Turkce metinler Turkce karakterli hale getirildi; hook/lib hata mesajlarinda UI'ya tasinan metinler de ayni pakette duzeltildi.
-- CSS uppercase nedeniyle tarayicida `GIRIŞ`, `HESAP ÖZETI`, `BAĞLI KIMLIKLER` gibi gorunen label bozulmalari ilgili Turkce label ogelerine `lang="tr"` ve acik `toLocaleUpperCase('tr-TR')` kullanimi eklenerek temizlendi. Teknik `Developer Mode`, `Runtime`, `Conversation`, `Desktop`, `Provider`, `Token`, `OAuth`, `Workspace`, `Run` ve benzeri urun terimleri bilerek mixed-language birakildi.
-- Mojibake taramasi `rg -n "Ã|Â|Ä|Å|â|�" apps/web/src` ile no matches verdi. Bypass taramasi `rg -n "as any|@ts-ignore|eslint-disable|TODO" apps/web/src` ile no matches verdi.
-- ASCII Turkce taramasi artik copy hatasi olarak ele alinacak eslesme uretmiyor; kalan eslesmeler `oturum` gibi zaten dogru Turkce kelimeler, `Secondary`/`appShellSecondary*` gibi identifier false-positive'leri ve teknik English terimler.
-- Browser smoke `http://localhost:5174` uzerinden authenticated local dev session ile `/chat`, `/account`, `/developer`, `/dashboard -> /chat`, `/settings -> /account` rotalarinda yapildi. Gorunur copy kontrolunde `Gonder`, `Masaustu`, `Baglanti`, `basarisiz` ve bozuk uppercase Turkce adaylari gorulmedi. `/desktop/devices` 200 dondu; `/conversations` 404'e donmedi ancak mevcut backend/env durumuyla 500 `Failed to list conversations` dondu. Smoke sirasinda `Maximum update depth exceeded` gorulmedi.
-- Degisen dosyalar yalniz `apps/web/src/**` altindaki copy/UI render dosyalari ve bu PROGRESS notudur. Runtime, WS, RenderBlock, server, desktop-agent, package veya lockfile degistirilmedi.
-- Sonraki onerilen dar gorev: modal visual harness veya approval adapter seam; copy paketi uzerinden yeni visual redesign acmamak.
-
-### Track C / UI Foundation Phase 14 - Dev/Demo Conversation Persistence Health - 24 Nisan 2026
-
-- Root cause: PR #7 smoke sirasindaki `/conversations` 500 artik Vite proxy veya no-config fallback sinifi degil; server persistence env'i configured gordugu icin gercek conversation read/bootstrap hatasini empty state'e cevirmeden 500 olarak korudu. Bu turde `D:\ai\Runa\.env` + `.env.local` dev-script precedence'iyle yapilan DB probe `target=local`, `database_url_source=DATABASE_URL`, schema bootstrap ve empty conversation list icin PASS verdi; yani dogru local Postgres ayaginda endpoint 200 donebiliyor. Kalan risk, server prosesinin shell/IDE env override'i veya kapali/erisilemeyen local DB ile baslatilmasi.
-- Secilen cozum: Option A + B. Gercek DB misconfiguration yutulmadi; `/conversations` list read/config failure'lari `CONVERSATION_PERSISTENCE_UNAVAILABLE` kodu ve secret icermeyen `target`, `target_source`, `database_url_source` metadata'siyle donuyor. Web hook JSON error payload'ini ham string yerine message/code olarak okuyor.
-- Degisen dosyalar: `apps/server/src/persistence/database-config.ts`, `apps/server/src/routes/conversations.ts`, `apps/server/src/app.test.ts`, `apps/web/src/hooks/useConversations.ts`, `docs/dev/conversation-persistence-health.md`, `PROGRESS.md`.
-- Browser smoke sonucu: local dev server/web uzerinden authenticated dev bootstrap ile `/chat`, direct browser fetch `/conversations`, `/account`, `/developer`, `/dashboard -> /chat`, `/settings -> /account` ve direct `/desktop/devices` kontrol edildi. `/conversations` `200 {"conversations":[]}` ve `/desktop/devices` `200 {"devices":[]}` dondu; `Maximum update depth exceeded` gorulmedi.
-- Kalan durum: Tarihsel PR #7 smoke prosesinin terminal log'u mevcut degil; yeni health payload/runbook ayni sinif hatanin tekrarinda URL/secret sizdirmeden hangi DB target/source'un secildigini gosterir. Dogru dev/demo path local Postgres + `.env.local` ile netlestirildi.
-- Sonraki onerilen gorev: modal visual harness veya approval adapter.
-
 ## Teknik Borc (Tech Debt) & Known Gaps
 
 > **Kaynak:** 2026-04-18 tarihli kapsamli mimari denetim (Architectural Audit).
@@ -1224,10 +1481,337 @@
 
 ### P3 - Acik Gaplar
 
-#### [GAP-12] Eksik Desktop Yetenekler (screen.capture, browser.interact, semantic search)
-- **Mevcut:** `apps/desktop-agent/` package'i, typed `/ws/desktop-agent` secure bridge'i ve `desktop.screenshot` icin ilk end-to-end approval-gated proof artik repoda mevcut. Kalan eksik alanlar: `desktop.click` / `desktop.type` / `desktop.keypress` / `desktop.scroll` bridge migration'i, browser interaction capability'leri ve daha olgun liveness/reconnect ergonomisi.
-- **Etki:** Trust boundary icin ilk authority ayrimi acildi, ancak desktop capability ailesi henuz tamamen local daemon'a tasinmadigi icin cloud-first hybrid vaadin butunu tamamlanmis degil.
-- **Hedef:** Mevcut bridge kontratini bozmadan kalan desktop input tool ailesini agente tasimak, stale/lost desktop-agent session davranisini daha da sertlestirmek ve sonraki fazda browser.interact benzeri capability'lere zemin hazirlamak.
+### Track A - TASK-05 Browser Automation - 25 Nisan 2026
+
+- `packages/types/src/tools.ts` browser tool ailesiyle genisletildi: `browser.navigate`, `browser.extract`, `browser.click`, `browser.fill`. Tool namespace ve capability class union'ina `browser` eklendi; mevcut registry/runtime contract'i bozulmadi.
+- `apps/server/package.json` icine `playwright-core` dependency'si eklendi. Ayrica ayri dokuman dosyasi acmadan `apps/server/src/tools/browser-manager.ts` basina mini-RFC comment'i yazildi: neden `playwright-core`, binary'nin nereden gelmesi beklendigi, `PLAYWRIGHT_BROWSERS_PATH` / explicit executable path rolu ve binary yoksa typed graceful error davranisi orada kayitli.
+- `apps/server/src/tools/browser-manager.ts` yeni BrowserManager lifecycle katmani olarak eklendi. Browser lazy-init calisiyor; run-scoped BrowserContext + Page oturumu aciliyor; session inactivity timeout varsayilan 5 dakika; `abortRun()` ve `close()` cleanup API'leri mevcut. Browser binary bulunamazsa typed `browser_binary_unavailable` hatasi uretip proses crash etmiyor.
+- `apps/server/src/tools/browser-url-policy.ts` public-web guardrail katmani olarak eklendi. `http/https` disi scheme'ler, URL icinde credential tasiyan target'lar, localhost/private network araliklari ve metadata endpoint'leri default bloklaniyor. Hostname + resolved IP kombinasyonu ile local/private network sizintisi temkinli sekilde reddediliyor.
+- Read-only tool'lar eklendi:
+  - `apps/server/src/tools/browser-navigate.ts`: izole browser session ile public sayfaya gider, `wait_until` destekler ve title/url sonucunu dondurur.
+  - `apps/server/src/tools/browser-extract.ts`: mevcut sayfadan `text`, `links`, `table` extraction yapar; sanitize/truncate uygular, HTML dump acmaz.
+- Action tool'lar eklendi:
+  - `apps/server/src/tools/browser-click.ts`
+  - `apps/server/src/tools/browser-fill.ts`
+  Bu tool'lar selector validation ve timeout uygular, conservative sekilde approval-gated metadata ile kayitlidir, sonrasinda page observation (`title`, `url`, `navigated`, `visible_error`) dondurur. `browser.fill` output'u yazilan raw degeri geri echo etmez; yalniz `value_length` saklanir.
+- `apps/server/src/tools/registry.ts` ve `apps/server/src/tools/registry.test.ts` browser tool ailesiyle guncellendi; built-in registry artik browser + desktop + file/search/git/shell ailesini birlikte authoritative sekilde expose ediyor.
+- Test coverage:
+  - `browser-manager.test.ts`: lazy-init, run-scoped context reuse, inactivity cleanup, explicit abort, binary-yok typed error
+  - `browser-navigate.test.ts`: public URL success, local/private policy block, binary-yok error mapping
+  - `browser-extract.test.ts`: sanitize/truncate text, links extraction, table extraction
+  - `browser-click.test.ts`: page observation + action risk metadata, selector-not-found
+  - `browser-fill.test.ts`: approval-risk metadata, visible error observation, raw secret'i output'a geri koymama, invalid selector
+- Dogrulama:
+  - `pnpm.cmd add playwright-core --filter @runa/server`
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/browser-manager.test.ts src/tools/browser-navigate.test.ts src/tools/browser-extract.test.ts src/tools/browser-click.test.ts src/tools/browser-fill.test.ts src/tools/registry.test.ts` PASS
+  - `pnpm.cmd --filter @runa/server exec biome check src/tools/browser-manager.ts src/tools/browser-manager.test.ts src/tools/browser-url-policy.ts src/tools/browser-navigate.ts src/tools/browser-navigate.test.ts src/tools/browser-extract.ts src/tools/browser-extract.test.ts src/tools/browser-click.ts src/tools/browser-click.test.ts src/tools/browser-fill.ts src/tools/browser-fill.test.ts src/tools/registry.ts src/tools/registry.test.ts package.json ../../packages/types/src/tools.ts` PASS
+- Canli smoke kaniti:
+  - `playwright-core` uzerinden headless Chromium launch edilip `https://example.com/` gercekten acildi; structured sonuc `{"result":"PASS","title":"Example Domain","url":"https://example.com/"}`.
+  - Derlenmis tool'lar uzerinden gercek `browser.navigate` + `browser.extract` smoke'u PASS verdi; `browser.extract` `Learn more -> https://iana.org/domains/example` linkini dondurdu.
+  - Ayni Chromium oturumu icinde public origin uzerine in-memory form set edilerek `browser.fill` ve `browser.click` tool'lari da canli smoke'ta PASS verdi; `browser.fill` approval-risk metadata + redacted output dondurdu, `browser.click` ise title/url degisimi ve `visible_error` gozlemini raporladi.
+- Duru not: anti-bot/stealth, captcha bypass, local network automation, `file://`/`data:`/`javascript:` navigation ve browser context sharing bilincli olarak acilmadi. Browser action tool'lari temkinli olmak icin varsayilan approval-gated metadata ile kayitlidir; bu turde gateway veya desktop modullerine girilmedi.
+
+### Track A - TASK-04 Parallel Tool Calling - 25 Nisan 2026
+
+- `packages/types/src/gateway.ts` ve `apps/server/src/gateway/groq-gateway.ts` uzerinde modelden gelen birden fazla tool call candidate'i typed olarak parse eden additive seam kapatildi. Legacy `tool_call_candidate` alani backward compatibility icin korunurken yeni `tool_call_candidates` dizisi en fazla 5 valid adayi sirali sekilde tasiyor; partial-invalid cevaplarda valid adaylar swallow edilmeden korunuyor.
+- `apps/server/src/runtime/tool-scheduler.ts` yeni scheduler/planner katmani olarak eklendi. Tool'lar effect class ve resource key bazinda siniflandiriliyor; read-only ve farkli kaynaklara dokunan adaylar ayni parallel batch'e alinabiliyor, ayni kaynaga bakan read'ler ile write/execute/browser/desktop/clipboard etkili adaylar ise deterministic sequential batch'lerde tutuluyor. Approval gereken ilk aday scheduler icinde hard boundary olarak ele aliniyor ve sonraki adaylar bilerek kosulmuyor.
+- `apps/server/src/ws/run-execution.ts` icinde runtime execution zinciri coklu tool adayi icin genisletildi. Parallel batch'ler `Promise.allSettled` ile kosuluyor, tool-step failure'lar typed synthetic `ToolResult` olarak normalize ediliyor, continuation prompt'u completion sirasina degil modelin aday sirasina gore olusturuluyor. Boylece agent loop sonraki model turunda `[1]`, `[2]`, ... sirali ve deterministic tool sonucu goruyor.
+- Approval boundary davranisi additive olarak sertlestirildi: approval gerektiren bir adaydan onceki guvenli batch'ler kosabiliyor, ancak approval gereken aday ve onun sonrasindaki adaylar durduruluyor. `approval.resolve` sonrasinda yalniz onaylanan tool replay ediliyor; approval arkasinda kalan sonraki tool'lar otomatik kacirilmis sekilde calistirilmiyor.
+- `apps/server/src/runtime/run-model-turn.ts`, `apps/server/src/runtime/run-model-turn-loop-adapter.ts`, `apps/server/src/runtime/run-agent-loop.ts` ve `apps/server/src/runtime/agent-loop.ts` tarafinda coklu `tool_results` snapshot boyunca tasinabilir hale getirildi. Consecutive tool failure sayaci tek tek result yerine batch semantigine gore davranıyor: batch icinde en az bir basari varsa sayac sifirlaniyor, tum batch hata ise tek tur failure olarak artis oluyor.
+- Test coverage: `apps/server/src/runtime/tool-scheduler.test.ts` yeni planner siniflandirma ve batching kurallarini kapsiyor; `apps/server/src/runtime/run-model-turn-loop-adapter.test.ts` ve `apps/server/src/runtime/agent-loop.test.ts` coklu `tool_results` carry-forward/failure semantigini dogruluyor; `apps/server/src/ws/register-ws.test.ts` icinde parallel read batch'lerinin out-of-order completion durumunda bile deterministic continuation urettigi ve approval sonrasi yalniz onaylanan tool'un replay edildigi integration coverage eklendi.
+- Dogrulama: `pnpm.cmd --filter @runa/types typecheck`, `pnpm.cmd --filter @runa/server typecheck`, `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/runtime/tool-scheduler.test.ts src/runtime/agent-loop.test.ts src/runtime/run-model-turn-loop-adapter.test.ts`, `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts --testNamePattern "routes a live run.request tool call through the tool-aware runtime chain|continues a desktop vision loop through approval replay and verify_state|keeps multi-tool read batches deterministic even when parallel completions finish out of order|stops later multi-tool candidates behind approval and replays only the approved tool after approval.resolve|persists live approval-required run.request state and replays it after approval.resolve|automatically replays an approved pending tool call after approval.resolve"` ve `pnpm.cmd --filter @runa/server exec biome check src/runtime/tool-scheduler.ts src/runtime/tool-scheduler.test.ts src/runtime/agent-loop.ts src/runtime/agent-loop.test.ts src/runtime/run-model-turn.ts src/runtime/run-model-turn-loop-adapter.ts src/runtime/run-model-turn-loop-adapter.test.ts src/runtime/run-agent-loop.ts src/ws/run-execution.ts src/ws/register-ws.test.ts ../../packages/types/src/gateway.ts` yesil.
+- Duru not: `src/ws/register-ws.test.ts` dosyasinin tumune kosulan onceki genis testte `web.search` authority metin beklentisinden gelen task-disi, onceki baseline drift goruldu. Task 04 kapaniÅŸ kaniti bu nedenle task'a ait integration senaryolarini hedefleyen pattern bazli Vitest kosusuna dayaniyor; paralel tool scheduling/runtime seam'i icin gerekli proof mevcuttur.
+
+### Track A / Track C - TASK-02D LM Studio Local Vision Smoke - 25 Nisan 2026
+
+- `packages/types/src/ws.ts`, `packages/types/src/ws-guards.ts`, `apps/server/src/gateway/providers.ts` ve `apps/server/src/gateway/config-resolver.ts` uzerinden `openai` provider icin additive `baseUrl` konfigurasyon seami acildi. Boylece `ModelGateway` kontrati korunarak local OpenAI-compatible endpoint'ler request seviyesinde veya env fallback ile adreslenebiliyor.
+- `apps/server/src/gateway/openai-gateway.ts` icinde local OpenAI-compatible base URL routing'i loopback-host ile sinirlandi. `localhost`, `127.0.0.1` ve `::1` disindaki host'lar typed configuration error ile reddediliyor; dogrudan keyless uzak endpoint override yolu acilmadi.
+- `apps/server/src/persistence/approval-store.ts` approval continuation persistence hattinda `provider_config.baseUrl` alanini minimum-shape sanitize mantigi icinde koruyor; boylece approval replay sonrasi local LM Studio base URL bilgisi kaybolmuyor. `apps/server/src/persistence/approval-store.test.ts` uzerine buna ait coverage eklendi.
+- `apps/server/src/gateway/gateway.test.ts` icine local OpenAI-compatible loopback routing ve non-loopback reject coverage'i eklendi. `apps/server/scripts/lmstudio-vision-smoke.mjs` yeni live smoke harness'i olarak eklendi; sentetik ama gercek PNG screenshot artifact'leri uretip `desktop.vision_analyze` ile `desktop.verify_state` tool'larini ayni `OpenAiGateway` uzerinden LM Studio'ya karsi kosuyor.
+- Canli dogrulama: bu shell'de `LM Studio` server'i `http://localhost:1234/v1` uzerinden aktifti ve `/v1/models` cevabinda `qwen/qwen3.5-9b` dondu. `node apps/server/scripts/lmstudio-vision-smoke.mjs` komutu `result: PASS` urettigi dogrulandi; `desktop.vision_analyze` gercek image attachment ile kirmizi butonu tespit etti, `desktop.verify_state` ise sonraki screenshot'ta yesil success panel degisimini `verified: true` olarak onayladi.
+- Dogrulama: `pnpm.cmd --filter @runa/types typecheck`, `pnpm.cmd --filter @runa/server typecheck`, `pnpm.cmd --filter @runa/server build`, `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/persistence/approval-store.test.ts src/tools/desktop-vision-analyze.test.ts src/tools/desktop-verify-state.test.ts src/ws/register-ws.test.ts`, `pnpm.cmd --filter @runa/server exec biome check src/gateway/config-resolver.ts src/gateway/openai-gateway.ts src/gateway/gateway.test.ts src/persistence/approval-store.ts src/persistence/approval-store.test.ts ../../packages/types/src/ws.ts ../../packages/types/src/ws-guards.ts` yesil.
+- Duru not: bu kanit local/dev smoke'tur. `qwen/qwen3.5-9b` + LM Studio ile live vision loop kanitlandi, ancak bundan `Groq vision production-ready` veya yayin provider smoke'u cikarimi yapilmadi.
+
+### Track C / Track A - TASK-06 Desktop Utility Tools - 25 Nisan 2026
+
+- Kullanicinin kokteki `TASK-06-DESKTOP-UTILITY-TOOLS.md` icindeki tum alt gorevleri uygulama istegi dogrultusunda 06A/06B/06C tek turda additive olarak kapatildi. Task dosyasinin "tek alt gorev" uyarisi risk siniri olarak dikkate alindi; bu nedenle her utility yetenegi ayri typed tool, ayri test ve ayri guard ile eklendi.
+- `TASK-06A` icin `apps/desktop-agent/src/clipboard.ts` eklendi ve `desktop.clipboard.read` / `desktop.clipboard.write` desktop bridge dispatch'ine baglandi. Clipboard read 10KB ile sinirli, secret-like icerikleri redaction-aware output'a ceviriyor; clipboard write 10KB ustunu agent'a dispatch etmeden reddediyor. Clipboard icerigi log'lanmiyor.
+- `TASK-06B` icin `apps/desktop-agent/src/app-launcher.ts` ve server-side `apps/server/src/tools/desktop-launch.ts` eklendi. Launch yalniz `chrome`, `edge`, `firefox`, `notepad`, `code`, `explorer`, `calc` whitelist'i uzerinden calisiyor; `cmd` / `powershell` bilincli olarak acilmadi ve user input dogrudan `Start-Process`'e tasinmiyor.
+- `TASK-06C` icin `apps/server/src/tools/file-watch.ts` eklendi. Native `fs.watch` kullanildi, yeni dependency eklenmedi; workspace disina cikis path normalization + realpath guard ile reddediliyor, sure 30 saniye ve event sayisi 50 ile sinirli.
+- `packages/types/src/ws.ts` desktop agent capability union'i additive olarak genisletildi; `packages/types/src/tools.ts` known tool union'ina `desktop.clipboard.read`, `desktop.clipboard.write`, `desktop.launch` ve `file.watch` eklendi. `apps/server/src/tools/registry.ts` built-in registry artik bu yeni utility ailesini expose ediyor.
+- Test coverage: `apps/server/src/tools/desktop-clipboard.test.ts`, `desktop-launch.test.ts`, `file-watch.test.ts` ve `registry.test.ts` yeni security negative path'leri kapsiyor: oversized clipboard write, whitelist disi launch ve workspace disi watch reddi.
+- Dogrulama yesil: `pnpm.cmd --filter @runa/types build`, `pnpm.cmd --filter @runa/desktop-agent typecheck`, `pnpm.cmd --filter @runa/desktop-agent build`, `pnpm.cmd --filter @runa/server typecheck`, `pnpm.cmd exec biome check packages/types/src/ws.ts packages/types/src/tools.ts apps/desktop-agent/src/app-launcher.ts apps/desktop-agent/src/clipboard.ts apps/desktop-agent/src/ws-bridge.ts apps/desktop-agent/src/index.ts apps/server/src/tools/desktop-clipboard.ts apps/server/src/tools/desktop-clipboard.test.ts apps/server/src/tools/desktop-launch.ts apps/server/src/tools/desktop-launch.test.ts apps/server/src/tools/file-watch.ts apps/server/src/tools/file-watch.test.ts apps/server/src/tools/registry.ts apps/server/src/tools/registry.test.ts`, `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/desktop-clipboard.test.ts src/tools/desktop-launch.test.ts src/tools/file-watch.test.ts src/tools/registry.test.ts`.
+- Genis repo testi durumu: `pnpm.cmd --filter @runa/server test` bu task'a ait yeni dist testlerini gecirdi ancak repo-baseline 3 task-disi kirmizi ile tamamlanmadi: `src/gateway/model-router.test.ts` fallback chain Sambanova beklenti farki, `src/runtime/run-with-provider.test.ts` missing API key artik reject yerine FAILED result donmesi, `src/ws/register-ws.test.ts` web.search authority_note metin beklentisi. Bu kirmizilar TASK-06 dosyalarindan kaynaklanmiyor.
+- Sonraki dar gorev: desktop utility ailesini user-facing desktop shell/device presence yuzeyinde sade, chat-native ve approval odakli gosterecek ikinci katman UI/UX seami; bu task'ta ana chat yuzeyi, auth/gateway redesign veya yeni native dependency acilmadi.
+
+### Full Green Baseline Cleanup - 25 Nisan 2026
+
+- TASK-06 sonrasi genis repo kapisini kirmizi tutan stale baseline beklentileri task-disi olarak siniflandirildi ve mevcut runtime kontratina hizalandi: provider fallback zinciri artik `sambanova` ekini bekliyor, missing provider API key runtime path'i reject yerine structured `FAILED` sonucu olarak dogrulaniyor, `web.search` authority note beklentisi guncel metinle esitlendi.
+- Root lint kapisi icin kaynak format/import drift'i temizlendi. `biome.json` generated build output'lari ve local ad-hoc smoke dosyalarini lint kapsamindan cikardi; DB local smoke scriptlerinde hassas baglanti metni bulunabildigi icin bu dosyalar formatlanmak yerine ignore edildi.
+- Web hook lint/typecheck borcu kapatildi: `useAuth` helper state transition fonksiyonlari stable callback'lere alindi, effect dependency setleri gercek kullanimla hizalandi; `useChatRuntime` gereksiz setter dependency'leri temizlendi; `useConversations` runtime guard'lari typed candidate uzerinden hem Biome hem TypeScript ile uyumlu hale getirildi.
+- Dogrulama yesil:
+  - `pnpm.cmd lint`
+  - `pnpm.cmd typecheck`
+  - `pnpm.cmd --filter @runa/server test` (`119` test dosyasi, `793` test)
+  - `pnpm.cmd test`
+  - `pnpm.cmd build`
+- Son durum: TASK-06 artik yalniz task-local degil, monorepo root kapilariyla da full green dogrulandi. Calisma mevcut kirli worktree uzerinde yapildi; kullaniciya ait/task-disi dosya silme veya revert uygulanmadi.
+
+### Track A - TASK-07 MCP Streamable HTTP Transport - 25 Nisan 2026
+
+- Kokteki `TASK-07-MCP-HTTP-TRANSPORT.md` kapsamindaki MCP HTTP transport seami additive olarak kapatildi. `packages/types/src/mcp.ts` artik `stdio` ve `http` transport config'lerini ayiriyor; `transport` yoksa stdio default'u korunuyor, HTTP icin `url` zorunlu hale geldi ve headers typed config'e eklendi.
+- `apps/server/src/mcp/config.ts` mevcut `RUNA_MCP_SERVERS` parser'ini HTTP config'lerini okuyacak sekilde genisletti. Stdio icin `command` zorunlulugu korunuyor; HTTP icin `url` zorunlu, `headers` ise yalniz string record olarak kabul ediliyor.
+- `apps/server/src/mcp/http-transport.ts` eklendi. JSON-RPC batch mesajlari `POST` ile `Content-Type: application/json` ve `Accept: application/json, text/event-stream` header'lariyla gonderiliyor; JSON response ve SSE/event-stream frame'leri kontrollu parse ediliyor. Request timeout 30s, stream read timeout 60s; external `AbortSignal` destekleniyor.
+- Remote MCP URL policy konservatif tutuldu: `file://`, URL credential'lari, localhost, loopback, private IPv4 araliklari, link-local/metadata endpoint'leri ve temel private IPv6 araliklari default bloklaniyor. Authorization, cookie, API key, token ve secret header'lari transport error detail'lerinde redacted tutuluyor.
+- `McpClient` transport'a gore route ediyor: `callTool()` HTTP veya stdio session kullanabiliyor; async `listTools()` HTTP list icin eklendi; `listToolsSync()` stdio-only kaldi ve HTTP config'te typed `McpClientError` veriyor. Mevcut ToolRegistry bridge ve `mcp.<serverId>.<toolName>` isimlendirmesi bozulmadi; stdio transport davranisi degismedi, yalniz yeni union tipi icin stdio config tipi daraltildi.
+- Test coverage: HTTP config validation, JSON response parse, SSE/event-stream parse, header redaction, private/local URL negative path'leri, AbortSignal passthrough, HTTP `McpClient.callTool()`, async HTTP `listTools()` ve mevcut stdio registry bridge regresyonu kapsandi.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/types typecheck`
+  - `pnpm.cmd --filter @runa/server typecheck`
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/mcp/client.test.ts src/mcp/http-transport.test.ts src/mcp/registry-bridge.test.ts`
+  - `pnpm.cmd --filter @runa/server exec biome check src/mcp/client.ts src/mcp/client.test.ts src/mcp/config.ts src/mcp/http-transport.ts src/mcp/http-transport.test.ts src/mcp/stdio-transport.ts ../../packages/types/src/mcp.ts`
+  - `pnpm.cmd --filter @runa/server test` (`120` test dosyasi, `807` test)
+- Duru not: Bu tur ikinci bir MCP execution plane kurmadi, Gateway/desktop/web modullerine girmedi ve yeni dependency eklemedi. HTTP MCP discovery icin sync registry path'i bilerek uydurulmadi; HTTP tool listesi async client seviyesinde hazir, mevcut environment registry bridge ise stdio sync davranisini koruyor.
+
+### Track A - TASK-04 Runtime Parallel Tool Calls + TASK-07 Async HTTP MCP Registry Closure - 25 Nisan 2026
+
+- Duzeltme notu: TASK-04 icin onceki kapanis beyaninda core runtime entegrasyonu eksik kalmisti. `tool_call_candidates` array kontrati ve scheduler/WS parcasi repoda olsa da `adapt-model-response-to-turn-outcome.ts`, `continue-model-turn.ts`, `run-model-turn.ts` ve loop adapter hattinda tekil `tool_call_candidate` varsayimi devam ediyordu. Bu turda bu eksik acikca kapatildi.
+- Core runtime artik model response icindeki `tool_call_candidates` dizisini `ModelTurnOutcome.kind === "tool_calls"` olarak parse ediyor; invalid array shape typed failure uretiyor. `continueModelTurn` coklu tool outcome icin `planToolExecutionBatches` kullanarak paralel calisabilir batch'leri `Promise.allSettled` ile yurutuyor, approval-required candidate'ta guvenli onceki sonuclari koruyarak duruyor ve `tool_results` sirasini modelin orijinal tool call sirasina gore donduruyor.
+- `runModelTurn` ve `run-model-turn-loop-adapter` coklu tool sonucunu tasiyacak sekilde genisletildi. `tool_result` backward-compatible tekil son sonucu korurken `tool_results` batch sonuc listesini tasiyor; approval boundary ve continuation mapping call_id uzerinden dogru tool input'u seciyor. `stop-conditions` model sinyali `tool_calls` icin terminal assistant stop gibi davranmayacak sekilde genisletildi.
+- TASK-07 icin ikinci duzeltme: HTTP MCP discovery yalniz `McpClient.listTools()` seviyesinde kalmadi. `discoverMcpTools()` async registry bridge'e eklendi; `createToolRegistryFromEnvironmentAsync()` ve `getDefaultToolRegistryAsync()` WS runtime dependency path'ine baglandi. `run.request` ve approval resolve/replay path'leri default registry gerekirse async olarak kuruyor; sync path stdio-only davranisi koruyor.
+- Coverage eklendi/guncellendi: model response adapter array parse/negative path, core `continueModelTurn` paralel batch ve approval boundary, `runModelTurn` core array -> scheduler -> tool_results path, loop adapter tool_results propagation, async HTTP MCP environment registry path ve mevcut WS/register-ws regresyonlari.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/types typecheck`
+  - `pnpm.cmd --filter @runa/server typecheck`
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/runtime/continue-model-turn.test.ts src/runtime/adapt-model-response-to-turn-outcome.test.ts src/runtime/run-model-turn.test.ts src/runtime/run-model-turn-loop-adapter.test.ts src/ws/runtime-dependencies.test.ts src/mcp/client.test.ts src/mcp/http-transport.test.ts src/mcp/registry-bridge.test.ts src/ws/register-ws.test.ts` (`9` test dosyasi, `100` test)
+  - `pnpm.cmd --filter @runa/server exec biome check src/runtime/adapt-model-response-to-turn-outcome.ts src/runtime/adapt-model-response-to-turn-outcome.test.ts src/runtime/continue-model-turn.ts src/runtime/continue-model-turn.test.ts src/runtime/run-model-turn.ts src/runtime/run-model-turn.test.ts src/runtime/run-model-turn-loop-adapter.ts src/runtime/run-model-turn-loop-adapter.test.ts src/runtime/stop-conditions.ts src/mcp/registry-bridge.ts src/mcp/client.ts src/mcp/client.test.ts src/mcp/config.ts src/mcp/http-transport.ts src/mcp/http-transport.test.ts src/mcp/stdio-transport.ts src/ws/runtime-dependencies.ts src/ws/runtime-dependencies.test.ts src/ws/run-execution.ts src/ws/approval-handlers.ts ../../packages/types/src/mcp.ts`
+  - `pnpm.cmd --filter @runa/server test` (`120` test dosyasi, `813` test)
+- Son durum: TASK-04 core runtime entegrasyonu ve TASK-07 HTTP MCP default WS registry entegrasyonu artik birlikte dogrulandi. Worktree bu calismaya baslamadan da cok kirliydi; task-disi dosyalara revert uygulanmadi.
+
+### Track A / Track B - TASK-08 Semantic Memory - 25 Nisan 2026
+
+- Kokteki `TASK-08-SEMANTIC-MEMORY.md` kapsamindaki semantic memory minimumu additive olarak kapatildi. Shared tool kontrati `memory.save`, `memory.search`, `memory.list` ve `memory.delete` isimleriyle genisletildi; eski memory/search semantiklerinden Gateway, web veya desktop redesign acilmadi.
+- `memory.save` explicit/inferred/conversation source policy'sini enforce ediyor. Explicit memory dogrudan kullanici istegi icin acik; inferred memory `consent_confirmed=true` ister; conversation memory hem consent hem `RUNA_CONVERSATION_MEMORY_ENABLED=true` feature flag'i ister. API key, password, token, provider secret ve payment/card benzeri sensitive content default reddediliyor.
+- `memory.list` ve `memory.delete` user-visible kontrol yuzeyi kurdu. Delete hard delete degil, mevcut store sozlesmesine uygun soft archive kullaniyor ve memory id'nin istenen user/workspace scope'una ait oldugunu kontrol etmeden arsivlemiyor.
+- `memory.search` mevcut token-overlap semantic retrieval hattini canonical `memory.search` tool'u olarak expose ediyor; output artik `memory_id`, `created_at`, `source_kind`, `retrieval_reason`, `matched_terms` ve `relevance_score` provenance alanlarini donduruyor.
+- Context integration sertlestirildi: memory layer artik provenance/relevance alanlarini prompt layer'a tasiyor, memory notlari untrusted background olarak etiketleniyor ve content/summary `sanitizePromptContent` uzerinden geciyor. Memory injection instruction authority olarak yorumlanmiyor.
+- Embedding provider mini-RFC'si `apps/server/src/memory/README.md` icine eklendi. Karar: yeni dependency, local model download, remote embedding key'i veya vector DB bu task'ta acilmadi; mevcut `token_overlap_v1` helper lazy/deterministic fallback olarak tutuldu. Vector provider icin model boyutu, first-load, CPU/memory, offline/online, deployment ve unavailable fallback kaniti ayri karar kapisi olarak kaydedildi.
+- DB/RLS notu: Mevcut `memories` table ve RLS plan seam'i korunuyor; user/workspace isolation bugunku tool seviyesinde scope ownership testleriyle kanitlandi. Cloud RLS policy SQL'i daha once oldugu gibi write-path identity persistence tam kapanmadan ready moda alinmadi; bu task DB schema redesign veya ikinci `memory_entries` table'i acmadi.
+- Dogrulama: `pnpm.cmd --filter @runa/types typecheck`, `pnpm.cmd --filter @runa/db typecheck`, `pnpm.cmd --filter @runa/server typecheck`, `pnpm.cmd --filter @runa/db test` (`5` dosya / `26` test), targeted memory/context Vitest (`5` dosya / `24` test), targeted Biome check, `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.config.mjs --configLoader runner --maxWorkers=1` (`121` dosya / `817` test), `pnpm.cmd --filter @runa/types build`, `pnpm.cmd --filter @runa/db build` ve `pnpm.cmd --filter @runa/server build` yesil. Not: varsayilan paralel `pnpm.cmd --filter @runa/server test` ikinci denemede assertion degil Vitest worker OOM / `Channel closed` ile dustu; ayni suite tek worker ile PASS verdi.
+- Sonraki dar gorev: cloud auth principal'i memory store write path'ine kalici `user_id` / `tenant_id` olarak baglayip sadece `memories` icin ready RLS SQL policy apply kaniti uretmek; semantic memory tool sozlesmesini yeniden acmamak.
+
+### Track A / Track C - TASK-10A Structured Output Parser Foundation - 25 Nisan 2026
+
+- Kokteki `TASK-10-STRUCTURED-OUTPUT.md` icindeki TASK-10A fazi dar kapsamda kapatildi. Yeni `RenderBlock` tipi acilmadi, frontend renderer veya production presentation path degistirilmedi; bu tur yalniz parser helper ve test coverage ekledi.
+- `apps/server/src/presentation/output-parser.ts` eklendi. Parser fenced code block, markdown table, checklist/numbered plan ve konservatif file reference token'larini taniyor; her sonuc `raw_text` alaninda orijinal model cevabini koruyor ve dusuk confidence durumunda structured node uretmeden `raw_text` fallback'e donuyor.
+- Large inline code/artifact riski icin `inline_content_limit` destekli deterministik truncate davranisi eklendi. Unterminated code fence gibi yarim/streaming-benzeri input'larda parser output'u bosaltmiyor; ham metin kayipsiz kaliyor.
+- `apps/server/src/presentation/output-parser.test.ts` yeni coverage'i kapsiyor: raw fallback, fenced code + filename, large code truncation, markdown table, checklist/numbered plan, file reference line metadata ve unterminated fence fallback.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/presentation/output-parser.test.ts`
+  - `pnpm.cmd --filter @runa/server typecheck`
+  - `pnpm.cmd --filter @runa/server exec biome check src/presentation/output-parser.ts src/presentation/output-parser.test.ts`
+  - `pnpm.cmd --filter @runa/server build`
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web build`
+- Durust kalan durum: TASK-10B henuz acilmadi. Code/table/plan/file reference icin typed `RenderBlock` kontrati ve frontend renderer ayni fazda eklenmeden production presentation akisi bu parser'a baglanmadi.
+- Sonraki onerilen gorev: agreed siraya uygun olarak `UI-PHASE-4.md` icindeki block renderer / research trust / capability presentation fazina gecmek; RenderBlock contract'i genisletilecekse bunu TASK-10B ile birlikte frontend renderer dahil yap.
+
+### Track C - UI-PHASE-4 Block Renderer Registry Foundation - 25 Nisan 2026
+
+- `UI-PHASE-4.md` kapsaminda dar ve davranis koruyan ilk registry dilimi kapatildi. `packages/types`, server presentation mapper, runtime/WS timing veya yeni `RenderBlock` union'i acilmadi.
+- `apps/web/src/components/chat/blocks/BlockRenderer.tsx` eklendi. Mevcut tum `RenderBlock` tipleri icin exhaustive switch benzeri tek registry girisi kuruldu; text/status/event_list/code/diff/inspection_detail/run_timeline/search/web_search/trace_debug/workspace/approval/tool_result bloklari mevcut renderer davranislarini koruyarak bu registry uzerinden route ediliyor.
+- `apps/web/src/components/chat/chat-presentation.tsx` artik block dispatch'i icin `BlockRenderer` kullaniyor. Inspection detail relation davranisi korunmak icin mevcut detail renderer callback olarak registry'ye veriliyor; approval resolve ve inspection request callback'leri ayni sekilde tasiniyor.
+- Developer-only raw yuzeyler icin ilk guard eklendi: `event_list` ve `trace_debug_block` Developer Mode kapaliyken ana chat yuzeyinde render edilmiyor. `PresentationRunSurfaceCard`, `PastRunSurfaces` ve `ChatPage` `isDeveloperMode` bilgisini registry hattina tasiyor.
+- `apps/web/src/components/chat/blocks/CodeBlockCard.tsx` eklendi. Code block render'i copy aksiyonu, 2 saniyelik copy feedback/failure state'i, line number gorunumu, path/language/diff_kind bilgisi ve yatay tasma kontrollu code preview ile registry tarafindan kullaniliyor.
+- `diff_block` render'i default collapsed `<details>` yuzeyine alindi. Summary, changed paths, truncated badge ve inspection action gorunumu korunurken ham diff metni kullanici isterse `View diff` ile aciliyor.
+- `apps/web/src/components/chat/blocks/BlockRenderer.test.tsx` eklendi. Test, Developer Mode'da mevcut butun `RenderBlock` tiplerinin unsupported fallback'e dusmeden static render edildigini, Developer Mode kapaliyken raw runtime/debug bloklarinin default chat yuzeyinden gizlendigini ve code copy / collapsed diff affordance'larinin render edildigini dogruluyor.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/components/chat/blocks/BlockRenderer.test.tsx` (`3` test)
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web exec biome check src/components/chat/blocks/BlockRenderer.tsx src/components/chat/blocks/BlockRenderer.test.tsx src/components/chat/blocks/CodeBlockCard.tsx src/components/chat/PresentationBlockRenderer.tsx src/components/chat/chat-presentation.tsx src/components/chat/PresentationRunSurfaceCard.tsx src/components/chat/PastRunSurfaces.tsx src/pages/ChatPage.tsx`
+  - `pnpm.cmd --filter @runa/web build`
+- Durust QA notu: Bu turda gercek browser block fixture route'u veya local authenticated sample surface acilmadi; bu nedenle 320px/1440px browser block tasma kaniti uydurulmadi. Kanit targeted React static render testi + web build/typecheck/Biome ile sinirli.
+- Kalan UI-PHASE-4 polish: daha zengin source/trust chip kullanimi ve workspace/dev detail ince ayarlari ileride yapilabilir; bu tur ana registry, developer-only guard, code copy ve diff collapse kapilarini kapatti. Siradaki agreed gorev TASK-10B oldugu icin yeni block kontrati acilacaksa frontend renderer ile ayni fazda ele alinmali.
+
+### Track A / Track C - TASK-10B Typed Structured Output Blocks - 25 Nisan 2026
+
+- `TASK-10-STRUCTURED-OUTPUT.md` icindeki TASK-10B fazi typed contract + backend mapper + frontend renderer birlikte olacak sekilde kapatildi. Yeni block tipleri frontend renderer olmadan production presentation path'e verilmedi.
+- `packages/types/src/blocks.ts` additive olarak `code_artifact`, `plan`, `table` ve `file_reference` block tipleriyle genisletildi. Mevcut `text`, `code_block`, `diff_block`, `tool_result`, search ve approval block sozlesmeleri korunarak union'a yeni payload tipleri eklendi.
+- `apps/server/src/presentation/map-structured-output.ts` eklendi. TASK-10A parser sonucunu `RenderBlock` dizisine map ediyor; low-confidence/raw durumda yine `text` block fallback'i uretiyor. `apps/server/src/presentation/map-runtime-events.ts` completion text'i icin bu mapper'i kullanmaya basladi; failure text akisi raw text olarak korunuyor.
+- Frontend tarafinda `BlockRenderer` yeni `code_artifact`, `plan`, `table` ve `file_reference` tiplerini render ediyor. `CodeBlockCard` hem mevcut `code_block` hem yeni `code_artifact` icin kullaniliyor; copy/line number davranisi ortak kaldi. Plan, table ve file reference yuzeyleri `CapabilityCard` uzerinden sakin chat-native kartlar olarak gosteriliyor.
+- Coverage guncellendi: `map-runtime-events.test.ts` structured assistant output'un `plan`, `code_artifact`, `file_reference` ve fallback `text` block'larina ayrildigini dogruluyor; `BlockRenderer.test.tsx` yeni block tiplerinin Developer Mode'da unsupported fallback'e dusmeden render edildigini kapsiyor.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/types typecheck`
+  - `pnpm.cmd --filter @runa/types build`
+  - `pnpm.cmd --filter @runa/server typecheck`
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/presentation/output-parser.test.ts src/presentation/map-runtime-events.test.ts` (`2` dosya / `11` test)
+  - `pnpm.cmd --filter @runa/server exec biome check src/presentation/output-parser.ts src/presentation/output-parser.test.ts src/presentation/map-structured-output.ts src/presentation/map-runtime-events.ts src/presentation/map-runtime-events.test.ts ../../packages/types/src/blocks.ts`
+  - `pnpm.cmd --filter @runa/server build`
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/components/chat/blocks/BlockRenderer.test.tsx` (`3` test)
+  - `pnpm.cmd --filter @runa/web exec biome check src/components/chat/blocks/BlockRenderer.tsx src/components/chat/blocks/BlockRenderer.test.tsx src/components/chat/blocks/CodeBlockCard.tsx src/components/chat/PresentationBlockRenderer.tsx src/components/chat/chat-presentation.tsx src/components/chat/PresentationRunSurfaceCard.tsx src/components/chat/PastRunSurfaces.tsx src/pages/ChatPage.tsx`
+  - `pnpm.cmd --filter @runa/web build`
+- Durust kalan durum: Provider-native schema-first structured output capability gate'i acilmadi; regex/markdown parser halen controlled fallback katmani. Large binary/artifact reference storage davranisi bu task'ta acilmadi.
+- Sonraki agreed gorev: `UI-PHASE-5.md` icindeki streaming/markdown/thinking/artifact preview polish; mevcut structured blocks uzerine protocol redesign acmadan ilerle.
+
+### Track C - UI-PHASE-5 Streaming / Markdown / Activity Confidence Surfaces - 25 Nisan 2026
+
+- `UI-PHASE-5.md` kapsaminda mevcut markdown ve streaming seami yeniden yazilmadan genisletildi. WS protocol, server streaming, gateway/provider davranisi veya `useChatRuntime.ts` degistirilmedi.
+- Mevcut `MarkdownRenderer` ve `StreamingMessageSurface` korunarak targeted test altina alindi: heading/table/code/link render'i, `javascript:` gibi tehlikeli link scheme'lerinin href olarak render edilmemesi ve yarim fenced code iceren streaming metnin dusmeden gorunmesi dogrulandi.
+- `apps/web/src/components/chat/ThinkingBlock.tsx` eklendi. `run_timeline_block`/current-run progress tarafindan zaten tasinan label/detail/tool_name/state sinyallerini raw chain-of-thought gostermeden, "Runa calisiyor" / "Calisma ozeti" diliyle render ediyor. Payload'da olmayan duration uydurulmuyor.
+- `apps/web/src/components/chat/ToolActivityIndicator.tsx` eklendi. `tool_requested`, `tool_completed`, `tool_failed` runtime step'leri active/completed/failed olarak compact inline yuzeyde gorunuyor; stack trace veya raw runtime dump ana chat'e tasinmiyor.
+- `apps/web/src/components/chat/RunProgressPanel.tsx` mevcut step grid'ini `ThinkingBlock` + `ToolActivityIndicator` adapter'iyle kullanmaya basladi. Runtime sinyali kaynagi halen `deriveCurrentRunProgressSurface`; yeni server data veya fake progress uretilmedi.
+- `apps/web/src/components/chat/ScreenshotCard.tsx` eklendi. Image/screenshot artifact preview icin lazy image, caption/timestamp, click ile native dialog preview ve close action sagliyor; runtime izin veya desktop vision flow'u bu fazda acilmadi.
+- `apps/web/src/components/chat/UIPhase5Surfaces.test.tsx` eklendi. Markdown safe link/table/code, streaming partial markdown, ThinkingBlock/ToolActivityIndicator ve ScreenshotCard lazy preview davranislari static render ile test edildi.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/components/chat/UIPhase5Surfaces.test.tsx src/components/chat/blocks/BlockRenderer.test.tsx` (`2` dosya / `7` test)
+  - `pnpm.cmd --filter @runa/web exec biome check src/components/chat/ThinkingBlock.tsx src/components/chat/ToolActivityIndicator.tsx src/components/chat/ScreenshotCard.tsx src/components/chat/UIPhase5Surfaces.test.tsx src/components/chat/RunProgressPanel.tsx src/components/chat/StreamingMessageSurface.tsx src/components/chat/MarkdownRenderer.tsx`
+  - `pnpm.cmd --filter @runa/web build`
+- Durust QA notu: Gercek browser fixture/live provider smoke kosulmadi; screenshot preview modal click'i static render ile sinirli kaldigi icin browser interaction kaniti yok. Live provider yoksa bu fazin kaniti targeted component tests + build/typecheck/Biome'dur.
+- Sonraki agreed gorev: `TASK-12-FILE-TRANSFER.md` icindeki existing attachment audit + hardening; upload/attachment hattini okumadan yeniden yazma.
+
+### Track B / Track C - TASK-12A Existing Attachment Audit + Hardening - 25 Nisan 2026
+
+- `TASK-12-FILE-TRANSFER.md` icindeki TASK-12A kapsami uygulandi; mevcut upload route, frontend upload button ve provider attachment contract'i okunarak yalniz eksik validation/hardening seam'leri kapatildi.
+- Audit sonucu: mevcut contract `packages/types/src/gateway.ts` uzerinden image/text attachment destekliyor; document/PDF/Excel native contract henuz yok. Bu turda TASK-12B document attachment veya TASK-12C file share/download block acilmadi.
+- `apps/server/src/routes/upload.ts` storage'a yazmadan once normalize/validate edecek hale getirildi. Unsupported media artik upload adapter'a gitmeden `415` donuyor; `.exe`, `.bat`, `.cmd`, `.ps1`, `.msi`, macro-enabled office ve benzeri riskli extension'lar storage oncesi engelleniyor.
+- Server base64/type hardening eklendi: bos/gecersiz base64 `400`, image limitini asan payload `413`, text/application-json limitini asan payload `413` donuyor. Content type lower-case/trim normalize ediliyor; mevcut image/text contract response sekli korunuyor.
+- `apps/web/src/components/chat/FileUploadButton.tsx` dosyayi okumadan once frontend preflight validation yapmaya basladi. Image/text/json accept listesi korunurken unsupported type, riskli filename ve image/text size limitleri kullaniciya fetch oncesi hata olarak donuyor.
+- Coverage eklendi: `apps/server/src/routes/upload.test.ts` image/text regression, unsupported type, riskli filename, invalid base64 ve oversized text icin storage-oncesi rejection'i kapsiyor. `apps/web/src/components/chat/FileUploadButton.test.ts` frontend preflight helper'inin supported/unsupported/risky/oversized kararlarini kapsiyor.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/routes/upload.test.ts` (`6` test)
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/components/chat/FileUploadButton.test.ts` (`3` test)
+  - `pnpm.cmd --filter @runa/server typecheck`
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/server exec biome check src/routes/upload.ts src/routes/upload.test.ts`
+  - `pnpm.cmd --filter @runa/web exec biome check src/components/chat/FileUploadButton.tsx src/components/chat/FileUploadButton.test.ts`
+  - `pnpm.cmd --filter @runa/server build`
+  - `pnpm.cmd --filter @runa/web build`
+- Durust kalan durum: document attachment contract, provider document degrade davranisi, signed download/share URL ve `FileDownloadBlock` henuz yok; bunlar sirasiyla TASK-12B/TASK-12C konusu. Browser upload smoke kosulmadi; kanit targeted route/component tests + typecheck/build/Biome ile sinirli.
+- Sonraki agreed gorev: `TASK-12B` document attachment contract'i; buyuk document content model context'e gomulmeden artifact reference olarak tasinmali ve provider destegi yoksa typed graceful degrade verilmeli.
+
+### Track B / Track C - TASK-12B Document Attachment Contract - 25 Nisan 2026
+
+- `TASK-12-FILE-TRANSFER.md` icindeki TASK-12B additive olarak kapatildi. Mevcut image/text attachment contract'i korunurken `document` attachment tipi eklendi.
+- `packages/types/src/gateway.ts` `ModelDocumentAttachment` ile genisletildi: `kind: 'document'`, `filename`, `media_type`, `size_bytes`, `storage_ref`, opsiyonel `text_preview` ve mevcut preview/list UI akisi icin `blob_id` tasiyor. `packages/types/src/ws-guards.ts` runtime payload guard'i yeni tipi kabul edecek sekilde guncellendi.
+- Storage hattinda `attachment_document` blob kind'i eklendi. Supabase storage path parser bu yeni kind'i kabul ediyor; auth/owner/scope davranisi mevcut storage service uzerinden korunuyor.
+- Upload route PDF/Office document dosyalarini 5 MB limitli artifact olarak kabul ediyor. Document response binary payload, `data_url` veya `text_content` gommeden yalniz `storage_ref` ile donuyor. Filename zorunlu; PDF/Excel full parsing bu fazda acilmadi.
+- Provider mapping tarafinda native document support varsayilmadi. `apps/server/src/gateway/attachment-text.ts` eklendi; Groq/OpenAI/Gemini/SambaNova/Claude adapter'lari document attachment'i text part olarak "stored document artifact + storage reference + preview yok" seklinde degrade ediyor, ham binary model request'e gomulmuyor.
+- Frontend upload preflight PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX dosyalarini kabul edecek sekilde genisletildi; document size limitleri fetch/file read oncesi kontrol ediliyor. Composer preview document icin storage reference gosteriyor.
+- Coverage guncellendi: upload route typed document response ve storage kind'ini, gateway testleri document degrade metnini, live-request testi document attachment passthrough'unu, web preflight testi supported/oversized document davranisini kapsiyor.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/routes/upload.test.ts src/gateway/gateway.test.ts src/ws/live-request.test.ts` (`3` dosya / `65` test)
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/components/chat/FileUploadButton.test.ts` (`3` test)
+  - `pnpm.cmd --filter @runa/types typecheck`
+  - `pnpm.cmd --filter @runa/types build`
+  - `pnpm.cmd --filter @runa/server typecheck`
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/server exec biome check src/routes/upload.ts src/routes/upload.test.ts src/gateway/attachment-text.ts src/gateway/groq-gateway.ts src/gateway/openai-gateway.ts src/gateway/gemini-gateway.ts src/gateway/claude-gateway.ts src/gateway/sambanova-gateway.ts src/gateway/gateway.test.ts src/ws/live-request.test.ts src/storage/storage-service.ts src/storage/supabase-storage-adapter.ts ../../packages/types/src/gateway.ts ../../packages/types/src/ws-guards.ts`
+  - `pnpm.cmd --filter @runa/web exec biome check src/components/chat/FileUploadButton.tsx src/components/chat/FileUploadButton.test.ts src/components/chat/ChatComposerSurface.tsx`
+  - `pnpm.cmd --filter @runa/server build`
+  - `pnpm.cmd --filter @runa/web build`
+- Durust kalan durum: document understanding/parsing yok; provider'a yalniz artifact reference ve varsa gelecekteki `text_preview` gider. Signed/scoped download URL ve `FileDownloadBlock` henuz yok; bunlar TASK-12C konusu.
+- Sonraki agreed gorev: `TASK-12C` file.share tool + scoped/signed download block; public/suresiz URL uretmeden storage/auth scope korunmali.
+
+### Track B / Track C - TASK-12C File Share / Download Block - 25 Nisan 2026
+
+- `TASK-12-FILE-TRANSFER.md` icindeki TASK-12C kapatildi. `file.share` tool, scoped/expiring download URL ve frontend `file_download` block ayni fazda eklendi.
+- `packages/types/src/tools.ts` additive olarak `file.share` known tool adini ve tool execution context icin authenticated storage/download-url seam'ini tasiyor. `packages/types/src/blocks.ts` `file_download` RenderBlock tipiyle genisletildi.
+- `apps/server/src/storage/signed-download-url.ts` eklendi. HMAC imzali, 15 dakika varsayilan TTL'li relative download URL uretiyor; route tarafinda expiry ve signature dogrulaniyor. URL public/suresiz degil; `/storage/download/:id` halen authenticated request ister ve `StorageService.get_blob` owner/scope kontrolunu korur.
+- `apps/server/src/storage/storage-routes.ts` scoped signed download endpoint'i ekledi. Basarili download `content-type` ve `content-disposition: attachment` header'lariyla blob content'i donuyor; eksik/invalid signature `400/403` typed response aliyor.
+- `apps/server/src/tools/file-share.ts` eklendi ve built-in registry'ye baglandi. Tool non-empty string content'i `tool_output` artifact olarak storage'a yazar, `artifact_ref`, `storage_ref`, signed `url`, `expires_at`, filename, MIME ve size metadata'si doner. Tool approval-gated write capability olarak isaretlidir.
+- Runtime tool context'i WS run execution icinde auth context, storage service ve signed URL factory tasiyacak sekilde genisletildi; approval replay/continuation yolunda ayni context degeri korunur.
+- Presentation mapper `file.share` sonucundan `file_download` block uretiyor. Frontend `BlockRenderer` bu block'u download card olarak render ediyor; mevcut `tool_result` block'u da korunuyor.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/types typecheck`
+  - `pnpm.cmd --filter @runa/types build`
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/file-share.test.ts src/tools/registry.test.ts src/storage/storage-routes.test.ts src/presentation/map-file-download.test.ts` (`4` dosya / `15` test)
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/components/chat/blocks/BlockRenderer.test.tsx` (`3` test)
+  - `pnpm.cmd --filter @runa/server typecheck`
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/server exec biome check src/tools/file-share.ts src/tools/file-share.test.ts src/tools/registry.ts src/tools/registry.test.ts src/storage/signed-download-url.ts src/storage/storage-routes.ts src/storage/storage-routes.test.ts src/presentation/map-file-download.ts src/presentation/map-file-download.test.ts src/ws/presentation.ts src/ws/register-ws.ts src/ws/orchestration-types.ts src/ws/run-execution.ts src/app.ts ../../packages/types/src/tools.ts ../../packages/types/src/blocks.ts`
+  - `pnpm.cmd --filter @runa/web exec biome check src/components/chat/blocks/BlockRenderer.tsx src/components/chat/blocks/BlockRenderer.test.tsx`
+  - `pnpm.cmd --filter @runa/server build`
+  - `pnpm.cmd --filter @runa/web build`
+- Durust kalan durum: browser click/download smoke kosulmadi; signed URL route targeted Fastify test ile dogrulandi. `file.share` su an non-empty string content icin guvenli minimum seam; binary/generated stream sharing ve document parser/understanding bu fazda acilmadi.
+- Sonraki agreed gorev: task serisi bittiyse sira UI-PHASE tarafindaki bir sonraki kabul edilmis faza gecebilir; once ilgili phase dokumani okunmali.
+
+### Track C - UI-PHASE-6 Sidebar / Settings / Device Presence - 25 Nisan 2026
+
+- `UI-PHASE-6.md` kapsami `apps/web` icinde additive olarak kapatildi. Auth hook, conversation hook, server route, shared type ve desktop-agent kontratlarina dokunulmadi.
+- `apps/web/src/components/chat/ConversationSidebar.tsx` modernlestirildi: Runa header, new chat action, client-side search, Today/Yesterday/Previous 7 days/Older grouping, loading skeleton, empty/error states, settings/account footer ve mobile overlay + Escape close davranisi eklendi. Mevcut member/share davranisi silinmedi; secondary `details` alanina tasindi.
+- `apps/web/src/components/desktop/DevicePresencePanel.tsx` eklendi. Panel yalniz gercek `DesktopDevicePresenceSnapshot[]` listesini render ediyor; veri yoksa fake cihaz uretmeden empty/error/loading state gosteriyor ve raw connection id varsayilan gorunumde `details` icinde kaliyor.
+- `apps/web/src/components/settings/ProjectMemorySummary.tsx` eklendi. Gercek project memory kaynagi bu fazda bagli olmadigi icin summary uydurulmuyor; `unavailable` state ile privacy/memory slotu durust sekilde hazirlandi.
+- `SettingsPage` account, preferences/voice, connected desktop, project memory ve developer sections olarak toparlandi. Device fetch effect'indeki render-loop riski browser smoke sirasinda yakalandi ve `useCallback` tabanli stable load seam'iyle kapatildi.
+- `LoginPage` mevcut email/password, OAuth ve dev bootstrap davranisini koruyor; token auth modu yalniz dev yuzeyde gorunur hale getirildi. `AppNav` Developer Mode toggle'ini chat default yuzeyinden account/developer ikinci katmanina cekti.
+- Coverage eklendi:
+  - `apps/web/src/components/chat/ConversationSidebar.test.tsx`
+  - `apps/web/src/components/desktop/DevicePresencePanel.test.tsx`
+  - `apps/web/src/components/settings/ProjectMemorySummary.test.tsx`
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/components/chat/ConversationSidebar.test.tsx src/components/desktop/DevicePresencePanel.test.tsx src/components/settings/ProjectMemorySummary.test.tsx` (`3` dosya / `6` test)
+  - `pnpm.cmd --filter @runa/web exec biome check src/components/chat/ConversationSidebar.tsx src/components/chat/ConversationSidebar.test.tsx src/components/desktop/DevicePresencePanel.tsx src/components/desktop/DevicePresencePanel.test.tsx src/components/settings/ProjectMemorySummary.tsx src/components/settings/ProjectMemorySummary.test.tsx src/pages/SettingsPage.tsx src/pages/ChatPage.tsx src/pages/LoginPage.tsx src/components/auth/AuthModeTabs.tsx src/components/app/AppNav.tsx src/index.css`
+  - `pnpm.cmd --filter @runa/web build`
+- Browser QA kaniti: local web dev server + local server dev bootstrap ile `http://localhost:5173/` login page render edildi; local dev session ile `/chat` authenticated shell acildi; mobile viewport'ta `Open conversations` -> sidebar open -> Escape close dogrulandi; `/account` settings page account/device/memory/developer sections ve device empty/error state'i render etti. Ilk smoke'ta gorulen `Maximum update depth exceeded` hatasi fix sonrasi tekrar smoke'ta gorulmedi. Kalan uyarı: WS page navigation sirasinda kapanan connection icin browser console warning goruldu; route loop veya update-depth yok.
+- Sonraki agreed gorev: `UI-PHASE-7` responsive/a11y/performance polish veya task sirasindaki bir sonraki backend hardening belgesi; baslamadan ilgili phase dokumani yeniden okunmali.
+
+### Track C - UI-PHASE-7 Motion / A11y / Release QA - 25 Nisan 2026
+
+- `UI-PHASE-7.md` kapsami dar polish/QA fazi olarak kapatildi. Yeni product feature acilmadi; server/runtime/provider/desktop-agent davranisina dokunulmadi.
+- `apps/web/src/lib/motion.ts` eklendi ve shared `fadeIn`, `slideUp`, `slideInLeft`, `scaleIn`, `staggerContainer`, `springConfig`, `smoothConfig` tokenlari kuruldu. Motion dependency zaten repoda oldugu icin yeni dependency eklenmedi.
+- `apps/web/src/index.css` reduced-motion uyumlu surface/alert/sidebar/recording/skeleton micro-interaction katmani ile genisletildi. `prefers-reduced-motion: reduce` altinda animasyon ve transition sureleri pratikte kapatiliyor.
+- A11y/polish sertlestirmeleri: chat workspace header semantic `header`, conversation sidebar semantic `nav`, current run surface labelled `section` + `aria-busy`, voice recording pulse state ve button active/hover sakinlestirmesi eklendi. Sidebar mobile backdrop/panel motion'u ve conversation item focus/hover feedback'i iyilestirildi.
+- Eski dosya deprecation kontrolu yapildi. `chat-styles.ts`, `ChatComposerSurface.tsx`, `ChatWorkspaceHeader.tsx`, `ChatShell.tsx`, `AppShell.tsx`, `AppNav.tsx`, `DashboardPage.tsx`, `SettingsPage.tsx` halen aktif import ediliyor; silme veya deprecation etiketi eklenmedi.
+- Envanter notu: `git status --short` bu tur oncesinde de cok genis dirty tree gosteriyordu; task disi degisiklikler revert edilmedi. `TODO|@deprecated|eslint-disable|@ts-ignore|as any|any` taramasinda touched web kodunda gercek `as any`/`@ts-ignore` bulunmadi; cikan eslesmeler `overflowWrap: 'anywhere'` gibi CSS string'lerdi.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web exec vitest run --config ./vitest.config.mjs --configLoader runner src/lib/motion.test.ts src/components/chat/ConversationSidebar.test.tsx src/components/desktop/DevicePresencePanel.test.tsx src/components/settings/ProjectMemorySummary.test.tsx src/components/chat/blocks/BlockRenderer.test.tsx src/components/chat/UIPhase5Surfaces.test.tsx` (`6` dosya / `14` test)
+  - `pnpm.cmd --filter @runa/web exec biome check src/lib/motion.ts src/lib/motion.test.ts src/components/chat/ConversationSidebar.tsx src/components/chat/ConversationSidebar.test.tsx src/components/chat/ChatWorkspaceHeader.tsx src/components/chat/CurrentRunSurface.tsx src/components/chat/VoiceComposerControls.tsx src/components/desktop/DevicePresencePanel.tsx src/components/desktop/DevicePresencePanel.test.tsx src/components/settings/ProjectMemorySummary.tsx src/components/settings/ProjectMemorySummary.test.tsx src/pages/SettingsPage.tsx src/pages/ChatPage.tsx src/pages/LoginPage.tsx src/components/auth/AuthModeTabs.tsx src/components/app/AppNav.tsx src/index.css`
+  - `pnpm.cmd --filter @runa/web build`
+- Browser QA: local server + web dev server ile `http://localhost:5173/` uzerinden kosuldu. `320x700`, `768x900`, `1440x1000` viewports PASS: login render, dev-auth chat route, empty/chat surface, sidebar open/Escape close, composer text input, settings page ve device presence empty state dogrulandi. Screenshot kanitlari: `.codex-screenshots/ui-phase-7/320x700.png`, `.codex-screenshots/ui-phase-7/768x900.png`, `.codex-screenshots/ui-phase-7/1440x1000.png`.
+- Console raporu: browser smoke'ta console error/pageerror yok. Uyari olarak route gecisinde kapanan `ws://localhost:5173/ws?...` connection warning'i goruldu; `Maximum update depth exceeded` tekrar etmedi.
+- A11y smoke: Playwright ile unlabeled button taramasi `0`, landmarks `main=2`, `header=2`, `nav=2`, `aria-live=1`, reduced-motion computed animation duration `1e-06s` olarak dogrulandi.
+- Kosulamayan hedefler: Lighthouse skoru kosulmadi; repo/dev environment'da Lighthouse dependency veya temsil edici production auth harness eklenmedi. Block fixture browser route'u yok; block surface coverage `BlockRenderer.test.tsx` ve `UIPhase5Surfaces.test.tsx` ile component seviyesinde dogrulandi.
+- Sonraki agreed gorev: backend task sirasina donulecekse `TASK-11A` run-scoped cancellation foundation; baslamadan task belgesi ve runtime entrypoint'leri yeniden okunmali.
+
+### Track C - UI-PHASE-3 Consumer Chat-First Product Pass - 26 Nisan 2026
+
+- Chat ana yuzeyi dev-ops/demo hissinden uzaklastiracak dar product pass tamamlandi. Server/runtime/provider/desktop-agent kontratlarina dokunulmadi; degisiklikler web chat shell, sidebar copy, composer copy ve responsive shell CSS'i ile sinirli tutuldu.
+- `/chat` icin `AppShell` hero/nav karti kaldirildi; chat rotasi artik kompakt `ChatHeader` + iki kolonlu `ChatLayout` + chat-native empty state ile aciliyor. Developer timeline ve developer config linkleri yalniz `Developer Mode` acikken render ediliyor.
+- `ChatComposerSurface`, `CurrentRunSurface`, `PersistedTranscript` ve `ConversationSidebar` uzerindeki `Conversation`, `Attachments`, `minimum seam`, `artifact reference`, `Persisted transcript`, `New chat`, `Account and settings` gibi operator/teknik veya Ingilizce gorunen metinler ana kullanici akisi icin sade Turkce product copy'ye cevrildi.
+- Mobil smoke'ta kapali sidebar'in kart animasyonu nedeniyle gorunur kalabildigi bulundu; `index.css` mobile rule'u `animation: none` ile sertlestirildi, kapali sidebar artik `opacity: 0` + `pointer-events: none` durumunda kaliyor.
+- Yeni coverage: `ChatHeader` ve `EmptyState` icin `apps/web/src/components/chat/ChatFirstShell.test.tsx` eklendi; `ConversationSidebar.test.tsx` yeni product copy'ye gore guncellendi.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web lint`
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web test -- src/components/chat/ChatFirstShell.test.tsx src/components/chat/ConversationSidebar.test.tsx src/components/chat/blocks/BlockRenderer.test.tsx` (`3` dosya / `7` test)
+  - `pnpm.cmd --filter @runa/web build`
+- Browser QA: local server + web dev server ile `http://localhost:5173/chat` authenticated local-dev oturumunda dogrulandi. Desktop ve mobile screenshot smoke'ta ana chat yuzeyinde `Developer Mode`, `runtime`, `artifact`, `minimum seam`, `Persisted transcript`, `Conversations`, `New chat`, `Account and settings` gorunmedi; app-shell hero da `/chat` uzerinde gorunmedi. Mobil sidebar kapali state computed `opacity=0`, `pointer-events=none`, `position=fixed` olarak dogrulandi.
+- Kalan not: Login/auth sayfasi ve `/developer` route'u hala dogasi geregi teknik metinler tasiyor; bu pass ana chat-first yuzeyi hedefledi. Console'da route/auth gecisinde kapanan Vite/proxy WS warning'i gorulebildi, fakat chat UI render/route loop/pageerror yoktu.
+
+### Track A - TASK-03 Web Search Enhancement - 26 Nisan 2026
+
+- `TASK-03-WEB-SEARCH-ENHANCEMENT.md` kapsami `apps/server/src/tools/web-search.ts` ve `apps/server/src/tools/web-search.test.ts` icinde kapatildi. Yeni search plane, gateway/auth/desktop/registry redesign veya yeni dependency acilmadi.
+- `web.search` callable schema'si `search_type` ve `locale` ile genisledi. `search_type` default `organic`; `news` secilirse Serper news endpoint'ine gidiyor. `locale` yalniz iki harfli language code olarak kabul ediliyor ve provider request body icinde `hl` alanina yaziliyor; `gl` icin kor varsayim yapilmadi.
+- Serper answer box ve knowledge graph alanlari structured output olarak tasiniyor; snippet/title/source alanlari prompt-control tag sanitization katmanindan geciyor. Organic default davranis ve freshness bias (`tbs=qdr:m`) korunuyor; news modunda freshness note provider date/snippet gecikmesi konusunda uyarıyor.
+- Trust-tier siniflandirmasi official/reputable kaynaklar icin genisletildi: resmi kurum/edu/gov, docs-like host/path, arxiv/wikipedia/akademik ve reputable tech kaynaklari ayrisiyor. `researchgate.net`, `scholar.google.com` ve community/forum host segmentleri otomatik high-trust yapilmiyor; docs-like path tasisa bile lower-trust kalıyor.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/web-search.test.ts` (`8` test)
+  - `pnpm.cmd --filter @runa/server exec biome check src/tools/web-search.ts src/tools/web-search.test.ts`
+  - `pnpm.cmd --filter @runa/server exec tsc --noEmit`
+  - `pnpm.cmd --filter @runa/server build`
+- Live Serper smoke: `.env` icindeki `SERPER_API_KEY` process env'e redacted olarak yuklendi. Organic locale smoke `OpenAI official documentation` sorgusunda `status=success`, `provider=serper`, `result_count=3`, ilk kaynak `developers.openai.com`, `trust_tier=official` verdi. News locale smoke `OpenAI news` sorgusunda `status=success`, `provider=serper`, `result_count=3`, freshness hint ve news freshness note dondu. Anahtar terminal ciktisina yazdirilmadi.
+- Kalan not: Live smoke answer box / knowledge graph donusunu garanti etmedi; bu alanlar provider response'a bagli oldugu icin deterministik coverage fake provider testleriyle kanitlandi.
+
+#### [GAP-12] Eksik Desktop Yetenekler (device presence, launch host, browser.interact)
+- **Mevcut:** `apps/desktop-agent/` package'i, typed `/ws/desktop-agent` secure bridge'i, `desktop.screenshot` vertical slice'i, `desktop.click` / `desktop.type` / `desktop.keypress` / `desktop.scroll` icin bridge-aware execution yolu, heartbeat ping/pong seami ve host-agnostic launch/session-input contract'i artik repoda mevcut.
+- **Etki:** Trust boundary icin desktop authority ayrimi ve ilk local-agent execution ailesi acildi; ancak user-facing desktop companion hala native window host, signed-in device presence surface'i, release-grade liveness/reconnect ergonomisi ve packaging olmadigi icin cloud-first hybrid vaadin butunu tamamlanmis degil.
+- **Hedef:** Mevcut bridge kontratini bozmadan actual desktop window host implementation'i, online device presence surface'i, stale/lost desktop-agent cleanup davranisi ve sonraki fazda browser.interact benzeri capability'lere zemin hazirlamak.
 - **Tetikleyici:** Sprint 11 (Desktop Agent) ve Phase 3.
 - **Ilgili dosyalar:** `implementation-blueprint.md`, `apps/desktop-agent/`, `apps/server/src/tools/desktop-*.ts`, `apps/server/src/ws/*`, `packages/types/src/`
 

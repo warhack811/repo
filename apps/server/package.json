@@ -15,6 +15,7 @@
 		"test:formal-repeatability": "node scripts/formal-demo-repeatability.mjs",
 		"test:groq-demo-rehearsal": "node scripts/groq-demo-rehearsal.mjs",
 		"test:groq-live-smoke": "pnpm exec tsc && node scripts/groq-live-smoke.mjs",
+		"test:lmstudio-vision-smoke": "pnpm exec tsc && node scripts/lmstudio-vision-smoke.mjs",
 		"typecheck": "tsc --noEmit",
 		"test": "pnpm exec tsc && node scripts/copy-test-fixtures.mjs && vitest run --config ./vitest.config.mjs --configLoader runner"
 	},
@@ -24,6 +25,7 @@
 		"@runa/types": "workspace:*",
 		"@runa/utils": "workspace:*",
 		"fastify": "^5.8.4",
+		"playwright-core": "^1.59.1",
 		"screenshot-desktop": "^1.15.3"
 	},
 	"devDependencies": {

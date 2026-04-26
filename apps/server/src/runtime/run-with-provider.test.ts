@@ -152,7 +152,7 @@ describe('run-with-provider', () => {
 
 		if (result.status === 'failed') {
 			expect(result.failure.name).toBe('GatewayConfigurationError');
-			expect(result.failure.message).toContain('Missing API key');
+			expect(result.failure.message).toContain('Missing API key for groq gateway');
 			expect(result.events.map((event) => event.event_type)).toEqual([
 				'run.started',
 				'state.entered',

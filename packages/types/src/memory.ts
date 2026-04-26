@@ -4,6 +4,8 @@ export type MemoryStatus = (typeof memoryStatuses)[number];
 
 export const memorySourceKinds = [
 	'conversation',
+	'explicit',
+	'inferred',
 	'tool_result',
 	'user_explicit',
 	'user_preference',

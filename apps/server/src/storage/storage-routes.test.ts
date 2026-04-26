@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthClaims, AuthSession, AuthUser } from '@runa/types';
+import type { AuthClaims, AuthContext, AuthSession, AuthUser } from '@runa/types';
+import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 
 import { buildServer } from '../app.js';
 
+import { createStorageDownloadUrlSigner } from './signed-download-url.js';
+import { registerStorageRoutes } from './storage-routes.js';
 import type { StorageObject } from './storage-service.js';
 
 function createClaims(overrides: Partial<AuthClaims> = {}): AuthClaims {
@@ -248,6 +251,114 @@ describe('storage routes', () => {
 				user_id: 'user_1',
 			},
 		});
+	});
+
+	it('serves signed authenticated downloads only before expiry', async () => {
+		const storage = createMemoryStorageAdapter();
+		const authContext: AuthContext = {
+			claims: createClaims(),
+			principal: {
+				kind: 'authenticated',
+				provider: 'supabase',
+				role: 'authenticated',
+				scope: {
+					tenant_id: 'tenant_1',
+					workspace_id: 'workspace_1',
+					workspace_ids: ['workspace_1'],
+				},
+				user_id: 'user_1',
+			},
+			session: createSession(),
+			transport: 'http',
+			user: createUser(),
+		};
+		const downloadUrlSigner = createStorageDownloadUrlSigner({
+			now: () => new Date('2026-04-25T12:00:00.000Z'),
+			secret: 'test-download-secret',
+			ttl_ms: 15 * 60 * 1000,
+		});
+		const server = Fastify();
+		server.addHook('onRequest', async (request) => {
+			request.auth = authContext;
+		});
+		await registerStorageRoutes(
+			server,
+			{
+				async get_blob(input) {
+					const blob = storage.blobs.get(input.blob_id);
+
+					if (!blob) {
+						throw new Error('missing test blob');
+					}
+
+					return blob;
+				},
+				async upload_blob(input) {
+					return storage.adapter.upload_object({
+						blob_id: 'blob_download_test',
+						content: Buffer.from(input.content_base64, 'base64'),
+						content_type: input.content_type,
+						created_at: '2026-04-25T12:00:00.000Z',
+						filename: input.filename,
+						kind: input.kind,
+						owner_kind: 'authenticated',
+						owner_subject: 'user_1',
+						run_id: input.run_id,
+						size_bytes: Buffer.byteLength(Buffer.from(input.content_base64, 'base64')),
+						tenant_id: 'tenant_1',
+						trace_id: input.trace_id,
+						user_id: 'user_1',
+						workspace_id: 'workspace_1',
+					});
+				},
+			},
+			{
+				download_url_signer: downloadUrlSigner,
+			},
+		);
+		serversToClose.push(server);
+
+		const uploadResponse = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+			payload: {
+				content_base64: Buffer.from('download-body').toString('base64'),
+				content_type: 'text/plain',
+				filename: 'report.txt',
+				kind: 'tool_output',
+			},
+			url: '/storage/upload',
+		});
+		const blobId = uploadResponse.json().blob.blob_id as string;
+		const signedDownload = downloadUrlSigner.create({
+			blob_id: blobId,
+			filename: 'report.txt',
+		});
+
+		const downloadResponse = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'GET',
+			url: signedDownload.url,
+		});
+		const invalidResponse = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'GET',
+			url: `/storage/download/${blobId}?expires_at=${encodeURIComponent(signedDownload.expires_at)}&signature=bad`,
+		});
+
+		expect(downloadResponse.statusCode).toBe(200);
+		expect(downloadResponse.headers['content-disposition']).toBe(
+			'attachment; filename="report.txt"',
+		);
+		expect(downloadResponse.body).toBe('download-body');
+		expect(invalidResponse.statusCode).toBe(403);
 	});
 
 	it('enforces ownership and scope on blob reads', async () => {

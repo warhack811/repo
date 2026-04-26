@@ -34,7 +34,7 @@ export interface StopConditionHumanBoundary {
 
 export interface StopConditionModelSignal {
 	readonly finish_reason: ModelFinishReason;
-	readonly outcome_kind?: 'assistant_response' | 'tool_call';
+	readonly outcome_kind?: 'assistant_response' | 'tool_call' | 'tool_calls';
 }
 
 export interface ToolCallSignature {
@@ -45,6 +45,7 @@ export interface ToolCallSignature {
 export interface StopConditionsSnapshot {
 	readonly cancellation?: StopConditionCancellation;
 	readonly config: Pick<AgentLoopConfig, 'max_turns' | 'stop_conditions' | 'token_limits'>;
+	readonly consecutive_tool_failure_count?: number;
 	readonly current_loop_state?: LoopState;
 	readonly current_runtime_state?: RuntimeState;
 	readonly failure?: StopConditionFailure;
@@ -110,7 +111,20 @@ function toTerminalDecision(reason: TerminalStopReason): TerminalStopConditionsD
 }
 
 function shouldStopOnToolError(snapshot: StopConditionsSnapshot): boolean {
-	return snapshot.config.stop_conditions?.fail_on_tool_error !== false;
+	// Default changed from true to false: individual tool errors are now fed back
+	// to the model as context so it can try alternative strategies.
+	// Set fail_on_tool_error: true explicitly to restore the old single-failure behavior.
+	return snapshot.config.stop_conditions?.fail_on_tool_error === true;
+}
+
+function resolveMaxConsecutiveToolFailures(snapshot: StopConditionsSnapshot): number {
+	const configured = snapshot.config.stop_conditions?.max_consecutive_tool_failures;
+
+	if (configured !== undefined && Number.isFinite(configured) && configured >= 1) {
+		return Math.trunc(configured);
+	}
+
+	return 3;
 }
 
 function shouldPauseOnApprovalWait(snapshot: StopConditionsSnapshot): boolean {
@@ -275,20 +289,45 @@ function evaluateStagnation(snapshot: StopConditionsSnapshot): StopConditionsDec
 }
 
 function evaluateToolFailure(snapshot: StopConditionsSnapshot): StopConditionsDecision | undefined {
-	if (snapshot.tool_result?.status !== 'error' || !shouldStopOnToolError(snapshot)) {
+	if (snapshot.tool_result?.status !== 'error') {
 		return undefined;
 	}
 
-	return toTerminalDecision({
-		call_id: snapshot.tool_result.call_id,
-		disposition: 'terminal',
-		error_code: snapshot.tool_result.error_code,
-		kind: 'tool_failure',
-		loop_state: 'FAILED',
-		retryable: snapshot.tool_result.retryable,
-		tool_name: snapshot.tool_result.tool_name,
-		turn_count: snapshot.turn_count,
-	});
+	// When fail_on_tool_error is explicitly true, preserve the legacy single-failure behavior.
+	if (shouldStopOnToolError(snapshot)) {
+		return toTerminalDecision({
+			call_id: snapshot.tool_result.call_id,
+			disposition: 'terminal',
+			error_code: snapshot.tool_result.error_code,
+			kind: 'tool_failure',
+			loop_state: 'FAILED',
+			retryable: snapshot.tool_result.retryable,
+			tool_name: snapshot.tool_result.tool_name,
+			turn_count: snapshot.turn_count,
+		});
+	}
+
+	// Soft failure mode: only terminate after N consecutive tool failures.
+	// Individual errors are fed back to the model so it can try alternatives.
+	const consecutiveFailures = snapshot.consecutive_tool_failure_count ?? 0;
+	const maxConsecutive = resolveMaxConsecutiveToolFailures(snapshot);
+
+	if (consecutiveFailures >= maxConsecutive) {
+		return toTerminalDecision({
+			call_id: snapshot.tool_result.call_id,
+			consecutive_count: consecutiveFailures,
+			disposition: 'terminal',
+			error_code: snapshot.tool_result.error_code,
+			kind: 'tool_failure',
+			loop_state: 'FAILED',
+			retryable: false,
+			tool_name: snapshot.tool_result.tool_name,
+			turn_count: snapshot.turn_count,
+		});
+	}
+
+	// Below the consecutive threshold: let the loop continue so the model can recover.
+	return undefined;
 }
 
 function evaluateGenericFailure(
@@ -311,7 +350,11 @@ function evaluateGenericFailure(
 }
 
 function evaluateModelStop(snapshot: StopConditionsSnapshot): StopConditionsDecision | undefined {
-	if (snapshot.model === undefined || snapshot.model.outcome_kind === 'tool_call') {
+	if (
+		snapshot.model === undefined ||
+		snapshot.model.outcome_kind === 'tool_call' ||
+		snapshot.model.outcome_kind === 'tool_calls'
+	) {
 		return undefined;
 	}
 

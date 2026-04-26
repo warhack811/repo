@@ -124,6 +124,7 @@ export interface ModelStopStopReason extends StopReasonBase<'model_stop', 'termi
 export interface ToolFailureStopReason
 	extends StopReasonBase<'tool_failure', 'terminal', 'FAILED'> {
 	readonly call_id?: string;
+	readonly consecutive_count?: number;
 	readonly error_code?: ToolErrorCode;
 	readonly retryable?: boolean;
 	readonly tool_name?: ToolName;

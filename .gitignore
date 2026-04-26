@@ -3,6 +3,9 @@ node_modules/
 
 # Build outputs
 dist/
+build/
+dist-electron/
+release/
 
 # Turborepo
 .turbo/
@@ -32,3 +35,15 @@ coverage/
 *.log
 .tmp-dev-logs/
 .tmp-*.err
+
+# Local agent/workbench artifacts
+.claude/
+.codex-screenshots/
+dom.txt
+server_logs.txt
+scratch_*
+test_loop.mjs
+test_ui.mjs
+packages/db/check_tables.mjs
+packages/db/test_db.mjs
+packages/db/test_local_db.mjs

@@ -11,6 +11,7 @@ import { GroqGateway } from './groq-gateway.js';
 import { applyModelRouteToRequest, resolveModelRoute } from './model-router.js';
 import { OpenAiGateway } from './openai-gateway.js';
 import type { CreateGatewayOptions, GatewayProvider, GatewayProviderConfig } from './providers.js';
+import { SambaNovaGateway } from './sambanova-gateway.js';
 
 function instantiateGateway({ config, provider }: CreateGatewayOptions): ModelGateway {
 	const resolvedConfig = resolveGatewayConfig(provider, config);
@@ -30,6 +31,8 @@ function instantiateGateway({ config, provider }: CreateGatewayOptions): ModelGa
 			return new GroqGateway(resolvedConfig);
 		case 'openai':
 			return new OpenAiGateway(resolvedConfig);
+		case 'sambanova':
+			return new SambaNovaGateway(resolvedConfig);
 	}
 }
 

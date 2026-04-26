@@ -180,6 +180,7 @@ function parseStorageObjectPath(path: string, pathPrefix: string): ParsedStorage
 	const ownerKind = decodeRequiredPathValue(getRequiredPathSegment(relativeSegments, 6, path));
 
 	if (
+		kind !== 'attachment_document' &&
 		kind !== 'attachment_image' &&
 		kind !== 'attachment_text' &&
 		kind !== 'screenshot' &&

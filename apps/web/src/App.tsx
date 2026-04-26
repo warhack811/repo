@@ -1,5 +1,5 @@
 import type { AuthContext } from '@runa/types';
-import type { ReactElement } from 'react';
+import { type ReactElement, useCallback } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
 import type { AuthenticatedPageId } from './components/app/AppNav.js';
@@ -110,21 +110,26 @@ function AuthenticatedApp(
 	const conversations = useConversations({
 		accessToken: props.bearerToken,
 	});
+	const onRunAccepted = useCallback(
+		({ conversationId, prompt }: { conversationId?: string; prompt: string }) => {
+			conversations.handleRunAccepted({ conversationId, prompt });
+		},
+		[conversations.handleRunAccepted],
+	);
+
+	const onRunFinished = useCallback(
+		({ conversationId }: { conversationId?: string }) => {
+			conversations.handleRunFinished({ conversationId });
+		},
+		[conversations.handleRunFinished],
+	);
+
 	const runtime = useChatRuntime({
 		activeConversationId: conversations.activeConversationId,
 		accessToken: props.bearerToken,
 		buildRequestMessages: conversations.buildRequestMessages,
-		onRunAccepted: ({ conversationId, prompt }) => {
-			conversations.handleRunAccepted({
-				conversationId,
-				prompt,
-			});
-		},
-		onRunFinished: ({ conversationId }) => {
-			conversations.handleRunFinished({
-				conversationId,
-			});
-		},
+		onRunAccepted,
+		onRunFinished,
 	});
 
 	return (

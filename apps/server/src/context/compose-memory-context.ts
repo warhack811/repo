@@ -1,4 +1,4 @@
-import type { MemoryRecord, MemoryScope } from '@runa/types';
+import type { MemoryScope, RetrievedMemoryRecord } from '@runa/types';
 
 import { retrieveSemanticMemories } from '../memory/retrieve-semantic-memories.js';
 import {
@@ -80,9 +80,13 @@ function normalizeLimit(limit?: number): number | undefined {
 	return Math.trunc(limit);
 }
 
-function toMemoryPromptLayerItem(record: MemoryRecord): MemoryPromptLayerItemInput {
+function toMemoryPromptLayerItem(record: RetrievedMemoryRecord): MemoryPromptLayerItemInput {
 	return {
 		content: record.content,
+		created_at: record.created_at,
+		memory_id: record.memory_id,
+		relevance_score: record.retrieval_score,
+		retrieval_reason: record.retrieval_reason,
 		source_kind: record.source_kind,
 		summary: record.summary,
 	};
@@ -111,7 +115,7 @@ export async function composeMemoryContext(
 
 	const memoryStore = input.memory_store ?? defaultMemoryStore;
 
-	let records: readonly MemoryRecord[];
+	let records: readonly RetrievedMemoryRecord[];
 
 	try {
 		records = await retrieveSemanticMemories({

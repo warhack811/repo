@@ -137,6 +137,29 @@ function createContinuationContextWithProviderDefaultsOnly() {
 	} as const;
 }
 
+function createContinuationContextWithLocalBaseUrl() {
+	return {
+		...createAutoContinueContext(),
+		payload: {
+			...createAutoContinueContext().payload,
+			provider: 'openai' as const,
+			provider_config: {
+				apiKey: 'lmstudio-local',
+				baseUrl: 'http://localhost:1234/v1',
+			},
+			request: {
+				messages: [
+					{
+						content: 'Continue after the local vision tool result',
+						role: 'user' as const,
+					},
+				],
+				model: 'qwen/qwen3.5-9b',
+			},
+		},
+	} as const;
+}
+
 afterEach(() => {
 	clearDatabaseUrl();
 });
@@ -471,6 +494,33 @@ describe('approval-store', () => {
 		expect(upsertApproval).toHaveBeenCalledWith(
 			expect.objectContaining({
 				continuation_context: createContinuationContextWithProviderDefaultsOnly(),
+			}),
+		);
+	});
+
+	it('preserves local OpenAI-compatible baseUrl across approval continuation persistence', async () => {
+		const upsertApproval: ApprovalRecordWriter['upsertApproval'] = vi
+			.fn()
+			.mockResolvedValue(undefined);
+
+		await persistApprovalRequest(
+			{
+				approval_request: createApprovalRequest(),
+				auto_continue_context: createContinuationContextWithLocalBaseUrl(),
+			},
+			{
+				writer: {
+					async getPendingApprovalById() {
+						return null;
+					},
+					upsertApproval,
+				},
+			},
+		);
+
+		expect(upsertApproval).toHaveBeenCalledWith(
+			expect.objectContaining({
+				continuation_context: createContinuationContextWithLocalBaseUrl(),
 			}),
 		);
 	});

@@ -64,7 +64,9 @@ export function VoiceComposerControls({
 						background: isListening ? 'rgba(120, 53, 15, 0.32)' : secondaryButtonStyle.background,
 						opacity: isVoiceSupported ? 1 : 0.6,
 					}}
-					className="runa-button runa-button--secondary"
+					className={`runa-button runa-button--secondary${
+						isListening ? ' runa-voice-button--listening' : ''
+					}`}
 					aria-pressed={isListening}
 				>
 					<span aria-hidden="true">{isListening ? '●' : '○'}</span>
@@ -81,7 +83,7 @@ export function VoiceComposerControls({
 					}}
 					className="runa-button runa-button--secondary"
 				>
-					{isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
+					{isSpeaking ? 'Okumayi durdur' : 'Son yaniti oku'}
 				</button>
 			</div>
 
@@ -89,7 +91,7 @@ export function VoiceComposerControls({
 				{voiceStatusMessage ??
 					(isVoiceSupported
 						? 'Mikrofonu açıp kısa bir not söyleyebilir veya son asistan yanıtını sesli okutabilirsin.'
-						: 'Bu tarayıcı Web Speech API sunmuyor. Sohbet yazılı modda aynen çalışmaya devam eder.')}
+						: 'Bu tarayici Web Speech API sunmuyor. Sohbet yazili modda aynen calismaya devam eder.')}
 			</div>
 		</div>
 	);

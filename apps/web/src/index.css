@@ -181,6 +181,7 @@ body::before {
 	backdrop-filter: blur(12px);
 	transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms
 		ease, background 220ms ease;
+	animation: runa-surface-enter 220ms ease both;
 }
 
 .runa-card--hero {
@@ -291,6 +292,10 @@ body::before {
 	transform: translateY(-1px);
 }
 
+.runa-button:active:not(:disabled) {
+	transform: translateY(0);
+}
+
 .runa-button:disabled {
 	cursor: not-allowed;
 	opacity: 0.6;
@@ -343,6 +348,7 @@ body::before {
 	padding: 12px 14px;
 	border-radius: 14px;
 	line-height: 1.5;
+	animation: runa-slide-up 180ms ease both;
 }
 
 .runa-alert--info {
@@ -361,6 +367,22 @@ body::before {
 	background: rgba(127, 29, 29, 0.28);
 	border: 1px solid rgba(248, 113, 113, 0.36);
 	color: #fecaca;
+}
+
+.runa-developer-details {
+	color: hsl(var(--color-text-muted));
+}
+
+.runa-developer-details summary {
+	cursor: pointer;
+	font-weight: 700;
+	color: hsl(var(--color-text));
+}
+
+.runa-developer-details__content {
+	display: grid;
+	gap: 12px;
+	padding-top: 14px;
 }
 
 .runa-metric {
@@ -479,6 +501,176 @@ pre {
 	border-radius: 999px;
 	background: radial-gradient(circle, rgba(148, 163, 184, 0.12), transparent 70%);
 	pointer-events: none;
+}
+
+.runa-page--chat-product {
+	padding-top: calc(12px + var(--safe-area-top));
+	padding-bottom: calc(16px + var(--safe-area-bottom));
+}
+
+.runa-app-shell-main--chat {
+	margin: 0 auto;
+	width: min(100%, 1280px);
+}
+
+.runa-chat-header {
+	align-items: center;
+	background: rgba(6, 11, 21, 0.82);
+	backdrop-filter: blur(16px);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	border-radius: 20px;
+	box-shadow: 0 14px 34px rgba(2, 6, 23, 0.26);
+	display: flex;
+	gap: 14px;
+	justify-content: space-between;
+	padding: 10px 12px;
+	position: sticky;
+	top: calc(var(--safe-area-top) + 10px);
+	z-index: 30;
+}
+
+.runa-chat-header__left,
+.runa-chat-header__right {
+	align-items: center;
+	display: flex;
+	gap: 10px;
+	min-width: 0;
+}
+
+.runa-chat-header__brand {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+.runa-chat-header__brand strong {
+	color: #f8fafc;
+	font-family: var(--font-heading);
+	font-size: 16px;
+}
+
+.runa-chat-header__brand span {
+	color: hsl(var(--color-text-muted));
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.runa-chat-icon-button {
+	align-items: center;
+	background: rgba(15, 23, 42, 0.66);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	border-radius: 14px;
+	color: hsl(var(--color-text));
+	cursor: pointer;
+	display: inline-flex;
+	height: 42px;
+	justify-content: center;
+	min-width: 42px;
+	text-decoration: none;
+	transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.runa-chat-icon-button:hover {
+	background: rgba(30, 41, 59, 0.74);
+	border-color: rgba(245, 158, 11, 0.3);
+	transform: translateY(-1px);
+}
+
+.runa-chat-presence {
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	border-radius: 999px;
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+	max-width: min(240px, 34vw);
+	overflow: hidden;
+	padding: 8px 10px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.runa-chat-presence--open {
+	background: rgba(20, 83, 45, 0.24);
+	border-color: rgba(34, 197, 94, 0.3);
+	color: #bbf7d0;
+}
+
+.runa-chat-layout {
+	align-items: start;
+	display: grid;
+	gap: 18px;
+	grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+	margin-top: 14px;
+	min-width: 0;
+}
+
+.runa-chat-layout__sidebar,
+.runa-chat-layout__main,
+.runa-chat-layout__composer {
+	min-width: 0;
+}
+
+.runa-chat-layout__main {
+	display: grid;
+	gap: 16px;
+}
+
+.runa-chat-layout__sidebar .runa-conversation-sidebar {
+	top: calc(var(--safe-area-top) + 78px);
+}
+
+.runa-chat-empty-state {
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	border-radius: 20px;
+	background: rgba(4, 9, 19, 0.42);
+	display: grid;
+	gap: 18px;
+	padding: clamp(18px, 4vw, 28px);
+}
+
+.runa-chat-empty-state__copy {
+	display: grid;
+	gap: 10px;
+	max-width: 760px;
+}
+
+.runa-chat-empty-state__copy h2 {
+	font-size: clamp(24px, 4vw, 34px);
+	line-height: 1.12;
+}
+
+.runa-chat-empty-state__copy p {
+	color: hsl(var(--color-text-muted));
+	line-height: 1.7;
+	max-width: 680px;
+}
+
+.runa-chat-suggestion-grid {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+}
+
+.runa-chat-suggestion {
+	background: rgba(15, 23, 42, 0.64);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	border-radius: 16px;
+	color: hsl(var(--color-text));
+	cursor: pointer;
+	font-weight: 700;
+	line-height: 1.35;
+	min-height: 54px;
+	padding: 14px 15px;
+	text-align: left;
+	transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.runa-chat-suggestion:hover {
+	background: rgba(30, 41, 59, 0.74);
+	border-color: rgba(245, 158, 11, 0.3);
+	transform: translateY(-1px);
 }
 
 .runa-nav-meta {
@@ -668,6 +860,235 @@ pre {
 	word-break: break-word;
 }
 
+.runa-conversation-sidebar-trigger {
+	display: none;
+}
+
+.runa-sidebar-backdrop {
+	display: none;
+	transition: opacity 180ms ease;
+}
+
+.runa-conversation-sidebar {
+	align-self: start;
+	display: grid;
+	gap: 14px;
+	max-height: calc(100dvh - var(--app-shell-sticky-offset) - 40px);
+	overflow: auto;
+	position: sticky;
+	top: calc(var(--app-shell-sticky-offset) + 170px);
+	transition: opacity 180ms ease, transform 220ms ease;
+	z-index: 12;
+}
+
+.runa-conversation-sidebar__header,
+.runa-conversation-sidebar__footer {
+	align-items: center;
+	background: rgba(4, 9, 19, 0.58);
+	backdrop-filter: blur(12px);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+	margin: calc(var(--space-subcard) * -1);
+	margin-bottom: 0;
+	padding: var(--space-subcard);
+	position: sticky;
+	z-index: 2;
+}
+
+.runa-conversation-sidebar__header {
+	top: calc(var(--space-subcard) * -1);
+}
+
+.runa-conversation-sidebar__footer {
+	bottom: calc(var(--space-subcard) * -1);
+	margin-bottom: calc(var(--space-subcard) * -1);
+	margin-top: 0;
+}
+
+.runa-conversation-group {
+	display: grid;
+	gap: 10px;
+}
+
+.runa-conversation-group__label {
+	color: hsl(var(--color-text-soft));
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.runa-conversation-item {
+	background: rgba(7, 11, 20, 0.56);
+	border: 1px solid rgba(148, 163, 184, 0.14);
+	border-radius: 18px;
+	color: hsl(var(--color-text));
+	cursor: pointer;
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	padding: 14px 15px;
+	text-align: left;
+	transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.runa-conversation-item:hover,
+.runa-conversation-item:focus-visible {
+	transform: translateY(-1px);
+}
+
+.runa-conversation-item--active {
+	background: linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0%, rgba(30, 41, 59, 0.68) 100%);
+	border-color: rgba(245, 158, 11, 0.4);
+}
+
+.runa-conversation-item__top {
+	align-items: center;
+	display: flex;
+	gap: 12px;
+	justify-content: space-between;
+	min-width: 0;
+}
+
+.runa-conversation-item__top strong,
+.runa-conversation-preview {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.runa-conversation-preview {
+	color: hsl(var(--color-text-muted));
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.runa-conversation-time {
+	color: hsl(var(--color-text-soft));
+	font-size: 12px;
+}
+
+.runa-conversation-role {
+	background: rgba(59, 130, 246, 0.18);
+	border-radius: 999px;
+	color: #bfdbfe;
+	flex: 0 0 auto;
+	font-size: 11px;
+	font-weight: 700;
+	padding: 3px 8px;
+}
+
+.runa-conversation-members {
+	border-top: 1px solid rgba(148, 163, 184, 0.14);
+	padding-top: 12px;
+}
+
+.runa-conversation-members summary {
+	cursor: pointer;
+	font-weight: 700;
+}
+
+.runa-conversation-member {
+	align-items: center;
+	background: rgba(15, 23, 42, 0.56);
+	border: 1px solid rgba(148, 163, 184, 0.12);
+	border-radius: 14px;
+	display: flex;
+	gap: 12px;
+	justify-content: space-between;
+	min-width: 0;
+	padding: 10px 12px;
+}
+
+.runa-conversation-skeleton {
+	animation: runa-skeleton-pulse 1.3s ease-in-out infinite;
+	background: linear-gradient(
+		90deg,
+		rgba(148, 163, 184, 0.08),
+		rgba(148, 163, 184, 0.2),
+		rgba(148, 163, 184, 0.08)
+	);
+	background-size: 240% 100%;
+	border-radius: 18px;
+	height: 86px;
+}
+
+.runa-settings-row {
+	align-items: center;
+	background: rgba(9, 14, 25, 0.68);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	border-radius: 18px;
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+	padding: 14px 16px;
+}
+
+.runa-settings-row--stacked {
+	align-items: stretch;
+	display: grid;
+}
+
+.runa-device-card__top {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+	min-width: 0;
+}
+
+.runa-voice-button--listening {
+	animation: runa-recording-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes runa-skeleton-pulse {
+	0% {
+		background-position: 100% 0;
+	}
+
+	100% {
+		background-position: -100% 0;
+	}
+}
+
+@keyframes runa-surface-enter {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes runa-slide-up {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes runa-recording-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.18);
+	}
+
+	50% {
+		box-shadow: 0 0 0 7px rgba(245, 158, 11, 0);
+	}
+}
+
 .runa-markdown--streaming::after {
 	content: "";
 	display: inline-block;
@@ -697,6 +1118,14 @@ pre {
 	.runa-shell-frame--chat,
 	.runa-shell-frame--app {
 		width: 100%;
+	}
+
+	.runa-chat-layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.runa-chat-layout__sidebar {
+		display: contents;
 	}
 
 	.runa-app-shell-header__top {
@@ -739,9 +1168,61 @@ pre {
 		align-items: stretch;
 	}
 
+	.runa-chat-header {
+		align-items: stretch;
+		border-radius: 18px;
+		flex-direction: column;
+	}
+
+	.runa-chat-header__right {
+		justify-content: space-between;
+	}
+
+	.runa-chat-presence {
+		max-width: none;
+	}
+
+	.runa-chat-layout {
+		margin-top: 12px;
+	}
+
 	.runa-developer-toggle {
 		width: 100%;
 		justify-content: space-between;
+	}
+
+	.runa-conversation-sidebar-trigger {
+		display: block;
+	}
+
+	.runa-sidebar-backdrop {
+		background: rgba(2, 6, 23, 0.62);
+		border: 0;
+		display: block;
+		inset: 0;
+		position: fixed;
+		z-index: 35;
+	}
+
+	.runa-conversation-sidebar {
+		animation: none;
+		bottom: calc(var(--safe-area-bottom) + 10px);
+		left: 10px;
+		max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 20px);
+		opacity: 0;
+		overflow: auto;
+		pointer-events: none;
+		position: fixed;
+		right: 10px;
+		top: calc(var(--safe-area-top) + 10px);
+		transform: translateY(16px);
+		z-index: 40;
+	}
+
+	.runa-conversation-sidebar--open {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
 	}
 }
 
@@ -766,7 +1247,26 @@ pre {
 		min-height: 46px;
 	}
 
+	.runa-chat-header__left {
+		align-items: flex-start;
+	}
+
+	.runa-chat-suggestion-grid {
+		grid-template-columns: 1fr;
+	}
+
 	.runa-markdown__table {
 		min-width: 280px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+		transition-duration: 0.001ms !important;
 	}
 }

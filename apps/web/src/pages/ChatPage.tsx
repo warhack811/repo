@@ -3,11 +3,12 @@ import type { ReactElement } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
-import { ChatDeveloperHint } from '../components/chat/ChatDeveloperHint.js';
+import { ChatHeader } from '../components/chat/ChatHeader.js';
+import { ChatLayout } from '../components/chat/ChatLayout.js';
 import { ChatShell } from '../components/chat/ChatShell.js';
-import { ChatWorkspaceHeader } from '../components/chat/ChatWorkspaceHeader.js';
 import { ConversationSidebar } from '../components/chat/ConversationSidebar.js';
 import { CurrentRunSurface } from '../components/chat/CurrentRunSurface.js';
+import { EmptyState } from '../components/chat/EmptyState.js';
 import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import type { InspectionActionState } from '../components/chat/PresentationBlockRenderer.js';
@@ -43,13 +44,6 @@ type ChatPageProps = Readonly<{
 	embedded?: boolean;
 	runtime: UseChatRuntimeResult;
 }>;
-
-const workspaceGridStyle = {
-	display: 'grid',
-	gap: '20px',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
-	alignItems: 'start',
-} as const;
 
 export function ChatPage({
 	conversations,
@@ -106,11 +100,9 @@ export function ChatPage({
 		[],
 	);
 	const [desktopDevicesReloadKey, setDesktopDevicesReloadKey] = useState(0);
+	const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false);
 	const [isDesktopDevicesLoading, setIsDesktopDevicesLoading] = useState(false);
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-	const [selectedDesktopTargetConnectionId, setSelectedDesktopTargetConnectionId] = useState<
-		string | null
-	>(runtimeDesktopTargetConnectionId);
 	const promptRef = useRef(prompt);
 	const lastSeenAssistantMessageIdRef = useRef<string | null>(null);
 
@@ -188,22 +180,12 @@ export function ChatPage({
 
 	useEffect(() => {
 		if (
-			selectedDesktopTargetConnectionId !== null &&
-			desktopDevices.every((device) => device.connection_id !== selectedDesktopTargetConnectionId)
+			runtimeDesktopTargetConnectionId !== null &&
+			desktopDevices.every((device) => device.connection_id !== runtimeDesktopTargetConnectionId)
 		) {
-			setSelectedDesktopTargetConnectionId(null);
+			setDesktopTargetConnectionId(null);
 		}
-	}, [desktopDevices, selectedDesktopTargetConnectionId]);
-
-	useEffect(() => {
-		if (runtimeDesktopTargetConnectionId !== selectedDesktopTargetConnectionId) {
-			setDesktopTargetConnectionId(selectedDesktopTargetConnectionId);
-		}
-	}, [
-		runtimeDesktopTargetConnectionId,
-		selectedDesktopTargetConnectionId,
-		setDesktopTargetConnectionId,
-	]);
+	}, [desktopDevices, runtimeDesktopTargetConnectionId, setDesktopTargetConnectionId]);
 
 	useEffect(() => {
 		lastSeenAssistantMessageIdRef.current = latestAssistantMessage?.message_id ?? null;
@@ -291,14 +273,7 @@ export function ChatPage({
 	const currentRunId = currentRunFeedback?.run_id ?? currentPresentationSurface?.run_id;
 
 	const emptyRunTimelineContent = (
-		<div
-			style={{
-				transition: 'opacity 220ms ease, transform 220ms ease',
-			}}
-			className="runa-empty-state"
-		>
-			{uiCopy.chat.emptySurface}
-		</div>
+		<EmptyState onSubmitSuggestion={(suggestionPrompt) => setPrompt(suggestionPrompt)} />
 	);
 
 	function getInspectionActionState(
@@ -361,6 +336,7 @@ export function ChatPage({
 			expanded
 			inspectionAnchorIdsByDetailId={inspectionAnchorIdsByDetailId}
 			isCurrent
+			isDeveloperMode={isDeveloperMode}
 			onRequestInspection={requestInspection}
 			onResolveApproval={resolveApproval}
 			pendingInspectionRequestKeys={pendingInspectionRequestKeys}
@@ -374,6 +350,7 @@ export function ChatPage({
 		<PastRunSurfaces
 			expandedPastRunIds={expandedPastRunIds}
 			inspectionAnchorIdsByDetailId={inspectionAnchorIdsByDetailId}
+			isDeveloperMode={isDeveloperMode}
 			onRequestInspection={requestInspection}
 			onResolveApproval={resolveApproval}
 			onToggleExpanded={setPastRunExpanded}
@@ -386,73 +363,90 @@ export function ChatPage({
 
 	return (
 		<ChatShell embedded={embedded}>
-			<ChatWorkspaceHeader connectionStatus={connectionStatus} statusLabel={statusLabel} />
-
-			<ChatComposerSurface
-				accessToken={accessToken}
-				apiKey={apiKey}
-				attachmentUploadError={attachmentUploadError}
-				attachments={attachments}
-				canReadLatestResponse={latestReadableResponse.length > 0}
+			<ChatHeader
+				activeConversationTitle={conversations.activeConversationSummary?.title}
 				connectionStatus={connectionStatus}
-				desktopDeviceError={desktopDeviceError}
 				desktopDevices={desktopDevices}
-				isDesktopDevicesLoading={isDesktopDevicesLoading}
-				isListening={voiceInput.isListening}
-				isRuntimeConfigReady={isRuntimeConfigReady}
-				isSpeaking={isSpeaking}
-				isSpeechPlaybackSupported={isTextToSpeechSupported}
-				isSubmitting={isSubmitting}
-				isUploadingAttachment={isUploadingAttachment}
-				isVoiceSupported={voiceInput.isSupported}
-				lastError={lastError}
-				onAttachmentUploadStateChange={({ error, isUploading }) => {
-					setAttachmentUploadError(error);
-					setIsUploadingAttachment(isUploading);
-				}}
-				onAttachmentsChange={setAttachments}
-				onClearDesktopTarget={() => setSelectedDesktopTargetConnectionId(null)}
-				onOpenDeveloperMode={() => setDeveloperMode(true)}
-				onPromptChange={setPrompt}
-				onReadLatestResponse={() => speak(latestReadableResponse)}
-				onRetryDesktopDevices={() => setDesktopDevicesReloadKey((current) => current + 1)}
-				onSelectDesktopTarget={setSelectedDesktopTargetConnectionId}
-				onStopSpeaking={cancelTextToSpeech}
-				onSubmit={submitRunRequest}
-				onToggleListening={voiceInput.toggleListening}
-				prompt={prompt}
-				selectedDesktopTargetConnectionId={selectedDesktopTargetConnectionId}
+				onToggleSidebar={() => setIsConversationSidebarOpen(true)}
 				statusLabel={statusLabel}
-				submitButtonLabel={submitButtonLabel}
-				voiceStatusMessage={voiceStatusMessage}
 			/>
 
-			<section style={workspaceGridStyle} aria-label="Conversation workspace">
-				<ConversationSidebar
-					activeConversationId={activeConversationId}
-					activeConversationMembers={conversations.activeConversationMembers}
-					activeConversationSummary={conversations.activeConversationSummary}
-					conversationError={conversationError}
-					conversations={conversationList}
-					isLoading={isConversationLoading}
-					isMemberLoading={conversations.isMemberLoading}
-					memberError={conversations.memberError}
-					onRemoveMember={conversations.removeConversationMember}
-					onSelectConversation={selectConversation}
-					onShareMember={conversations.shareConversationMember}
-					onStartNewConversation={beginDraftConversation}
-				/>
-				<CurrentRunSurface
-					activeConversationId={activeConversationId}
-					activeConversationMessages={activeConversationMessages}
-					currentPresentationContent={currentPresentationContent}
-					currentRunId={currentRunId}
-					currentRunProgressPanel={currentRunProgressPanel}
-					currentStreamingRunId={currentStreamingRunId}
-					currentStreamingText={currentStreamingText}
-					emptyStateContent={emptyRunTimelineContent}
-				/>
-			</section>
+			<ChatLayout
+				composer={
+					<ChatComposerSurface
+						accessToken={accessToken}
+						apiKey={apiKey}
+						attachmentUploadError={attachmentUploadError}
+						attachments={attachments}
+						canReadLatestResponse={latestReadableResponse.length > 0}
+						connectionStatus={connectionStatus}
+						desktopDeviceError={desktopDeviceError}
+						desktopDevices={desktopDevices}
+						isDesktopDevicesLoading={isDesktopDevicesLoading}
+						isListening={voiceInput.isListening}
+						isRuntimeConfigReady={isRuntimeConfigReady}
+						isSpeaking={isSpeaking}
+						isSpeechPlaybackSupported={isTextToSpeechSupported}
+						isSubmitting={isSubmitting}
+						isUploadingAttachment={isUploadingAttachment}
+						isVoiceSupported={voiceInput.isSupported}
+						lastError={lastError}
+						onAttachmentUploadStateChange={({ error, isUploading }) => {
+							setAttachmentUploadError(error);
+							setIsUploadingAttachment(isUploading);
+						}}
+						onAttachmentsChange={setAttachments}
+						onClearDesktopTarget={() => setDesktopTargetConnectionId(null)}
+						onOpenDeveloperMode={() => setDeveloperMode(true)}
+						onPromptChange={setPrompt}
+						onReadLatestResponse={() => speak(latestReadableResponse)}
+						onRetryDesktopDevices={() => setDesktopDevicesReloadKey((current) => current + 1)}
+						onSelectDesktopTarget={setDesktopTargetConnectionId}
+						onStopSpeaking={cancelTextToSpeech}
+						onSubmit={submitRunRequest}
+						onToggleListening={voiceInput.toggleListening}
+						prompt={prompt}
+						selectedDesktopTargetConnectionId={runtimeDesktopTargetConnectionId}
+						showDeveloperControls={isDeveloperMode}
+						statusLabel={statusLabel}
+						submitButtonLabel={submitButtonLabel}
+						voiceStatusMessage={voiceStatusMessage}
+					/>
+				}
+				isSidebarOpen={isConversationSidebarOpen}
+				messages={
+					<CurrentRunSurface
+						activeConversationId={activeConversationId}
+						activeConversationMessages={activeConversationMessages}
+						currentPresentationContent={currentPresentationContent}
+						currentRunId={currentRunId}
+						currentRunProgressPanel={currentRunProgressPanel}
+						currentStreamingRunId={currentStreamingRunId}
+						currentStreamingText={currentStreamingText}
+						emptyStateContent={emptyRunTimelineContent}
+					/>
+				}
+				onCloseSidebar={() => setIsConversationSidebarOpen(false)}
+				onToggleSidebar={() => setIsConversationSidebarOpen(true)}
+				sidebar={
+					<ConversationSidebar
+						activeConversationId={activeConversationId}
+						activeConversationMembers={conversations.activeConversationMembers}
+						activeConversationSummary={conversations.activeConversationSummary}
+						conversationError={conversationError}
+						conversations={conversationList}
+						isLoading={isConversationLoading}
+						isMemberLoading={conversations.isMemberLoading}
+						isOpen={isConversationSidebarOpen}
+						memberError={conversations.memberError}
+						onClose={() => setIsConversationSidebarOpen(false)}
+						onRemoveMember={conversations.removeConversationMember}
+						onSelectConversation={selectConversation}
+						onShareMember={conversations.shareConversationMember}
+						onStartNewConversation={beginDraftConversation}
+					/>
+				}
+			/>
 
 			{isDeveloperMode ? (
 				<RunTimelinePanel
@@ -467,9 +461,7 @@ export function ChatPage({
 					showRecentSessionRuns={showRecentSessionRuns}
 					onToggleRecentSessionRuns={() => setShowRecentSessionRuns((current) => !current)}
 				/>
-			) : (
-				<ChatDeveloperHint />
-			)}
+			) : null}
 		</ChatShell>
 	);
 }

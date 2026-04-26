@@ -19,6 +19,90 @@ const buttonStyle: CSSProperties = {
 	transition: 'transform 180ms ease, border-color 180ms ease, background 180ms ease',
 };
 
+export const UPLOAD_ACCEPT =
+	'image/*,text/*,application/json,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
+export const MAX_UPLOAD_IMAGE_BYTES = 1_500_000;
+export const MAX_UPLOAD_TEXT_BYTES = 200_000;
+export const MAX_UPLOAD_DOCUMENT_BYTES = 5_000_000;
+
+const DOCUMENT_ATTACHMENT_MEDIA_TYPES = new Set([
+	'application/pdf',
+	'application/msword',
+	'application/vnd.ms-excel',
+	'application/vnd.ms-powerpoint',
+	'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+	'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+const DOCUMENT_ATTACHMENT_EXTENSIONS = new Set([
+	'.doc',
+	'.docx',
+	'.pdf',
+	'.ppt',
+	'.pptx',
+	'.xls',
+	'.xlsx',
+]);
+const DANGEROUS_ATTACHMENT_EXTENSIONS = new Set([
+	'.bat',
+	'.cmd',
+	'.docm',
+	'.exe',
+	'.msi',
+	'.ps1',
+	'.pptm',
+	'.scr',
+	'.vbs',
+	'.xlsm',
+]);
+
+type UploadPreflightFile = Readonly<{
+	name: string;
+	size: number;
+	type: string;
+}>;
+
+function getFilenameExtension(filename: string): string | null {
+	const lastSegment = filename.split(/[\\/]/).at(-1) ?? filename;
+	const extensionStart = lastSegment.lastIndexOf('.');
+
+	if (extensionStart <= 0) {
+		return null;
+	}
+
+	return lastSegment.slice(extensionStart).toLowerCase();
+}
+
+function isDocumentAttachmentFile(contentType: string, extension: string | null): boolean {
+	return (
+		DOCUMENT_ATTACHMENT_MEDIA_TYPES.has(contentType) ||
+		(extension !== null && DOCUMENT_ATTACHMENT_EXTENSIONS.has(extension))
+	);
+}
+
+export function validateAttachmentFileForUpload(file: UploadPreflightFile): string | null {
+	const extension = getFilenameExtension(file.name);
+	const contentType = file.type.trim().toLowerCase();
+
+	if (extension !== null && DANGEROUS_ATTACHMENT_EXTENSIONS.has(extension)) {
+		return 'Bu dosya turu guvenlik nedeniyle yuklenemez.';
+	}
+
+	if (contentType.startsWith('image/')) {
+		return file.size > MAX_UPLOAD_IMAGE_BYTES ? 'Gorsel ekleri 1.5 MB ile sinirlidir.' : null;
+	}
+
+	if (contentType.startsWith('text/') || contentType === 'application/json') {
+		return file.size > MAX_UPLOAD_TEXT_BYTES ? 'Metin ekleri 200 KB ile sinirlidir.' : null;
+	}
+
+	if (isDocumentAttachmentFile(contentType, extension)) {
+		return file.size > MAX_UPLOAD_DOCUMENT_BYTES ? 'Dokuman ekleri 5 MB ile sinirlidir.' : null;
+	}
+
+	return 'Yalniz image/*, text/*, application/json ve desteklenen dokumanlar yuklenebilir.';
+}
+
 function createRequestHeaders(accessToken?: string | null): Headers {
 	const headers = new Headers({
 		'content-type': 'application/json',
@@ -89,6 +173,18 @@ export function FileUploadButton({
 			return;
 		}
 
+		const preflightError = validateAttachmentFileForUpload(file);
+
+		if (preflightError !== null) {
+			onUploadStateChange?.({
+				error: preflightError,
+				isUploading: false,
+			});
+			event.target.value = '';
+
+			return;
+		}
+
 		setIsUploading(true);
 		onUploadStateChange?.({
 			error: null,
@@ -116,12 +212,12 @@ export function FileUploadButton({
 						'message' in payload &&
 						typeof payload.message === 'string'
 						? payload.message
-						: 'Upload başarısız oldu.',
+						: 'Upload basarisiz oldu.',
 				);
 			}
 
 			if (!isAttachmentResponse(payload)) {
-				throw new Error('Desteklenmeyen upload yanıtı.');
+				throw new Error('Desteklenmeyen upload yaniti.');
 			}
 
 			onAttachmentUploaded(payload.attachment);
@@ -132,7 +228,7 @@ export function FileUploadButton({
 		} catch (error: unknown) {
 			onUploadStateChange?.({
 				error:
-					error instanceof Error ? error.message : 'Upload sırasında beklenmeyen bir hata oluştu.',
+					error instanceof Error ? error.message : 'Upload sirasinda beklenmeyen bir hata olustu.',
 				isUploading: false,
 			});
 		} finally {
@@ -148,7 +244,7 @@ export function FileUploadButton({
 		<>
 			<input
 				ref={inputRef}
-				accept="image/*,text/*,application/json"
+				accept={UPLOAD_ACCEPT}
 				disabled={disabled || isUploading}
 				id={inputId}
 				onChange={(event) => {
@@ -165,7 +261,7 @@ export function FileUploadButton({
 					opacity: disabled || isUploading ? 0.6 : 1,
 				}}
 			>
-				{isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
+				{isUploading ? 'Yukleniyor...' : 'Dosya ekle'}
 			</label>
 		</>
 	);

@@ -48,6 +48,44 @@ function toEnvRecord(value: unknown): Readonly<Record<string, string>> | undefin
 	return Object.fromEntries(entries) as Readonly<Record<string, string>>;
 }
 
+function toHeadersRecord(value: unknown): Readonly<Record<string, string>> | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (!isStringRecord(value)) {
+		throw new McpConfigurationError('headers must be an object of string values.');
+	}
+
+	const entries = Object.entries(value);
+
+	for (const [headerName, entryValue] of entries) {
+		if (headerName.trim().length === 0) {
+			throw new McpConfigurationError('headers must not include empty header names.');
+		}
+
+		if (typeof entryValue !== 'string') {
+			throw new McpConfigurationError('headers must be an object of string values.');
+		}
+	}
+
+	return Object.fromEntries(entries) as Readonly<Record<string, string>>;
+}
+
+function parseTransport(value: unknown, index: number): 'http' | 'stdio' {
+	if (value === undefined) {
+		return 'stdio';
+	}
+
+	if (value === 'http' || value === 'stdio') {
+		return value;
+	}
+
+	throw new McpConfigurationError(
+		`transport for MCP server at index ${index} must be "stdio" or "http".`,
+	);
+}
+
 function parseServerConfig(value: unknown, index: number): McpServerConfig {
 	if (!isStringRecord(value)) {
 		throw new McpConfigurationError(`Server config at index ${index} must be an object.`);
@@ -58,22 +96,34 @@ function parseServerConfig(value: unknown, index: number): McpServerConfig {
 		readonly command?: unknown;
 		readonly cwd?: unknown;
 		readonly env?: unknown;
+		readonly headers?: unknown;
 		readonly id?: unknown;
 		readonly timeout_ms?: unknown;
+		readonly transport?: unknown;
+		readonly url?: unknown;
 	};
 	const id = typedValue.id;
 	const command = typedValue.command;
 	const cwd = typedValue.cwd;
 	const timeoutMs = typedValue.timeout_ms;
+	const transport = parseTransport(typedValue.transport, index);
 
 	if (typeof id !== 'string' || id.length === 0) {
 		throw new McpConfigurationError(`Server config at index ${index} must include a non-empty id.`);
 	}
 
-	if (typeof command !== 'string' || command.length === 0) {
+	if (transport === 'stdio' && (typeof command !== 'string' || command.length === 0)) {
 		throw new McpConfigurationError(
 			`Server config at index ${index} must include a non-empty command.`,
 		);
+	}
+
+	if (transport === 'http' && (typeof typedValue.url !== 'string' || typedValue.url.length === 0)) {
+		throw new McpConfigurationError(`HTTP MCP server ${id} must include a non-empty url.`);
+	}
+
+	if (transport === 'http' && command !== undefined && typeof command !== 'string') {
+		throw new McpConfigurationError(`command for MCP server ${id} must be a string when present.`);
 	}
 
 	if (cwd !== undefined && typeof cwd !== 'string') {
@@ -87,13 +137,29 @@ function parseServerConfig(value: unknown, index: number): McpServerConfig {
 		throw new McpConfigurationError(`timeout_ms for MCP server ${id} must be a positive number.`);
 	}
 
+	if (transport === 'http') {
+		return {
+			args: toStringArray(typedValue.args, `args for MCP server ${id}`),
+			command: command === undefined ? undefined : (command as string),
+			cwd,
+			env: toEnvRecord(typedValue.env),
+			headers: toHeadersRecord(typedValue.headers),
+			id,
+			timeout_ms: timeoutMs,
+			transport,
+			url: typedValue.url as string,
+		};
+	}
+
 	return {
 		args: toStringArray(typedValue.args, `args for MCP server ${id}`),
-		command,
+		command: command as string,
 		cwd,
 		env: toEnvRecord(typedValue.env),
+		headers: toHeadersRecord(typedValue.headers),
 		id,
 		timeout_ms: timeoutMs,
+		transport,
 	};
 }
 

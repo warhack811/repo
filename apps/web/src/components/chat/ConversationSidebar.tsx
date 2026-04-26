@@ -1,5 +1,6 @@
 import type { ChangeEvent, ReactElement } from 'react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import type {
 	ConversationAccessRole,
@@ -16,7 +17,9 @@ type ConversationSidebarProps = Readonly<{
 	conversations: readonly ConversationSummary[];
 	isLoading: boolean;
 	isMemberLoading: boolean;
+	isOpen?: boolean;
 	memberError: string | null;
+	onClose?: () => void;
 	onRemoveMember: (memberUserId: string) => Promise<void>;
 	onSelectConversation: (conversationId: string) => void;
 	onShareMember: (
@@ -26,16 +29,10 @@ type ConversationSidebarProps = Readonly<{
 	onStartNewConversation: () => void;
 }>;
 
-const sidebarStyle = {
-	alignSelf: 'start',
-	borderRadius: '24px',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	background: 'linear-gradient(180deg, rgba(10, 15, 27, 0.88) 0%, rgba(6, 11, 21, 0.74) 100%)',
-	padding: '18px',
-	display: 'grid',
-	gap: '14px',
-	boxShadow: '0 24px 60px rgba(2, 6, 23, 0.28)',
-} as const;
+type ConversationGroup = Readonly<{
+	items: readonly ConversationSummary[];
+	label: string;
+}>;
 
 const actionButtonStyle = {
 	borderRadius: '14px',
@@ -50,18 +47,116 @@ const actionButtonStyle = {
 
 const listStyle = {
 	display: 'grid',
-	gap: '10px',
+	gap: '12px',
 } as const;
 
 function roleLabel(role: ConversationAccessRole): string {
 	switch (role) {
 		case 'owner':
-			return 'Owner';
+			return 'Sahip';
 		case 'editor':
-			return 'Editor';
+			return 'Duzenleyici';
 		case 'viewer':
-			return 'Viewer';
+			return 'Izleyici';
 	}
+}
+
+function formatUpdatedAt(value: string): string {
+	const parsed = new Date(value);
+
+	if (Number.isNaN(parsed.getTime())) {
+		return value;
+	}
+
+	return new Intl.DateTimeFormat(undefined, {
+		dateStyle: 'medium',
+		timeStyle: 'short',
+	}).format(parsed);
+}
+
+function daysBetween(now: Date, value: string): number {
+	const parsed = new Date(value);
+
+	if (Number.isNaN(parsed.getTime())) {
+		return Number.POSITIVE_INFINITY;
+	}
+
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+	const target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()).getTime();
+
+	return Math.floor((today - target) / 86_400_000);
+}
+
+function groupConversations(
+	conversations: readonly ConversationSummary[],
+): readonly ConversationGroup[] {
+	const now = new Date();
+	const today: ConversationSummary[] = [];
+	const yesterday: ConversationSummary[] = [];
+	const previousSevenDays: ConversationSummary[] = [];
+	const older: ConversationSummary[] = [];
+
+	for (const conversation of conversations) {
+		const ageInDays = daysBetween(now, conversation.last_message_at);
+
+		if (ageInDays <= 0) {
+			today.push(conversation);
+			continue;
+		}
+
+		if (ageInDays === 1) {
+			yesterday.push(conversation);
+			continue;
+		}
+
+		if (ageInDays <= 7) {
+			previousSevenDays.push(conversation);
+			continue;
+		}
+
+		older.push(conversation);
+	}
+
+	const groups: ConversationGroup[] = [
+		{ items: today, label: 'Bugun' },
+		{ items: yesterday, label: 'Dun' },
+		{ items: previousSevenDays, label: 'Son 7 gun' },
+		{ items: older, label: 'Daha eski' },
+	];
+
+	return groups.filter((group) => group.items.length > 0);
+}
+
+function matchesSearch(conversation: ConversationSummary, searchQuery: string): boolean {
+	const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+
+	if (normalizedSearchQuery.length === 0) {
+		return true;
+	}
+
+	return `${conversation.title} ${conversation.last_message_preview}`
+		.toLowerCase()
+		.includes(normalizedSearchQuery);
+}
+
+function getFriendlyErrorMessage(message: string): string {
+	const trimmedMessage = message.trim();
+
+	if (trimmedMessage.startsWith('{') || trimmedMessage.includes('Internal Server Error')) {
+		return 'Sohbet gecmisi su anda yuklenemedi. Biraz sonra yeniden deneyebilirsin.';
+	}
+
+	return trimmedMessage;
+}
+
+function SkeletonRows(): ReactElement {
+	return (
+		<div style={listStyle} aria-label="Sohbet listesi yukleniyor">
+			{['one', 'two', 'three'].map((key) => (
+				<div key={key} className="runa-conversation-skeleton" />
+			))}
+		</div>
+	);
 }
 
 export function ConversationSidebar({
@@ -72,7 +167,9 @@ export function ConversationSidebar({
 	conversations,
 	isLoading,
 	isMemberLoading,
+	isOpen = true,
 	memberError,
+	onClose,
 	onRemoveMember,
 	onSelectConversation,
 	onShareMember,
@@ -82,13 +179,40 @@ export function ConversationSidebar({
 	const [memberRole, setMemberRole] = useState<Exclude<ConversationAccessRole, 'owner'>>('viewer');
 	const [memberActionError, setMemberActionError] = useState<string | null>(null);
 	const [isSavingMember, setIsSavingMember] = useState(false);
+	const [searchQuery, setSearchQuery] = useState('');
 	const canManageMembers = activeConversationSummary?.access_role === 'owner';
+	const filteredConversations = useMemo(
+		() => conversations.filter((conversation) => matchesSearch(conversation, searchQuery)),
+		[conversations, searchQuery],
+	);
+	const groupedConversations = useMemo(
+		() => groupConversations(filteredConversations),
+		[filteredConversations],
+	);
+
+	useEffect(() => {
+		if (!isOpen || !onClose) {
+			return;
+		}
+
+		function handleKeyDown(event: KeyboardEvent): void {
+			if (event.key === 'Escape') {
+				onClose?.();
+			}
+		}
+
+		window.addEventListener('keydown', handleKeyDown);
+
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown);
+		};
+	}, [isOpen, onClose]);
 
 	async function handleShareSubmit(): Promise<void> {
 		const normalizedMemberUserId = memberUserId.trim();
 
 		if (!normalizedMemberUserId) {
-			setMemberActionError('Paylaşım için member user id gerekli.');
+			setMemberActionError('Paylasmadan once uye kullanici id gerekli.');
 			return;
 		}
 
@@ -99,9 +223,7 @@ export function ConversationSidebar({
 			await onShareMember(normalizedMemberUserId, memberRole);
 			setMemberUserId('');
 		} catch (error) {
-			setMemberActionError(
-				error instanceof Error ? error.message : 'Conversation paylaşımı başarısız.',
-			);
+			setMemberActionError(error instanceof Error ? error.message : 'Sohbet paylasilamadi.');
 		} finally {
 			setIsSavingMember(false);
 		}
@@ -114,254 +236,225 @@ export function ConversationSidebar({
 		try {
 			await onRemoveMember(memberUserIdValue);
 		} catch (error) {
-			setMemberActionError(
-				error instanceof Error ? error.message : 'Conversation member silinemedi.',
-			);
+			setMemberActionError(error instanceof Error ? error.message : 'Sohbet uyesi kaldirilamadi.');
 		} finally {
 			setIsSavingMember(false);
 		}
 	}
 
+	function selectConversation(conversationId: string): void {
+		onSelectConversation(conversationId);
+		onClose?.();
+	}
+
+	function startNewConversation(): void {
+		onStartNewConversation();
+		onClose?.();
+	}
+
 	return (
-		<aside
-			style={sidebarStyle}
-			className="runa-card runa-card--subtle"
-			aria-label="Conversation list"
-		>
-			<div style={{ display: 'grid', gap: '8px' }}>
-				<div style={secondaryLabelStyle}>History</div>
-				<h2 style={{ margin: 0, fontSize: '20px' }}>Conversation history</h2>
-				<div className="runa-subtle-copy">
-					Refresh sonrası aynı sohbete geri dönebilir, ekip içinde paylaşılan akışları ayrı rol
-					badge'leriyle görebilirsin.
-				</div>
-			</div>
-
-			<button
-				type="button"
-				onClick={onStartNewConversation}
-				style={actionButtonStyle}
-				className="runa-button runa-button--secondary"
-			>
-				Yeni conversation başlat
-			</button>
-
-			{conversationError ? (
-				<div className="runa-alert runa-alert--danger" role="alert">
-					{conversationError}
-				</div>
+		<>
+			{isOpen ? (
+				<button
+					type="button"
+					className="runa-sidebar-backdrop"
+					aria-label="Sohbet gecmisini kapat"
+					onClick={onClose}
+				/>
 			) : null}
-
-			<div style={listStyle}>
-				{isLoading && conversations.length === 0 ? (
-					<div className="runa-subtle-copy">Conversation listesi yükleniyor...</div>
-				) : conversations.length === 0 ? (
-					<div className="runa-subtle-copy">
-						Henüz kalıcı bir conversation yok. İlk mesajı gönderdiğinde burada görünecek.
+			<nav
+				className={`runa-card runa-card--subtle runa-conversation-sidebar${
+					isOpen ? ' runa-conversation-sidebar--open' : ''
+				}`}
+				aria-label="Sohbet gecmisi"
+			>
+				<div className="runa-conversation-sidebar__header">
+					<div style={{ display: 'grid', gap: '5px', minWidth: 0 }}>
+						<div style={secondaryLabelStyle}>Runa</div>
+						<h2 style={{ margin: 0, fontSize: '20px' }}>Sohbetler</h2>
 					</div>
-				) : (
-					conversations.map((conversation) => {
-						const isActive = conversation.conversation_id === activeConversationId;
+					<button
+						type="button"
+						onClick={startNewConversation}
+						style={actionButtonStyle}
+						className="runa-button runa-button--secondary"
+					>
+						Yeni sohbet
+					</button>
+				</div>
 
-						return (
-							<button
-								key={conversation.conversation_id}
-								type="button"
-								onClick={() => onSelectConversation(conversation.conversation_id)}
-								style={{
-									textAlign: 'left',
-									display: 'grid',
-									gap: '8px',
-									padding: '14px 15px',
-									borderRadius: '18px',
-									border: isActive
-										? '1px solid rgba(245, 158, 11, 0.4)'
-										: '1px solid rgba(148, 163, 184, 0.14)',
-									background: isActive
-										? 'linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0%, rgba(30, 41, 59, 0.68) 100%)'
-										: 'rgba(7, 11, 20, 0.56)',
-									color: '#f8fafc',
-									cursor: 'pointer',
-								}}
-							>
-								<div
-									style={{
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										gap: '12px',
-									}}
-								>
-									<strong style={{ fontSize: '14px' }}>{conversation.title}</strong>
-									<span
-										style={{
-											borderRadius: '999px',
-											padding: '3px 8px',
-											fontSize: '11px',
-											fontWeight: 700,
-											background:
-												conversation.access_role === 'owner'
-													? 'rgba(245, 158, 11, 0.18)'
-													: 'rgba(59, 130, 246, 0.18)',
-											color: conversation.access_role === 'owner' ? '#fde68a' : '#bfdbfe',
-										}}
-									>
-										{roleLabel(conversation.access_role)}
-									</span>
-								</div>
-								<div
-									style={{
-										color: '#cbd5e1',
-										fontSize: '13px',
-										lineHeight: 1.5,
-									}}
-								>
-									{conversation.last_message_preview}
-								</div>
-								<div style={{ color: '#94a3b8', fontSize: '12px' }}>
-									{new Date(conversation.last_message_at).toLocaleString()}
-								</div>
-							</button>
-						);
-					})
-				)}
-			</div>
+				<label style={{ display: 'grid', gap: '8px' }}>
+					<span style={secondaryLabelStyle}>Ara</span>
+					<input
+						type="search"
+						className="runa-input"
+						placeholder="Baslik veya onizleme ara"
+						value={searchQuery}
+						onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
+					/>
+				</label>
 
-			{activeConversationSummary ? (
-				<section
-					style={{
-						display: 'grid',
-						gap: '12px',
-						paddingTop: '6px',
-						borderTop: '1px solid rgba(148, 163, 184, 0.14)',
-					}}
-				>
-					<div style={{ display: 'grid', gap: '6px' }}>
-						<div style={secondaryLabelStyle}>Members</div>
-						<div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-							<strong>{activeConversationSummary.title}</strong>
-							<span className="runa-subtle-copy">
-								Current role: {roleLabel(activeConversationSummary.access_role)}
-							</span>
-						</div>
+				{conversationError ? (
+					<div className="runa-alert runa-alert--danger" role="alert">
+						{getFriendlyErrorMessage(conversationError)}
 					</div>
+				) : null}
 
-					{memberError ? (
-						<div className="runa-alert runa-alert--danger" role="alert">
-							{memberError}
-						</div>
-					) : null}
+				<div style={listStyle}>
+					{isLoading && conversations.length === 0 ? <SkeletonRows /> : null}
 
-					{memberActionError ? (
-						<div className="runa-alert runa-alert--danger" role="alert">
-							{memberActionError}
-						</div>
-					) : null}
-
-					{canManageMembers ? (
-						<div style={{ display: 'grid', gap: '8px' }}>
-							<input
-								type="text"
-								value={memberUserId}
-								onChange={(event: ChangeEvent<HTMLInputElement>) =>
-									setMemberUserId(event.target.value)
-								}
-								placeholder="member user id"
-								style={{
-									borderRadius: '12px',
-									border: '1px solid rgba(148, 163, 184, 0.18)',
-									background: 'rgba(15, 23, 42, 0.68)',
-									color: '#f8fafc',
-									padding: '10px 12px',
-								}}
-							/>
-							<select
-								value={memberRole}
-								onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-									setMemberRole(event.target.value as Exclude<ConversationAccessRole, 'owner'>)
-								}
-								style={{
-									borderRadius: '12px',
-									border: '1px solid rgba(148, 163, 184, 0.18)',
-									background: 'rgba(15, 23, 42, 0.68)',
-									color: '#f8fafc',
-									padding: '10px 12px',
-								}}
-							>
-								<option value="viewer">Viewer</option>
-								<option value="editor">Editor</option>
-							</select>
+					{!isLoading && conversations.length === 0 ? (
+						<div className="runa-empty-state">
+							<strong>Henuz sohbet yok.</strong>
+							<div style={{ marginTop: '8px' }}>
+								Ilk mesaji gonderdiginde kayitli sohbetlerin burada gorunecek.
+							</div>
 							<button
 								type="button"
-								onClick={() => {
-									void handleShareSubmit();
-								}}
-								disabled={isSavingMember}
-								style={actionButtonStyle}
+								onClick={startNewConversation}
+								style={{ ...actionButtonStyle, marginTop: '12px' }}
 								className="runa-button runa-button--secondary"
 							>
-								{isSavingMember ? 'Paylaşılıyor...' : 'Member ekle veya güncelle'}
+								Yeni sohbet
 							</button>
 						</div>
-					) : (
-						<div className="runa-subtle-copy">
-							Bu conversation seninle paylaşıldı. {roleLabel(activeConversationSummary.access_role)}{' '}
-							rolünde olduğun için member listesini görebilir, yazma yetkin varsa aynı akışta
-							çalışabilirsin.
-						</div>
-					)}
+					) : null}
 
-					<div style={{ display: 'grid', gap: '8px' }}>
-						{isMemberLoading ? (
-							<div className="runa-subtle-copy">Conversation member listesi yükleniyor...</div>
-						) : activeConversationMembers.length === 0 ? (
-							<div className="runa-subtle-copy">
-								Bu conversation için henüz eklenmiş ek üye yok.
-							</div>
-						) : (
-							activeConversationMembers.map((member) => (
-								<div
-									key={member.member_user_id}
-									style={{
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										gap: '12px',
-										padding: '10px 12px',
-										borderRadius: '14px',
-										background: 'rgba(15, 23, 42, 0.56)',
-										border: '1px solid rgba(148, 163, 184, 0.12)',
-									}}
-								>
-									<div style={{ display: 'grid', gap: '4px' }}>
-										<strong style={{ fontSize: '13px' }}>{member.member_user_id}</strong>
-										<div className="runa-subtle-copy">Role: {roleLabel(member.member_role)}</div>
-									</div>
-									{canManageMembers ? (
+					{!isLoading && conversations.length > 0 && filteredConversations.length === 0 ? (
+						<div className="runa-empty-state">Bu aramayla eslesen sohbet yok.</div>
+					) : null}
+
+					{groupedConversations.map((group) => (
+						<section key={group.label} className="runa-conversation-group">
+							<div className="runa-conversation-group__label">{group.label}</div>
+							<div style={listStyle}>
+								{group.items.map((conversation) => {
+									const isActive = conversation.conversation_id === activeConversationId;
+
+									return (
 										<button
+											key={conversation.conversation_id}
 											type="button"
-											onClick={() => {
-												void handleRemoveMember(member.member_user_id);
-											}}
-											disabled={isSavingMember}
-											style={{
-												borderRadius: '12px',
-												border: '1px solid rgba(248, 113, 113, 0.24)',
-												background: 'rgba(127, 29, 29, 0.28)',
-												color: '#fecaca',
-												padding: '8px 10px',
-												cursor: 'pointer',
-											}}
+											onClick={() => selectConversation(conversation.conversation_id)}
+											className={`runa-conversation-item${
+												isActive ? ' runa-conversation-item--active' : ''
+											}`}
 										>
-											Kaldır
+											<div className="runa-conversation-item__top">
+												<strong>{conversation.title}</strong>
+												<span className="runa-conversation-role">
+													{roleLabel(conversation.access_role)}
+												</span>
+											</div>
+											<div className="runa-conversation-preview">
+												{conversation.last_message_preview}
+											</div>
+											<div className="runa-conversation-time">
+												{formatUpdatedAt(conversation.last_message_at)}
+											</div>
 										</button>
-									) : null}
+									);
+								})}
+							</div>
+						</section>
+					))}
+				</div>
+
+				{activeConversationSummary ? (
+					<details className="runa-conversation-members">
+						<summary>Uyeler - {roleLabel(activeConversationSummary.access_role)}</summary>
+
+						<div style={{ display: 'grid', gap: '12px', paddingTop: '12px' }}>
+							{memberError ? (
+								<div className="runa-alert runa-alert--danger" role="alert">
+									{getFriendlyErrorMessage(memberError)}
 								</div>
-							))
-						)}
-					</div>
-				</section>
-			) : null}
-		</aside>
+							) : null}
+
+							{memberActionError ? (
+								<div className="runa-alert runa-alert--danger" role="alert">
+									{getFriendlyErrorMessage(memberActionError)}
+								</div>
+							) : null}
+
+							{canManageMembers ? (
+								<div style={{ display: 'grid', gap: '8px' }}>
+									<input
+										type="text"
+										value={memberUserId}
+										onChange={(event: ChangeEvent<HTMLInputElement>) =>
+											setMemberUserId(event.target.value)
+										}
+										placeholder="uye kullanici id"
+										className="runa-input"
+									/>
+									<select
+										value={memberRole}
+										onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+											setMemberRole(event.target.value as Exclude<ConversationAccessRole, 'owner'>)
+										}
+										className="runa-input"
+									>
+										<option value="viewer">Izleyici</option>
+										<option value="editor">Duzenleyici</option>
+									</select>
+									<button
+										type="button"
+										onClick={() => {
+											void handleShareSubmit();
+										}}
+										disabled={isSavingMember}
+										style={actionButtonStyle}
+										className="runa-button runa-button--secondary"
+									>
+										{isSavingMember ? 'Uye kaydediliyor...' : 'Uye ekle veya guncelle'}
+									</button>
+								</div>
+							) : (
+								<div className="runa-subtle-copy">
+									Bu sohbet seninle paylasilmis. Mevcut rolun{' '}
+									{roleLabel(activeConversationSummary.access_role)}.
+								</div>
+							)}
+
+							<div style={{ display: 'grid', gap: '8px' }}>
+								{isMemberLoading ? (
+									<div className="runa-subtle-copy">Uye listesi yukleniyor...</div>
+								) : activeConversationMembers.length === 0 ? (
+									<div className="runa-subtle-copy">Henuz ek uye yok.</div>
+								) : (
+									activeConversationMembers.map((member) => (
+										<div key={member.member_user_id} className="runa-conversation-member">
+											<div style={{ display: 'grid', gap: '4px', minWidth: 0 }}>
+												<strong>{member.member_user_id}</strong>
+												<div className="runa-subtle-copy">Rol: {roleLabel(member.member_role)}</div>
+											</div>
+											{canManageMembers ? (
+												<button
+													type="button"
+													onClick={() => {
+														void handleRemoveMember(member.member_user_id);
+													}}
+													disabled={isSavingMember}
+													className="runa-button runa-button--danger"
+												>
+													Kaldir
+												</button>
+											) : null}
+										</div>
+									))
+								)}
+							</div>
+						</div>
+					</details>
+				) : null}
+
+				<footer className="runa-conversation-sidebar__footer">
+					<Link to="/account" className="runa-button runa-button--secondary">
+						Hesap ve ayarlar
+					</Link>
+				</footer>
+			</nav>
+		</>
 	);
 }

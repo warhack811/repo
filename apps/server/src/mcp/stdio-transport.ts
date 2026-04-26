@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 
-import type { McpServerConfig } from '@runa/types';
+import type { McpStdioServerConfig } from '@runa/types';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
@@ -32,7 +32,7 @@ export class McpTransportError extends Error {
 	}
 }
 
-function buildEnvironment(config: McpServerConfig): NodeJS.ProcessEnv {
+function buildEnvironment(config: McpStdioServerConfig): NodeJS.ProcessEnv {
 	return {
 		...process.env,
 		...config.env,
@@ -45,7 +45,7 @@ function toStdinPayload(messages: readonly unknown[]): string {
 
 function parseResponseLines(
 	rawStdout: string,
-	config: McpServerConfig,
+	config: McpStdioServerConfig,
 ): readonly JsonRpcResponseShape[] {
 	const lines = rawStdout
 		.split(/\r?\n/u)
@@ -88,7 +88,7 @@ function parseResponseLines(
 }
 
 function normalizeTransportResult(
-	config: McpServerConfig,
+	config: McpStdioServerConfig,
 	stdout: string,
 	stderr: string,
 	status: number | null,
@@ -119,7 +119,7 @@ function normalizeTransportResult(
 }
 
 export function executeMcpStdioSessionSync(
-	config: McpServerConfig,
+	config: McpStdioServerConfig,
 	messages: readonly unknown[],
 ): McpTransportResult {
 	const result = spawnSync(config.command, config.args ?? [], {
@@ -141,7 +141,7 @@ export function executeMcpStdioSessionSync(
 }
 
 export async function executeMcpStdioSession(
-	config: McpServerConfig,
+	config: McpStdioServerConfig,
 	messages: readonly unknown[],
 ): Promise<McpTransportResult> {
 	return await new Promise<McpTransportResult>((resolve, reject) => {

@@ -26,6 +26,7 @@ import type { RunModelTurnInput, RunModelTurnResult } from './run-model-turn.js'
 
 import { createAgentLoopCheckpointWriter } from './agent-loop-checkpointing.js';
 import { createAgentLoop } from './agent-loop.js';
+import { getToolExecutionSignalFromCancellation } from './run-cancellation.js';
 import { createRunModelTurnLoopExecutor } from './run-model-turn-loop-adapter.js';
 
 export interface RunAgentLoopInput {
@@ -38,6 +39,7 @@ export interface RunAgentLoopInput {
 	readonly initial_loop_state?: CreateAgentLoopInput['initial_loop_state'];
 	readonly initial_runtime_state?: RuntimeState;
 	readonly initial_tool_result?: ToolResult;
+	readonly initial_tool_results?: readonly ToolResult[];
 	readonly initial_turn_count?: number;
 	readonly model_gateway: ModelGateway;
 	readonly on_yield?: CreateAgentLoopInput['on_yield'];
@@ -50,9 +52,17 @@ export interface RunAgentLoopInput {
 }
 
 function toExecutorInput(input: RunAgentLoopInput): CreateRunModelTurnLoopExecutorInput {
+	const cancellationToolSignal = getToolExecutionSignalFromCancellation(input.cancellation_signal);
+
 	return {
 		build_model_request: input.build_model_request,
-		execution_context: input.execution_context,
+		execution_context:
+			cancellationToolSignal === undefined
+				? input.execution_context
+				: {
+						...input.execution_context,
+						signal: input.execution_context?.signal ?? cancellationToolSignal,
+					},
 		model_gateway: input.model_gateway,
 		persistence_writer: input.persistence_writer,
 		registry: input.registry,
@@ -87,6 +97,7 @@ export function runAgentLoop(
 		initial_loop_state: input.initial_loop_state,
 		initial_runtime_state: input.initial_runtime_state,
 		initial_tool_result: input.initial_tool_result,
+		initial_tool_results: input.initial_tool_results,
 		initial_turn_count: input.initial_turn_count,
 		on_yield: onYield,
 		run_id: input.run_id,

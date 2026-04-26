@@ -192,6 +192,60 @@ describe('upload routes', () => {
 		});
 	});
 
+	it('returns a typed document attachment contract without embedding binary content', async () => {
+		const storage = createMemoryStorageAdapter();
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			storage: {
+				adapter: storage.adapter,
+			},
+		});
+		serversToClose.push(server);
+
+		const documentBase64 = Buffer.from('%PDF fake body').toString('base64');
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+			payload: {
+				content_base64: documentBase64,
+				content_type: 'application/pdf',
+				filename: 'brief.pdf',
+			},
+			url: '/upload',
+		});
+
+		expect(response.statusCode).toBe(200);
+		const payload = response.json();
+		expect(payload).toEqual({
+			attachment: {
+				blob_id: expect.any(String),
+				filename: 'brief.pdf',
+				kind: 'document',
+				media_type: 'application/pdf',
+				size_bytes: Buffer.byteLength('%PDF fake body'),
+				storage_ref: expect.any(String),
+			},
+		});
+		expect(payload.attachment.storage_ref).toBe(payload.attachment.blob_id);
+		expect(payload.attachment).not.toHaveProperty('data_url');
+		expect(payload.attachment).not.toHaveProperty('text_content');
+		expect([...storage.blobs.values()][0]).toMatchObject({
+			content_type: 'application/pdf',
+			filename: 'brief.pdf',
+			kind: 'attachment_document',
+		});
+	});
+
 	it('rejects unsupported media types instead of pretending document parsing exists', async () => {
 		const storage = createMemoryStorageAdapter();
 		const server = await buildServer({
@@ -216,18 +270,140 @@ describe('upload routes', () => {
 			},
 			method: 'POST',
 			payload: {
-				content_base64: Buffer.from('%PDF').toString('base64'),
-				content_type: 'application/pdf',
-				filename: 'brief.pdf',
+				content_base64: Buffer.from('PK fake zip').toString('base64'),
+				content_type: 'application/zip',
+				filename: 'archive.zip',
 			},
 			url: '/upload',
 		});
 
 		expect(response.statusCode).toBe(415);
 		expect(response.json()).toMatchObject({
+			error: 'Unsupported Media Type',
 			message:
-				'Only image/*, text/*, and application/json attachments are supported in this minimum seam.',
+				'Only image/*, text/*, application/json, and supported document attachments are supported in this minimum seam.',
 			statusCode: 415,
 		});
+		expect(storage.blobs.size).toBe(0);
+	});
+
+	it('rejects risky executable filenames before storage upload', async () => {
+		const storage = createMemoryStorageAdapter();
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			storage: {
+				adapter: storage.adapter,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+			payload: {
+				content_base64: Buffer.from('Write-Host risky').toString('base64'),
+				content_type: 'text/plain',
+				filename: 'installer.ps1',
+			},
+			url: '/upload',
+		});
+
+		expect(response.statusCode).toBe(415);
+		expect(response.json()).toMatchObject({
+			error: 'Unsupported Media Type',
+			message: 'This file type is not supported for upload.',
+			statusCode: 415,
+		});
+		expect(storage.blobs.size).toBe(0);
+	});
+
+	it('rejects invalid base64 before storage upload', async () => {
+		const storage = createMemoryStorageAdapter();
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			storage: {
+				adapter: storage.adapter,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+			payload: {
+				content_base64: 'not-base64?',
+				content_type: 'text/plain',
+				filename: 'notes.txt',
+			},
+			url: '/upload',
+		});
+
+		expect(response.statusCode).toBe(400);
+		expect(response.json()).toMatchObject({
+			error: 'Bad Request',
+			message: 'Upload content must be valid base64.',
+			statusCode: 400,
+		});
+		expect(storage.blobs.size).toBe(0);
+	});
+
+	it('rejects oversized text uploads before storage upload', async () => {
+		const storage = createMemoryStorageAdapter();
+		const server = await buildServer({
+			auth: {
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+			storage: {
+				adapter: storage.adapter,
+			},
+		});
+		serversToClose.push(server);
+
+		const response = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+			payload: {
+				content_base64: Buffer.alloc(200_001, 'a').toString('base64'),
+				content_type: 'text/plain',
+				filename: 'notes.txt',
+			},
+			url: '/upload',
+		});
+
+		expect(response.statusCode).toBe(413);
+		expect(response.json()).toMatchObject({
+			error: 'Payload Too Large',
+			message: 'Text attachments are limited to 200 KB.',
+			statusCode: 413,
+		});
+		expect(storage.blobs.size).toBe(0);
 	});
 });

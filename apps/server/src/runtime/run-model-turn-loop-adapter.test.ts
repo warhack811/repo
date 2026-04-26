@@ -202,6 +202,16 @@ function createApprovalRequiredResult(): RunModelTurnApprovalRequiredResult {
 		},
 		resolved_model_request: createModelRequest(),
 		status: 'approval_required',
+		tool_results: [
+			{
+				call_id: 'call_adapter_read_1',
+				output: {
+					content: 'prefetched context',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+		],
 	};
 }
 
@@ -217,6 +227,15 @@ function createFailureResult(): RunModelTurnFailureResult {
 		model_turn_outcome: undefined,
 		resolved_model_request: createModelRequest(),
 		status: 'failed',
+		tool_results: [
+			{
+				call_id: 'call_adapter_failed_1',
+				error_code: 'EXECUTION_FAILED',
+				error_message: 'tool exploded',
+				status: 'error',
+				tool_name: 'file.read',
+			},
+		],
 	};
 }
 
@@ -310,6 +329,23 @@ function createToolContinuationResult(): RunModelTurnToolCallResult {
 			status: 'success',
 			tool_name: 'file.read',
 		},
+		tool_results: [
+			{
+				call_id: 'call_adapter_tool_1',
+				output: {
+					content: 'file body',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+			{
+				call_id: 'call_adapter_tool_2',
+				error_code: 'EXECUTION_FAILED',
+				error_message: 'secondary lookup failed',
+				status: 'error',
+				tool_name: 'web.search',
+			},
+		],
 	};
 }
 
@@ -367,6 +403,16 @@ describe('run-model-turn-loop-adapter', () => {
 				},
 				working_directory: 'd:\\ai\\Runa',
 			},
+			tool_results: [
+				{
+					call_id: 'call_adapter_read_1',
+					output: {
+						content: 'prefetched context',
+					},
+					status: 'success',
+					tool_name: 'file.read',
+				},
+			],
 		});
 		expect(result.progress_events?.map((event) => event.event_type)).toEqual([
 			'model.completed',
@@ -390,6 +436,15 @@ describe('run-model-turn-loop-adapter', () => {
 				retryable: false,
 			},
 			model: undefined,
+			tool_results: [
+				{
+					call_id: 'call_adapter_failed_1',
+					error_code: 'EXECUTION_FAILED',
+					error_message: 'tool exploded',
+					status: 'error',
+					tool_name: 'file.read',
+				},
+			],
 		});
 		expect(result.progress_events?.map((event) => event.event_type)).toEqual(['run.failed']);
 	});
@@ -411,6 +466,7 @@ describe('run-model-turn-loop-adapter', () => {
 				path: 'src/example.ts',
 			},
 			tool_result: createToolContinuationResult().tool_result,
+			tool_results: createToolContinuationResult().tool_results,
 		});
 		expect(result.progress_events?.map((event) => event.event_type)).toEqual([
 			'model.completed',

@@ -55,6 +55,7 @@ export interface PendingApprovalToolCall {
 export interface PendingApprovalContinuationContext {
 	readonly payload: RunRequestPayload;
 	readonly tool_result: ToolResult;
+	readonly tool_result_history?: readonly ToolResult[];
 	readonly turn_count: number;
 	readonly working_directory: string;
 }
@@ -271,13 +272,19 @@ function isPendingApprovalContinuationContext(
 	const candidate = value as {
 		readonly payload?: unknown;
 		readonly tool_result?: unknown;
+		readonly tool_result_history?: unknown;
 		readonly turn_count?: unknown;
 		readonly working_directory?: unknown;
 	};
+	const hasValidToolResultHistory =
+		candidate.tool_result_history === undefined ||
+		(Array.isArray(candidate.tool_result_history) &&
+			candidate.tool_result_history.every((toolResult) => isToolResult(toolResult)));
 
 	return (
 		isRunRequestPayload(candidate.payload) &&
 		isToolResult(candidate.tool_result) &&
+		hasValidToolResultHistory &&
 		typeof candidate.turn_count === 'number' &&
 		Number.isInteger(candidate.turn_count) &&
 		candidate.turn_count >= 0 &&
@@ -316,6 +323,8 @@ function getProviderApiKeyEnvironmentVariableName(provider: RunRequestPayload['p
 			return 'GROQ_API_KEY';
 		case 'openai':
 			return 'OPENAI_API_KEY';
+		case 'sambanova':
+			return 'SAMBANOVA_API_KEY';
 	}
 }
 
@@ -338,6 +347,12 @@ function buildPersistedProviderConfig(
 			resolveProviderApiKeyFromEnvironment(payload.provider) === undefined
 				? payload.provider_config.apiKey
 				: '',
+		...(typeof payload.provider_config.baseUrl === 'string' &&
+		payload.provider_config.baseUrl.trim().length > 0
+			? {
+					baseUrl: payload.provider_config.baseUrl.trim(),
+				}
+			: {}),
 		...(payload.request.model === undefined &&
 		typeof payload.provider_config.defaultModel === 'string'
 			? {

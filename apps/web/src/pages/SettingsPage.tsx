@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactElement, useEffect, useState } from 'react';
+import { type CSSProperties, type ReactElement, useCallback, useEffect, useState } from 'react';
 
 import type { AuthContext, DesktopDevicePresenceSnapshot } from '@runa/types';
 
@@ -10,7 +10,8 @@ import {
 	appShellSecondaryLabelStyle,
 } from '../components/app/AppShell.js';
 import { ProfileCard } from '../components/auth/ProfileCard.js';
-import { SessionCard } from '../components/auth/SessionCard.js';
+import { DevicePresencePanel } from '../components/desktop/DevicePresencePanel.js';
+import { ProjectMemorySummary } from '../components/settings/ProjectMemorySummary.js';
 import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { readStoredBearerToken } from '../lib/auth-client.js';
@@ -40,15 +41,6 @@ const destructiveButtonStyle: CSSProperties = {
 	color: '#fecaca',
 };
 
-const deviceCardStyle: CSSProperties = {
-	display: 'grid',
-	gap: '10px',
-	padding: '14px 16px',
-	borderRadius: '18px',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	background: 'rgba(9, 14, 25, 0.68)',
-};
-
 type DesktopDevicesState =
 	| {
 			readonly status: 'idle' | 'loading';
@@ -69,6 +61,14 @@ type SettingsPageProps = Readonly<{
 	onLogout: () => Promise<void>;
 }>;
 
+function getDesktopDevices(state: DesktopDevicesState): readonly DesktopDevicePresenceSnapshot[] {
+	return state.status === 'success' ? state.devices : [];
+}
+
+function getDesktopDeviceError(state: DesktopDevicesState): string | null {
+	return state.status === 'error' ? state.message : null;
+}
+
 export function SettingsPage({
 	authContext,
 	authError,
@@ -78,6 +78,7 @@ export function SettingsPage({
 	const [desktopDevicesState, setDesktopDevicesState] = useState<DesktopDevicesState>({
 		status: 'idle',
 	});
+	const [desktopDevicesReloadKey, setDesktopDevicesReloadKey] = useState(0);
 	const {
 		autoReadEnabled,
 		cancel: cancelTextToSpeech,
@@ -87,32 +88,27 @@ export function SettingsPage({
 		setAutoReadEnabled,
 	} = useTextToSpeech();
 	const voiceInput = useVoiceInput();
-	useEffect(() => {
-		const principalKind = authContext.principal.kind;
-		const abortController = new AbortController();
+	const loadDesktopDevices = useCallback(
+		async (signal: AbortSignal) => {
+			if (authContext.principal.kind !== 'authenticated') {
+				setDesktopDevicesState({
+					status: 'success',
+					devices: [],
+				});
+				return;
+			}
 
-		if (principalKind !== 'authenticated') {
 			setDesktopDevicesState({
-				status: 'success',
-				devices: [],
+				status: 'loading',
 			});
-			return () => {
-				abortController.abort();
-			};
-		}
 
-		setDesktopDevicesState({
-			status: 'loading',
-		});
-
-		void (async () => {
 			try {
 				const response = await fetchDesktopDevices({
 					bearerToken: readStoredBearerToken() ?? undefined,
-					signal: abortController.signal,
+					signal,
 				});
 
-				if (abortController.signal.aborted) {
+				if (signal.aborted) {
 					return;
 				}
 
@@ -121,14 +117,13 @@ export function SettingsPage({
 					status: 'success',
 				});
 			} catch (error) {
-				if (abortController.signal.aborted) {
+				if (signal.aborted) {
 					return;
 				}
 
 				if (error instanceof DesktopDevicesResponseValidationError) {
 					setDesktopDevicesState({
-						message:
-							'Online cihaz listesi beklendiği şekilde dönmedi. Lütfen daha sonra yeniden dene.',
+						message: 'Cihaz listesi beklenen sekilde donmedi. Lutfen biraz sonra yeniden dene.',
 						status: 'error',
 					});
 					return;
@@ -138,29 +133,29 @@ export function SettingsPage({
 					message:
 						error instanceof Error
 							? error.message
-							: 'Online cihazlar şu anda yüklenemedi. Lütfen daha sonra yeniden dene.',
+							: 'Cihazlar su anda yuklenemedi. Lutfen biraz sonra yeniden dene.',
 					status: 'error',
 				});
 			}
-		})();
+		},
+		[authContext.principal.kind],
+	);
+
+	useEffect(() => {
+		const abortController = new AbortController();
+		const currentReloadKey = desktopDevicesReloadKey;
+		void currentReloadKey;
+		void loadDesktopDevices(abortController.signal);
 
 		return () => {
 			abortController.abort();
 		};
-	}, [authContext.principal.kind]);
+	}, [desktopDevicesReloadKey, loadDesktopDevices]);
 
-	function formatConnectedAt(connectedAt: string): string {
-		const parsed = new Date(connectedAt);
-
-		if (Number.isNaN(parsed.getTime())) {
-			return connectedAt;
-		}
-
-		return new Intl.DateTimeFormat(undefined, {
-			dateStyle: 'medium',
-			timeStyle: 'short',
-		}).format(parsed);
-	}
+	const desktopDevices = getDesktopDevices(desktopDevicesState);
+	const desktopDeviceError = getDesktopDeviceError(desktopDevicesState);
+	const isDesktopDeviceLoading =
+		desktopDevicesState.status === 'idle' || desktopDevicesState.status === 'loading';
 
 	return (
 		<>
@@ -174,9 +169,7 @@ export function SettingsPage({
 				className="runa-card runa-card--hero runa-ambient-panel"
 			>
 				<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
-						{uiCopy.account.heading}
-					</div>
+					<div style={appShellSecondaryLabelStyle}>{uiCopy.account.heading}</div>
 					<h2 id="account-heading" style={{ margin: 0, fontSize: '24px' }}>
 						{uiCopy.account.heading}
 					</h2>
@@ -184,9 +177,11 @@ export function SettingsPage({
 				</div>
 
 				<div style={heroMetricRowStyle}>
-					<span style={pillStyle}>{authContext.principal.kind}</span>
+					<span style={pillStyle}>
+						{authContext.principal.kind === 'authenticated' ? 'Oturum acik' : 'Sinirli oturum'}
+					</span>
 					<span style={{ ...pillStyle, borderColor: 'rgba(96, 165, 250, 0.26)', color: '#bfdbfe' }}>
-						{authContext.transport}
+						Tarayici hazir
 					</span>
 				</div>
 
@@ -223,134 +218,31 @@ export function SettingsPage({
 
 			<section style={sectionGridStyle}>
 				<ProfileCard authContext={authContext} />
-				<SessionCard authContext={authContext} />
-				<section
-					style={appShellPanelStyle}
-					className="runa-card runa-card--subtle"
-					aria-labelledby="online-devices-heading"
-				>
-					<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-						<div style={appShellSecondaryLabelStyle}>Devices</div>
-						<h2 id="online-devices-heading" style={{ margin: 0, fontSize: '20px' }}>
-							Online devices
-						</h2>
-						<p style={appShellMutedTextStyle}>
-							Giriş yaptığın açık bir desktop companion varsa burada görünür. Bu yüzey şimdilik
-							yalnız görünürlük sağlar; cihaz seçimi veya uzaktan aksiyon başlatma bu turda açılmaz.
-						</p>
-					</div>
 
-					<div style={{ display: 'grid', gap: '14px' }}>
-						{desktopDevicesState.status === 'idle' || desktopDevicesState.status === 'loading' ? (
-							<div style={deviceCardStyle}>
-								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Cihazlar kontrol ediliyor</div>
-								<div style={appShellMutedTextStyle}>
-									Hesabına bağlı açık desktop companion oturumları taranıyor.
-								</div>
-							</div>
-						) : null}
-
-						{desktopDevicesState.status === 'error' ? (
-							<div role="alert" className="runa-alert runa-alert--warning">
-								<strong>Online cihazlar şu anda gösterilemiyor. </strong>
-								{desktopDevicesState.message}
-							</div>
-						) : null}
-
-						{desktopDevicesState.status === 'success' &&
-						desktopDevicesState.devices.length === 0 ? (
-							<div style={deviceCardStyle}>
-								<div style={{ color: '#f8fafc', fontWeight: 700 }}>Henüz görünen cihaz yok</div>
-								<div style={appShellMutedTextStyle}>
-									Bu hesapla giriş yapmış açık bir desktop companion bulunmadığında burada cihaz
-									listelenmez.
-								</div>
-							</div>
-						) : null}
-
-						{desktopDevicesState.status === 'success'
-							? desktopDevicesState.devices.map((device) => (
-									<article key={device.connection_id} style={deviceCardStyle}>
-										<div
-											style={{
-												display: 'flex',
-												flexWrap: 'wrap',
-												alignItems: 'center',
-												justifyContent: 'space-between',
-												gap: '12px',
-											}}
-										>
-											<div style={{ display: 'grid', gap: '6px' }}>
-												<div style={{ color: '#f8fafc', fontWeight: 700 }}>
-													{device.machine_label?.trim().length
-														? device.machine_label
-														: `Desktop ${device.agent_id.slice(0, 8)}`}
-												</div>
-												<div style={appShellMutedTextStyle}>
-													Bağlantı: {formatConnectedAt(device.connected_at)}
-												</div>
-											</div>
-											<span
-												style={{
-													...pillStyle,
-													borderColor: 'rgba(74, 222, 128, 0.24)',
-													color: '#bbf7d0',
-												}}
-											>
-												{device.status}
-											</span>
-										</div>
-
-										<div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-											{device.capabilities.map((capability) => (
-												<span
-													key={`${device.connection_id}-${capability.tool_name}`}
-													style={pillStyle}
-												>
-													{capability.tool_name}
-												</span>
-											))}
-										</div>
-									</article>
-								))
-							: null}
-					</div>
-				</section>
 				<section
 					style={appShellPanelStyle}
 					className="runa-card runa-card--subtle"
 					aria-labelledby="voice-preferences-heading"
 				>
 					<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-						<div style={appShellSecondaryLabelStyle}>Voice</div>
+						<div style={appShellSecondaryLabelStyle}>Tercihler</div>
 						<h2 id="voice-preferences-heading" style={{ margin: 0, fontSize: '20px' }}>
-							Voice preferences
+							Ses tercihleri
 						</h2>
 						<p style={appShellMutedTextStyle}>
-							Minimum voice seam burada kalır: sohbet varsayılan olarak yazılı devam eder,
-							destekliyse sesli okuma ve mikrofon tetiği ikinci katmanda açılır.
+							Sohbet varsayilan olarak metinle baslar. Sesli giris ve yanit okuma bu ikincil ayar
+							katmaninda kalir.
 						</p>
 					</div>
 
 					<div style={{ display: 'grid', gap: '14px' }}>
-						<label
-							style={{
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'space-between',
-								gap: '16px',
-								padding: '14px 16px',
-								borderRadius: '18px',
-								border: '1px solid rgba(148, 163, 184, 0.16)',
-								background: 'rgba(9, 14, 25, 0.68)',
-							}}
-						>
+						<label className="runa-settings-row">
 							<div style={{ display: 'grid', gap: '6px' }}>
 								<span style={{ color: '#f8fafc', fontWeight: 700 }}>
-									Yeni asistan yanıtlarını otomatik oku
+									Yeni yanitlari otomatik oku
 								</span>
 								<span style={appShellMutedTextStyle}>
-									Yalnız tarayıcı speech synthesis destekliyorsa çalışır.
+									Yalniz bu tarayici sesli okuma destekliyorsa calisir.
 								</span>
 							</div>
 							<input
@@ -361,27 +253,17 @@ export function SettingsPage({
 							/>
 						</label>
 
-						<div
-							style={{
-								display: 'grid',
-								gap: '8px',
-								padding: '14px 16px',
-								borderRadius: '18px',
-								border: '1px solid rgba(148, 163, 184, 0.16)',
-								background: 'rgba(9, 14, 25, 0.68)',
-							}}
-						>
-							<div style={{ color: '#f8fafc', fontWeight: 700 }}>Tarayıcı yetenekleri</div>
+						<div className="runa-settings-row runa-settings-row--stacked">
+							<div style={{ color: '#f8fafc', fontWeight: 700 }}>Tarayici yetenekleri</div>
 							<div style={appShellMutedTextStyle}>
-								Mikrofon: {voiceInput.isSupported ? 'hazır' : 'desteklenmiyor'}
+								Mikrofon: {voiceInput.isSupported ? 'hazir' : 'desteklenmiyor'}
 							</div>
 							<div style={appShellMutedTextStyle}>
-								Sesli okuma: {isTextToSpeechSupported ? 'hazır' : 'desteklenmiyor'}
+								Sesli okuma: {isTextToSpeechSupported ? 'hazir' : 'desteklenmiyor'}
 							</div>
 							{voiceInput.permissionDenied ? (
 								<div className="runa-alert runa-alert--warning">
-									Mikrofon izni reddedilmiş. Chat ekranındaki voice trigger yazılı akışı bozmadan
-									pasif kalır; tekrar kullanmak istersen tarayıcı iznini açman yeterli.
+									Mikrofon izni reddedildi. Metinle sohbet akisi etkilenmeden devam eder.
 								</div>
 							) : null}
 							{isSpeaking ? (
@@ -391,7 +273,7 @@ export function SettingsPage({
 									style={appShellSecondaryButtonStyle}
 									className="runa-button runa-button--secondary"
 								>
-									Okumayı durdur
+									Okumayi durdur
 								</button>
 							) : null}
 							{(voiceInput.errorMessage ?? textToSpeechErrorMessage) ? (
@@ -400,6 +282,42 @@ export function SettingsPage({
 								</div>
 							) : null}
 						</div>
+					</div>
+				</section>
+
+				<section
+					style={appShellPanelStyle}
+					className="runa-card runa-card--subtle"
+					aria-labelledby="online-devices-heading"
+				>
+					<DevicePresencePanel
+						devices={desktopDevices}
+						error={desktopDeviceError}
+						isLoading={isDesktopDeviceLoading}
+						onRefresh={() => setDesktopDevicesReloadKey((current) => current + 1)}
+					/>
+				</section>
+
+				<ProjectMemorySummary status="unavailable" />
+
+				<section
+					style={appShellPanelStyle}
+					className="runa-card runa-card--subtle"
+					aria-labelledby="developer-settings-heading"
+				>
+					<div style={{ display: 'grid', gap: '10px' }}>
+						<div style={appShellSecondaryLabelStyle}>Developer</div>
+						<h2 id="developer-settings-heading" style={{ margin: 0, fontSize: '20px' }}>
+							Gelistirici yuzeyleri
+						</h2>
+						<p style={appShellMutedTextStyle}>
+							Gelistirici modu ve ham teknik gorunumler ikinci katmanda kalir; ana sohbet alani
+							sakin bir calisma ortagi gibi davranmaya devam eder.
+						</p>
+					</div>
+					<div className="runa-alert runa-alert--info">
+						Bu tarayici icin gelistirici sayfasini acmak istersen ustteki ikincil anahtari
+						kullanabilirsin.
 					</div>
 				</section>
 			</section>
