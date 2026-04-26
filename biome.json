@@ -36,6 +36,8 @@
 			"**/dist-electron/**",
 			"**/build/**",
 			"**/release/**",
+			"test-results/**",
+			"playwright-report/**",
 			"*.md",
 			"tsconfig*.json",
 			"packages/db/check_tables.mjs",
