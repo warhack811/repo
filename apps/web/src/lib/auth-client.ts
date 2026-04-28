@@ -236,7 +236,7 @@ async function readErrorMessage(response: Response): Promise<string> {
 	const trimmedText = responseText.trim();
 
 	if (trimmedText.length === 0) {
-		return `Auth istegi ${response.status} durumu ile basarisiz oldu.`;
+		return `Auth isteği ${response.status} durumu ile başarısız oldu.`;
 	}
 
 	return trimmedText;
@@ -355,7 +355,7 @@ export async function loginWithPassword(
 		method: 'POST',
 		pathname: '/auth/login',
 		validate: isAuthPasswordActionResponse,
-		validationErrorMessage: 'Desteklenmeyen login yaniti.',
+		validationErrorMessage: 'Desteklenmeyen login yanıtı.',
 	});
 
 	return parsed as AuthPasswordActionResponse;
@@ -372,7 +372,7 @@ export async function signupWithPassword(
 		method: 'POST',
 		pathname: '/auth/signup',
 		validate: isAuthPasswordActionResponse,
-		validationErrorMessage: 'Desteklenmeyen signup yaniti.',
+		validationErrorMessage: 'Desteklenmeyen signup yanıtı.',
 	});
 
 	return parsed as AuthPasswordActionResponse;
@@ -384,7 +384,7 @@ export async function logout(bearerToken?: string): Promise<AuthLogoutResponse> 
 		method: 'POST',
 		pathname: '/auth/logout',
 		validate: isAuthLogoutResponse,
-		validationErrorMessage: 'Desteklenmeyen logout yaniti.',
+		validationErrorMessage: 'Desteklenmeyen logout yanıtı.',
 	});
 
 	return parsed as AuthLogoutResponse;
@@ -455,7 +455,7 @@ export function consumeOAuthRedirectResult(): OAuthRedirectResult {
 	if (authErrorDescription || authError) {
 		clearWindowHash();
 		return {
-			message: authErrorDescription ?? authError ?? 'OAuth ile giris basarisiz oldu.',
+			message: authErrorDescription ?? authError ?? 'OAuth ile giriş başarısız oldu.',
 			status: 'error',
 		};
 	}
@@ -492,7 +492,7 @@ export async function fetchAuthContext(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isAuthContextResponse(parsed)) {
-		throw new Error('Desteklenmeyen auth context yaniti.');
+		throw new Error('Desteklenmeyen auth context yanıtı.');
 	}
 
 	return parsed;

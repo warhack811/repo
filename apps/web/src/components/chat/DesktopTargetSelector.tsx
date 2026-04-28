@@ -87,10 +87,10 @@ function formatConnectedAt(connectedAt: string): string {
 	const date = new Date(connectedAt);
 
 	if (Number.isNaN(date.getTime())) {
-		return 'Cevrimici cihaz';
+		return 'Çevrimiçi cihaz';
 	}
 
-	return `Baglandi: ${date.toLocaleString()}`;
+	return `Bağlandı: ${date.toLocaleString()}`;
 }
 
 function getDeviceLabel(device: DesktopDevicePresenceSnapshot): string {
@@ -119,9 +119,9 @@ export function DesktopTargetSelector({
 	return (
 		<div style={selectorShellStyle}>
 			<div style={selectorLabelRowStyle}>
-				<div style={selectorEyebrowStyle}>Masaustu hedefi</div>
+				<div style={selectorEyebrowStyle}>Masaüstü hedefi</div>
 				<div style={selectorHintStyle}>
-					Istersen sonraki istegi acik bir bilgisayara yonlendirebilirsin.
+					İstersen sonraki isteği açık bir bilgisayara yönlendirebilirsin.
 				</div>
 			</div>
 
@@ -153,7 +153,7 @@ export function DesktopTargetSelector({
 				</div>
 			) : null}
 
-			{isLoading ? <div style={selectorHintStyle}>Acik bir masaustu araniyor...</div> : null}
+			{isLoading ? <div style={selectorHintStyle}>Açık bir masaüstü aranıyor...</div> : null}
 
 			{errorMessage ? (
 				<div

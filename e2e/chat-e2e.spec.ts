@@ -34,9 +34,11 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 		`/auth/dev/bootstrap?redirect_to=${encodeURIComponent(new URL('/chat', baseUrl).toString())}`,
 	);
 	await page.waitForURL('**/chat');
-	await expect(page.getByRole('heading', { name: 'Sohbetten devam et' })).toBeVisible();
+	await expect(
+		page.getByRole('heading', { name: 'Bugun neyi birlikte ilerletelim?' }),
+	).toBeVisible();
 	await expect(page.locator('textarea')).toBeVisible();
-	await expect(page.getByRole('button', { name: /send|gonder/i })).toBeEnabled({
+	await expect(page.getByRole('button', { name: /send|gonder|g.nder/i })).toBeEnabled({
 		timeout: 20_000,
 	});
 }
@@ -44,7 +46,7 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 test('auth bootstrap opens the chat shell', async ({ page }) => {
 	await bootstrapLocalDevChat(page);
 
-	await expect(page.getByRole('heading', { name: 'Aktif sohbet akisi' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Neyi ilerletmek istiyorsun?' })).toBeVisible();
 	await expect(page.getByText(/stored token seam/i)).toHaveCount(0);
 	const sessionToken = await page.evaluate(() =>
 		window.sessionStorage.getItem('runa.auth.bearer_token'),
@@ -59,7 +61,7 @@ test('chat submit reaches approval and completes after approve', async ({ page }
 	await page
 		.locator('textarea')
 		.fill('Please request approval and write the proof file once approval is granted.');
-	await page.getByRole('button', { name: /send|gonder/i }).click();
+	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
 
 	const approveButton = page.getByRole('button', { name: /approve|kabul et/i });
 	await expect(approveButton).toBeVisible({ timeout: 20_000 });

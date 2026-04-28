@@ -3,6 +3,8 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { requireAuthenticatedRequest } from '../auth/supabase-auth.js';
 import {
 	ConversationStoreAccessError,
+	ConversationStoreConfigurationError,
+	ConversationStoreReadError,
 	ConversationStoreWriteError,
 	conversationScopeFromAuthContext,
 	listConversationMembers,
@@ -11,6 +13,7 @@ import {
 	removeConversationMember,
 	shareConversationWithMember,
 } from '../persistence/conversation-store.js';
+import { resolvePersistenceDebugDatabaseSelection } from '../persistence/database-config.js';
 
 interface ConversationListReply {
 	readonly conversations: Awaited<ReturnType<typeof listConversations>>;
@@ -79,6 +82,26 @@ function isShareConversationBody(value: unknown): value is ShareConversationBody
 	);
 }
 
+function hasConfiguredConversationDatabaseUrl(): boolean {
+	const environment = process.env as NodeJS.ProcessEnv & {
+		readonly DATABASE_URL?: string;
+		readonly LOCAL_DATABASE_URL?: string;
+		readonly SUPABASE_DATABASE_URL?: string;
+	};
+
+	return [
+		environment.DATABASE_URL,
+		environment.LOCAL_DATABASE_URL,
+		environment.SUPABASE_DATABASE_URL,
+	].some((value) => typeof value === 'string' && value.trim().length > 0);
+}
+
+function isConversationPersistenceUnconfigured(error: unknown): boolean {
+	return (
+		error instanceof ConversationStoreConfigurationError && !hasConfiguredConversationDatabaseUrl()
+	);
+}
+
 function replyWithConversationStoreError(
 	reply: FastifyReply,
 	error: ConversationStoreAccessError | ConversationStoreWriteError,
@@ -90,6 +113,25 @@ function replyWithConversationStoreError(
 		error: errorLabel,
 		message: error.message,
 		statusCode,
+	});
+}
+
+function replyWithConversationPersistenceError(
+	reply: FastifyReply,
+	error: ConversationStoreConfigurationError | ConversationStoreReadError,
+) {
+	const message =
+		error instanceof ConversationStoreConfigurationError
+			? error.message
+			: 'Conversation persistence is configured but unavailable. Check database target, selected URL source, connectivity, and schema bootstrap.';
+
+	return reply.code(500).send({
+		code: 'CONVERSATION_PERSISTENCE_UNAVAILABLE',
+		error: 'Internal Server Error',
+		message,
+		operation: 'list_conversations',
+		persistence: resolvePersistenceDebugDatabaseSelection(),
+		statusCode: 500,
 	});
 }
 
@@ -106,12 +148,29 @@ export async function registerConversationRoutes(
 	const shareConversationWithMemberRoute =
 		options.share_conversation_with_member ?? shareConversationWithMember;
 
-	server.get<{ Reply: ConversationListReply }>('/conversations', async (request) => {
+	server.get<{ Reply: ConversationListReply }>('/conversations', async (request, reply) => {
 		requireAuthenticatedRequest(request);
 
-		return {
-			conversations: await listConversationsRoute(conversationScopeFromAuthContext(request.auth)),
-		};
+		try {
+			return {
+				conversations: await listConversationsRoute(conversationScopeFromAuthContext(request.auth)),
+			};
+		} catch (error) {
+			if (isConversationPersistenceUnconfigured(error)) {
+				return {
+					conversations: [],
+				};
+			}
+
+			if (
+				error instanceof ConversationStoreConfigurationError ||
+				error instanceof ConversationStoreReadError
+			) {
+				return replyWithConversationPersistenceError(reply, error);
+			}
+
+			throw error;
+		}
 	});
 
 	server.get<{ Params: ConversationParams }>(

@@ -92,7 +92,7 @@ function DeveloperRoute({
 	runtime,
 }: DeveloperRouteProps): ReactElement {
 	return (
-		<DashboardPage
+		<DeveloperPage
 			authContext={authContext}
 			authError={authError}
 			hasStoredBearerToken={hasStoredBearerToken}

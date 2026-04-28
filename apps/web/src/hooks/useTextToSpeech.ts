@@ -55,7 +55,7 @@ export function useTextToSpeech(): UseTextToSpeechResult {
 
 	useEffect(() => {
 		if (!isSupported) {
-			setErrorMessage('Bu tarayici sesli okuma destegi sunmuyor.');
+			setErrorMessage('Bu tarayıcı sesli okuma desteği sunmuyor.');
 			return;
 		}
 
@@ -80,7 +80,7 @@ export function useTextToSpeech(): UseTextToSpeechResult {
 
 	function speak(text: string): void {
 		if (!isSupported) {
-			setErrorMessage('Bu tarayici sesli okuma destegi sunmuyor.');
+			setErrorMessage('Bu tarayıcı sesli okuma desteği sunmuyor.');
 			return;
 		}
 
@@ -106,7 +106,7 @@ export function useTextToSpeech(): UseTextToSpeechResult {
 		utterance.onerror = () => {
 			setIsSpeaking(false);
 			setErrorMessage(
-				'Sesli okuma baslatilamadi. Tarayici izinlerini veya cihaz ses ayarlarini kontrol et.',
+				'Sesli okuma başlatılamadı. Tarayıcı izinlerini veya cihaz ses ayarlarını kontrol et.',
 			);
 		};
 		window.speechSynthesis.speak(utterance);

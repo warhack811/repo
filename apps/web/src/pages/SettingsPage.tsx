@@ -43,6 +43,20 @@ type SettingsPageProps = Readonly<{
 	onLogout: () => Promise<void>;
 }>;
 
+function getDesktopDevices(state: DesktopDevicesState): readonly DesktopDevicePresenceSnapshot[] {
+	return state.status === 'success' ? state.devices : [];
+}
+
+function getDesktopDeviceError(state: DesktopDevicesState): string | null {
+	return state.status === 'error' ? state.message : null;
+}
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+	{ value: 'system', label: 'Sistem' },
+	{ value: 'dark', label: 'Koyu' },
+	{ value: 'light', label: 'Açık' },
+];
+
 export function SettingsPage({
 	authContext,
 	authError,
