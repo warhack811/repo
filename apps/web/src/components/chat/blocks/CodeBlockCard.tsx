@@ -1,14 +1,5 @@
 import type { ReactElement } from 'react';
 import { useState } from 'react';
-
-import {
-	codeBlockContainerStyle,
-	inspectionChipStyle,
-	preStyle,
-	presentationBlockCardStyle,
-	presentationSubtleTextStyle,
-	secondaryLabelStyle,
-} from '../../../lib/chat-styles.js';
 import type { RenderBlock } from '../../../ws-types.js';
 import { getCodeBlockAccent } from '../PresentationBlockRenderer.js';
 
@@ -19,20 +10,6 @@ type CodeBlockCardProps = Readonly<{
 }>;
 
 type CopyState = 'copied' | 'failed' | 'idle';
-
-const lineNumberStyle = {
-	color: '#64748b',
-	minWidth: '3ch',
-	paddingRight: '12px',
-	textAlign: 'right',
-	userSelect: 'none',
-} as const;
-
-const codeLineStyle = {
-	display: 'grid',
-	gridTemplateColumns: 'auto minmax(0, 1fr)',
-	minWidth: 'max-content',
-} as const;
 
 function getCopyButtonLabel(copyState: CopyState): string {
 	switch (copyState) {
@@ -80,87 +57,52 @@ export function CodeBlockCard({ block }: CodeBlockCardProps): ReactElement {
 	}
 
 	return (
-		<article
-			key={block.id}
-			style={{
-				...presentationBlockCardStyle,
-				background: 'linear-gradient(180deg, rgba(7, 16, 32, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%)',
-				borderColor: 'rgba(56, 189, 248, 0.28)',
-			}}
-		>
-			<div
-				style={{
-					alignItems: 'flex-start',
-					display: 'flex',
-					flexWrap: 'wrap',
-					gap: '12px',
-					justifyContent: 'space-between',
-					marginBottom: '10px',
-				}}
-			>
-				<div style={{ display: 'grid', gap: '4px', minWidth: 0 }}>
-					<span style={secondaryLabelStyle}>code block</span>
-					<strong style={{ color: '#f8fafc', fontSize: '16px', overflowWrap: 'anywhere' }}>
+		<article key={block.id} className="runa-migrated-components-chat-blocks-codeblockcard-1">
+			<div className="runa-migrated-components-chat-blocks-codeblockcard-2">
+				<div className="runa-migrated-components-chat-blocks-codeblockcard-3">
+					<span className="runa-migrated-components-chat-blocks-codeblockcard-4">code block</span>
+					<strong className="runa-migrated-components-chat-blocks-codeblockcard-5">
 						{displayTitle}
 					</strong>
 				</div>
-				<div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-					<span
-						style={{
-							border: `1px solid ${accent}`,
-							borderRadius: '999px',
-							color: accent,
-							fontSize: '11px',
-							fontWeight: 700,
-							letterSpacing: '0.08em',
-							padding: '4px 10px',
-							textTransform: 'uppercase',
-						}}
-					>
+				<div className="runa-migrated-components-chat-blocks-codeblockcard-6">
+					<span className="runa-migrated-components-chat-blocks-codeblockcard-7">
 						{block.payload.language}
 					</span>
 					{diffKind ? (
-						<span style={{ ...secondaryLabelStyle, color: accent }}>{diffKind}</span>
+						<span className="runa-migrated-components-chat-blocks-codeblockcard-8">{diffKind}</span>
 					) : null}
 					<button
 						type="button"
 						onClick={handleCopy}
 						aria-live="polite"
-						style={{
-							...inspectionChipStyle,
-							color: copyState === 'failed' ? '#fca5a5' : '#bfdbfe',
-							cursor: 'pointer',
-						}}
+						className="runa-migrated-components-chat-blocks-codeblockcard-9"
 					>
 						{getCopyButtonLabel(copyState)}
 					</button>
 				</div>
 			</div>
 			{block.type === 'code_block' && block.payload.summary ? (
-				<div style={{ ...presentationSubtleTextStyle, marginBottom: '10px' }}>
+				<div className="runa-migrated-components-chat-blocks-codeblockcard-10">
 					{block.payload.summary}
 				</div>
 			) : null}
 			{displayPath ? (
-				<div style={{ marginBottom: '10px' }}>
-					<span style={secondaryLabelStyle}>path</span>
-					<div
-						style={{
-							color: '#93c5fd',
-							lineHeight: 1.6,
-							marginTop: '4px',
-							overflowWrap: 'anywhere',
-						}}
-					>
-						{displayPath}
-					</div>
+				<div className="runa-migrated-components-chat-blocks-codeblockcard-11">
+					<span className="runa-migrated-components-chat-blocks-codeblockcard-12">path</span>
+					<div className="runa-migrated-components-chat-blocks-codeblockcard-13">{displayPath}</div>
 				</div>
 			) : null}
-			<div style={codeBlockContainerStyle}>
-				<pre style={preStyle}>
+			<div className="runa-migrated-components-chat-blocks-codeblockcard-14">
+				<pre className="runa-migrated-components-chat-blocks-codeblockcard-15">
 					{codeLines.map((line, index) => (
-						<span key={`${block.id}:line:${index}`} style={codeLineStyle}>
-							<span style={lineNumberStyle}>{index + 1}</span>
+						<span
+							key={`${block.id}:line:${index}`}
+							className="runa-migrated-components-chat-blocks-codeblockcard-16"
+						>
+							<span className="runa-migrated-components-chat-blocks-codeblockcard-17">
+								{index + 1}
+							</span>
 							<span>{line || ' '}</span>
 						</span>
 					))}

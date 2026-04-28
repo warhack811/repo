@@ -1,6 +1,5 @@
-import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import type { ReactElement } from 'react';
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, useMemo, useState } from 'react';
 
 import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
 import { ChatHeader } from '../components/chat/ChatHeader.js';
@@ -11,29 +10,22 @@ import { CurrentRunSurface } from '../components/chat/CurrentRunSurface.js';
 import { EmptyState } from '../components/chat/EmptyState.js';
 import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
-import type { InspectionActionState } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
-import {
-	buildInspectionSurfaceMeta,
-	createInspectionDetailRequestKey,
-	getInspectionDetailBlockId,
-} from '../components/chat/chat-presentation.js';
 
 const RunTimelinePanel = lazy(() =>
 	import('../components/developer/RunTimelinePanel.js').then((module) => ({
 		default: module.RunTimelinePanel,
 	})),
 );
+import { useChatPageInspection } from '../hooks/useChatPageInspection.js';
 import type { UseChatRuntimeResult } from '../hooks/useChatRuntime.js';
 import { useChatRuntimeView } from '../hooks/useChatRuntimeView.js';
 import type { UseConversationsResult } from '../hooks/useConversations.js';
+import { useDesktopDevices } from '../hooks/useDesktopDevices.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
-import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
-import { useVoiceInput } from '../hooks/useVoiceInput.js';
+import { useTextToSpeechIntegration } from '../hooks/useTextToSpeechIntegration.js';
 import { deriveCurrentRunProgressSurface } from '../lib/chat-runtime/current-run-progress.js';
-import { DEFAULT_INSPECTION_DETAIL_LEVEL } from '../lib/chat-runtime/types.js';
-import { fetchDesktopDevices } from '../lib/desktop-devices.js';
 import { uiCopy } from '../localization/copy.js';
 import {
 	selectConnectionState,
@@ -42,7 +34,6 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
-import type { InspectionTargetKind, RenderBlock } from '../ws-types.js';
 
 type ChatPageProps = Readonly<{
 	conversations: UseConversationsResult;
@@ -100,16 +91,8 @@ export function ChatPage({
 	} = conversations;
 	const [showRecentSessionRuns, setShowRecentSessionRuns] = useState(false);
 	const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
-	const [desktopDeviceError, setDesktopDeviceError] = useState<string | null>(null);
-	const [desktopDevices, setDesktopDevices] = useState<readonly DesktopDevicePresenceSnapshot[]>(
-		[],
-	);
-	const [desktopDevicesReloadKey, setDesktopDevicesReloadKey] = useState(0);
 	const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false);
-	const [isDesktopDevicesLoading, setIsDesktopDevicesLoading] = useState(false);
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-	const promptRef = useRef(prompt);
-	const lastSeenAssistantMessageIdRef = useRef<string | null>(null);
 
 	const latestAssistantMessage = useMemo(
 		() =>
@@ -119,115 +102,30 @@ export function ChatPage({
 	);
 	const latestReadableResponse = latestAssistantMessage?.content?.trim() ?? '';
 	const {
-		autoReadEnabled,
-		cancel: cancelTextToSpeech,
-		errorMessage: textToSpeechErrorMessage,
+		cancelTextToSpeech,
 		isSpeaking,
-		isSupported: isTextToSpeechSupported,
-		speak,
-	} = useTextToSpeech();
-	const voiceInput = useVoiceInput({
-		onFinalTranscript: (transcript) => {
-			const existingPrompt = promptRef.current.trim();
-			const nextPrompt =
-				existingPrompt.length > 0 ? `${promptRef.current.trimEnd()}\n${transcript}` : transcript;
-
-			setPrompt(nextPrompt);
-		},
+		isTextToSpeechSupported,
+		speakLatestResponse,
+		voiceInput,
+		voiceStatusMessage,
+	} = useTextToSpeechIntegration({
+		latestAssistantMessage,
+		latestReadableResponse,
+		onPromptChange: setPrompt,
+		prompt,
 	});
+	const { desktopDeviceError, desktopDevices, isDesktopDevicesLoading, reloadDesktopDevices } =
+		useDesktopDevices({
+			accessToken,
+			onSelectedDeviceMissing: () => setDesktopTargetConnectionId(null),
+			selectedConnectionId: runtimeDesktopTargetConnectionId,
+		});
 
-	useEffect(() => {
-		promptRef.current = prompt;
-	}, [prompt]);
-
-	useEffect(() => {
-		const normalizedAccessToken = accessToken?.trim() ?? '';
-		const currentDesktopDevicesReloadKey = desktopDevicesReloadKey;
-		void currentDesktopDevicesReloadKey;
-
-		if (normalizedAccessToken.length === 0) {
-			setDesktopDevices([]);
-			setDesktopDeviceError(null);
-			setIsDesktopDevicesLoading(false);
-			return;
-		}
-
-		const abortController = new AbortController();
-		setIsDesktopDevicesLoading(true);
-
-		void fetchDesktopDevices({
-			bearerToken: normalizedAccessToken,
-			signal: abortController.signal,
-		})
-			.then((response) => {
-				setDesktopDevices(response.devices);
-				setDesktopDeviceError(null);
-			})
-			.catch((error: unknown) => {
-				if (abortController.signal.aborted) {
-					return;
-				}
-
-				setDesktopDeviceError(
-					error instanceof Error ? error.message : 'Desktop availability could not be loaded.',
-				);
-			})
-			.finally(() => {
-				if (!abortController.signal.aborted) {
-					setIsDesktopDevicesLoading(false);
-				}
-			});
-
-		return () => {
-			abortController.abort();
-		};
-	}, [accessToken, desktopDevicesReloadKey]);
-
-	useEffect(() => {
-		if (
-			runtimeDesktopTargetConnectionId !== null &&
-			desktopDevices.every((device) => device.connection_id !== runtimeDesktopTargetConnectionId)
-		) {
-			setDesktopTargetConnectionId(null);
-		}
-	}, [desktopDevices, runtimeDesktopTargetConnectionId, setDesktopTargetConnectionId]);
-
-	useEffect(() => {
-		lastSeenAssistantMessageIdRef.current = latestAssistantMessage?.message_id ?? null;
-	}, [latestAssistantMessage?.message_id]);
-
-	useEffect(() => {
-		const latestAssistantMessageId = latestAssistantMessage?.message_id ?? null;
-
-		if (latestAssistantMessageId === null) {
-			return;
-		}
-
-		if (lastSeenAssistantMessageIdRef.current === null) {
-			lastSeenAssistantMessageIdRef.current = latestAssistantMessageId;
-			return;
-		}
-
-		if (lastSeenAssistantMessageIdRef.current === latestAssistantMessageId) {
-			return;
-		}
-
-		lastSeenAssistantMessageIdRef.current = latestAssistantMessageId;
-
-		if (autoReadEnabled && latestReadableResponse.length > 0) {
-			speak(latestReadableResponse);
-		}
-	}, [autoReadEnabled, latestAssistantMessage?.message_id, latestReadableResponse, speak]);
-
-	const voiceStatusMessage = voiceInput.errorMessage ?? textToSpeechErrorMessage ?? null;
-
-	const currentInspectionSurfaceMeta = useMemo(
-		() =>
-			currentPresentationSurface
-				? buildInspectionSurfaceMeta(currentPresentationSurface.blocks)
-				: null,
-		[currentPresentationSurface],
-	);
+	const { currentInspectionSurfaceMeta, getInspectionActionState } = useChatPageInspection({
+		currentBlocks: currentPresentationSurface?.blocks ?? null,
+		pendingInspectionRequestKeys,
+		staleInspectionRequestKeys,
+	});
 
 	const shouldShowRunFeedbackBanner = useMemo(() => {
 		if (!currentRunFeedback) {
@@ -280,61 +178,6 @@ export function ChatPage({
 	const emptyRunTimelineContent = (
 		<EmptyState onSubmitSuggestion={(suggestionPrompt) => setPrompt(suggestionPrompt)} />
 	);
-
-	function getInspectionActionState(
-		runId: string,
-		runBlocks: readonly RenderBlock[],
-		targetKind: InspectionTargetKind,
-		targetId?: string,
-	): InspectionActionState {
-		const detailBlockId = getInspectionDetailBlockId(runId, targetKind, targetId);
-		const requestKey = createInspectionDetailRequestKey({
-			detail_level: DEFAULT_INSPECTION_DETAIL_LEVEL,
-			run_id: runId,
-			target_id: targetId,
-			target_kind: targetKind,
-		});
-		const hasExistingDetail = runBlocks.some((block) => block.id === detailBlockId);
-		const isStaleDetail = staleInspectionRequestKeys.includes(requestKey);
-		const isPendingDetail = pendingInspectionRequestKeys.includes(requestKey);
-
-		if (isPendingDetail) {
-			return {
-				detail_block_id: detailBlockId,
-				is_pending: true,
-				is_open: hasExistingDetail,
-				is_stale: false,
-				label: 'Loading detail',
-				note: hasExistingDetail ? 'Refreshing below summary' : 'Opening below summary',
-				title: hasExistingDetail
-					? 'Refreshing the related detail card below this summary. Focus will move when the update arrives.'
-					: 'Opening the related detail card below this summary. Focus will move when it arrives.',
-			};
-		}
-
-		if (hasExistingDetail) {
-			return {
-				detail_block_id: detailBlockId,
-				is_pending: false,
-				is_open: true,
-				is_stale: isStaleDetail,
-				label: isStaleDetail ? 'Refresh detail' : 'Go to detail',
-				note: isStaleDetail ? 'Summary updated' : undefined,
-				title: isStaleDetail
-					? 'Request a fresh detail card for this summary and move focus when it arrives.'
-					: 'Move focus to the existing detail card beneath this summary.',
-			};
-		}
-
-		return {
-			detail_block_id: detailBlockId,
-			is_pending: false,
-			is_open: false,
-			is_stale: false,
-			label: 'Open detail',
-			title: 'Open the related detail card beneath this summary and move focus to it.',
-		};
-	}
 
 	const currentPresentationContent = currentPresentationSurface ? (
 		<PresentationRunSurfaceCard
@@ -404,8 +247,8 @@ export function ChatPage({
 						onClearDesktopTarget={() => setDesktopTargetConnectionId(null)}
 						onOpenDeveloperMode={() => setDeveloperMode(true)}
 						onPromptChange={setPrompt}
-						onReadLatestResponse={() => speak(latestReadableResponse)}
-						onRetryDesktopDevices={() => setDesktopDevicesReloadKey((current) => current + 1)}
+						onReadLatestResponse={speakLatestResponse}
+						onRetryDesktopDevices={reloadDesktopDevices}
 						onSelectDesktopTarget={setDesktopTargetConnectionId}
 						onStopSpeaking={cancelTextToSpeech}
 						onSubmit={submitRunRequest}
@@ -429,6 +272,7 @@ export function ChatPage({
 						currentStreamingRunId={currentStreamingRunId}
 						currentStreamingText={currentStreamingText}
 						emptyStateContent={emptyRunTimelineContent}
+						isHistoryLoading={isConversationLoading}
 					/>
 				}
 				onCloseSidebar={() => setIsConversationSidebarOpen(false)}

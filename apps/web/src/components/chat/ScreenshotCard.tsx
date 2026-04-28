@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { useState } from 'react';
 
 type ScreenshotCardProps = Readonly<{
@@ -6,35 +6,6 @@ type ScreenshotCardProps = Readonly<{
 	imageUrl: string;
 	timestamp?: string;
 }>;
-
-const cardStyle: CSSProperties = {
-	background: 'rgba(15, 23, 42, 0.62)',
-	border: '1px solid rgba(148, 163, 184, 0.18)',
-	borderRadius: '16px',
-	display: 'grid',
-	gap: '10px',
-	overflow: 'hidden',
-	padding: '12px',
-};
-
-const imageStyle: CSSProperties = {
-	aspectRatio: '16 / 10',
-	background: 'rgba(3, 7, 18, 0.7)',
-	borderRadius: '12px',
-	cursor: 'zoom-in',
-	display: 'block',
-	objectFit: 'cover',
-	width: '100%',
-};
-
-const dialogStyle: CSSProperties = {
-	background: '#020617',
-	border: '1px solid rgba(148, 163, 184, 0.24)',
-	borderRadius: '16px',
-	color: '#f8fafc',
-	maxWidth: 'min(960px, calc(100vw - 32px))',
-	padding: '12px',
-};
 
 export function ScreenshotCard({
 	caption,
@@ -45,28 +16,37 @@ export function ScreenshotCard({
 	const alt = caption ?? 'Screenshot preview';
 
 	return (
-		<article style={cardStyle}>
+		<article className="runa-migrated-components-chat-screenshotcard-1">
 			<button
 				type="button"
 				onClick={() => setIsOpen(true)}
-				style={{ background: 'transparent', border: 0, padding: 0 }}
+				className="runa-migrated-components-chat-screenshotcard-2"
 			>
-				<img alt={alt} loading="lazy" src={imageUrl} style={imageStyle} />
+				<img
+					alt={alt}
+					loading="lazy"
+					src={imageUrl}
+					className="runa-migrated-components-chat-screenshotcard-3"
+				/>
 			</button>
 			{caption || timestamp ? (
-				<div style={{ color: '#cbd5e1', display: 'grid', fontSize: '13px', gap: '4px' }}>
+				<div className="runa-migrated-components-chat-screenshotcard-4">
 					{caption ? <div>{caption}</div> : null}
 					{timestamp ? <time dateTime={timestamp}>{timestamp}</time> : null}
 				</div>
 			) : null}
 			{isOpen ? (
-				<dialog open style={dialogStyle}>
+				<dialog open className="runa-migrated-components-chat-screenshotcard-5">
 					<img
 						alt={alt}
 						src={imageUrl}
-						style={{ display: 'block', maxHeight: '78vh', maxWidth: '100%', objectFit: 'contain' }}
+						className="runa-migrated-components-chat-screenshotcard-6"
 					/>
-					<button type="button" onClick={() => setIsOpen(false)} style={{ marginTop: '10px' }}>
+					<button
+						type="button"
+						onClick={() => setIsOpen(false)}
+						className="runa-migrated-components-chat-screenshotcard-7"
+					>
 						Close
 					</button>
 				</dialog>

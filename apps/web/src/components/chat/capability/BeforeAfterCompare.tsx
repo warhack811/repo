@@ -1,6 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactElement } from 'react';
-
-import { designTokens } from '../../../lib/design-tokens.js';
+import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge } from '../../ui/index.js';
 import { AssetPreviewCard } from './AssetPreviewCard.js';
 import type { AssetPreviewItem } from './types.js';
@@ -12,22 +10,9 @@ export type BeforeAfterCompareProps = Readonly<
 	}
 >;
 
-const compareGridStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.md,
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))',
-	minWidth: 0,
-};
-
-const panelStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.sm,
-	minWidth: 0,
-};
-
 function renderAssetPanel(label: 'After' | 'Before', asset: AssetPreviewItem): ReactElement {
 	return (
-		<div style={panelStyle}>
+		<div className="runa-migrated-components-chat-capability-beforeaftercompare-1">
 			<RunaBadge tone={label === 'After' ? 'success' : 'neutral'}>{label}</RunaBadge>
 			<AssetPreviewCard
 				alt={asset.alt}
@@ -51,8 +36,12 @@ export function BeforeAfterCompare({
 	return (
 		<div
 			{...compareProps}
-			className={['runa-before-after-compare', className].filter(Boolean).join(' ')}
-			style={{ ...compareGridStyle, ...style }}
+			className={[
+				['runa-before-after-compare', className].filter(Boolean).join(' '),
+				'runa-migrated-components-chat-capability-beforeaftercompare-2',
+			]
+				.filter(Boolean)
+				.join(' ')}
 		>
 			{renderAssetPanel('Before', before)}
 			{renderAssetPanel('After', after)}

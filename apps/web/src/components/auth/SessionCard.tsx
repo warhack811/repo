@@ -1,20 +1,6 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import type { AuthContext } from '@runa/types';
-
-import { pillStyle } from '../../lib/chat-styles.js';
-import {
-	appShellMetricCardStyle,
-	appShellMutedTextStyle,
-	appShellPanelStyle,
-	appShellSecondaryLabelStyle,
-} from '../app/AppShell.js';
-
-const detailGridStyle: CSSProperties = {
-	display: 'grid',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
-	gap: '12px',
-};
 
 function formatTimestamp(value: number | string | undefined): string {
 	if (typeof value === 'number') {
@@ -33,48 +19,40 @@ export function SessionCard({
 	const expiresAt = formatTimestamp(authContext.session?.expires_at ?? authContext.claims?.exp);
 
 	return (
-		<article style={appShellPanelStyle} className="runa-card">
-			<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-				<div lang="tr" style={appShellSecondaryLabelStyle}>
+		<article className="runa-card runa-migrated-components-auth-sessioncard-1">
+			<div className="runa-migrated-components-auth-sessioncard-2">
+				<div lang="tr" className="runa-migrated-components-auth-sessioncard-3">
 					oturum
 				</div>
-				<h3 style={{ margin: 0, fontSize: '22px' }}>Oturum durumu</h3>
-				<p style={appShellMutedTextStyle}>
+				<h3 className="runa-migrated-components-auth-sessioncard-4">Oturum durumu</h3>
+				<p className="runa-migrated-components-auth-sessioncard-5">
 					Bu alan yalnız temel oturum bilgisini gösterir. Teknik metadata ve troubleshooting
 					ayrıntıları Developer Mode içinde kalır.
 				</p>
 			</div>
 
-			<div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '18px' }}>
-				<span style={pillStyle}>
+			<div className="runa-migrated-components-auth-sessioncard-6">
+				<span className="runa-migrated-components-auth-sessioncard-7">
 					{authContext.principal.kind === 'authenticated' ||
 					authContext.principal.kind === 'service'
 						? 'active'
 						: 'limited'}
 				</span>
-				<span style={{ ...pillStyle, borderColor: 'rgba(96, 165, 250, 0.26)', color: '#bfdbfe' }}>
-					{authContext.transport}
-				</span>
+				<span className="runa-migrated-components-auth-sessioncard-8">{authContext.transport}</span>
 			</div>
 
-			<div style={detailGridStyle}>
-				<div
-					style={{
-						...appShellMetricCardStyle,
-						borderColor: 'rgba(245, 158, 11, 0.18)',
-					}}
-					className="runa-metric"
-				>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
+			<div className="runa-migrated-components-auth-sessioncard-9">
+				<div className="runa-metric runa-migrated-components-auth-sessioncard-10">
+					<div lang="tr" className="runa-migrated-components-auth-sessioncard-11">
 						durum
 					</div>
-					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
+					<div className="runa-migrated-components-auth-sessioncard-12">
 						{authContext.principal.kind === 'authenticated' ||
 						authContext.principal.kind === 'service'
 							? 'Açık'
 							: 'Sınırlı'}
 					</div>
-					<div style={{ color: '#cbd5e1' }}>
+					<div className="runa-migrated-components-auth-sessioncard-13">
 						{authContext.principal.kind === 'authenticated'
 							? 'Kimliği doğrulanmış oturum'
 							: authContext.principal.kind === 'service'
@@ -82,50 +60,32 @@ export function SessionCard({
 								: 'Anonim bağlam'}
 					</div>
 				</div>
-				<div
-					style={{
-						...appShellMetricCardStyle,
-						borderColor: 'rgba(96, 165, 250, 0.18)',
-					}}
-					className="runa-metric"
-				>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
+				<div className="runa-metric runa-migrated-components-auth-sessioncard-14">
+					<div lang="tr" className="runa-migrated-components-auth-sessioncard-15">
 						giriş
 					</div>
-					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
+					<div className="runa-migrated-components-auth-sessioncard-16">
 						{authContext.user?.email ?? authContext.principal.kind}
 					</div>
-					<div style={{ color: '#cbd5e1' }}>
+					<div className="runa-migrated-components-auth-sessioncard-17">
 						{(authContext.user?.email_verified ?? authContext.claims?.email_verified)
 							? 'E-posta doğrulandı'
 							: 'E-posta doğrulaması açıklanmadı'}
 					</div>
 				</div>
-				<div
-					style={{
-						...appShellMetricCardStyle,
-						borderColor: 'rgba(148, 163, 184, 0.18)',
-					}}
-					className="runa-metric"
-				>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
+				<div className="runa-metric runa-migrated-components-auth-sessioncard-18">
+					<div lang="tr" className="runa-migrated-components-auth-sessioncard-19">
 						başladı
 					</div>
-					<div style={{ color: '#f8fafc', fontSize: '15px', fontWeight: 700 }}>{issuedAt}</div>
-					<div style={{ color: '#cbd5e1' }}>Oturum açılış zamanı</div>
+					<div className="runa-migrated-components-auth-sessioncard-20">{issuedAt}</div>
+					<div className="runa-migrated-components-auth-sessioncard-21">Oturum açılış zamanı</div>
 				</div>
-				<div
-					style={{
-						...appShellMetricCardStyle,
-						borderColor: 'rgba(148, 163, 184, 0.18)',
-					}}
-					className="runa-metric"
-				>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
+				<div className="runa-metric runa-migrated-components-auth-sessioncard-22">
+					<div lang="tr" className="runa-migrated-components-auth-sessioncard-23">
 						sona erer
 					</div>
-					<div style={{ color: '#f8fafc', fontSize: '15px', fontWeight: 700 }}>{expiresAt}</div>
-					<div style={{ color: '#cbd5e1' }}>Şu anki oturum süresi</div>
+					<div className="runa-migrated-components-auth-sessioncard-24">{expiresAt}</div>
+					<div className="runa-migrated-components-auth-sessioncard-25">Şu anki oturum süresi</div>
 				</div>
 			</div>
 		</article>

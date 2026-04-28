@@ -1,17 +1,7 @@
 import type { ReactElement } from 'react';
 
 import type { PresentationRunSurface, RunTransportSummary } from '../../lib/chat-runtime/types.js';
-import {
-	inspectionChipListStyle,
-	inspectionChipStyle,
-	presentationRunBodyStyle,
-	presentationRunGroupStyle,
-	presentationRunHeaderStyle,
-	presentationRunSummaryStyle,
-	secondaryLabelStyle,
-} from '../../lib/chat-styles.js';
 import type { ApprovalResolveDecision, InspectionTargetKind, RenderBlock } from '../../ws-types.js';
-import { createStatusChipStyle } from './PresentationBlockRenderer.js';
 import type {
 	GetInspectionActionState,
 	InspectionActionState,
@@ -75,7 +65,7 @@ export function PresentationRunSurfaceCard({
 	const getInspectionActionStateForRun: GetInspectionActionState = (targetKind, targetId) =>
 		getInspectionActionState(surface.run_id, surface.blocks, targetKind, targetId);
 	const blockList = (
-		<div style={presentationRunBodyStyle}>
+		<div className="runa-migrated-components-chat-presentationrunsurfacecard-1">
 			{surface.blocks.map((block) =>
 				renderPresentationBlock(
 					block,
@@ -92,27 +82,27 @@ export function PresentationRunSurfaceCard({
 
 	const metaChips =
 		surfaceMeta || surfaceStatusChip || surfacePendingDetailCount > 0 ? (
-			<div style={inspectionChipListStyle}>
+			<div className="runa-migrated-components-chat-presentationrunsurfacecard-2">
 				{surfaceStatusChip ? (
-					<code style={createStatusChipStyle(surfaceStatusChip.tone)}>
+					<code className="runa-migrated-components-chat-presentationrunsurfacecard-3">
 						{surfaceStatusChip.label}
 					</code>
 				) : null}
 				{surfacePendingDetailCount > 0 ? (
-					<code style={inspectionChipStyle}>
+					<code className="runa-migrated-components-chat-presentationrunsurfacecard-4">
 						{createPendingDetailLabel(surfacePendingDetailCount)}
 					</code>
 				) : null}
 				{surfaceMeta && isDeveloperMode ? (
 					<>
-						<code style={inspectionChipStyle}>
+						<code className="runa-migrated-components-chat-presentationrunsurfacecard-5">
 							{createInspectionCountLabel(
 								surfaceMeta.summary_count,
 								'summary card',
 								'summary cards',
 							)}
 						</code>
-						<code style={inspectionChipStyle}>
+						<code className="runa-migrated-components-chat-presentationrunsurfacecard-6">
 							{createInspectionCountLabel(surfaceMeta.detail_count, 'detail card', 'detail cards')}
 						</code>
 					</>
@@ -124,33 +114,28 @@ export function PresentationRunSurfaceCard({
 		return (
 			<div
 				key={surface.run_id}
-				style={{
-					...presentationRunGroupStyle,
-					transition:
-						'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease',
-				}}
+				className="runa-migrated-components-chat-presentationrunsurfacecard-7"
 			>
-				<div style={presentationRunHeaderStyle}>
-					<div style={{ display: 'grid', gap: '8px', maxWidth: 'min(720px, 100%)' }}>
-						<div style={{ ...secondaryLabelStyle, color: '#93c5fd' }}>mevcut calisma</div>
-						<div
-							style={{
-								display: 'flex',
-								gap: '8px',
-								alignItems: 'center',
-								flexWrap: 'wrap',
-							}}
-						>
-							<strong style={{ fontSize: '16px', color: 'hsl(var(--color-text))' }}>
+				<div className="runa-migrated-components-chat-presentationrunsurfacecard-8">
+					<div className="runa-migrated-components-chat-presentationrunsurfacecard-9">
+						<div className="runa-migrated-components-chat-presentationrunsurfacecard-10">
+							mevcut calisma
+						</div>
+						<div className="runa-migrated-components-chat-presentationrunsurfacecard-11">
+							<strong className="runa-migrated-components-chat-presentationrunsurfacecard-12">
 								Canli calisma yuzeyi
 							</strong>
-							<code style={inspectionChipStyle}>ana akis</code>
+							<code className="runa-migrated-components-chat-presentationrunsurfacecard-13">
+								ana akis
+							</code>
 						</div>
-						<div style={{ color: 'hsl(var(--color-text-muted))', lineHeight: 1.6 }}>
+						<div className="runa-migrated-components-chat-presentationrunsurfacecard-14">
 							Runa'nin gorunur sonucu ve gereken onaylar sohbetten kopmadan burada kalir.
 						</div>
 						{visibleCorrelationLabel ? (
-							<code style={inspectionChipStyle}>{visibleCorrelationLabel}</code>
+							<code className="runa-migrated-components-chat-presentationrunsurfacecard-15">
+								{visibleCorrelationLabel}
+							</code>
 						) : null}
 					</div>
 					{metaChips}
@@ -165,32 +150,25 @@ export function PresentationRunSurfaceCard({
 			key={surface.run_id}
 			open={expanded}
 			onToggle={(event) => onToggleExpanded?.(surface.run_id, event.currentTarget.open)}
-			style={{
-				...presentationRunGroupStyle,
-				transition:
-					'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease',
-			}}
+			className="runa-migrated-components-chat-presentationrunsurfacecard-16"
 		>
-			<summary style={presentationRunSummaryStyle}>
-				<div style={presentationRunHeaderStyle}>
-					<div style={{ display: 'grid', gap: '8px', maxWidth: 'min(720px, 100%)' }}>
-						<div style={secondaryLabelStyle}>gecmis calisma</div>
-						<div
-							style={{
-								display: 'flex',
-								gap: '8px',
-								alignItems: 'center',
-								flexWrap: 'wrap',
-							}}
-						>
-							<strong style={{ fontSize: '15px', color: 'hsl(var(--color-text))' }}>
+			<summary className="runa-migrated-components-chat-presentationrunsurfacecard-17">
+				<div className="runa-migrated-components-chat-presentationrunsurfacecard-18">
+					<div className="runa-migrated-components-chat-presentationrunsurfacecard-19">
+						<div className="runa-migrated-components-chat-presentationrunsurfacecard-20">
+							gecmis calisma
+						</div>
+						<div className="runa-migrated-components-chat-presentationrunsurfacecard-21">
+							<strong className="runa-migrated-components-chat-presentationrunsurfacecard-22">
 								Onceki calisma ozeti
 							</strong>
 							{visibleCorrelationLabel ? (
-								<code style={inspectionChipStyle}>{visibleCorrelationLabel}</code>
+								<code className="runa-migrated-components-chat-presentationrunsurfacecard-23">
+									{visibleCorrelationLabel}
+								</code>
 							) : null}
 						</div>
-						<div style={{ color: 'hsl(var(--color-text-soft))', lineHeight: 1.6 }}>
+						<div className="runa-migrated-components-chat-presentationrunsurfacecard-24">
 							Canli akis onde kalir. Eski ozetleri incelemek istediginde buradan acabilirsin.
 						</div>
 					</div>

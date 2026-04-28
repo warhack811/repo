@@ -1,22 +1,14 @@
-import type { CSSProperties, FormEvent, ReactElement } from 'react';
+import type { FormEvent, ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 
 import type { AuthContext, OAuthProvider } from '@runa/types';
 
-import { AuthModeTabs, type LoginPageMode } from '../components/auth/AuthModeTabs.js';
+import runaLogo from '../assets/runa-logo.svg';
 import { OAuthButtons } from '../components/auth/OAuthButtons.js';
-import {
-	buttonStyle,
-	heroPanelStyle,
-	pageStyle,
-	panelStyle,
-	pillStyle,
-	secondaryLabelStyle,
-	inputStyle as sharedInputStyle,
-	secondaryButtonStyle as sharedSecondaryButtonStyle,
-	subcardStyle,
-} from '../lib/chat-styles.js';
+import { RunaSpinner } from '../components/ui/RunaSpinner.js';
 import { uiCopy } from '../localization/copy.js';
+
+type AuthMode = 'login' | 'signup';
 
 type LoginPageProps = Readonly<{
 	authContext: AuthContext | null;
@@ -34,43 +26,12 @@ type LoginPageProps = Readonly<{
 	onStartOAuth: (provider: Extract<OAuthProvider, 'github' | 'google'>) => void;
 }>;
 
-const shellStyle: CSSProperties = {
-	display: 'grid',
-	gap: '20px',
-	minWidth: 0,
-};
+function getSubmitCopy(mode: AuthMode, isPending: boolean): string {
+	if (mode === 'signup') {
+		return isPending ? uiCopy.auth.signupPending : uiCopy.auth.signupAction;
+	}
 
-const sectionGridStyle: CSSProperties = {
-	display: 'grid',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
-	gap: '20px',
-	alignItems: 'start',
-};
-
-const actionGridStyle: CSSProperties = {
-	display: 'grid',
-	gap: '10px',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))',
-};
-
-const developerDetailsStyle: CSSProperties = {
-	...subcardStyle,
-	marginTop: '16px',
-};
-
-const statusMessageStyle: CSSProperties = {
-	marginTop: '16px',
-	padding: '12px 14px',
-	borderRadius: '14px',
-	lineHeight: 1.5,
-};
-
-function getStatusLabel(status: LoginPageProps['authStatus']): string {
-	return status === 'bootstrapping' ? uiCopy.auth.statusBootstrapping : uiCopy.auth.statusAnonymous;
-}
-
-function getStatusAccent(status: LoginPageProps['authStatus']): string {
-	return status === 'bootstrapping' ? '#38bdf8' : '#f59e0b';
+	return isPending ? uiCopy.auth.loginPending : uiCopy.auth.loginAction;
 }
 
 export function LoginPage({
@@ -88,7 +49,7 @@ export function LoginPage({
 	onSignupWithPassword,
 	onStartOAuth,
 }: LoginPageProps): ReactElement {
-	const [authMode, setAuthMode] = useState<LoginPageMode>('login');
+	const [authMode, setAuthMode] = useState<AuthMode>('login');
 	const [emailInput, setEmailInput] = useState('');
 	const [passwordInput, setPasswordInput] = useState('');
 	const [tokenInput, setTokenInput] = useState('');
@@ -99,387 +60,168 @@ export function LoginPage({
 		}
 	}, [hasStoredBearerToken]);
 
-	function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+	function handleCredentialSubmit(event: FormEvent<HTMLFormElement>): void {
 		event.preventDefault();
-
-		switch (authMode) {
-			case 'login':
-				void onLoginWithPassword({
-					email: emailInput,
-					password: passwordInput,
-				});
-				return;
-			case 'signup':
-				void onSignupWithPassword({
-					email: emailInput,
-					password: passwordInput,
-				});
-				return;
-			case 'token':
-				void onAuthenticateWithToken(tokenInput);
-				return;
-		}
+		const input = { email: emailInput, password: passwordInput };
+		void (authMode === 'signup' ? onSignupWithPassword(input) : onLoginWithPassword(input));
 	}
-
-	const authCardTitle =
-		authMode === 'login'
-			? uiCopy.auth.loginDescription
-			: authMode === 'signup'
-				? uiCopy.auth.signupDescription
-				: uiCopy.auth.tokenDescription;
-	const authCardLabel =
-		authMode === 'login'
-			? uiCopy.auth.login
-			: authMode === 'signup'
-				? uiCopy.auth.signup
-				: uiCopy.auth.token;
-	const authCardDescription =
-		authMode === 'login'
-			? uiCopy.auth.loginDescription
-			: authMode === 'signup'
-				? uiCopy.auth.signupVerificationNote
-				: uiCopy.auth.tokenFallbackNote;
-	const submitLabel =
-		authMode === 'login'
-			? uiCopy.auth.loginAction
-			: authMode === 'signup'
-				? uiCopy.auth.signupAction
-				: uiCopy.auth.tokenAction;
-	const pendingLabel =
-		authMode === 'login'
-			? uiCopy.auth.loginPending
-			: authMode === 'signup'
-				? uiCopy.auth.signupPending
-				: uiCopy.auth.tokenPending;
-	const shouldRenderCredentialFields = authMode === 'login' || authMode === 'signup';
 
 	function handleTokenSubmit(event: FormEvent<HTMLFormElement>): void {
 		event.preventDefault();
 		void onAuthenticateWithToken(tokenInput);
 	}
 
-	useEffect(() => {
-		if (!shouldRenderCredentialFields) {
-			setEmailInput('');
-			setPasswordInput('');
-		}
-	}, [shouldRenderCredentialFields]);
+	const isSignup = authMode === 'signup';
+	const statusCopy =
+		authStatus === 'bootstrapping' ? uiCopy.auth.statusBootstrapping : uiCopy.auth.statusAnonymous;
 
 	return (
-		<div className="runa-page" style={pageStyle}>
-			<main
-				className="runa-shell-frame runa-shell-frame--chat"
-				style={shellStyle}
-				aria-busy={isAuthPending}
-			>
-				<header
-					style={{
-						...heroPanelStyle,
-						background:
-							'radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 32%), linear-gradient(180deg, rgba(20, 26, 40, 0.94) 0%, rgba(15, 23, 42, 0.84) 100%)',
-					}}
-					className="runa-card runa-card--hero runa-ambient-panel"
-				>
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'flex-start',
-							gap: '16px',
-							flexWrap: 'wrap',
-						}}
-					>
-						<div style={{ display: 'grid', gap: '10px', maxWidth: 'min(720px, 100%)' }}>
-							<div className="runa-eyebrow">RUNA</div>
-							<h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 38px)' }}>{uiCopy.auth.title}</h1>
-							<p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.6 }}>{uiCopy.auth.subtitle}</p>
-						</div>
-						<div
-							aria-live="polite"
-							style={{
-								...pillStyle,
-								borderColor: getStatusAccent(authStatus),
-								color: getStatusAccent(authStatus),
-							}}
-						>
-							{getStatusLabel(authStatus)}
+		<div className="runa-page runa-login-page">
+			<main className="runa-login-shell" aria-busy={isAuthPending}>
+				<section className="runa-login-hero" aria-labelledby="login-heading">
+					<img className="runa-login-logo" src={runaLogo} alt="Runa" width="180" height="48" />
+					<div className="runa-login-copy">
+						<div className="runa-eyebrow">RUNA</div>
+						<h1 id="login-heading">{uiCopy.auth.title}</h1>
+						<p>{uiCopy.auth.subtitle}</p>
+					</div>
+					<div className="runa-login-status" aria-live="polite">
+						{isAuthPending ? <RunaSpinner label={uiCopy.auth.connecting} size="sm" /> : null}
+						<span>{authContext ? 'Oturum hazir' : statusCopy}</span>
+					</div>
+				</section>
+
+				<section className="runa-login-panel" aria-labelledby="login-form-heading">
+					<div className="runa-login-panel__header">
+						<h2 id="login-form-heading">
+							{isSignup ? uiCopy.auth.signupDescription : uiCopy.auth.loginDescription}
+						</h2>
+						<div className="runa-login-mode" role="tablist" aria-label={uiCopy.auth.modeLabel}>
+							<button
+								type="button"
+								role="tab"
+								aria-selected={!isSignup}
+								className={!isSignup ? 'is-active' : undefined}
+								onClick={() => setAuthMode('login')}
+							>
+								{uiCopy.auth.login}
+							</button>
+							<button
+								type="button"
+								role="tab"
+								aria-selected={isSignup}
+								className={isSignup ? 'is-active' : undefined}
+								onClick={() => setAuthMode('signup')}
+							>
+								{uiCopy.auth.signup}
+							</button>
 						</div>
 					</div>
-				</header>
 
-				<section style={sectionGridStyle}>
-					<article
-						style={{
-							...panelStyle,
-							background:
-								'radial-gradient(circle at top left, rgba(96, 165, 250, 0.08), transparent 28%), linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 16, 28, 0.76) 100%)',
-						}}
-						aria-labelledby="login-bootstrap-heading"
-						className="runa-card runa-ambient-panel"
-					>
-						<div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
-							<div style={secondaryLabelStyle}>{uiCopy.auth.statusBootstrapping}</div>
-							<h2 id="login-bootstrap-heading" style={{ margin: 0, fontSize: '22px' }}>
-								Calisma alanin hazirlaniyor
-							</h2>
-							<div style={{ color: '#cbd5e1', lineHeight: 1.6 }}>
-								Runa tarayicidaki oturumunu kontrol eder ve hazir oldugunda seni dogrudan sohbet
-								alanina alir. Teknik giris yollari burada kalabalik yaratmadan ikinci katmanda
-								durur.
-							</div>
+					{authNotice ? (
+						<output aria-live="polite" className="runa-alert runa-alert--info">
+							{authNotice}
+						</output>
+					) : null}
+					{authError ? (
+						<div role="alert" className="runa-alert runa-alert--danger">
+							{authError}
 						</div>
+					) : null}
 
-						<div className="runa-card runa-card--subtle runa-card--soft-grid" style={subcardStyle}>
-							<div>
-								<div style={secondaryLabelStyle}>giris durumu</div>
-								<div style={{ marginTop: '6px', fontSize: '16px', color: '#f8fafc' }}>
-									{authContext ? 'Oturum bulundu' : 'Giris bekleniyor'}
-								</div>
-							</div>
-							<div>
-								<div style={secondaryLabelStyle}>calisma alani</div>
-								<div style={{ marginTop: '6px', color: '#cbd5e1' }}>
-									{authContext ? 'Acilmaya hazir' : 'Oturum dogrulaninca acilir'}
-								</div>
-							</div>
-							<div>
-								<div style={secondaryLabelStyle}>bu tarayici</div>
-								<div style={{ marginTop: '6px', color: '#cbd5e1' }}>
-									{hasStoredBearerToken ? 'Kayitli oturum var' : 'Kayitli oturum yok'}
-								</div>
-							</div>
-						</div>
-
-						{authNotice ? (
-							<output
-								aria-live="polite"
-								style={{
-									...statusMessageStyle,
-									...subcardStyle,
-									marginTop: '16px',
-								}}
-								className="runa-alert runa-alert--info"
-							>
-								{authNotice}
-							</output>
-						) : null}
-
-						{authError ? (
-							<div
-								role="alert"
-								style={{
-									...statusMessageStyle,
-									...subcardStyle,
-									marginTop: '16px',
-								}}
-								className="runa-alert runa-alert--danger"
-							>
-								{authError}
-							</div>
-						) : null}
-
-						{import.meta.env.DEV ? (
-							<details className="runa-developer-details" style={developerDetailsStyle}>
-								<summary>Gelistirici girisi</summary>
-								<div className="runa-developer-details__content">
-									<p className="runa-subtle-copy">
-										Yerel gelistirme ve mevcut oturum dogrulama yollari burada durur; normal
-										kullanici girisi yukaridaki e-posta ve OAuth akisiyle devam eder.
-									</p>
-									<div style={actionGridStyle}>
-										<button
-											type="button"
-											onClick={onStartLocalDevSession}
-											disabled={isAuthPending}
-											style={{
-												...sharedSecondaryButtonStyle,
-												opacity: isAuthPending ? 0.6 : 1,
-											}}
-											className="runa-button runa-button--secondary"
-										>
-											{uiCopy.auth.devSession}
-										</button>
-										<button
-											type="button"
-											onClick={() => void onRefreshAuthContext()}
-											disabled={isAuthPending}
-											style={{
-												...sharedSecondaryButtonStyle,
-												opacity: isAuthPending ? 0.6 : 1,
-											}}
-											className="runa-button runa-button--secondary"
-										>
-											{uiCopy.auth.refreshAuthContext}
-										</button>
-										<button
-											type="button"
-											onClick={() => void onClearAuthToken()}
-											disabled={isAuthPending || !hasStoredBearerToken}
-											style={{
-												...sharedSecondaryButtonStyle,
-												opacity: isAuthPending || !hasStoredBearerToken ? 0.6 : 1,
-											}}
-											className="runa-button runa-button--secondary"
-										>
-											{uiCopy.auth.clearStoredToken}
-										</button>
-									</div>
-									<form
-										onSubmit={handleTokenSubmit}
-										style={{ display: 'grid', gap: '10px', marginTop: '14px' }}
-									>
-										<label style={{ display: 'grid', gap: '8px' }}>
-											<span>{uiCopy.auth.token}</span>
-											<input
-												value={tokenInput}
-												onChange={(event) => setTokenInput(event.target.value)}
-												placeholder={uiCopy.auth.tokenPlaceholder}
-												type="password"
-												style={sharedInputStyle}
-												className="runa-input"
-											/>
-										</label>
-										<button
-											type="submit"
-											disabled={isAuthPending}
-											style={{
-												...sharedSecondaryButtonStyle,
-												opacity: isAuthPending ? 0.6 : 1,
-											}}
-											className="runa-button runa-button--secondary"
-										>
-											{isAuthPending ? uiCopy.auth.tokenPending : uiCopy.auth.tokenAction}
-										</button>
-									</form>
-								</div>
-							</details>
-						) : null}
-					</article>
-
-					<article
-						style={{
-							...panelStyle,
-							background:
-								'radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.1), transparent 28%), linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 16, 28, 0.76) 100%)',
-						}}
-						aria-labelledby="login-auth-form-heading"
-						aria-describedby="login-auth-form-description"
-						className="runa-card runa-ambient-panel"
-					>
-						<div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
-							<div style={secondaryLabelStyle}>{authCardLabel}</div>
-							<h2 id="login-auth-form-heading" style={{ margin: 0, fontSize: '22px' }}>
-								{authCardTitle}
-							</h2>
-							<div id="login-auth-form-description" style={{ color: '#cbd5e1', lineHeight: 1.6 }}>
-								{authCardDescription}
-							</div>
-						</div>
-
-						<div style={{ marginBottom: '16px' }}>
-							<AuthModeTabs
-								activeMode={authMode}
-								onSelectMode={setAuthMode}
-								panelIdBase="login-auth-mode"
-								showTokenMode={false}
+					<form className="runa-login-form" onSubmit={handleCredentialSubmit}>
+						<label>
+							<span>{uiCopy.auth.email}</span>
+							<input
+								value={emailInput}
+								onChange={(event) => setEmailInput(event.target.value)}
+								placeholder="name@company.com"
+								type="email"
+								autoComplete={isSignup ? 'username' : 'email'}
+								className="runa-input"
 							/>
-						</div>
-
-						<form
-							onSubmit={handleSubmit}
-							style={{ display: 'grid', gap: '14px' }}
-							aria-busy={isAuthPending}
+						</label>
+						<label>
+							<span>{uiCopy.auth.password}</span>
+							<input
+								value={passwordInput}
+								onChange={(event) => setPasswordInput(event.target.value)}
+								placeholder={
+									isSignup
+										? uiCopy.auth.passwordPlaceholderSignup
+										: uiCopy.auth.passwordPlaceholderLogin
+								}
+								type="password"
+								autoComplete={isSignup ? 'new-password' : 'current-password'}
+								className="runa-input"
+							/>
+						</label>
+						<button
+							type="submit"
+							disabled={isAuthPending}
+							className="runa-button runa-button--primary"
 						>
-							<div
-								id={`login-auth-mode-panel-${authMode}`}
-								role="tabpanel"
-								aria-labelledby={`login-auth-mode-tab-${authMode}`}
-								style={{ display: 'grid', gap: '14px' }}
-							>
-								{shouldRenderCredentialFields ? (
-									<>
-										<label style={{ display: 'grid', gap: '8px' }}>
-											<span>{uiCopy.auth.email}</span>
-											<input
-												value={emailInput}
-												onChange={(event) => setEmailInput(event.target.value)}
-												placeholder="name@company.com"
-												type="email"
-												autoComplete={authMode === 'login' ? 'email' : 'username'}
-												style={sharedInputStyle}
-												className="runa-input"
-											/>
-										</label>
+							{getSubmitCopy(authMode, isAuthPending)}
+						</button>
+					</form>
 
-										<label style={{ display: 'grid', gap: '8px' }}>
-											<span>{uiCopy.auth.password}</span>
-											<input
-												value={passwordInput}
-												onChange={(event) => setPasswordInput(event.target.value)}
-												placeholder={
-													authMode === 'signup'
-														? uiCopy.auth.passwordPlaceholderSignup
-														: uiCopy.auth.passwordPlaceholderLogin
-												}
-												type="password"
-												autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-												style={sharedInputStyle}
-												className="runa-input"
-											/>
-										</label>
-									</>
-								) : (
-									<label style={{ display: 'grid', gap: '8px' }}>
+					<div className="runa-login-oauth">
+						<span>veya</span>
+						<OAuthButtons isDisabled={isAuthPending} onStartOAuth={onStartOAuth} />
+					</div>
+
+					{import.meta.env.DEV ? (
+						<details className="runa-developer-details runa-login-dev">
+							<summary>Diğer giriş yöntemleri</summary>
+							<div className="runa-developer-details__content">
+								<div className="runa-login-dev__actions">
+									<button
+										type="button"
+										onClick={onStartLocalDevSession}
+										disabled={isAuthPending}
+										className="runa-button runa-button--secondary"
+									>
+										{uiCopy.auth.devSession}
+									</button>
+									<button
+										type="button"
+										onClick={() => void onRefreshAuthContext()}
+										disabled={isAuthPending}
+										className="runa-button runa-button--secondary"
+									>
+										{uiCopy.auth.refreshAuthContext}
+									</button>
+									<button
+										type="button"
+										onClick={() => void onClearAuthToken()}
+										disabled={isAuthPending || !hasStoredBearerToken}
+										className="runa-button runa-button--secondary"
+									>
+										{uiCopy.auth.clearStoredToken}
+									</button>
+								</div>
+								<form className="runa-login-token" onSubmit={handleTokenSubmit}>
+									<label>
 										<span>{uiCopy.auth.token}</span>
 										<input
 											value={tokenInput}
 											onChange={(event) => setTokenInput(event.target.value)}
 											placeholder={uiCopy.auth.tokenPlaceholder}
 											type="password"
-											style={sharedInputStyle}
 											className="runa-input"
 										/>
 									</label>
-								)}
+									<button
+										type="submit"
+										disabled={isAuthPending}
+										className="runa-button runa-button--secondary"
+									>
+										{isAuthPending ? uiCopy.auth.tokenPending : uiCopy.auth.tokenAction}
+									</button>
+								</form>
 							</div>
-
-							<div style={{ color: '#94a3b8', fontSize: '13px', lineHeight: 1.6 }}>
-								{authMode === 'signup'
-									? uiCopy.auth.signupVerificationNote
-									: authMode === 'login'
-										? uiCopy.auth.authenticatedShellNotice
-										: uiCopy.auth.tokenFallbackNote}
-							</div>
-
-							<div style={actionGridStyle}>
-								<button
-									type="submit"
-									disabled={isAuthPending}
-									style={{
-										...buttonStyle,
-										opacity: isAuthPending ? 0.6 : 1,
-										width: '100%',
-									}}
-									className="runa-button runa-button--primary"
-								>
-									{isAuthPending ? pendingLabel : submitLabel}
-								</button>
-							</div>
-						</form>
-
-						<div
-							style={{
-								marginTop: '20px',
-								paddingTop: '18px',
-								borderTop: '1px solid rgba(148, 163, 184, 0.12)',
-								display: 'grid',
-								gap: '12px',
-							}}
-						>
-							<div style={secondaryLabelStyle}>oauth</div>
-							<OAuthButtons isDisabled={isAuthPending} onStartOAuth={onStartOAuth} />
-						</div>
-					</article>
+						</details>
+					) : null}
 				</section>
 			</main>
 		</div>

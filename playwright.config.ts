@@ -7,8 +7,9 @@ export default defineConfig({
 	outputDir: 'test-results/playwright',
 	reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
 	retries: process.env.CI ? 2 : 0,
-	testDir: './e2e',
-	testMatch: '*.spec.ts',
+	testDir: '.',
+	testIgnore: ['**/.claude/**', '**/node_modules/**'],
+	testMatch: ['e2e/*.spec.ts', 'apps/web/tests/visual/*.spec.ts'],
 	timeout: 60_000,
 	use: {
 		baseURL: baseUrl,

@@ -597,7 +597,7 @@
 }
 
 .runa-chat-empty-state__copy h2 {
-	font-size: clamp(24px, 4vw, 34px);
+	font-size: var(--text-3xl);
 	line-height: 1.12;
 }
 
@@ -747,7 +747,7 @@
 
 .runa-markdown__heading {
 	color: hsl(var(--color-text));
-	font-size: clamp(1rem, 2vw, 1.125rem);
+	font-size: var(--text-lg);
 }
 
 .runa-markdown__list {

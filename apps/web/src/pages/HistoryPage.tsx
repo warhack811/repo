@@ -1,16 +1,7 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-import {
-	appShellButtonRowStyle,
-	appShellMutedTextStyle,
-	appShellPanelStyle,
-	appShellSecondaryButtonStyle,
-	appShellSecondaryLabelStyle,
-} from '../components/app/AppShell.js';
 import type { ConversationSummary, UseConversationsResult } from '../hooks/useConversations.js';
-import { pillStyle } from '../lib/chat-styles.js';
 
 type HistoryPageProps = Readonly<{
 	conversations: UseConversationsResult;
@@ -20,31 +11,6 @@ type ConversationGroup = Readonly<{
 	items: readonly ConversationSummary[];
 	label: string;
 }>;
-
-const listStyle: CSSProperties = {
-	display: 'grid',
-	gap: '12px',
-};
-
-const historyItemStyle: CSSProperties = {
-	display: 'grid',
-	gap: '8px',
-	width: '100%',
-	textAlign: 'left',
-	padding: '14px 16px',
-	borderRadius: '18px',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	background: 'rgba(9, 14, 25, 0.68)',
-	color: '#f8fafc',
-	cursor: 'pointer',
-};
-
-const toolbarStyle: CSSProperties = {
-	display: 'grid',
-	gap: '12px',
-	gridTemplateColumns: 'minmax(0, 1fr) auto',
-	alignItems: 'end',
-};
 
 function formatUpdatedAt(value: string): string {
 	const parsed = new Date(value);
@@ -154,35 +120,36 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 
 	return (
 		<>
-			<section style={appShellPanelStyle} aria-labelledby="history-heading">
-				<div style={{ display: 'grid', gap: '10px' }}>
-					<div style={appShellSecondaryLabelStyle}>Gecmis</div>
-					<h2 id="history-heading" style={{ margin: 0, fontSize: '24px' }}>
+			<section className="runa-migrated-pages-historypage-1" aria-labelledby="history-heading">
+				<div className="runa-migrated-pages-historypage-2">
+					<div className="runa-migrated-pages-historypage-3">Gecmis</div>
+					<h2 id="history-heading" className="runa-migrated-pages-historypage-4">
 						Kayitli calismalar
 					</h2>
-					<p style={appShellMutedTextStyle}>
+					<p className="runa-migrated-pages-historypage-5">
 						Runa ile yaptigin sohbetler ve paylasilan calismalar burada kalir. Yeni bir is baslatmak
 						icin ana sohbet yuzeyine donebilirsin.
 					</p>
 				</div>
 
-				<div style={{ ...appShellButtonRowStyle, marginTop: '18px' }}>
-					<span style={pillStyle}>{conversations.conversations.length} sohbet</span>
+				<div className="runa-migrated-pages-historypage-6">
+					<span className="runa-migrated-pages-historypage-7">
+						{conversations.conversations.length} sohbet
+					</span>
 					<button
 						type="button"
 						onClick={startNewConversation}
-						style={appShellSecondaryButtonStyle}
-						className="runa-button runa-button--secondary"
+						className="runa-button runa-button--secondary runa-migrated-pages-historypage-8"
 					>
 						Yeni sohbet baslat
 					</button>
 				</div>
 			</section>
 
-			<section style={appShellPanelStyle} aria-labelledby="history-list-heading">
-				<div style={toolbarStyle}>
-					<label style={{ display: 'grid', gap: '8px', minWidth: 0 }}>
-						<span style={appShellSecondaryLabelStyle}>Ara</span>
+			<section className="runa-migrated-pages-historypage-9" aria-labelledby="history-list-heading">
+				<div className="runa-migrated-pages-historypage-10">
+					<label className="runa-migrated-pages-historypage-11">
+						<span className="runa-migrated-pages-historypage-12">Ara</span>
 						<input
 							type="search"
 							className="runa-input"
@@ -191,12 +158,12 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 							onChange={(event) => setSearchQuery(event.target.value)}
 						/>
 					</label>
-					<div style={{ ...pillStyle, width: 'fit-content' }}>
+					<div className="runa-migrated-pages-historypage-13">
 						{conversations.isConversationLoading ? 'Yukleniyor' : 'Hazir'}
 					</div>
 				</div>
 
-				<h2 id="history-list-heading" style={{ margin: '18px 0 12px', fontSize: '20px' }}>
+				<h2 id="history-list-heading" className="runa-migrated-pages-historypage-14">
 					Sohbet gecmisi
 				</h2>
 
@@ -209,7 +176,7 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 				{!conversations.isConversationLoading && conversations.conversations.length === 0 ? (
 					<div className="runa-empty-state">
 						<strong>Henuz kayitli sohbet yok.</strong>
-						<div style={{ marginTop: '8px' }}>
+						<div className="runa-migrated-pages-historypage-15">
 							Ilk calismayi baslattiginda gecmis burada aranabilir hale gelecek.
 						</div>
 					</div>
@@ -221,11 +188,11 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 					<div className="runa-empty-state">Bu aramayla eslesen calisma bulunamadi.</div>
 				) : null}
 
-				<div style={listStyle}>
+				<div className="runa-migrated-pages-historypage-16">
 					{groupedConversations.map((group) => (
-						<section key={group.label} style={{ display: 'grid', gap: '10px' }}>
-							<div style={appShellSecondaryLabelStyle}>{group.label}</div>
-							<div style={listStyle}>
+						<section key={group.label} className="runa-migrated-pages-historypage-17">
+							<div className="runa-migrated-pages-historypage-18">{group.label}</div>
+							<div className="runa-migrated-pages-historypage-19">
 								{group.items.map((conversation) => {
 									const isActive =
 										conversation.conversation_id === conversations.activeConversationId;
@@ -235,13 +202,7 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 											key={conversation.conversation_id}
 											type="button"
 											onClick={() => openConversation(conversation.conversation_id)}
-											style={{
-												...historyItemStyle,
-												border: isActive
-													? '1px solid rgba(245, 158, 11, 0.42)'
-													: historyItemStyle.border,
-											}}
-											className="runa-button"
+											className="runa-button runa-migrated-pages-historypage-20"
 										>
 											<div className="runa-conversation-item__top">
 												<strong>{conversation.title}</strong>

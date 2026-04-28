@@ -1,18 +1,35 @@
 import type { AuthContext } from '@runa/types';
-import { type ReactElement, useCallback } from 'react';
+import { type ReactElement, Suspense, lazy, useCallback } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
 import type { AuthenticatedPageId } from './components/app/AppNav.js';
 import { AppShell } from './components/app/AppShell.js';
+import { RunaSpinner } from './components/ui/RunaSpinner.js';
 import { useAuth } from './hooks/useAuth.js';
 import { type UseChatRuntimeResult, useChatRuntime } from './hooks/useChatRuntime.js';
 import { useConversations } from './hooks/useConversations.js';
-import { ChatPage } from './pages/ChatPage.js';
-import { DashboardPage } from './pages/DashboardPage.js';
-import { DevicesPage } from './pages/DevicesPage.js';
-import { HistoryPage } from './pages/HistoryPage.js';
 import { LoginPage } from './pages/LoginPage.js';
-import { SettingsPage } from './pages/SettingsPage.js';
+
+const ChatPage = lazy(() =>
+	import('./pages/ChatPage.js').then((module) => ({ default: module.ChatPage })),
+);
+const DeveloperPage = lazy(() =>
+	import('./pages/DeveloperPage.js').then((module) => ({ default: module.DeveloperPage })),
+);
+const DevicesPage = lazy(() =>
+	import('./pages/DevicesPage.js').then((module) => ({ default: module.DevicesPage })),
+);
+const HistoryPage = lazy(() =>
+	import('./pages/HistoryPage.js').then((module) => ({ default: module.HistoryPage })),
+);
+const OnboardingWizard = lazy(() =>
+	import('./components/onboarding/OnboardingWizard.js').then((module) => ({
+		default: module.OnboardingWizard,
+	})),
+);
+const SettingsPage = lazy(() =>
+	import('./pages/SettingsPage.js').then((module) => ({ default: module.SettingsPage })),
+);
 
 type AuthenticatedLayoutProps = Readonly<{
 	authStatus: 'authenticated' | 'service';
@@ -63,6 +80,14 @@ function AuthenticatedLayout({ authStatus }: AuthenticatedLayoutProps): ReactEle
 		<AppShell activePage={activePage} authStatus={authStatus}>
 			<Outlet />
 		</AppShell>
+	);
+}
+
+function RouteFallback(): ReactElement {
+	return (
+		<div className="runa-route-fallback" aria-busy="true">
+			<RunaSpinner label="Sayfa yukleniyor" />
+		</div>
 	);
 }
 
@@ -144,45 +169,48 @@ function AuthenticatedApp(
 
 	return (
 		<BrowserRouter>
-			<Routes>
-				<Route path="/" element={<AuthenticatedLayout authStatus={props.authStatus} />}>
-					<Route index element={<Navigate replace to="chat" />} />
-					<Route
-						path="chat"
-						element={<ChatPage conversations={conversations} embedded runtime={runtime} />}
-					/>
-					<Route path="history" element={<HistoryPage conversations={conversations} />} />
-					<Route path="devices" element={<DevicesPage accessToken={props.bearerToken} />} />
-					<Route
-						path="account"
-						element={
-							<AccountRoute
-								authContext={props.authContext}
-								authError={props.authError}
-								isAuthPending={props.isAuthPending}
-								onLogout={props.onLogout}
-							/>
-						}
-					/>
-					<Route
-						path="developer"
-						element={
-							<DeveloperRoute
-								authContext={props.authContext}
-								authError={props.authError}
-								hasStoredBearerToken={props.hasStoredBearerToken}
-								isAuthPending={props.isAuthPending}
-								onClearAuthToken={props.onClearAuthToken}
-								onRefreshAuthContext={props.onRefreshAuthContext}
-								runtime={runtime}
-							/>
-						}
-					/>
-					<Route path="dashboard" element={<Navigate replace to="/history" />} />
-					<Route path="settings" element={<Navigate replace to="/account" />} />
-					<Route path="*" element={<Navigate replace to="/chat" />} />
-				</Route>
-			</Routes>
+			<Suspense fallback={<RouteFallback />}>
+				<Routes>
+					<Route path="/" element={<AuthenticatedLayout authStatus={props.authStatus} />}>
+						<Route index element={<Navigate replace to="chat" />} />
+						<Route
+							path="chat"
+							element={<ChatPage conversations={conversations} embedded runtime={runtime} />}
+						/>
+						<Route path="history" element={<HistoryPage conversations={conversations} />} />
+						<Route path="devices" element={<DevicesPage accessToken={props.bearerToken} />} />
+						<Route
+							path="account"
+							element={
+								<AccountRoute
+									authContext={props.authContext}
+									authError={props.authError}
+									isAuthPending={props.isAuthPending}
+									onLogout={props.onLogout}
+								/>
+							}
+						/>
+						<Route
+							path="developer"
+							element={
+								<DeveloperRoute
+									authContext={props.authContext}
+									authError={props.authError}
+									hasStoredBearerToken={props.hasStoredBearerToken}
+									isAuthPending={props.isAuthPending}
+									onClearAuthToken={props.onClearAuthToken}
+									onRefreshAuthContext={props.onRefreshAuthContext}
+									runtime={runtime}
+								/>
+							}
+						/>
+						<Route path="dashboard" element={<Navigate replace to="/history" />} />
+						<Route path="settings" element={<Navigate replace to="/account" />} />
+						<Route path="*" element={<Navigate replace to="/chat" />} />
+					</Route>
+				</Routes>
+				<OnboardingWizard onSubmitPrompt={runtime.setPrompt} />
+			</Suspense>
 		</BrowserRouter>
 	);
 }

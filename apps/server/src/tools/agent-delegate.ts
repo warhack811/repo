@@ -22,6 +22,8 @@ type AgentDelegateArguments = ToolArguments & {
 
 type AgentDelegateCallInput = ToolCallInput<'agent.delegate', AgentDelegateArguments>;
 
+const AGENT_DELEGATE_ROLES = ['researcher', 'reviewer', 'coder'] as const;
+
 interface AgentDelegateOutput extends AgentDelegationResult {
 	readonly depth: number;
 	readonly max_turns: number;
@@ -67,6 +69,45 @@ function isAgentDelegateRole(value: unknown): value is AgentDelegateRole {
 	return value === 'coder' || value === 'researcher' || value === 'reviewer';
 }
 
+function normalizeAgentDelegateRole(value: unknown): AgentDelegateRole | undefined {
+	if (isAgentDelegateRole(value)) {
+		return value;
+	}
+
+	if (typeof value !== 'string') {
+		return undefined;
+	}
+
+	const normalizedValue = value
+		.trim()
+		.toLocaleLowerCase()
+		.replace(/[\s_-]+/gu, '');
+
+	switch (normalizedValue) {
+		case 'research':
+		case 'researchagent':
+		case 'researcher':
+		case 'searcher':
+			return 'researcher';
+		case 'audit':
+		case 'auditor':
+		case 'qa':
+		case 'review':
+		case 'reviewagent':
+		case 'reviewer':
+			return 'reviewer';
+		case 'code':
+		case 'codeagent':
+		case 'coder':
+		case 'developer':
+		case 'engineer':
+		case 'implementer':
+			return 'coder';
+		default:
+			return undefined;
+	}
+}
+
 function resolveParentDepth(metadata: ToolExecutionContext['metadata']): number {
 	const candidate = metadata as { readonly sub_agent_depth?: unknown } | undefined;
 
@@ -97,14 +138,16 @@ function validateAgentDelegateArguments(input: ToolCallInput<'agent.delegate'>):
 	}
 
 	const { context, sub_agent_role, task } = input.arguments;
+	const normalizedRole = normalizeAgentDelegateRole(sub_agent_role);
 
-	if (!isAgentDelegateRole(sub_agent_role)) {
+	if (!normalizedRole) {
 		return createErrorResult(
 			input,
 			'INVALID_INPUT',
-			'agent.delegate sub_agent_role must be one of: researcher, reviewer, coder.',
+			'Runa could not safely choose a sub-agent role for this delegated step.',
 			{
 				argument: 'sub_agent_role',
+				allowed_values: AGENT_DELEGATE_ROLES,
 				reason: 'invalid_role',
 			},
 			false,
@@ -140,7 +183,7 @@ function validateAgentDelegateArguments(input: ToolCallInput<'agent.delegate'>):
 	return {
 		arguments: {
 			context,
-			sub_agent_role,
+			sub_agent_role: normalizedRole,
 			task: task.trim(),
 		},
 		status: 'ok',
@@ -171,7 +214,9 @@ export const agentDelegateTool: ToolDefinition<AgentDelegateCallInput> = {
 				type: 'string',
 			},
 			sub_agent_role: {
-				description: 'One of: researcher, reviewer, coder.',
+				description:
+					'Required. Choose exactly one role: researcher for information gathering, reviewer for critique/risk checks, or coder for bounded implementation work.',
+				enum: AGENT_DELEGATE_ROLES,
 				required: true,
 				type: 'string',
 			},

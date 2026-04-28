@@ -1,39 +1,7 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import type { AuthContext, AuthIdentity } from '@runa/types';
 import { uiCopy } from '../../localization/copy.js';
-
-import { pillStyle } from '../../lib/chat-styles.js';
-import {
-	appShellMetricCardStyle,
-	appShellMutedTextStyle,
-	appShellPanelStyle,
-	appShellSecondaryLabelStyle,
-} from '../app/AppShell.js';
-
-const detailGridStyle: CSSProperties = {
-	display: 'grid',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
-	gap: '12px',
-};
-
-const chipListStyle: CSSProperties = {
-	display: 'flex',
-	flexWrap: 'wrap',
-	gap: '8px',
-};
-
-const chipStyle: CSSProperties = {
-	...pillStyle,
-	padding: '6px 10px',
-	borderColor: 'rgba(148, 163, 184, 0.24)',
-	background: 'rgba(6, 11, 21, 0.78)',
-	color: '#e2e8f0',
-	fontSize: '11px',
-	overflowWrap: 'anywhere',
-	textTransform: 'none',
-	letterSpacing: '0.03em',
-};
 
 function getProfileTitle(authContext: AuthContext): string {
 	if (authContext.user?.display_name) {
@@ -105,30 +73,26 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 		authContext.user?.email_verified ?? authContext.claims?.email_verified ?? false;
 
 	return (
-		<article style={appShellPanelStyle} className="runa-card runa-ambient-panel">
-			<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-				<div lang="tr" style={appShellSecondaryLabelStyle}>
+		<article className="runa-card runa-ambient-panel runa-migrated-components-auth-profilecard-1">
+			<div className="runa-migrated-components-auth-profilecard-2">
+				<div lang="tr" className="runa-migrated-components-auth-profilecard-3">
 					profil
 				</div>
-				<h3 style={{ margin: 0, fontSize: '22px' }}>{getProfileTitle(authContext)}</h3>
-				<p style={appShellMutedTextStyle}>{uiCopy.account.description}</p>
+				<h3 className="runa-migrated-components-auth-profilecard-4">
+					{getProfileTitle(authContext)}
+				</h3>
+				<p className="runa-migrated-components-auth-profilecard-5">{uiCopy.account.description}</p>
 			</div>
 
-			<div style={detailGridStyle}>
-				<div
-					style={{
-						...appShellMetricCardStyle,
-						borderColor: 'rgba(245, 158, 11, 0.18)',
-					}}
-					className="runa-metric"
-				>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
+			<div className="runa-migrated-components-auth-profilecard-6">
+				<div className="runa-metric runa-migrated-components-auth-profilecard-7">
+					<div lang="tr" className="runa-migrated-components-auth-profilecard-8">
 						hesap özeti
 					</div>
-					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
+					<div className="runa-migrated-components-auth-profilecard-9">
 						{getProfileSubtitle(authContext)}
 					</div>
-					<div style={{ color: '#cbd5e1' }}>
+					<div className="runa-migrated-components-auth-profilecard-10">
 						{authContext.principal.kind === 'authenticated'
 							? 'Kimliği doğrulandı'
 							: authContext.principal.kind === 'service'
@@ -136,52 +100,45 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 								: 'Anonim bağlam'}
 					</div>
 				</div>
-				<div
-					style={{
-						...appShellMetricCardStyle,
-						borderColor: 'rgba(96, 165, 250, 0.18)',
-					}}
-					className="runa-metric"
-				>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
+				<div className="runa-metric runa-migrated-components-auth-profilecard-11">
+					<div lang="tr" className="runa-migrated-components-auth-profilecard-12">
 						e-posta
 					</div>
-					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
+					<div className="runa-migrated-components-auth-profilecard-13">
 						{getProfileEmail(authContext)}
 					</div>
-					<div style={{ color: '#cbd5e1' }}>Doğrulandı: {emailVerified ? 'evet' : 'hayır'}</div>
+					<div className="runa-migrated-components-auth-profilecard-14">
+						Doğrulandı: {emailVerified ? 'evet' : 'hayır'}
+					</div>
 				</div>
-				<div
-					style={{
-						...appShellMetricCardStyle,
-						borderColor: 'rgba(148, 163, 184, 0.18)',
-					}}
-					className="runa-metric"
-				>
-					<div lang="tr" style={appShellSecondaryLabelStyle}>
+				<div className="runa-metric runa-migrated-components-auth-profilecard-15">
+					<div lang="tr" className="runa-migrated-components-auth-profilecard-16">
 						giriş yöntemi
 					</div>
-					<div style={{ color: '#f8fafc', fontSize: '17px', fontWeight: 700 }}>
+					<div className="runa-migrated-components-auth-profilecard-17">
 						{getProfileMethod(authContext)}
 					</div>
-					<div style={{ color: '#cbd5e1' }}>Durum: aktif</div>
+					<div className="runa-migrated-components-auth-profilecard-18">Durum: aktif</div>
 				</div>
 			</div>
 
-			<div style={{ display: 'grid', gap: '10px', marginTop: '18px' }}>
-				<div lang="tr" style={appShellSecondaryLabelStyle}>
+			<div className="runa-migrated-components-auth-profilecard-19">
+				<div lang="tr" className="runa-migrated-components-auth-profilecard-20">
 					bağlı kimlikler
 				</div>
 				{identities.length > 0 ? (
-					<div style={chipListStyle}>
+					<div className="runa-migrated-components-auth-profilecard-21">
 						{identities.map((identity) => (
-							<span key={identity.identity_id} style={chipStyle}>
+							<span
+								key={identity.identity_id}
+								className="runa-migrated-components-auth-profilecard-22"
+							>
 								{getIdentityLabel(identity)}
 							</span>
 						))}
 					</div>
 				) : (
-					<p style={appShellMutedTextStyle}>
+					<p className="runa-migrated-components-auth-profilecard-23">
 						Mevcut auth bağlamında bağlı kimlik listesi gösterilmedi.
 					</p>
 				)}

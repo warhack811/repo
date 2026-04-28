@@ -111,6 +111,18 @@ function getBlockStatus(result: IngestedToolResult | ToolResult): ToolResultBloc
 
 function buildSummary(toolName: ToolName, result: IngestedToolResult | ToolResult): string {
 	if (isToolResultErrorResult(result)) {
+		const detailsReasonKey = 'reason';
+
+		if (
+			toolName === 'agent.delegate' &&
+			result.error_code === 'INVALID_INPUT' &&
+			'details' in result &&
+			isRecord(result.details) &&
+			result.details[detailsReasonKey] === 'invalid_role'
+		) {
+			return 'Runa could not safely start that delegated step, so it stopped before taking action.';
+		}
+
 		const errorMessage =
 			'error_message' in result ? result.error_message : 'Tool execution failed.';
 		return `${toolName} failed: ${truncateText(errorMessage, STRING_PREVIEW_LIMIT)}`;

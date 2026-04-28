@@ -13,6 +13,61 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
 
+### Track A / Gateway - DeepSeek Provider + Model Economy Routing - 28 Nisan 2026
+
+- DeepSeek, mevcut `ModelGateway` omurgasina ayri ve additive provider olarak eklendi. WS/runtime/approval/ToolRegistry contract'lari yeniden tasarlanmadi.
+- Shared provider union ve default model listesi `deepseek` ile genisletildi. Default ucuz/balanced model `deepseek-v4-flash`; derin akil yurutme ve tool-heavy isler icin router hedef modeli `deepseek-v4-pro`.
+- `apps/server/src/gateway/deepseek-gateway.ts` eklendi. Adapter `https://api.deepseek.com/chat/completions` endpoint'ine `Authorization: Bearer ...` ile gider, `generate()` ve `stream()` yollarini destekler, `max_output_tokens` alanini `max_tokens` olarak gonderir, OpenAI-compatible tool call parsing seam'ini korur ve DeepSeek SSE keep-alive comment satirlarini tolere eder.
+- DeepSeek adapter'i text/document attachment yolunu destekler; image attachment geldiginde vision-capable DeepSeek path'i live dogrulanmadigi icin typed request error verir. Boylece sahte multimodal/vision claim'i acilmadi.
+- Model ekonomi seami eklendi: DeepSeek provider secildiginde router varsayilan aktif kalir; kisa/prompt-only isler `deepseek-v4-flash` + `thinking: disabled`, derin analiz/tool-heavy isler `deepseek-v4-pro` + `thinking: enabled` + `reasoning_effort: high` ile kosar. Model tier adlari `DEEPSEEK_FAST_MODEL` / `DEEPSEEK_REASONING_MODEL` ile override edilebilir. Diger provider'lar icin global router hala `RUNA_MODEL_ROUTER_ENABLED=1` ile opt-in.
+- Dev runtime default'u DeepSeek'e alindi: `apps/web/src/hooks/useChatRuntime.ts` artik yeni/temiz localStorage oturumlarinda `DEFAULT_PROVIDER='deepseek'` ile baslar. Mevcut kullanici localStorage runtime config'i varsa ezilmez; temizlemek veya provider'i UI'dan degistirmek gerekir.
+- Env fallback seami `DEEPSEEK_API_KEY` ile acildi; `approval-store` secret minimization DeepSeek icin de server env varsa persisted request-only key'i bosaltir. `.env-örnek` ve `.env.server.example` icine `DEEPSEEK_API_KEY`, `DEEPSEEK_FAST_MODEL`, `DEEPSEEK_REASONING_MODEL`, `RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED` ve `RUNA_MODEL_ROUTER_ENABLED` placeholder'lari eklendi.
+- `apps/server/scripts/deepseek-live-smoke.mjs` ve `test:deepseek-live-smoke` komutu eklendi. Helper fast roundtrip, reasoning route, streaming ve tool schema request stage'lerini tek `DEEPSEEK_LIVE_SMOKE_SUMMARY` altinda raporlar. Live smoke DeepSeek-only proof icin provider fallback'i kapatir; boylece provider hatasi baska provider credential eksigiyle maskelenmez.
+- Canli DeepSeek proof sirasinda iki provider-specific uyumluluk noktasi kapatildi: `DeepSeek` kelimesinin kendisi artik router'da `deep_reasoning` tetiklemiyor ve DeepSeek tool isimlerinde nokta kabul etmedigi icin adapter `file.read` gibi Runa tool adlarini provider'a `file_read` alias'iyle gonderip response'u tekrar canonical Runa tool adina ceviriyor.
+- Pre-existing dirty tree notu: bu tura baslamadan once repo genis olcekte dirty idi; server/web/types/provider dosyalari ve cok sayida desktop/web dosyasi zaten modified/untracked durumdaydi. Bu tur yalniz DeepSeek provider/router/env/smoke ve bu `PROGRESS.md` kaydi hedeflendi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/types build` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/gateway/gateway.test.ts src/gateway/model-router.test.ts` PASS (`2` dosya / `72` test)
+  - `pnpm.cmd exec biome check packages/types/src/ws.ts apps/server/src/gateway/config-resolver.ts apps/server/src/persistence/approval-store.ts apps/server/src/gateway/fallback-chain.ts apps/server/src/gateway/model-router.ts apps/server/src/gateway/factory.ts apps/server/src/gateway/deepseek-gateway.ts apps/server/src/gateway/gateway.test.ts apps/server/src/gateway/model-router.test.ts apps/server/package.json apps/server/scripts/deepseek-live-smoke.mjs .env.server.example .env-örnek` PASS
+  - `pnpm.cmd exec biome check apps/server/src/gateway/deepseek-gateway.ts apps/server/src/gateway/gateway.test.ts apps/server/src/gateway/model-router.ts apps/server/src/gateway/model-router.test.ts apps/server/scripts/deepseek-live-smoke.mjs` PASS
+  - `pnpm.cmd --filter @runa/web exec biome check src/hooks/useChatRuntime.ts` PASS
+- Canli smoke durumu: current shell'de `DEEPSEEK_API_KEY` yok; anahtar kullanicinin girdigi `.env` dosyasindan yalniz test alt surecine tasinarak kosuldu. Once bagimsiz API key testi `deepseek-v4-flash` ile HTTP `200` PASS verdi. Ardindan `pnpm.cmd --filter @runa/server run test:deepseek-live-smoke` file-backed env ile PASS verdi: `cheap_roundtrip` -> `deepseek-v4-flash`, `reasoning_roundtrip` -> `deepseek-v4-pro`, `streaming_roundtrip` -> `deepseek-v4-flash`, `tool_schema_request` -> `deepseek-v4-pro` ve `outcome_kind=tool_call_candidate`.
+- Dar default-provider degisikligi sonrasi `pnpm.cmd --filter @runa/web typecheck` kosuldu ancak mevcut web dirty-tree/baseline kiriklariyla FAIL verdi: `DashboardPage.js` module bulunamiyor, `DeveloperPage`, `DesktopDevicesState`, `DesktopDevicePresenceSnapshot` ve `Theme` sembolleri bulunamiyor. Bu kiriklar `useChatRuntime.ts` default provider degisikliginden kaynaklanmiyor.
+
+### Track A / Runtime UX - Agent Delegation Role Hardening - 28 Nisan 2026
+
+- `agent.delegate` tool contract'i provider'lara artik machine-readable `enum: ['researcher', 'reviewer', 'coder']` olarak gider. Boylece modelin role alaninda serbest metin uydurma ihtimali azaltilir.
+- Runtime validasyonu obvious model alias'larini guvenli canonical role'a normalize eder: `developer` / `engineer` / `implementer` -> `coder`, `review` / `qa` -> `reviewer`, `research` / `searcher` -> `researcher`.
+- Hala cozumlenemeyen role degeri gelirse ham validator kopyasi kullaniciya tasinmaz; presentation ozetinde Runa'nin delege adimini guvenli baslatamadigi sade urun diliyle gosterilir.
+- Non-goal: `agent.delegate` rolleri genisletilmedi, sub-agent policy/allowlist ve approval/auto-continue state machine yeniden tasarlanmadi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/tools/agent-delegate.test.ts src/presentation/map-tool-result.test.ts src/gateway/request-tools.test.ts` PASS (`3` dosya / `15` test)
+  - `pnpm.cmd exec biome check packages/types/src/tools.ts packages/types/src/gateway.ts apps/server/src/gateway/request-tools.ts apps/server/src/gateway/request-tools.test.ts apps/server/src/tools/agent-delegate.ts apps/server/src/tools/agent-delegate.test.ts apps/server/src/presentation/map-tool-result.ts apps/server/src/presentation/map-tool-result.test.ts` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web exec biome check src/App.tsx src/pages/SettingsPage.tsx` PASS
+- Canli smoke: dev bootstrap + `/conversations` + WS `run.request` localhost uzerinde calisti; `developer sub-agent` isteyen prompt'ta `agent.delegate` `success` dondu ve eski `sub_agent_role must be one of...` validator metni WS bloklarina sizmadi. Auto-continue approval replay denemesi bu smoke'ta mevcut pending approval persistence/race sinirina takildi (`Pending approval not found`); bu agent-role fix'inden ayri takip edilecek bir hardening seam olarak duruyor.
+- Follow-up fix: incremental `approval_block` yayini artik block socket'e gonderilmeden once ayni approval request'i `ApprovalStore` icine persist ediyor. Bu, kullanicinin onay butonuna finalization tamamlanmadan hizli basmasi halinde gorulen `Pending approval not found` race'ini kapatir.
+- Follow-up dogrulama:
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd exec biome check apps/server/src/ws/run-execution.ts` PASS
+  - `pnpm.cmd --filter @runa/server exec vitest run --config ./vitest.src.config.mjs --configLoader runner src/ws/register-ws.test.ts -t "continues a live tool-follow-up turn after approving auto-continue"` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - Canli WS smoke'ta hizli `approval.resolve` sonrasi `Pending approval not found` tekrar etmedi. Ayni live run provider tarafi `Groq HTTP 429/413` ile terminal `failed` bitti; bu approval persistence race'inden ayri provider/rate-limit davranisi.
+- Main provider follow-up: Web runtime config default'u DeepSeek oldugu halde tarayicida kalmis eski `runa.developer.runtime_config` Groq default kaydi kullaniciyi Groq'ta tutabiliyordu. `apps/web/src/hooks/useChatRuntime.ts` artik legacy Groq default config'i DeepSeek default config'e migrate eder; kullanici ozellikle farkli provider/model set ettiyse bu secim korunur.
+- DeepSeek canli smoke: `provider: 'deepseek'`, `model: 'deepseek-v4-flash'`, request-side `apiKey: ''` ile server env fallback kullanilarak WS run kosuldu. Sonuc: dev bootstrap `302`, `/conversations` `200`, `run.accepted`, `run.finished completed`; WS payload'larinda Groq gorulmedi. Server log: `provider":"deepseek"`, `run_id":"run_live_deepseek_1777373686185"`, final `COMPLETED`.
+- Ek dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web exec biome check src/hooks/useChatRuntime.ts` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+
 ### Track C - Package 1 Information Architecture Reset - 27 Nisan 2026
 
 - Authenticated ana urun IA'si `Chat / History / Devices / Account` etrafinda yeniden hizalandi. `AppNav` artik Developer Mode'u primary navigation item olarak gostermiyor; ana nav kompakt, chat-first shell icinde de gorunur durumda.
@@ -1830,6 +1885,131 @@
 - **Hedef:** Mevcut bridge kontratini bozmadan actual desktop window host implementation'i, online device presence surface'i, stale/lost desktop-agent cleanup davranisi ve sonraki fazda browser.interact benzeri capability'lere zemin hazirlamak.
 - **Tetikleyici:** Sprint 11 (Desktop Agent) ve Phase 3.
 - **Ilgili dosyalar:** `implementation-blueprint.md`, `apps/desktop-agent/`, `apps/server/src/tools/desktop-*.ts`, `apps/server/src/ws/*`, `packages/types/src/`
+
+#### [GAP-12] Packaged Desktop Companion Runtime Proof - 28 Nisan 2026
+- Electron shell artik stub liveness degil; `apps/desktop-agent/electron/main.ts` gercek `createDesktopAgentSessionRuntime()` ile secure `/ws/desktop-agent` bridge'ini baslatiyor, tray/window state'i runtime snapshot'lariyla guncelleniyor ve sign-in/disconnect IPC yollari gercek session storage'a baglandi.
+- Paketli runtime icin file-backed session storage (`apps/desktop-agent/src/electron-session-storage.ts`) ve Node/Electron main process uyumlu dependency-free WebSocket adapter'i (`apps/desktop-agent/src/node-websocket.ts`) eklendi. Bridge handshake race'i `apps/desktop-agent/src/ws-bridge.ts` icinde dinleyici erken kurulacak ve timeout verecek sekilde sertlestirildi.
+- Build hattinda `electron/main.cjs`, `electron/preload.cjs` ve `electron/renderer/App.js` paket kaynagina kopyalaniyor; `electron-builder.yml` tarafindan paketlenen dosyalar artik guncel TS/renderer build'inden geliyor.
+- Yeni smoke: `apps/desktop-agent/scripts/packaged-runtime-smoke.mjs` / `pnpm --filter @runa/desktop-agent smoke:packaged`. Dev-auth token alir, paketli `release/win-unpacked/Runa Desktop.exe`'yi izole userData ile baslatir, `/desktop/devices` uzerinde online presence bekler, DeepSeek run ile approval-gated `desktop.screenshot` proof'u kosar ve shutdown sonrasi presence cleanup'i dogrular.
+- Canli sonuc yesil: `DESKTOP_PACKAGED_RUNTIME_SMOKE_SUMMARY` icinde `device_online=true`, `approval_resolve_sent=true`, `screenshot_succeeded=true`, `device_removed_after_shutdown=true`, `run_status=desktop_screenshot_success`.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck`
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck:electron`
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck:renderer`
+  - `pnpm.cmd exec biome check ...desktop-agent touched files...`
+  - `pnpm.cmd --filter @runa/desktop-agent dist:win`
+  - `pnpm.cmd --filter @runa/desktop-agent smoke:packaged`
+- Kalan not: Electron Builder hala `asar: false`, default icon ve npm recursive/deprecation warning'leri raporluyor; bunlar runtime proof'u kirmadi ama release packaging polish icin takip edilmeli.
+
+### Track C - UI-OVERHAUL 01/02/03 Closure Pass - 28 Nisan 2026
+
+- `docs/UI-OVERHAUL-01.md`, `docs/UI-OVERHAUL-02.md` ve `docs/UI-OVERHAUL-03.md` kapsamı repo üzerinde kapatıldı: DeveloperPage ayrımı korunurken chat yüzeyinde developer/raw/operator dilini yakalayan manifesto gate yeşil kaldı; CSS entry `apps/web/src/styles/index.css` üzerinden token/reset/primitives/animations/component katmanına bağlandı; `apps/web/src/index.css` tek import entry haline getirildi.
+- Inline style migration tamamlandı: `apps/web/src/components/**` ve `apps/web/src/pages/**` altında case-sensitive `style=`, `CSSProperties`, `chat-styles` taraması `0`; `apps/web/src/lib/chat-styles.ts` silindi. Legacy inline stiller token-backed CSS çıktısına taşındı ve `scripts/ci/style-check.mjs` ile tekrar kaçması engellendi.
+- Runa primitive seti genişledi: mevcut `RunaButton`, `RunaCard`, `RunaSurface`, `RunaTextarea`, `RunaBadge` CSS Module tabanına taşındı; `RunaInput`, `RunaModal`, `RunaSheet`, `RunaToast`, `RunaSkeleton`, `RunaSpinner`, `RunaIcon`, `RunaTooltip`, `RunaDisclosure` eklendi.
+- Yeni CI yüzeyleri: `pnpm run style:check` fail-fast inline-style gate'i; `pnpm run primitive:coverage` non-blocking primitive/native kullanım raporu. `biome.json` içinde Vite CSS module index-signature davranışıyla çakışan `useLiteralKeys` kuralı kapatıldı.
+- İlk karşılama copy testi düzeltildi: `EmptyState` artık `Bugun neyi birlikte ilerletelim?` ve `onay isteyen` öneri dilini render ediyor.
+- Doğrulama yeşil:
+  - `pnpm.cmd --filter @runa/web typecheck`
+  - `pnpm.cmd --filter @runa/web lint`
+  - `pnpm.cmd --filter @runa/web test` (`9` dosya / `22` test)
+  - `pnpm.cmd --filter @runa/web build`
+  - `pnpm.cmd run style:check`
+  - `pnpm.cmd run manifesto:check`
+  - `pnpm.cmd run primitive:coverage` (`REPORT`; Runa primitive total `27`, native interactive total `39`, fail değil takip metriği)
+- Browser QA: Playwright ile `http://localhost:5173/chat` local-dev authenticated akışında `320x700`, `768x900`, `1440x1000` viewport smoke PASS. `hashCleared=true`, chat header ve composer görünür, ana chat yüzeyinde `Raw Transport` / `Model Override` yok, console error/pageerror `0`. Screenshot kanıtları local ve gitignore altında: `apps/web/.qa-screenshots-auth-chat/`.
+- Kalan not: `primitive:coverage` native interactive kullanımının hâlâ primitive kullanımından yüksek olduğunu raporluyor; bu UI-OVERHAUL-03 done kriterinde fail değil, UI-04/05 split-polish sırasında doğal migration metriği olarak izlenmeli.
+
+#### UI-OVERHAUL-03 Strict Source Cleanup Follow-up - 28 Nisan 2026
+
+- Onceki closure notundaki `style=`, `CSSProperties` ve `chat-styles` sifirlamasi dogruydu; ancak kaynakta kalan `const ...Style =` ve `function ...Style(s)` TS-as-CSS helper kalintilari bu turda ayrica temizlendi.
+- `scripts/ci/style-check.mjs` sertlestirildi: artik `apps/web/src/components/**` ve `apps/web/src/pages/**` altinda `style=`, `CSSProperties`, `chat-styles`, `const ...Style =` ve `function ...Style(s)` pattern'leri fail verir.
+- `RunaIcon` icin eksik `RunaIcon.module.css` eklendi ve wrapper className'i CSS Module + `cx()` ile baglandi. 9 yeni primitive'in her biri artik `*.tsx` ve `*.module.css` eslikcisine sahip.
+- `AppShell` ve component/page seviyesindeki eski exported/imported style object artifaktlari kaldirildi; `PresentationBlockRenderer`, `PersistedTranscript`, `ChatWorkspaceHeader`, `DesktopTargetSelector`, capability kartlari ve auth/account/device/history yuzeylerindeki kullanilmayan TS style helper izleri temizlendi.
+- Strict tarama sonucu: `Select-String` ile `const .*Style\s*=`, `function .*Styles?\s*\(`, `\bstyle\s*=`, `CSSProperties`, `chat-styles` pattern'leri icin component/page scope'unda `0` sonuc.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`9` dosya / `22` test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd run style:check` PASS (`violations=0`, sert pattern setiyle)
+  - `pnpm.cmd run manifesto:check` PASS (`violations=0`)
+  - `pnpm.cmd run primitive:coverage` REPORT (`primitive_total=27`, `native_interactive_total=39`, non-blocking takip metrigi)
+- Browser QA: local server + Vite ile `http://localhost:5173/chat` uzerinde `320x700`, `768x900`, `1440x1000` viewport'lari hem `dark` hem `light` theme icin PASS. Composer ve chat surface gorunur, `hashCleared=true`, `data-theme` beklenen theme, ana chat yuzeyinde `Raw Transport` / `Model Override` / `minimum seam` / `ham transport` yok, console error/pageerror `0`. `/developer` route reachable.
+- Browser QA notu: Bu UI render smoke'unda `GET /conversations` Playwright icinde bos persistence response'u ile izole edildi. Izolasyonsuz local-dev denemede `/conversations` endpoint'i `CONVERSATION_PERSISTENCE_UNAVAILABLE` / local DB unavailable nedeniyle `500` dondu; bu UI-OVERHAUL-03 source cleanup kapsamindan bagimsiz ortam/persistence kanitidir.
+
+#### UI-OVERHAUL-04 Chat Visual Hierarchy & Block Decomposition - 29 Nisan 2026
+
+- `PresentationBlockRenderer.tsx` monolit renderer olmaktan cikarildi ve 49 satirlik compatibility/utility export kabuguna indirildi. Asil render sorumlulugu `apps/web/src/components/chat/blocks/**` altindaki block-bazli component'lere tasindi.
+- Mevcut `RenderBlock` union'indaki tipler icin ayri block dosyalari eklendi: text, status, event list, code/code artifact, diff, file download/reference, inspection detail, plan, run timeline, search result, table, web search, trace debug, workspace inspection, approval ve tool result. `BlockRenderer.tsx` artik yalniz dispatcher seviyesinde kalir.
+- `chat-presentation.tsx` 571 satirlik helper monolitinden re-export kabuguna indirildi. Transport summary, inspection meta ve presentation rendering yardimcilari `chat-presentation/transport-summary.ts`, `inspection-meta.ts`, `rendering.tsx` ve `types.ts` dosyalarina ayrildi.
+- `MarkdownRenderer.tsx` parser, inline renderer ve block renderer parcalarina bolundu: `markdown/parser.ts`, `markdown/inline.tsx`, `markdown/blocks.tsx`, `markdown/types.ts`. Markdown tablo/code/link davranisi testlerle korunuyor.
+- Approval UX chat-native hale getirildi: `ApprovalBlock.tsx` inline accept/reject aksiyonu ve `RunaDisclosure` ile detaylari sunuyor; server-side approval karar mantigi ve WS contract'i degismedi.
+- Code block presentation'i genislendi: language badge, line count, copy button, line numbers, soft wrap toggle ve 20 satir ustu bloklarda collapsed-by-default "Show all" affordance'i var.
+- Tool result karti collapsed-by-default payload disclosure ile sade yuzeye tasindi. Thinking block aktif durumda typing indicator, tamamlanmis durumda disclosure karti kullaniyor ve `prefers-reduced-motion` CSS fallback'i var.
+- EmptyState onboarding-like 6 segment karta genisletildi: kod/review, arastirma, dokuman, masaustu gorev, dosya analizi ve onceki konusmadan devam akislari.
+- `ChatPage.tsx` state/effect agirligi azaltildi: desktop device loading `useDesktopDevices`, voice/TTS `useTextToSpeechIntegration`, inspection state `useChatPageInspection` hook'larina tasindi. Sayfa 431 satirdan 295 satira indi.
+- Line-count kapisi: `apps/web/src/components/**` ve `apps/web/src/pages/**` altinda 500 satiri asan TS/TSX dosya yok; en buyuk component/page dosyasi `ConversationSidebar.tsx` 390 satir. `PresentationBlockRenderer.tsx` 49 satir.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`9` dosya / `22` test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd run style:check` PASS (`violations=0`)
+- Browser QA: Vite fixture `http://localhost:5173/tests/visual/ui-overhaul-04-fixture.html` ile `320x700`, `768x900`, `1440x1000` viewport'larinda PASS. Empty state gorunur, 6 suggestion karti var, long code block collapsed ve copy affordance'i gorunur, approval inline accept/reject gorunur, tool payload disclosure gorunur, console error/pageerror `0`, yatay overflow yok. Screenshot kanitlari `apps/web/.qa-screenshots-auth-chat/ui-overhaul-04-fixture-*.png` altinda.
+- Degistirilmeyen alanlar: `apps/server/**`, `packages/**`, `apps/desktop-agent/**` ve `packages/types/src/blocks.ts` sozlesmesi degistirilmedi. Yeni dependency eklenmedi.
+
+#### UI-OVERHAUL-05 Mobile & Responsive Interaction QA - 29 Nisan 2026
+
+- Mobile chat shell responsive davranisi tek source uzerinden sertlestirildi. `ChatLayout` mobile sidebar acikken body scroll lock uygular, backdrop/overlay durumunu `data-sidebar-open` ile sabitler ve Escape ile kapanir.
+- Primary nav `AppNav` icin mobile bottom navigation stilleri eklendi; touch target'lar 44px altina dusmeyecek sekilde chat actions, suggestion cards, conversation item'lari ve nav item'lari kapsandi.
+- Composer mobile'da safe-area bottom ile sticky hale getirildi; textarea font-size 16px altina dusmez ve iOS auto-zoom riski azaltildi.
+- `RunaModal` ve `RunaSheet` mobile body lock, Escape/backdrop davranisini koruyarak bottom-sheet benzeri handle ve swipe-down close affordance'i kazandi. Desktop modal/sheet davranisi korunur.
+- `apps/web/tests/visual/ui-overhaul-05-fixture.html` ve `ui-overhaul-05-fixture.tsx` eklendi. Fixture gercek `AppNav`, `ChatLayout`, `ConversationSidebar`, `RunaModal` ve `RunaSheet` component'leriyle responsive QA yuzeyi olusturur.
+- `apps/web/tests/visual/chat-responsive.spec.ts` eklendi. `320x568`, `414x896`, `768x1024`, `1280x800` viewport'larinda composer/work surface/sidebar/modal/sheet gorunurlugu, mobile sticky composer, 16px textarea, 44px touch target, Escape close ve yatay overflow kontrolleri yapar. Screenshot'lar `apps/web/tests/visual/__screenshots__/ui-overhaul-05-*.png` altinda.
+- Playwright config daraltildi: repo kokundeki `.claude/worktrees/**` icindeki eski spec'lerin ana E2E kosusuna karismamasi icin `testMatch` ve `testIgnore` netlestirildi.
+- E2E approval smoke, yeni UI metnine gore guncellendi ve onay durumunu exact text ile tekil yakalar. Presentation block render listesine `block.id` tabanli React key eklendi; E2E sirasinda yakalanan key warning'i kapatildi.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`9` dosya / `22` test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd run style:check` PASS (`violations=0`)
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/chat-responsive.spec.ts --config playwright.config.ts` PASS (`4` test)
+  - `pnpm.cmd test:e2e` PASS (`6` test; auth bootstrap, approval completion, responsive visual spec)
+- Lighthouse mobile audit:
+  - Repo-local `pnpm.cmd --filter @runa/web exec lighthouse --version` komutu `Command "lighthouse" not found` verdi; package dependency eklenmedi.
+  - Paket dosyalarini degistirmeden `pnpm.cmd dlx lighthouse http://localhost:5173 --form-factor=mobile ...` ile rapor uretildi. Lighthouse `13.1.0` skorlar: Performance `51`, Accessibility `94`. Raporlar: `apps/web/lighthouse-mobile.report.html` ve `apps/web/lighthouse-mobile.report.json`.
+  - Lighthouse CLI, rapor dosyalarini yazdiktan sonra Windows temp klasoru cleanup sirasinda `EPERM` ile exit code `1` dondu; skorlar JSON raporundan okunarak kayda gecildi. Hedef altinda kalan skorlar uydurulmadi.
+- Degistirilmeyen alanlar: `apps/server/**`, `packages/**`, `apps/desktop-agent/**` dokunulmadi. Yeni dependency eklenmedi.
+
+#### UI-OVERHAUL-06 Brand Polish & Onboarding - 29 Nisan 2026
+
+- Inter variable font self-host edildi: `apps/web/public/fonts/inter/Inter-Variable.woff2` eklendi, `apps/web/src/styles/fonts.css` ile `font-display: swap` tanimlandi ve Google Fonts CDN/preconnect satirlari `apps/web/index.html` icinden kaldirildi.
+- Typography tokenlari Inter uzerinden sadeleştirildi: `--font-sans`, heading/body scale tokenlari, line-height tokenlari ve `--tracking-heading: 0` eklendi. Viewport-width font scaling kullanan aktif style noktalar temizlendi.
+- Brand asset seami eklendi: `apps/web/src/assets/runa-logo.svg` ve public `favicon.svg` Runa markasina hizalandi.
+- LoginPage tek odakli marka/form yuzeyine indirildi. Dev/token yolları `Diger giris yontemleri` disclosure altinda kalir; email/password ve OAuth akisi onde. Line-count: `LoginPage.tsx` 212 satir.
+- Post-signup onboarding wizard eklendi: `apps/web/src/components/onboarding/OnboardingWizard.tsx`. Ilk authenticated acilista `runa.onboarding.completed` localStorage flag'i yoksa 4 adimli wizard render olur; workspace adi/amaci, desktop companion opt-in ve UI-OVERHAUL-04 ile uyumlu ilk prompt kartlari vardir. Backend metadata/API kontrati acilmadi.
+- Settings sayfasi tab'li yuzeye tasindi: Account, Preferences, Devices, Project Memory, Developer. Theme toggle mevcut `lib/theme` helper'lariyla calisir; Devices/Project Memory tab'lari veri uydurmaz ve ilgili gercek yuzeylere/linklere bagli kalir.
+- Skeleton loading 5+ yerde aktif: conversation list, member list, message history, device presence, project memory ve account/settings pending state. Semantic `output` + `aria-busy` kullanildi.
+- Motion choreography guncellendi: route fade, message arrival slide-up 220ms emphasized easing, approval reveal scale/fade ve reduced-motion fallback. Token source `apps/web/src/lib/motion.ts` guncellendi.
+- Initial load performansi icin authenticated route'lar ve onboarding route-level lazy chunk'lara ayrildi. Ana web bundle gzip boyutu `123.44 kB` seviyesinden `75.03 kB` seviyesine indi; Chat/Settings/Onboarding ayri chunk'lara tasindi.
+- Visual QA: `apps/web/tests/visual/ui-overhaul-06-fixture.html`, `ui-overhaul-06-fixture.tsx` ve `brand-onboarding.spec.ts` eklendi. `320x568`, `768x1024`, `1440x900` viewport'larinda login, onboarding, chat, settings tabs, console error ve yatay overflow kontrolleri PASS. Screenshot'lar `apps/web/tests/visual/__screenshots__/ui-overhaul-06-*.png` altinda.
+- Axe smoke: `axe-core 4.11.3` Playwright icine enjekte edilerek `http://127.0.0.1:4175` production preview uzerinde kosuldu; sonuc `violations=0`. `@axe-core/cli` once chromedriver build-script engeline, sonra ChromeDriver 148 / Chrome 147 uyumsuzluguna takildigi icin repo dependency eklenmeden Playwright injection yolu kullanildi.
+- Lighthouse final production-preview skorlari (`pnpm.cmd dlx lighthouse`, Lighthouse `13.1.0`, `http://127.0.0.1:4175`):
+  - Desktop: Performance `99`, Accessibility `100`, Best Practices `96`, SEO `92`.
+  - Mobile: Performance `79`, Accessibility `100`, Best Practices `96`, SEO `92`.
+  - Lighthouse HTML/JSON raporlari `apps/web/lighthouse-desktop-final.report.*` ve `apps/web/lighthouse-mobile-final2.report.*` altinda. CLI yine rapor yazdiktan sonra Windows temp cleanup `EPERM` nedeniyle exit code `1` dondu; skorlar JSON raporlarindan okundu.
+  - Mobile Performance 90+ hedefi bu turda yakalanmadi. Ana neden Lighthouse mobile simülasyonunda FCP/LCP'nin ~3.8-3.9s kalmasi ve global `index` CSS chunk'inin halen render-blocking buyuk olmasi. Takip seami: global `inline-migration.css`/legacy style yuzeyini route/component bazli CSS chunk'lara ayirma veya kritik CSS stratejisi.
+- Dogrulama yesil:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`9` dosya / `22` test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd run style:check` PASS (`violations=0`)
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/brand-onboarding.spec.ts --config playwright.config.ts` PASS (`3` test)
+  - `pnpm.cmd test:e2e` PASS (`9` test; chat approval E2E + UI-OVERHAUL-05/06 visual specs)
+- Degistirilmeyen alanlar: `apps/server/**`, `packages/**`, `apps/desktop-agent/**` dokunulmadi. Yeni repo dependency eklenmedi.
+- Sonuc: UI-OVERHAUL-04/05/06 serisi kod, UX, visual QA, a11y ve repo validation acisindan kapandi; mobile Lighthouse Performance 90+ icin yukaridaki CSS performance follow-up'u ayrica izlenmelidir.
 
 ### Arsivlenen Audit Gaplari (18 Nisan 2026)
 

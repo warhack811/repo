@@ -11,7 +11,8 @@
 				"noExplicitAny": "error"
 			},
 			"complexity": {
-				"noForEach": "warn"
+				"noForEach": "warn",
+				"useLiteralKeys": "off"
 			}
 		}
 	},

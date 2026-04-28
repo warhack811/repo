@@ -1,6 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactElement } from 'react';
-
-import { designTokens } from '../../../lib/design-tokens.js';
+import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge, RunaCard } from '../../ui/index.js';
 import type { ActiveTaskQueueItem, CapabilityStatus, CapabilityTone } from './types.js';
 
@@ -10,49 +8,6 @@ export type ActiveTaskQueueProps = Readonly<
 		title?: string;
 	}
 >;
-
-const queueStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.md,
-};
-
-const headingStyle: CSSProperties = {
-	color: designTokens.color.foreground.strong,
-	fontSize: '15px',
-	fontWeight: 700,
-	margin: 0,
-};
-
-const listStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.sm,
-	listStyle: 'none',
-	margin: 0,
-	padding: 0,
-};
-
-const itemStyle: CSSProperties = {
-	alignItems: 'flex-start',
-	background: 'rgba(15, 23, 42, 0.42)',
-	border: `1px solid ${designTokens.color.border.soft}`,
-	borderRadius: designTokens.radius.soft,
-	display: 'grid',
-	gap: designTokens.spacing.xs,
-	gridTemplateColumns: 'minmax(0, 1fr) auto',
-	padding: designTokens.spacing.md,
-};
-
-const itemTitleStyle: CSSProperties = {
-	color: designTokens.color.foreground.text,
-	fontWeight: 700,
-	lineHeight: 1.4,
-};
-
-const itemDescriptionStyle: CSSProperties = {
-	color: designTokens.color.foreground.muted,
-	fontSize: designTokens.typography.small.fontSize,
-	lineHeight: designTokens.typography.small.lineHeight,
-};
 
 function getStatusTone(status: CapabilityStatus): CapabilityTone {
 	switch (status) {
@@ -83,19 +38,30 @@ export function ActiveTaskQueue({
 	return (
 		<RunaCard
 			{...queueProps}
-			className={['runa-active-task-queue', className].filter(Boolean).join(' ')}
-			style={style}
+			className={[
+				['runa-active-task-queue', className].filter(Boolean).join(' '),
+				'runa-migrated-components-chat-capability-activetaskqueue-1',
+			]
+				.filter(Boolean)
+				.join(' ')}
 			tone="subtle"
 		>
-			<div style={queueStyle}>
-				<h3 style={headingStyle}>{title}</h3>
-				<ul style={listStyle}>
+			<div className="runa-migrated-components-chat-capability-activetaskqueue-2">
+				<h3 className="runa-migrated-components-chat-capability-activetaskqueue-3">{title}</h3>
+				<ul className="runa-migrated-components-chat-capability-activetaskqueue-4">
 					{items.map((item) => (
-						<li key={item.id} style={itemStyle}>
+						<li
+							key={item.id}
+							className="runa-migrated-components-chat-capability-activetaskqueue-5"
+						>
 							<div>
-								<div style={itemTitleStyle}>{item.title}</div>
+								<div className="runa-migrated-components-chat-capability-activetaskqueue-6">
+									{item.title}
+								</div>
 								{item.description ? (
-									<div style={itemDescriptionStyle}>{item.description}</div>
+									<div className="runa-migrated-components-chat-capability-activetaskqueue-7">
+										{item.description}
+									</div>
 								) : null}
 							</div>
 							<RunaBadge tone={item.tone ?? getStatusTone(item.status)}>{item.status}</RunaBadge>

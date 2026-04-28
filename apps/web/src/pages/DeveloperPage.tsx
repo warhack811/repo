@@ -1,16 +1,7 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 
 import type { AuthContext } from '@runa/types';
-
-import {
-	appShellButtonRowStyle,
-	appShellMetricCardStyle,
-	appShellMutedTextStyle,
-	appShellPanelStyle,
-	appShellSecondaryButtonStyle,
-	appShellSecondaryLabelStyle,
-} from '../components/app/AppShell.js';
 import { OperatorControlsPanel } from '../components/developer/OperatorControlsPanel.js';
 import { TransportMessagesPanel } from '../components/developer/TransportMessagesPanel.js';
 import type { UseChatRuntimeResult } from '../hooks/useChatRuntime.js';
@@ -22,24 +13,6 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
-
-const sectionGridStyle: CSSProperties = {
-	display: 'grid',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
-	gap: '20px',
-};
-
-const codeStyle: CSSProperties = {
-	display: 'block',
-	padding: '10px 12px',
-	borderRadius: '12px',
-	background: 'rgba(2, 6, 23, 0.68)',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	color: '#bfdbfe',
-	fontSize: '13px',
-	overflowX: 'auto',
-	maxHeight: '240px',
-};
 
 type DeveloperPageProps = Readonly<{
 	authContext: AuthContext;
@@ -86,31 +59,30 @@ export function DeveloperPage({
 
 	return (
 		<>
-			<section style={appShellPanelStyle} aria-labelledby="developer-mode-heading">
-				<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-					<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.heading}</div>
-					<h2 id="developer-mode-heading" style={{ margin: 0, fontSize: '24px' }}>
+			<section
+				className="runa-migrated-pages-developerpage-1"
+				aria-labelledby="developer-mode-heading"
+			>
+				<div className="runa-migrated-pages-developerpage-2">
+					<div className="runa-migrated-pages-developerpage-3">{uiCopy.developer.heading}</div>
+					<h2 id="developer-mode-heading" className="runa-migrated-pages-developerpage-4">
 						{uiCopy.developer.heading}
 					</h2>
-					<p style={appShellMutedTextStyle}>{uiCopy.developer.description}</p>
+					<p className="runa-migrated-pages-developerpage-5">{uiCopy.developer.description}</p>
 				</div>
 
-				<div style={sectionGridStyle}>
-					<div style={appShellMetricCardStyle}>
-						<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.provider}</div>
-						<div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
-							{runtimeConfig.provider}
-						</div>
+				<div className="runa-migrated-pages-developerpage-6">
+					<div className="runa-migrated-pages-developerpage-7">
+						<div className="runa-migrated-pages-developerpage-8">{uiCopy.developer.provider}</div>
+						<div className="runa-migrated-pages-developerpage-9">{runtimeConfig.provider}</div>
 					</div>
-					<div style={appShellMetricCardStyle}>
-						<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.model}</div>
-						<div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
-							{runtimeConfig.model}
-						</div>
+					<div className="runa-migrated-pages-developerpage-10">
+						<div className="runa-migrated-pages-developerpage-11">{uiCopy.developer.model}</div>
+						<div className="runa-migrated-pages-developerpage-12">{runtimeConfig.model}</div>
 					</div>
-					<div style={appShellMetricCardStyle}>
-						<div style={appShellSecondaryLabelStyle}>Token</div>
-						<div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
+					<div className="runa-migrated-pages-developerpage-13">
+						<div className="runa-migrated-pages-developerpage-14">Token</div>
+						<div className="runa-migrated-pages-developerpage-15">
 							{hasStoredBearerToken ? uiCopy.auth.storedToken : uiCopy.auth.noStoredToken}
 						</div>
 					</div>
@@ -118,11 +90,14 @@ export function DeveloperPage({
 			</section>
 
 			{!isDeveloperMode ? (
-				<section style={appShellPanelStyle} aria-label="Developer Mode disabled">
-					<div style={{ display: 'grid', gap: '10px' }}>
-						<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.heading}</div>
-						<h2 style={{ margin: 0, fontSize: '20px' }}>Developer Mode kapalı</h2>
-						<p style={appShellMutedTextStyle}>
+				<section
+					className="runa-migrated-pages-developerpage-16"
+					aria-label="Developer Mode disabled"
+				>
+					<div className="runa-migrated-pages-developerpage-17">
+						<div className="runa-migrated-pages-developerpage-18">{uiCopy.developer.heading}</div>
+						<h2 className="runa-migrated-pages-developerpage-19">Developer Mode kapalı</h2>
+						<p className="runa-migrated-pages-developerpage-20">
 							Runtime konfigürasyonu, ham transport ve troubleshooting panelleri bu tarayıcıda
 							sadece Developer Mode açıkken görünür.
 						</p>
@@ -143,24 +118,28 @@ export function DeveloperPage({
 						onProviderChange={runtime.setProvider}
 					/>
 
-					<section style={appShellPanelStyle} aria-labelledby="developer-troubleshooting-heading">
-						<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-							<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.troubleshooting}</div>
-							<h2 id="developer-troubleshooting-heading" style={{ margin: 0, fontSize: '20px' }}>
+					<section
+						className="runa-migrated-pages-developerpage-21"
+						aria-labelledby="developer-troubleshooting-heading"
+					>
+						<div className="runa-migrated-pages-developerpage-22">
+							<div className="runa-migrated-pages-developerpage-23">
+								{uiCopy.developer.troubleshooting}
+							</div>
+							<h2
+								id="developer-troubleshooting-heading"
+								className="runa-migrated-pages-developerpage-24"
+							>
 								{uiCopy.developer.troubleshooting}
 							</h2>
 						</div>
 
-						<div style={appShellButtonRowStyle}>
+						<div className="runa-migrated-pages-developerpage-25">
 							<button
 								type="button"
 								onClick={() => void onRefreshAuthContext()}
 								disabled={isAuthPending}
-								style={{
-									...appShellSecondaryButtonStyle,
-									opacity: isAuthPending ? 0.6 : 1,
-									width: '100%',
-								}}
+								className="runa-migrated-pages-developerpage-26"
 							>
 								{uiCopy.developer.refreshAuthContext}
 							</button>
@@ -168,53 +147,48 @@ export function DeveloperPage({
 								type="button"
 								onClick={() => void onClearAuthToken()}
 								disabled={isAuthPending}
-								style={{
-									...appShellSecondaryButtonStyle,
-									opacity: isAuthPending ? 0.6 : 1,
-									width: '100%',
-								}}
+								className="runa-migrated-pages-developerpage-27"
 							>
 								{uiCopy.developer.clearLocalToken}
 							</button>
 						</div>
 
 						{authError ? (
-							<div
-								role="alert"
-								style={{
-									marginTop: '16px',
-									padding: '12px 14px',
-									borderRadius: '14px',
-									background: 'rgba(127, 29, 29, 0.28)',
-									border: '1px solid rgba(248, 113, 113, 0.36)',
-									color: '#fecaca',
-									lineHeight: 1.5,
-								}}
-							>
+							<div role="alert" className="runa-migrated-pages-developerpage-28">
 								{authError}
 							</div>
 						) : null}
 					</section>
 
-					<section style={sectionGridStyle}>
-						<article style={appShellPanelStyle}>
-							<div style={{ display: 'grid', gap: '10px' }}>
-								<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.scope}</div>
-								<code style={codeStyle}>{stringifyScope(authContext)}</code>
+					<section className="runa-migrated-pages-developerpage-29">
+						<article className="runa-migrated-pages-developerpage-30">
+							<div className="runa-migrated-pages-developerpage-31">
+								<div className="runa-migrated-pages-developerpage-32">{uiCopy.developer.scope}</div>
+								<code className="runa-migrated-pages-developerpage-33">
+									{stringifyScope(authContext)}
+								</code>
 							</div>
 						</article>
 
-						<article style={appShellPanelStyle}>
-							<div style={{ display: 'grid', gap: '10px' }}>
-								<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.claims}</div>
-								<code style={codeStyle}>{stringifyClaims(authContext)}</code>
+						<article className="runa-migrated-pages-developerpage-34">
+							<div className="runa-migrated-pages-developerpage-35">
+								<div className="runa-migrated-pages-developerpage-36">
+									{uiCopy.developer.claims}
+								</div>
+								<code className="runa-migrated-pages-developerpage-37">
+									{stringifyClaims(authContext)}
+								</code>
 							</div>
 						</article>
 
-						<article style={appShellPanelStyle}>
-							<div style={{ display: 'grid', gap: '10px' }}>
-								<div style={appShellSecondaryLabelStyle}>{uiCopy.developer.userMetadata}</div>
-								<code style={codeStyle}>{stringifyUserMetadata(authContext)}</code>
+						<article className="runa-migrated-pages-developerpage-38">
+							<div className="runa-migrated-pages-developerpage-39">
+								<div className="runa-migrated-pages-developerpage-40">
+									{uiCopy.developer.userMetadata}
+								</div>
+								<code className="runa-migrated-pages-developerpage-41">
+									{stringifyUserMetadata(authContext)}
+								</code>
 							</div>
 						</article>
 					</section>

@@ -5,6 +5,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';
 const activeConversationStorageKey = 'runa.chat.active_conversation_id';
+const onboardingCompletedStorageKey = 'runa.onboarding.completed';
 const proofFilePath = join(os.tmpdir(), 'runa-e2e-proof', 'approval-proof.txt');
 
 async function bootstrapLocalDevChat(page: Page): Promise<void> {
@@ -15,8 +16,9 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 	}
 
 	await page.addInitScript(
-		([conversationStorageKey, storageKey]) => {
+		([conversationStorageKey, onboardingStorageKey, storageKey]) => {
 			window.localStorage.removeItem(conversationStorageKey);
+			window.localStorage.setItem(onboardingStorageKey, 'true');
 			window.localStorage.setItem(
 				storageKey,
 				JSON.stringify({
@@ -27,16 +29,14 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 				}),
 			);
 		},
-		[activeConversationStorageKey, runtimeConfigStorageKey],
+		[activeConversationStorageKey, onboardingCompletedStorageKey, runtimeConfigStorageKey],
 	);
 
 	await page.goto(
 		`/auth/dev/bootstrap?redirect_to=${encodeURIComponent(new URL('/chat', baseUrl).toString())}`,
 	);
 	await page.waitForURL('**/chat');
-	await expect(
-		page.getByRole('heading', { name: 'Bugun neyi birlikte ilerletelim?' }),
-	).toBeVisible();
+	await expect(page.getByText('Bugun ne yapmak istersin?')).toBeVisible();
 	await expect(page.locator('textarea')).toBeVisible();
 	await expect(page.getByRole('button', { name: /send|gonder|g.nder/i })).toBeEnabled({
 		timeout: 20_000,
@@ -67,7 +67,7 @@ test('chat submit reaches approval and completes after approve', async ({ page }
 	await expect(approveButton).toBeVisible({ timeout: 20_000 });
 	await approveButton.click();
 
-	await expect(page.getByText(/Kabul edildi/i)).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText('Kabul edildi', { exact: true })).toBeVisible({ timeout: 20_000 });
 	await expect(page.getByText('file.write completed successfully.')).toBeVisible({
 		timeout: 20_000,
 	});

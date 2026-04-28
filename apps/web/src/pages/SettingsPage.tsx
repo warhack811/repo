@@ -1,40 +1,19 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { AuthContext } from '@runa/types';
-
-import {
-	appShellButtonRowStyle,
-	appShellMutedTextStyle,
-	appShellPanelStyle,
-	appShellSecondaryButtonStyle,
-	appShellSecondaryLabelStyle,
-} from '../components/app/AppShell.js';
 import { ProfileCard } from '../components/auth/ProfileCard.js';
+import { DevicePresencePanel } from '../components/desktop/DevicePresencePanel.js';
+import { ProjectMemorySummary } from '../components/settings/ProjectMemorySummary.js';
+import { RunaSkeleton } from '../components/ui/RunaSkeleton.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
 import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
-import { pillStyle } from '../lib/chat-styles.js';
+import { type Theme, applyTheme, getStoredTheme, storeTheme } from '../lib/theme.js';
 import { uiCopy } from '../localization/copy.js';
 
-const sectionGridStyle: CSSProperties = {
-	display: 'grid',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
-	gap: '20px',
-};
-
-const heroMetricRowStyle: CSSProperties = {
-	display: 'flex',
-	flexWrap: 'wrap',
-	gap: '10px',
-	marginTop: '16px',
-};
-
-const destructiveButtonStyle: CSSProperties = {
-	...appShellSecondaryButtonStyle,
-	border: '1px solid rgba(248, 113, 113, 0.36)',
-	color: '#fecaca',
-};
+type SettingsTab = 'account' | 'developer' | 'devices' | 'memory' | 'preferences';
 
 type SettingsPageProps = Readonly<{
 	authContext: AuthContext;
@@ -43,15 +22,15 @@ type SettingsPageProps = Readonly<{
 	onLogout: () => Promise<void>;
 }>;
 
-function getDesktopDevices(state: DesktopDevicesState): readonly DesktopDevicePresenceSnapshot[] {
-	return state.status === 'success' ? state.devices : [];
-}
+const tabs: readonly { id: SettingsTab; label: string }[] = [
+	{ id: 'account', label: 'Account' },
+	{ id: 'preferences', label: 'Preferences' },
+	{ id: 'devices', label: 'Devices' },
+	{ id: 'memory', label: 'Project Memory' },
+	{ id: 'developer', label: 'Developer' },
+];
 
-function getDesktopDeviceError(state: DesktopDevicesState): string | null {
-	return state.status === 'error' ? state.message : null;
-}
-
-const THEME_OPTIONS: { value: Theme; label: string }[] = [
+const themeOptions: readonly { value: Theme; label: string }[] = [
 	{ value: 'system', label: 'Sistem' },
 	{ value: 'dark', label: 'Koyu' },
 	{ value: 'light', label: 'Açık' },
@@ -63,6 +42,8 @@ export function SettingsPage({
 	isAuthPending,
 	onLogout,
 }: SettingsPageProps): ReactElement {
+	const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+	const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 	const { isDeveloperMode, toggleDeveloperMode } = useDeveloperMode();
 	const {
 		autoReadEnabled,
@@ -74,173 +55,160 @@ export function SettingsPage({
 	} = useTextToSpeech();
 	const voiceInput = useVoiceInput();
 
+	function selectTheme(nextTheme: Theme): void {
+		setTheme(nextTheme);
+		storeTheme(nextTheme);
+		applyTheme(nextTheme);
+	}
+
 	return (
 		<>
 			<section
-				style={{
-					...appShellPanelStyle,
-					background:
-						'radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 30%), linear-gradient(180deg, rgba(20, 26, 40, 0.92) 0%, rgba(15, 23, 42, 0.8) 100%)',
-				}}
 				aria-labelledby="account-heading"
-				className="runa-card runa-card--hero runa-ambient-panel"
+				className="runa-card runa-card--hero runa-ambient-panel runa-settings-hero"
 			>
-				<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-					<div style={appShellSecondaryLabelStyle}>{uiCopy.account.heading}</div>
-					<h2 id="account-heading" style={{ margin: 0, fontSize: '24px' }}>
-						{uiCopy.account.heading}
-					</h2>
-					<p style={appShellMutedTextStyle}>{uiCopy.account.description}</p>
+				<div>
+					<div className="runa-eyebrow">{uiCopy.account.heading}</div>
+					<h2 id="account-heading">{uiCopy.account.heading}</h2>
+					<p>{uiCopy.account.description}</p>
 				</div>
-
-				<div style={heroMetricRowStyle}>
-					<span style={pillStyle}>
-						{authContext.principal.kind === 'authenticated' ? 'Oturum acik' : 'Sinirli oturum'}
+				<div className="runa-inline-cluster">
+					<span className="runa-pill">
+						{authContext.principal.kind === 'authenticated' ? 'Oturum açık' : 'Sınırlı oturum'}
 					</span>
-					<span style={{ ...pillStyle, borderColor: 'rgba(96, 165, 250, 0.26)', color: '#bfdbfe' }}>
-						Tarayici hazir
-					</span>
+					<span className="runa-pill">Tarayıcı hazır</span>
 				</div>
-
-				<div style={appShellButtonRowStyle}>
-					<button
-						type="button"
-						onClick={() => void onLogout()}
-						disabled={isAuthPending}
-						style={{
-							...destructiveButtonStyle,
-							opacity: isAuthPending ? 0.6 : 1,
-							width: '100%',
-						}}
-						className="runa-button runa-button--secondary runa-button--danger"
-					>
-						{uiCopy.account.logout}
-					</button>
-				</div>
-
 				{authError ? (
-					<div
-						role="alert"
-						style={{
-							marginTop: '16px',
-							lineHeight: 1.5,
-						}}
-						className="runa-alert runa-alert--danger"
-					>
+					<div role="alert" className="runa-alert runa-alert--danger">
 						<strong>{uiCopy.account.authErrorTitle}: </strong>
 						{authError}
 					</div>
 				) : null}
 			</section>
 
-			<section style={sectionGridStyle}>
-				<ProfileCard authContext={authContext} />
-
-				<section
-					style={appShellPanelStyle}
-					className="runa-card runa-card--subtle"
-					aria-labelledby="voice-preferences-heading"
-				>
-					<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
-						<div style={appShellSecondaryLabelStyle}>Tercihler</div>
-						<h2 id="voice-preferences-heading" style={{ margin: 0, fontSize: '20px' }}>
-							Ses tercihleri
-						</h2>
-						<p style={appShellMutedTextStyle}>
-							Sohbet varsayilan olarak metinle baslar. Sesli giris ve yanit okuma bu ikincil ayar
-							katmaninda kalir.
-						</p>
-					</div>
-
-					<div style={{ display: 'grid', gap: '14px' }}>
-						<label className="runa-settings-row">
-							<div style={{ display: 'grid', gap: '6px' }}>
-								<span style={{ color: '#f8fafc', fontWeight: 700 }}>
-									Yeni yanitlari otomatik oku
-								</span>
-								<span style={appShellMutedTextStyle}>
-									Yalniz bu tarayici sesli okuma destekliyorsa calisir.
-								</span>
-							</div>
-							<input
-								type="checkbox"
-								checked={autoReadEnabled}
-								onChange={(event) => setAutoReadEnabled(event.target.checked)}
-								disabled={!isTextToSpeechSupported}
-							/>
-						</label>
-
-						<div className="runa-settings-row runa-settings-row--stacked">
-							<div style={{ color: '#f8fafc', fontWeight: 700 }}>Tarayici yetenekleri</div>
-							<div style={appShellMutedTextStyle}>
-								Mikrofon: {voiceInput.isSupported ? 'hazir' : 'desteklenmiyor'}
-							</div>
-							<div style={appShellMutedTextStyle}>
-								Sesli okuma: {isTextToSpeechSupported ? 'hazir' : 'desteklenmiyor'}
-							</div>
-							{voiceInput.permissionDenied ? (
-								<div className="runa-alert runa-alert--warning">
-									Mikrofon izni reddedildi. Metinle sohbet akisi etkilenmeden devam eder.
-								</div>
-							) : null}
-							{isSpeaking ? (
-								<button
-									type="button"
-									onClick={cancelTextToSpeech}
-									style={appShellSecondaryButtonStyle}
-									className="runa-button runa-button--secondary"
-								>
-									Okumayi durdur
-								</button>
-							) : null}
-							{(voiceInput.errorMessage ?? textToSpeechErrorMessage) ? (
-								<div className="runa-subtle-copy">
-									{voiceInput.errorMessage ?? textToSpeechErrorMessage}
-								</div>
-							) : null}
-						</div>
-					</div>
-				</section>
-
-				<section
-					style={appShellPanelStyle}
-					className="runa-card runa-card--subtle"
-					aria-labelledby="developer-settings-heading"
-				>
-					<div style={{ display: 'grid', gap: '10px' }}>
-						<div style={appShellSecondaryLabelStyle}>Developer</div>
-						<h2 id="developer-settings-heading" style={{ margin: 0, fontSize: '20px' }}>
-							Gelistirici yuzeyleri
-						</h2>
-						<p style={appShellMutedTextStyle}>
-							Gelistirici modu ve ham teknik gorunumler ikinci katmanda kalir; ana sohbet alani
-							sakin bir calisma ortagi gibi davranmaya devam eder.
-						</p>
-					</div>
-					<label className="runa-settings-row">
-						<div style={{ display: 'grid', gap: '6px' }}>
-							<span style={{ color: '#f8fafc', fontWeight: 700 }}>Developer Mode</span>
-							<span style={appShellMutedTextStyle}>
-								Aktif oldugunda runtime ayarlari ve ham teknik gorunumler ayri sayfada acilir.
-							</span>
-						</div>
-						<input type="checkbox" checked={isDeveloperMode} onChange={toggleDeveloperMode} />
-					</label>
-					<div style={appShellButtonRowStyle}>
-						<Link
-							to="/developer"
-							style={{
-								...appShellSecondaryButtonStyle,
-								opacity: isDeveloperMode ? 1 : 0.64,
-								textAlign: 'center',
-								textDecoration: 'none',
-							}}
-							className="runa-button runa-button--secondary"
+			<section className="runa-settings-tabs" aria-label="Account settings">
+				<div className="runa-settings-tabs__list" role="tablist">
+					{tabs.map((tab) => (
+						<button
+							key={tab.id}
+							type="button"
+							role="tab"
+							aria-selected={activeTab === tab.id}
+							className={activeTab === tab.id ? 'is-active' : undefined}
+							onClick={() => setActiveTab(tab.id)}
 						>
-							Developer yuzeyini ac
-						</Link>
-					</div>
-				</section>
+							{tab.label}
+						</button>
+					))}
+				</div>
+
+				<div className="runa-settings-tabs__panel" role="tabpanel">
+					{activeTab === 'account' ? (
+						<div className="runa-settings-panel-grid">
+							{isAuthPending ? (
+								<output aria-busy="true" className="runa-settings-skeleton">
+									<RunaSkeleton variant="rect" />
+									<RunaSkeleton variant="text" />
+								</output>
+							) : (
+								<ProfileCard authContext={authContext} />
+							)}
+							<button
+								type="button"
+								onClick={() => void onLogout()}
+								disabled={isAuthPending}
+								className="runa-button runa-button--secondary runa-button--danger"
+							>
+								{uiCopy.account.logout}
+							</button>
+						</div>
+					) : null}
+
+					{activeTab === 'preferences' ? (
+						<div className="runa-settings-panel-grid">
+							<section className="runa-card runa-card--subtle" aria-labelledby="theme-heading">
+								<h2 id="theme-heading">Tema</h2>
+								<div className="runa-settings-segmented" role="radiogroup" aria-label="Tema">
+									{themeOptions.map((option) => (
+										<button
+											key={option.value}
+											type="button"
+											aria-pressed={theme === option.value}
+											className={theme === option.value ? 'is-active' : undefined}
+											onClick={() => selectTheme(option.value)}
+										>
+											{option.label}
+										</button>
+									))}
+								</div>
+							</section>
+							<section className="runa-card runa-card--subtle" aria-labelledby="voice-heading">
+								<h2 id="voice-heading">Ses tercihleri</h2>
+								<label className="runa-settings-row">
+									<span>Yeni yanıtları otomatik oku</span>
+									<input
+										type="checkbox"
+										checked={autoReadEnabled}
+										onChange={(event) => setAutoReadEnabled(event.target.checked)}
+										disabled={!isTextToSpeechSupported}
+									/>
+								</label>
+								<div className="runa-settings-row runa-settings-row--stacked">
+									<div>Mikrofon: {voiceInput.isSupported ? 'hazır' : 'desteklenmiyor'}</div>
+									<div>Sesli okuma: {isTextToSpeechSupported ? 'hazır' : 'desteklenmiyor'}</div>
+									{voiceInput.permissionDenied ? (
+										<div className="runa-alert runa-alert--warning">Mikrofon izni reddedildi.</div>
+									) : null}
+									{isSpeaking ? (
+										<button
+											type="button"
+											onClick={cancelTextToSpeech}
+											className="runa-button runa-button--secondary"
+										>
+											Okumayı durdur
+										</button>
+									) : null}
+									{(voiceInput.errorMessage ?? textToSpeechErrorMessage) ? (
+										<div className="runa-subtle-copy">
+											{voiceInput.errorMessage ?? textToSpeechErrorMessage}
+										</div>
+									) : null}
+								</div>
+							</section>
+						</div>
+					) : null}
+
+					{activeTab === 'devices' ? (
+						<section className="runa-card runa-card--subtle">
+							<DevicePresencePanel devices={[]} isLoading={isAuthPending} />
+							<Link to="/devices" className="runa-button runa-button--secondary">
+								Cihazlar sayfasını aç
+							</Link>
+						</section>
+					) : null}
+
+					{activeTab === 'memory' ? (
+						<section className="runa-card runa-card--subtle">
+							<ProjectMemorySummary isLoading={isAuthPending} status="unavailable" />
+						</section>
+					) : null}
+
+					{activeTab === 'developer' ? (
+						<section
+							className="runa-card runa-card--subtle"
+							aria-labelledby="developer-settings-heading"
+						>
+							<h2 id="developer-settings-heading">Geliştirici yüzeyleri</h2>
+							<label className="runa-settings-row">
+								<span>Developer Mode</span>
+								<input type="checkbox" checked={isDeveloperMode} onChange={toggleDeveloperMode} />
+							</label>
+							<Link to="/developer" className="runa-button runa-button--secondary">
+								Developer yüzeyini aç
+							</Link>
+						</section>
+					) : null}
+				</div>
 			</section>
 		</>
 	);

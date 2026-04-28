@@ -575,7 +575,7 @@ describe('DeepSeekGateway', () => {
 								{
 									function: {
 										arguments: '{"path":"README.md"}',
-										name: 'file.read',
+										name: 'file_read',
 									},
 									id: 'call_deepseek_tool',
 									type: 'function',
@@ -599,8 +599,8 @@ describe('DeepSeekGateway', () => {
 		expect(requestBody.tool_choice).toBe('auto');
 		expect(requestBody.temperature).toBe(0);
 		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual([
-			'file.read',
-			'shell.exec',
+			'file_read',
+			'shell_exec',
 		]);
 		expect(response.tool_call_candidate).toEqual({
 			call_id: 'call_deepseek_tool',

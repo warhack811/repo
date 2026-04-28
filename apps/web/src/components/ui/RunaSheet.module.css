@@ -1,0 +1,54 @@
+.backdrop {
+	background: rgba(2, 6, 23, 0.62);
+	inset: 0;
+	position: fixed;
+	z-index: 190;
+}
+
+.sheet {
+	background: var(--gradient-panel-strong);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	box-shadow: var(--shadow-panel);
+	color: hsl(var(--color-text));
+	display: grid;
+	gap: var(--space-4);
+	max-height: calc(100dvh - var(--safe-area-top) - 16px);
+	overflow: auto;
+	padding: var(--space-panel);
+	position: fixed;
+	z-index: 200;
+}
+
+.right {
+	bottom: 0;
+	right: 0;
+	top: 0;
+	width: min(420px, 100%);
+}
+
+.bottom {
+	border-radius: 24px 24px 0 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+}
+
+.handle {
+	background: rgba(148, 163, 184, 0.32);
+	border-radius: var(--radius-pill);
+	height: 4px;
+	justify-self: center;
+	touch-action: pan-y;
+	width: 42px;
+}
+
+@media (max-width: 767px) {
+	.right {
+		top: auto;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		border-radius: 24px 24px 0 0;
+	}
+}
