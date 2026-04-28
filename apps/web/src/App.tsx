@@ -1,14 +1,16 @@
 import type { AuthContext } from '@runa/types';
-import type { ReactElement } from 'react';
+import { type ReactElement, useCallback } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
 import type { AuthenticatedPageId } from './components/app/AppNav.js';
 import { AppShell } from './components/app/AppShell.js';
 import { useAuth } from './hooks/useAuth.js';
-import { useConversations } from './hooks/useConversations.js';
 import { type UseChatRuntimeResult, useChatRuntime } from './hooks/useChatRuntime.js';
+import { useConversations } from './hooks/useConversations.js';
 import { ChatPage } from './pages/ChatPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
+import { DevicesPage } from './pages/DevicesPage.js';
+import { HistoryPage } from './pages/HistoryPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
 
@@ -40,6 +42,14 @@ function resolveActivePage(pathname: string): AuthenticatedPageId {
 
 	if (pathname === '/account') {
 		return 'account';
+	}
+
+	if (pathname === '/devices') {
+		return 'devices';
+	}
+
+	if (pathname === '/history') {
+		return 'history';
 	}
 
 	return 'chat';
@@ -110,21 +120,26 @@ function AuthenticatedApp(
 	const conversations = useConversations({
 		accessToken: props.bearerToken,
 	});
+	const onRunAccepted = useCallback(
+		({ conversationId, prompt }: { conversationId?: string; prompt: string }) => {
+			conversations.handleRunAccepted({ conversationId, prompt });
+		},
+		[conversations.handleRunAccepted],
+	);
+
+	const onRunFinished = useCallback(
+		({ conversationId }: { conversationId?: string }) => {
+			conversations.handleRunFinished({ conversationId });
+		},
+		[conversations.handleRunFinished],
+	);
+
 	const runtime = useChatRuntime({
 		activeConversationId: conversations.activeConversationId,
 		accessToken: props.bearerToken,
 		buildRequestMessages: conversations.buildRequestMessages,
-		onRunAccepted: ({ conversationId, prompt }) => {
-			conversations.handleRunAccepted({
-				conversationId,
-				prompt,
-			});
-		},
-		onRunFinished: ({ conversationId }) => {
-			conversations.handleRunFinished({
-				conversationId,
-			});
-		},
+		onRunAccepted,
+		onRunFinished,
 	});
 
 	return (
@@ -136,6 +151,8 @@ function AuthenticatedApp(
 						path="chat"
 						element={<ChatPage conversations={conversations} embedded runtime={runtime} />}
 					/>
+					<Route path="history" element={<HistoryPage conversations={conversations} />} />
+					<Route path="devices" element={<DevicesPage accessToken={props.bearerToken} />} />
 					<Route
 						path="account"
 						element={
@@ -161,7 +178,7 @@ function AuthenticatedApp(
 							/>
 						}
 					/>
-					<Route path="dashboard" element={<Navigate replace to="/chat" />} />
+					<Route path="dashboard" element={<Navigate replace to="/history" />} />
 					<Route path="settings" element={<Navigate replace to="/account" />} />
 					<Route path="*" element={<Navigate replace to="/chat" />} />
 				</Route>

@@ -1,0 +1,13 @@
+{
+  "name": "@runa/desktop-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runa desktop agent - secure desktop bridge foundation with Electron shell",
+  "author": "Runa Team",
+  "type": "module",
+  "main": "electron/main.js",
+  "dependencies": {
+    "@runa/types": "workspace:*",
+    "electron-updater": "^6.6.2"
+  }
+}

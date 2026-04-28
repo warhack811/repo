@@ -24,7 +24,7 @@ function createEventContext(sequence_no: number): EventContext {
 	};
 }
 
-function createSuccessfulRuntimeEvents(): readonly RuntimeEvent[] {
+function createSuccessfulRuntimeEvents(outputText = 'Hello from mapper'): readonly RuntimeEvent[] {
 	return [
 		buildRunStartedEvent(
 			{
@@ -49,7 +49,7 @@ function createSuccessfulRuntimeEvents(): readonly RuntimeEvent[] {
 			{
 				finish_reason: 'stop',
 				model: 'llama-test',
-				output_text: 'Hello from mapper',
+				output_text: outputText,
 				provider: 'groq',
 			},
 			{
@@ -73,7 +73,7 @@ function createSuccessfulRuntimeEvents(): readonly RuntimeEvent[] {
 		buildRunCompletedEvent(
 			{
 				final_state: 'COMPLETED',
-				output_text: 'Hello from mapper',
+				output_text: outputText,
 			},
 			{
 				...createEventContext(5),
@@ -196,5 +196,57 @@ describe('map-runtime-events', () => {
 		const blocks: readonly RenderBlock[] = mapRuntimeEventsToRenderBlocks([]);
 
 		expect(blocks).toEqual([]);
+	});
+
+	it('maps structured assistant output to typed presentation blocks with fallback text preserved', () => {
+		const events = createSuccessfulRuntimeEvents(
+			[
+				'Plan:',
+				'1. Read the file',
+				'2. Apply the patch',
+				'```ts apps/server/src/example.ts',
+				'export const value = 1;',
+				'```',
+				'See apps/server/src/example.ts:10-12',
+			].join('\n'),
+		);
+		const blocks: readonly RenderBlock[] = mapRuntimeEventsToRenderBlocks(events);
+
+		expect(blocks.map((block) => block.type)).toEqual([
+			'status',
+			'text',
+			'plan',
+			'code_artifact',
+			'file_reference',
+			'text',
+			'event_list',
+		]);
+		expect(blocks[2]).toMatchObject({
+			payload: {
+				steps: [
+					{ status: 'pending', text: 'Read the file' },
+					{ status: 'pending', text: 'Apply the patch' },
+				],
+				title: 'Plan',
+			},
+			type: 'plan',
+		});
+		expect(blocks[3]).toMatchObject({
+			payload: {
+				content: 'export const value = 1;',
+				filename: 'apps/server/src/example.ts',
+				language: 'ts',
+				line_count: 1,
+			},
+			type: 'code_artifact',
+		});
+		expect(blocks[4]).toMatchObject({
+			payload: {
+				line_end: 12,
+				line_start: 10,
+				path: 'apps/server/src/example.ts',
+			},
+			type: 'file_reference',
+		});
 	});
 });

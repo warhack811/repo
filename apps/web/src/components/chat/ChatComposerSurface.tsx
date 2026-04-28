@@ -46,6 +46,7 @@ type ChatComposerSurfaceProps = Readonly<{
 	onToggleListening: () => void;
 	prompt: string;
 	selectedDesktopTargetConnectionId: string | null;
+	showDeveloperControls?: boolean;
 	statusLabel: string;
 	submitButtonLabel: string;
 	voiceStatusMessage: string | null;
@@ -137,6 +138,7 @@ export function ChatComposerSurface({
 	onToggleListening,
 	prompt,
 	selectedDesktopTargetConnectionId,
+	showDeveloperControls,
 	statusLabel,
 	submitButtonLabel,
 	voiceStatusMessage,
@@ -304,7 +306,7 @@ export function ChatComposerSurface({
 												maxWidth: 'min(220px, 100%)',
 											}}
 										/>
-									) : (
+									) : attachment.kind === 'text' ? (
 										<div
 											style={{
 												color: '#cbd5e1',
@@ -314,6 +316,17 @@ export function ChatComposerSurface({
 											}}
 										>
 											{attachment.text_content}
+										</div>
+									) : (
+										<div
+											style={{
+												color: '#cbd5e1',
+												fontSize: '13px',
+												lineHeight: 1.5,
+												whiteSpace: 'pre-wrap',
+											}}
+										>
+											{attachment.text_preview ?? 'Dokuman eklendi'}
 										</div>
 									)}
 								</RunaCard>

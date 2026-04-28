@@ -2,7 +2,11 @@ import { and, asc, desc, eq } from 'drizzle-orm';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import type { RunaDatabase } from './client.js';
-import { conversationMembersTable, conversationMessagesTable, conversationsTable } from './schema.js';
+import {
+	conversationMembersTable,
+	conversationMessagesTable,
+	conversationsTable,
+} from './schema.js';
 
 export type ConversationRecord = InferSelectModel<typeof conversationsTable>;
 export type NewConversationRecord = InferInsertModel<typeof conversationsTable>;
@@ -37,7 +41,9 @@ export interface ConversationDatabaseClient {
 		conversation_id: string,
 	): Promise<readonly ConversationMessageRecord[]>;
 	list_conversation_rows(input: ListConversationRowsInput): Promise<readonly ConversationRecord[]>;
-	upsert_conversation_member_row(row: NewConversationMemberRecord): Promise<ConversationMemberRecord>;
+	upsert_conversation_member_row(
+		row: NewConversationMemberRecord,
+	): Promise<ConversationMemberRecord>;
 	upsert_conversation_row(row: NewConversationRecord): Promise<ConversationRecord>;
 }
 
@@ -49,9 +55,7 @@ function normalizeLimit(limit: number | undefined): number | undefined {
 	return Math.trunc(limit);
 }
 
-export function createConversationDatabaseClient(
-	db: RunaDatabase,
-): ConversationDatabaseClient {
+export function createConversationDatabaseClient(db: RunaDatabase): ConversationDatabaseClient {
 	return {
 		async get_conversation_row(conversation_id) {
 			const rows = await db
@@ -103,7 +107,10 @@ export function createConversationDatabaseClient(
 				.select()
 				.from(conversationMembersTable)
 				.where(eq(conversationMembersTable.conversation_id, conversation_id))
-				.orderBy(asc(conversationMembersTable.created_at), asc(conversationMembersTable.member_user_id));
+				.orderBy(
+					asc(conversationMembersTable.created_at),
+					asc(conversationMembersTable.member_user_id),
+				);
 		},
 		async list_conversation_message_rows(conversation_id) {
 			return db

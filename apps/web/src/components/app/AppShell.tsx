@@ -92,6 +92,12 @@ const shellMainStyle: CSSProperties = {
 	minWidth: 0,
 };
 
+const chatShellFrameStyle: CSSProperties = {
+	display: 'grid',
+	gap: '12px',
+	minWidth: 0,
+};
+
 const pageCopyById: Record<
 	AuthenticatedPageId,
 	{
@@ -110,10 +116,20 @@ const pageCopyById: Record<
 		subtitle: uiCopy.appShell.accountSubtitle,
 		title: uiCopy.appShell.accountTitle,
 	},
+	devices: {
+		eyebrow: uiCopy.appShell.devicesEyebrow,
+		subtitle: uiCopy.appShell.devicesSubtitle,
+		title: uiCopy.appShell.devicesTitle,
+	},
 	developer: {
 		eyebrow: uiCopy.appShell.developerEyebrow,
 		subtitle: uiCopy.appShell.developerSubtitle,
 		title: uiCopy.appShell.developerTitle,
+	},
+	history: {
+		eyebrow: uiCopy.appShell.historyEyebrow,
+		subtitle: uiCopy.appShell.historySubtitle,
+		title: uiCopy.appShell.historyTitle,
 	},
 };
 
@@ -129,6 +145,23 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 		authStatus === 'service'
 			? uiCopy.appShell.serviceSession
 			: uiCopy.appShell.authenticatedSession;
+
+	if (activePage === 'chat') {
+		return (
+			<div className="runa-page runa-page--chat-product" style={appShellPageStyle}>
+				<RunaSurface
+					as="main"
+					id="authenticated-app-content"
+					style={chatShellFrameStyle}
+					className="runa-app-shell-main runa-app-shell-main--chat"
+					tone="plain"
+				>
+					<AppNav activePage={activePage} />
+					{children}
+				</RunaSurface>
+			</div>
+		);
+	}
 
 	return (
 		<div className="runa-page runa-page--app-shell" style={appShellPageStyle}>

@@ -5,6 +5,13 @@ import type { GatewayProvider } from './providers.js';
 
 export type ModelRouteIntent = 'balanced' | 'cheap' | 'deep_reasoning' | 'tool_heavy';
 
+const deepSeekModelByIntent: Readonly<Record<ModelRouteIntent, string>> = {
+	balanced: 'deepseek-v4-flash',
+	cheap: 'deepseek-v4-flash',
+	deep_reasoning: 'deepseek-v4-pro',
+	tool_heavy: 'deepseek-v4-pro',
+};
+
 type ModelRouterMetadataContainer = Readonly<{
 	model_router?: unknown;
 }>;
@@ -31,7 +38,50 @@ export interface ResolvedModelRoute {
 }
 
 function isGatewayProvider(value: unknown): value is GatewayProvider {
-	return value === 'claude' || value === 'gemini' || value === 'groq' || value === 'openai';
+	return (
+		value === 'claude' ||
+		value === 'deepseek' ||
+		value === 'gemini' ||
+		value === 'groq' ||
+		value === 'openai' ||
+		value === 'sambanova'
+	);
+}
+
+function isTruthyEnvironmentFlag(value: string | undefined): boolean {
+	return value === '1' || value?.toLowerCase() === 'true';
+}
+
+function isDisabledEnvironmentFlag(value: string | undefined): boolean {
+	return value === '0' || value?.toLowerCase() === 'false';
+}
+
+function isModelRouterEnabled(
+	metadata: ModelRouterMetadataCandidate | null,
+	requestedProvider: GatewayProvider,
+): boolean {
+	if (metadata?.enabled === true) {
+		return true;
+	}
+
+	if (metadata?.enabled === false) {
+		return false;
+	}
+
+	const env = process.env as NodeJS.ProcessEnv & {
+		readonly RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED?: string;
+		readonly RUNA_MODEL_ROUTER_ENABLED?: string;
+	};
+
+	if (isTruthyEnvironmentFlag(env.RUNA_MODEL_ROUTER_ENABLED)) {
+		return true;
+	}
+
+	if (requestedProvider === 'deepseek') {
+		return !isDisabledEnvironmentFlag(env.RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED);
+	}
+
+	return false;
 }
 
 function isModelRouteIntent(value: unknown): value is ModelRouteIntent {
@@ -124,7 +174,7 @@ export function resolveModelRoute(
 ): ResolvedModelRoute {
 	const metadata = readModelRouterMetadata(input.request);
 
-	if (metadata?.enabled !== true) {
+	if (!isModelRouterEnabled(metadata, input.requested_provider)) {
 		return {
 			allow_provider_fallback: false,
 			intent: 'balanced',
@@ -137,33 +187,54 @@ export function resolveModelRoute(
 		};
 	}
 
-	if (isGatewayProvider(metadata.preferred_provider)) {
+	const preferredProvider = metadata?.preferred_provider;
+
+	if (isGatewayProvider(preferredProvider)) {
+		const preferredModel = metadata?.preferred_model;
+
 		return {
-			allow_provider_fallback: metadata.allow_provider_fallback !== false,
+			allow_provider_fallback: metadata?.allow_provider_fallback !== false,
 			intent: classifyModelRouteIntent(input.request),
 			reason: 'explicit_preferred_provider',
 			routed_model:
-				typeof metadata.preferred_model === 'string' && metadata.preferred_model.trim().length > 0
-					? metadata.preferred_model
-					: defaultGatewayModels[metadata.preferred_provider],
-			routed_provider: metadata.preferred_provider,
+				typeof preferredModel === 'string' && preferredModel.trim().length > 0
+					? preferredModel
+					: defaultGatewayModels[preferredProvider],
+			routed_provider: preferredProvider,
 		};
 	}
 
 	const intent = classifyModelRouteIntent(input.request);
 
+	if (input.requested_provider === 'deepseek') {
+		return {
+			allow_provider_fallback: metadata?.allow_provider_fallback !== false,
+			intent,
+			reason:
+				intent === 'cheap'
+					? 'heuristic_cheap'
+					: intent === 'deep_reasoning'
+						? 'heuristic_deep_reasoning'
+						: intent === 'tool_heavy'
+							? 'heuristic_tool_heavy'
+							: 'requested_provider',
+			routed_model: deepSeekModelByIntent[intent],
+			routed_provider: 'deepseek',
+		};
+	}
+
 	switch (intent) {
 		case 'cheap':
 			return {
-				allow_provider_fallback: metadata.allow_provider_fallback !== false,
+				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
 				intent,
 				reason: 'heuristic_cheap',
-				routed_model: defaultGatewayModels.groq,
-				routed_provider: 'groq',
+				routed_model: defaultGatewayModels.deepseek,
+				routed_provider: 'deepseek',
 			};
 		case 'deep_reasoning':
 			return {
-				allow_provider_fallback: metadata.allow_provider_fallback !== false,
+				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
 				intent,
 				reason: 'heuristic_deep_reasoning',
 				routed_model: defaultGatewayModels.claude,
@@ -171,7 +242,7 @@ export function resolveModelRoute(
 			};
 		case 'tool_heavy':
 			return {
-				allow_provider_fallback: metadata.allow_provider_fallback !== false,
+				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
 				intent,
 				reason: 'heuristic_tool_heavy',
 				routed_model: defaultGatewayModels.claude,
@@ -179,7 +250,7 @@ export function resolveModelRoute(
 			};
 		case 'balanced':
 			return {
-				allow_provider_fallback: metadata.allow_provider_fallback !== false,
+				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
 				intent,
 				reason: 'requested_provider',
 				routed_model:

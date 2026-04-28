@@ -42,6 +42,7 @@ function createToolDefinition(
 	execute: (input: ToolCallInput, context: ToolExecutionContext) => Promise<ToolResult>,
 	callableSchema?: ToolCallableSchema,
 	metadataOverrides: Partial<ToolDefinition['metadata']> = {},
+	name: ToolDefinition['name'] = 'file.read',
 ): ToolDefinition {
 	return {
 		callable_schema: callableSchema,
@@ -54,7 +55,7 @@ function createToolDefinition(
 			side_effect_level: 'read',
 			...metadataOverrides,
 		},
-		name: 'file.read',
+		name,
 	};
 }
 
@@ -344,6 +345,149 @@ describe('runModelTurn', () => {
 			state_after: 'TOOL_RESULT_INGESTING',
 			tool_name: 'file.read',
 		});
+	});
+
+	it('completes the tool_call_candidates array path through core adapter, scheduler, and continuation', async () => {
+		const registry = new ToolRegistry();
+		const persistence = createPersistenceRecorder();
+		const gateway = new FakeModelGateway(async () => ({
+			finish_reason: 'stop',
+			message: {
+				content: 'Calling multiple tools',
+				role: 'assistant',
+			},
+			model: 'llama-3.3-70b-versatile',
+			provider: 'groq',
+			tool_call_candidates: [
+				{
+					call_id: 'call_run_model_turn_batch_read',
+					tool_input: {
+						path: 'src/example.ts',
+					},
+					tool_name: 'file.read',
+				},
+				{
+					call_id: 'call_run_model_turn_batch_search',
+					tool_input: {
+						query: 'Runa',
+					},
+					tool_name: 'web.search',
+				},
+			],
+		}));
+
+		registry.register(
+			createToolDefinition(
+				async (input) => ({
+					call_id: input.call_id,
+					output: {
+						content: 'file body',
+					},
+					status: 'success',
+					tool_name: 'file.read',
+				}),
+				fileReadCallableSchema,
+			),
+		);
+		registry.register(
+			createToolDefinition(
+				async (input) => ({
+					call_id: input.call_id,
+					output: {
+						results: ['web result'],
+					},
+					status: 'success',
+					tool_name: 'web.search',
+				}),
+				{
+					parameters: {
+						query: {
+							required: true,
+							type: 'string',
+						},
+					},
+				},
+				{
+					capability_class: 'search',
+				},
+				'web.search',
+			),
+		);
+
+		const result = await runModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_model_turn_batch',
+				trace_id: 'trace_model_turn_batch',
+				working_directory: 'd:\\ai\\Runa',
+			},
+			model_gateway: gateway,
+			model_request: createModelRequest({
+				run_id: 'run_model_turn_batch',
+				trace_id: 'trace_model_turn_batch',
+			}),
+			persistence_writer: persistence.writer,
+			registry,
+			run_id: 'run_model_turn_batch',
+			trace_id: 'trace_model_turn_batch',
+		});
+
+		expect(result.status).toBe('completed');
+
+		if (result.status !== 'completed' || result.final_state !== 'TOOL_RESULT_INGESTING') {
+			throw new Error('Expected batched tool_call_candidates model turn to complete.');
+		}
+
+		expect(result.model_turn_outcome).toEqual({
+			kind: 'tool_calls',
+			tool_calls: [
+				{
+					call_id: 'call_run_model_turn_batch_read',
+					kind: 'tool_call',
+					tool_input: {
+						path: 'src/example.ts',
+					},
+					tool_name: 'file.read',
+				},
+				{
+					call_id: 'call_run_model_turn_batch_search',
+					kind: 'tool_call',
+					tool_input: {
+						query: 'Runa',
+					},
+					tool_name: 'web.search',
+				},
+			],
+		});
+		expect(result.continuation_result.outcome_kind).toBe('tool_calls');
+		expect(result.tool_result).toMatchObject({
+			call_id: 'call_run_model_turn_batch_search',
+			tool_name: 'web.search',
+		});
+		expect(result.tool_results).toEqual([
+			{
+				call_id: 'call_run_model_turn_batch_read',
+				output: {
+					content: 'file body',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+			{
+				call_id: 'call_run_model_turn_batch_search',
+				output: {
+					results: ['web result'],
+				},
+				status: 'success',
+				tool_name: 'web.search',
+			},
+		]);
+		expect(persistence.toolCallRecords.map((record) => record.call_id)).toEqual([
+			'call_run_model_turn_batch_read',
+			'call_run_model_turn_batch_search',
+			'call_run_model_turn_batch_read',
+			'call_run_model_turn_batch_search',
+		]);
 	});
 
 	it('preserves explicit available_tools on the model request', async () => {

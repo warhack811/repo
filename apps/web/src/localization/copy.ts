@@ -33,8 +33,11 @@ const copyByLocale = {
 			accountLabel: 'Account',
 			chatDescription: 'Conversation, current run, and approvals.',
 			chatLabel: 'Chat',
-			developerDescription: 'Runtime configuration and technical visibility.',
+			devicesDescription: 'Connected desktop companions.',
+			devicesLabel: 'Devices',
 			developerLabel: 'Developer Mode',
+			historyDescription: 'Saved conversations and shared work.',
+			historyLabel: 'History',
 			navLabel: 'Authenticated app navigation',
 		},
 		appShell: {
@@ -45,6 +48,13 @@ const copyByLocale = {
 			developerEyebrow: 'second layer',
 			developerSubtitle: 'Developer-only configuration and debug visibility live here.',
 			developerTitle: 'Developer Mode',
+			devicesEyebrow: 'connected devices',
+			devicesSubtitle:
+				'Desktop companion presence and allowed capabilities live in their own space.',
+			devicesTitle: 'Devices',
+			historyEyebrow: 'work history',
+			historySubtitle: 'Past conversations stay searchable without crowding the main chat.',
+			historyTitle: 'History',
 			serviceSession: 'Service session',
 			accountEyebrow: 'account',
 			accountSubtitle: 'Only the essential account and session controls stay here.',
@@ -109,9 +119,9 @@ const copyByLocale = {
 			composerPlaceholder: 'Write what you want to get done...',
 			configMissing:
 				'Chat is ready, but runtime configuration is incomplete. Open Developer Mode and enter a valid API key before sending a request.',
-			currentRunHeading: 'Current run',
+			currentRunHeading: 'Current work',
 			emptySurface:
-				'No visible run yet. Send a message to start a new run and see the current work surface here.',
+				'No visible work yet. Send a message to start and see the current work surface here.',
 			heroSubtitle:
 				'Conversation, approvals, and the live work surface stay together here. Technical controls live in Developer Mode.',
 			heroTitle: 'Your work companion',
@@ -121,9 +131,9 @@ const copyByLocale = {
 			runConnectionOpen: 'Live',
 			send: 'Send',
 			sending: 'Sending...',
-			submitConnectionConnecting: 'Connecting to live runtime...',
+			submitConnectionConnecting: 'Connecting...',
 			submitConnectionWaiting: 'Waiting for live connection',
-			submitInProgress: 'Run in progress...',
+			submitInProgress: 'Working...',
 		},
 		developer: {
 			apiKey: 'API key',
@@ -152,15 +162,15 @@ const copyByLocale = {
 		},
 		run: {
 			approvalBoundary: 'Approval boundary',
-			currentRunProgress: 'Current run progress',
-			currentSurfaceContext: 'Current surface context',
-			observedSteps: 'Observed steps',
-			runtimePhases: 'Runtime phases',
+			currentRunProgress: 'Current work',
+			currentSurfaceContext: 'Context',
+			observedSteps: 'Recent steps',
+			runtimePhases: 'Work phases',
 			showingLatestSteps: 'Showing latest {count} steps',
-			pastRuns: 'Recent runs',
-			pastRunsCollapsed: 'Recent runs stay available without crowding the main conversation.',
+			pastRuns: 'Recent work',
+			pastRunsCollapsed: 'Recent work stays available without crowding the main conversation.',
 			surfaceHeading: 'Current work surface',
-			surfaceSubtitle: 'The latest summary cards and details stay here while the run continues.',
+			surfaceSubtitle: 'The latest summaries and details stay here while the work continues.',
 		},
 		runtime: {
 			apiKeyRequired: 'API key is required.',
@@ -209,8 +219,11 @@ const copyByLocale = {
 			accountLabel: 'Hesap',
 			chatDescription: 'Sohbet, mevcut calisma ve onaylar.',
 			chatLabel: 'Sohbet',
-			developerDescription: 'Runtime ayarlari ve teknik gorunurluk.',
+			devicesDescription: 'Bagli masaustu companionlar.',
+			devicesLabel: 'Cihazlar',
 			developerLabel: 'Developer Mode',
+			historyDescription: 'Kayitli sohbetler ve paylasilan isler.',
+			historyLabel: 'Gecmis',
 			navLabel: 'Kimlik dogrulanmis uygulama gezintisi',
 		},
 		appShell: {
@@ -221,6 +234,12 @@ const copyByLocale = {
 			developerEyebrow: 'ikinci katman',
 			developerSubtitle: 'Yalniz gelistiriciye ait ayarlar ve teknik gorunurluk burada tutulur.',
 			developerTitle: 'Developer Mode',
+			devicesEyebrow: 'bagli cihazlar',
+			devicesSubtitle: 'Masaustu companion durumu ve izinli yetenekler kendi alaninda kalir.',
+			devicesTitle: 'Cihazlar',
+			historyEyebrow: 'calisma gecmisi',
+			historySubtitle: 'Gecmis sohbetler ana sohbeti kalabaliklastirmadan aranabilir kalir.',
+			historyTitle: 'Gecmis',
 			serviceSession: 'Servis oturumu',
 			accountEyebrow: 'hesap',
 			accountSubtitle: 'Sadece gerekli hesap ve oturum kontrolleri burada kalir.',
@@ -298,7 +317,7 @@ const copyByLocale = {
 			runConnectionOpen: 'Canli',
 			send: 'Gonder',
 			sending: 'Gonderiliyor...',
-			submitConnectionConnecting: 'Canli runtime baglantisi kuruluyor...',
+			submitConnectionConnecting: 'Canli baglanti kuruluyor...',
 			submitConnectionWaiting: 'Canli baglanti bekleniyor',
 			submitInProgress: 'Çalışma sürüyor...',
 		},
@@ -329,10 +348,10 @@ const copyByLocale = {
 		},
 		run: {
 			approvalBoundary: 'Onay siniri',
-			currentRunProgress: 'Mevcut calisma durumu',
-			currentSurfaceContext: 'Mevcut yuzey baglami',
-			observedSteps: 'Gozlenen adimlar',
-			runtimePhases: 'Runtime fazlari',
+			currentRunProgress: 'Calisma durumu',
+			currentSurfaceContext: 'Baglam',
+			observedSteps: 'Son adimlar',
+			runtimePhases: 'Calisma asamalari',
 			showingLatestSteps: 'Son {count} adim gosteriliyor',
 			pastRuns: 'Gecmis calismalar',
 			pastRunsCollapsed: 'Gecmis calismalar ana sohbeti kalabaliklastirmadan burada kalir.',
@@ -358,4 +377,22 @@ const copyByLocale = {
 	},
 } as const;
 
-export const uiCopy = copyByLocale[defaultLocale];
+const defaultCopy = copyByLocale[defaultLocale];
+
+export const uiCopy = {
+	...defaultCopy,
+	chat: {
+		...defaultCopy.chat,
+		emptySurface:
+			'Henuz gorunur bir calisma yok. Yeni bir mesaj gonderdiginde mevcut calisma yuzeyi burada gorunur.',
+		heroSubtitle:
+			'Sohbet, onaylar ve canli calisma yuzeyi burada birlikte kalir. Teknik kontroller Developer Mode icindedir.',
+		heroTitle: 'Calisma ortagin',
+		submitInProgress: 'Calisma suruyor...',
+	},
+	run: {
+		...defaultCopy.run,
+		surfaceHeading: 'Mevcut calisma yuzeyi',
+		surfaceSubtitle: 'En yeni ozetler ve bagli detaylar calisma surerken burada kalir.',
+	},
+} as const;

@@ -5,6 +5,7 @@ export type GatewayProvider = SharedGatewayProvider;
 
 export interface GatewayProviderConfig {
 	readonly apiKey: string;
+	readonly baseUrl?: string;
 	readonly defaultModel?: string;
 	readonly defaultMaxOutputTokens?: number;
 }

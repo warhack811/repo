@@ -31,6 +31,7 @@ type PresentationRunSurfaceCardProps = Readonly<{
 	expanded: boolean;
 	inspectionAnchorIdsByDetailId: ReadonlyMap<string, string | undefined>;
 	isCurrent: boolean;
+	isDeveloperMode?: boolean;
 	onRequestInspection: (runId: string, targetKind: InspectionTargetKind, targetId?: string) => void;
 	onResolveApproval?: (approvalId: string, decision: ApprovalResolveDecision) => void;
 	onToggleExpanded?: (runId: string, nextOpen: boolean) => void;
@@ -49,6 +50,7 @@ export function PresentationRunSurfaceCard({
 	expanded,
 	inspectionAnchorIdsByDetailId,
 	isCurrent,
+	isDeveloperMode = false,
 	onRequestInspection,
 	onResolveApproval,
 	onToggleExpanded,
@@ -59,6 +61,7 @@ export function PresentationRunSurfaceCard({
 }: PresentationRunSurfaceCardProps): ReactElement {
 	const surfaceMeta = buildInspectionSurfaceMeta(surface.blocks);
 	const surfaceCorrelationLabel = buildInspectionCorrelationLabel(surface.run_id, surface.trace_id);
+	const visibleCorrelationLabel = isDeveloperMode ? surfaceCorrelationLabel : null;
 	const surfaceRunSummary = runTransportSummaries.get(surface.run_id);
 	const surfacePendingDetailCount = countInspectionRequestsForRun(
 		pendingInspectionRequestKeys,
@@ -81,6 +84,7 @@ export function PresentationRunSurfaceCard({
 					getInspectionActionStateForRun,
 					inspectionDetailRelations,
 					surfaceCorrelationLabel,
+					isDeveloperMode,
 				),
 			)}
 		</div>
@@ -99,7 +103,7 @@ export function PresentationRunSurfaceCard({
 						{createPendingDetailLabel(surfacePendingDetailCount)}
 					</code>
 				) : null}
-				{surfaceMeta ? (
+				{surfaceMeta && isDeveloperMode ? (
 					<>
 						<code style={inspectionChipStyle}>
 							{createInspectionCountLabel(
@@ -128,7 +132,7 @@ export function PresentationRunSurfaceCard({
 			>
 				<div style={presentationRunHeaderStyle}>
 					<div style={{ display: 'grid', gap: '8px', maxWidth: 'min(720px, 100%)' }}>
-						<div style={{ ...secondaryLabelStyle, color: '#93c5fd' }}>current run</div>
+						<div style={{ ...secondaryLabelStyle, color: '#93c5fd' }}>mevcut calisma</div>
 						<div
 							style={{
 								display: 'flex',
@@ -138,16 +142,15 @@ export function PresentationRunSurfaceCard({
 							}}
 						>
 							<strong style={{ fontSize: '16px', color: 'hsl(var(--color-text))' }}>
-								Live conversation surface
+								Canli calisma yuzeyi
 							</strong>
-							<code style={inspectionChipStyle}>primary</code>
+							<code style={inspectionChipStyle}>ana akis</code>
 						</div>
 						<div style={{ color: 'hsl(var(--color-text-muted))', lineHeight: 1.6 }}>
-							Current work stays anchored here, with linked details sliding in beneath the summary
-							they belong to.
+							Runa'nin gorunur sonucu ve gereken onaylar sohbetten kopmadan burada kalir.
 						</div>
-						{surfaceCorrelationLabel ? (
-							<code style={inspectionChipStyle}>{surfaceCorrelationLabel}</code>
+						{visibleCorrelationLabel ? (
+							<code style={inspectionChipStyle}>{visibleCorrelationLabel}</code>
 						) : null}
 					</div>
 					{metaChips}
@@ -171,7 +174,7 @@ export function PresentationRunSurfaceCard({
 			<summary style={presentationRunSummaryStyle}>
 				<div style={presentationRunHeaderStyle}>
 					<div style={{ display: 'grid', gap: '8px', maxWidth: 'min(720px, 100%)' }}>
-						<div style={secondaryLabelStyle}>recent run</div>
+						<div style={secondaryLabelStyle}>gecmis calisma</div>
 						<div
 							style={{
 								display: 'flex',
@@ -181,15 +184,14 @@ export function PresentationRunSurfaceCard({
 							}}
 						>
 							<strong style={{ fontSize: '15px', color: 'hsl(var(--color-text))' }}>
-								Recent conversation surface
+								Onceki calisma ozeti
 							</strong>
-							{surfaceCorrelationLabel ? (
-								<code style={inspectionChipStyle}>{surfaceCorrelationLabel}</code>
+							{visibleCorrelationLabel ? (
+								<code style={inspectionChipStyle}>{visibleCorrelationLabel}</code>
 							) : null}
 						</div>
 						<div style={{ color: 'hsl(var(--color-text-soft))', lineHeight: 1.6 }}>
-							Closed by default so the live conversation keeps the spotlight. Open when you want to
-							review linked summaries or detail cards.
+							Canli akis onde kalir. Eski ozetleri incelemek istediginde buradan acabilirsin.
 						</div>
 					</div>
 					{metaChips}

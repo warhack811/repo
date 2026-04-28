@@ -91,6 +91,19 @@ function toModelSignal(
 	};
 }
 
+function findToolCallOutcomeByCallId(
+	outcome:
+		| RunModelTurnApprovalRequiredResult['model_turn_outcome']
+		| RunModelTurnToolCallResult['model_turn_outcome'],
+	callId: string,
+): Extract<RunModelTurnToolCallResult['model_turn_outcome'], { kind: 'tool_call' }> | undefined {
+	if (outcome.kind === 'tool_call') {
+		return outcome.call_id === callId ? outcome : undefined;
+	}
+
+	return outcome.tool_calls.find((toolCall) => toolCall.call_id === callId);
+}
+
 function getStateTransitionReason(nextState: RuntimeState): string {
 	switch (nextState) {
 		case 'COMPLETED':
@@ -272,6 +285,11 @@ function mapApprovalBoundary(
 	result: RunModelTurnApprovalRequiredResult,
 	workingDirectory: string | undefined,
 ): AgentLoopTurnResult {
+	const pendingToolCall = findToolCallOutcomeByCallId(
+		result.model_turn_outcome,
+		result.approval_request.call_id ?? result.continuation_result.call_id,
+	);
+
 	return {
 		approval_request: result.approval_request,
 		current_loop_state: 'WAITING',
@@ -285,12 +303,14 @@ function mapApprovalBoundary(
 		model: toModelSignal(result),
 		model_response: result.model_response,
 		pending_tool_call: {
-			tool_input: result.model_turn_outcome.tool_input,
+			tool_input: pendingToolCall?.tool_input ?? {},
 			working_directory: workingDirectory,
 		},
 		progress_events: toProgressEvents(turnInput, result),
 		resolved_model_request: result.resolved_model_request,
 		state_transitions: result.continuation_result.state_transitions,
+		tool_result: result.tool_result,
+		tool_results: result.tool_results,
 	};
 }
 
@@ -311,6 +331,8 @@ function mapFailure(
 		progress_events: toProgressEvents(turnInput, result),
 		resolved_model_request: result.resolved_model_request,
 		state_transitions: result.continuation_result?.state_transitions,
+		tool_result: result.tool_result,
+		tool_results: result.tool_results,
 	};
 }
 
@@ -318,6 +340,11 @@ function mapToolContinuation(
 	turnInput: AgentLoopTurnInput,
 	result: RunModelTurnToolCallResult,
 ): AgentLoopTurnResult {
+	const completedToolCall = findToolCallOutcomeByCallId(
+		result.model_turn_outcome,
+		result.tool_result.call_id,
+	);
+
 	return {
 		current_loop_state: 'RUNNING',
 		current_runtime_state: result.final_state,
@@ -326,8 +353,9 @@ function mapToolContinuation(
 		progress_events: toProgressEvents(turnInput, result),
 		resolved_model_request: result.resolved_model_request,
 		state_transitions: result.continuation_result.state_transitions,
-		tool_arguments: result.model_turn_outcome.tool_input,
+		tool_arguments: completedToolCall?.tool_input,
 		tool_result: result.tool_result,
+		tool_results: result.tool_results,
 	};
 }
 

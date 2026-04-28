@@ -2,7 +2,6 @@ import type { CSSProperties, ReactElement, ReactNode } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
 import { secondaryLabelStyle } from '../../lib/chat-styles.js';
-import { uiCopy } from '../../localization/copy.js';
 import { PersistedTranscript } from './PersistedTranscript.js';
 import { StreamingMessageSurface } from './StreamingMessageSurface.js';
 
@@ -17,20 +16,67 @@ type CurrentRunSurfaceProps = Readonly<{
 	emptyStateContent: ReactNode;
 }>;
 
-const conversationSurfaceStyle: CSSProperties = {
-	borderRadius: '24px',
+const idleSurfaceStyle: CSSProperties = {
+	borderRadius: '16px',
+	border: '1px solid rgba(148, 163, 184, 0.1)',
+	background: 'rgba(6, 11, 21, 0.48)',
+	padding: 'clamp(16px, 3vw, 20px)',
+	display: 'grid',
+	gap: '14px',
+	boxShadow: '0 8px 24px rgba(2, 6, 23, 0.18)',
+	transition:
+		'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, background 220ms ease',
+};
+
+const activeSurfaceStyle: CSSProperties = {
+	borderRadius: '20px',
 	border: '1px solid rgba(148, 163, 184, 0.16)',
 	background: 'linear-gradient(180deg, rgba(12, 18, 31, 0.88) 0%, rgba(7, 11, 20, 0.74) 100%)',
 	padding: 'clamp(18px, 3vw, 24px)',
 	display: 'grid',
 	gap: '16px',
 	boxShadow: '0 24px 60px rgba(2, 6, 23, 0.38)',
-	transition: 'opacity 220ms ease, transform 220ms ease, border-color 220ms ease',
+	transition:
+		'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, background 220ms ease',
 };
 
 const headingStackStyle: CSSProperties = {
 	display: 'grid',
-	gap: '8px',
+	gap: '4px',
+};
+
+const headingIdleStyle: CSSProperties = {
+	...headingStackStyle,
+	opacity: 0.7,
+};
+
+const headingActiveStyle: CSSProperties = {
+	...headingStackStyle,
+	opacity: 1,
+};
+
+const headingTitleIdleStyle: CSSProperties = {
+	fontSize: '16px',
+	fontWeight: 500,
+	color: 'hsl(var(--color-text-soft))',
+};
+
+const headingTitleActiveStyle: CSSProperties = {
+	fontSize: '18px',
+	fontWeight: 600,
+	color: 'hsl(var(--color-text))',
+};
+
+const subtitleIdleStyle: CSSProperties = {
+	fontSize: '13px',
+	color: 'hsl(var(--color-text-muted))',
+	lineHeight: 1.4,
+};
+
+const subtitleActiveStyle: CSSProperties = {
+	fontSize: '13px',
+	color: 'hsl(var(--color-text-muted))',
+	lineHeight: 1.4,
 };
 
 export function CurrentRunSurface({
@@ -43,32 +89,52 @@ export function CurrentRunSurface({
 	currentStreamingText,
 	emptyStateContent,
 }: CurrentRunSurfaceProps): ReactElement {
+	const isBusy =
+		currentStreamingText.trim().length > 0 ||
+		currentRunProgressPanel !== null ||
+		currentPresentationContent !== null;
+	const hasTranscript = activeConversationMessages.length > 0;
+
+	const surfaceStyle = isBusy ? activeSurfaceStyle : idleSurfaceStyle;
+	const headingStyle = isBusy ? headingActiveStyle : headingIdleStyle;
+	const headingTitleStyle = isBusy ? headingTitleActiveStyle : headingTitleIdleStyle;
+	const subtitleStyle = isBusy ? subtitleActiveStyle : subtitleIdleStyle;
+	const showSubtitle = isBusy;
+
 	return (
-		<div
+		<section
 			className="runa-card runa-card--chat runa-chat-surface"
-			style={conversationSurfaceStyle}
+			style={surfaceStyle}
 			aria-labelledby="chat-conversation-surface-heading"
+			aria-busy={isBusy}
 		>
-			<div style={headingStackStyle}>
-				<div style={secondaryLabelStyle}>{uiCopy.run.currentRunProgress}</div>
-				<h2 id="chat-conversation-surface-heading" style={{ fontSize: '20px' }}>
-					Aktif sohbet akışı
+			<div style={headingStyle}>
+				<div style={secondaryLabelStyle}>Sohbet</div>
+				<h2 id="chat-conversation-surface-heading" style={headingTitleStyle}>
+					Calisma akisi
 				</h2>
-				<div className="runa-subtle-copy">
-					Güncel çalışma, kalıcı mesajlar ve yardımcı kartlar burada sakin bir akışta kalır.
-				</div>
+				{showSubtitle ? (
+					<div className="runa-subtle-copy" style={subtitleStyle}>
+						yanitlar, onaylar ve sonuclar burada gorunur
+					</div>
+				) : null}
 			</div>
-			<PersistedTranscript
-				activeConversationId={activeConversationId}
-				activeConversationMessages={activeConversationMessages}
-			/>
 			{currentRunProgressPanel}
 			<StreamingMessageSurface
 				currentRunId={currentRunId}
 				currentStreamingRunId={currentStreamingRunId}
 				currentStreamingText={currentStreamingText}
 			/>
-			{currentPresentationContent ?? emptyStateContent}
-		</div>
+			{currentPresentationContent ?? (isBusy ? null : emptyStateContent)}
+			{hasTranscript ? (
+				<details className="runa-transcript-details">
+					<summary>Kayitli sohbeti goster</summary>
+					<PersistedTranscript
+						activeConversationId={activeConversationId}
+						activeConversationMessages={activeConversationMessages}
+					/>
+				</details>
+			) : null}
+		</section>
 	);
 }

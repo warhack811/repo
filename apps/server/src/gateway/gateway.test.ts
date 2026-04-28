@@ -2,11 +2,13 @@ import type { ModelRequest } from '@runa/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ClaudeGateway } from './claude-gateway.js';
+import { DeepSeekGateway } from './deepseek-gateway.js';
 import { GatewayConfigurationError, GatewayResponseError } from './errors.js';
 import { createModelGateway } from './factory.js';
 import { GeminiGateway } from './gemini-gateway.js';
 import { GroqGateway } from './groq-gateway.js';
 import { OpenAiGateway } from './openai-gateway.js';
+import { SambaNovaGateway } from './sambanova-gateway.js';
 
 const groqRequest: ModelRequest = {
 	max_output_tokens: 64,
@@ -52,8 +54,31 @@ const geminiRequest: ModelRequest = {
 	trace_id: 'trace_gemini',
 };
 
+const sambaNovaRequest: ModelRequest = {
+	max_output_tokens: 96,
+	messages: [
+		{ content: 'You are helpful.', role: 'system' },
+		{ content: 'Hello SambaNova', role: 'user' },
+	],
+	model: 'DeepSeek-V3.1-cb',
+	run_id: 'run_sambanova',
+	trace_id: 'trace_sambanova',
+};
+
+const deepSeekRequest: ModelRequest = {
+	max_output_tokens: 96,
+	messages: [
+		{ content: 'You are helpful.', role: 'system' },
+		{ content: 'Hello DeepSeek', role: 'user' },
+	],
+	model: 'deepseek-v4-flash',
+	run_id: 'run_deepseek',
+	trace_id: 'trace_deepseek',
+};
+
 const gatewayTestEnvironment = process.env as NodeJS.ProcessEnv & {
 	RUNA_DEBUG_PROVIDER_ERRORS?: string;
+	RUNA_OPENAI_COMPAT_ALLOW_REMOTE?: string;
 };
 
 type LoggedEntry = Record<string, unknown> & {
@@ -245,6 +270,8 @@ interface MockFetchCall {
 }
 
 interface GroqRequestBodyAssertion {
+	readonly reasoning_effort?: string;
+	readonly max_tokens?: number;
 	readonly max_completion_tokens?: number;
 	readonly messages?: ReadonlyArray<{
 		readonly content: unknown;
@@ -253,6 +280,9 @@ interface GroqRequestBodyAssertion {
 	readonly model?: string;
 	readonly stream?: boolean;
 	readonly temperature?: number;
+	readonly thinking?: {
+		readonly type?: string;
+	};
 	readonly tool_choice?: string;
 	readonly tools?: ReadonlyArray<{
 		readonly function?: {
@@ -355,10 +385,12 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 	gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = undefined;
+	gatewayTestEnvironment.RUNA_OPENAI_COMPAT_ALLOW_REMOTE = undefined;
 });
 
 beforeEach(() => {
 	gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = undefined;
+	gatewayTestEnvironment.RUNA_OPENAI_COMPAT_ALLOW_REMOTE = undefined;
 });
 
 describe('gateway factory', () => {
@@ -410,6 +442,30 @@ describe('gateway factory', () => {
 		expect(typeof gateway.stream).toBe('function');
 	});
 
+	it('returns a lazy gateway wrapper for the sambanova provider', () => {
+		const gateway = createModelGateway({
+			config: {
+				apiKey: 'sambanova-key',
+			},
+			provider: 'sambanova',
+		});
+
+		expect(typeof gateway.generate).toBe('function');
+		expect(typeof gateway.stream).toBe('function');
+	});
+
+	it('returns a lazy gateway wrapper for the deepseek provider', () => {
+		const gateway = createModelGateway({
+			config: {
+				apiKey: 'deepseek-key',
+			},
+			provider: 'deepseek',
+		});
+
+		expect(typeof gateway.generate).toBe('function');
+		expect(typeof gateway.stream).toBe('function');
+	});
+
 	it('throws a typed error when generate() is attempted without a usable api key', async () => {
 		const gateway = createModelGateway({
 			config: {
@@ -419,6 +475,429 @@ describe('gateway factory', () => {
 		});
 
 		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayConfigurationError);
+	});
+});
+
+describe('DeepSeekGateway', () => {
+	it('maps the internal request and response shapes for cheap generate()', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from DeepSeek',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_deepseek_123',
+				model: 'deepseek-v4-flash',
+				usage: {
+					completion_tokens: 9,
+					prompt_tokens: 7,
+					total_tokens: 16,
+				},
+			}),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		const response = await gateway.generate(deepSeekRequest);
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(calls[0]?.url).toBe('https://api.deepseek.com/chat/completions');
+		expect(calls[0]?.headers.Authorization).toBe('Bearer deepseek-key');
+		expect(requestBody.model).toBe('deepseek-v4-flash');
+		expect(requestBody.max_tokens).toBe(96);
+		expect(requestBody.thinking?.type).toBe('disabled');
+		expect(requestBody.reasoning_effort).toBeUndefined();
+		expect(requestBody.messages).toEqual([
+			{ content: 'You are helpful.', role: 'system' },
+			{ content: 'Hello DeepSeek', role: 'user' },
+		]);
+		expect(response).toEqual({
+			finish_reason: 'stop',
+			message: {
+				content: 'Hello from DeepSeek',
+				role: 'assistant',
+			},
+			model: 'deepseek-v4-flash',
+			provider: 'deepseek',
+			response_id: 'chatcmpl_deepseek_123',
+			usage: {
+				input_tokens: 7,
+				output_tokens: 9,
+				total_tokens: 16,
+			},
+		});
+	});
+
+	it('enables thinking for the reasoning model tier', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Reasoned answer',
+							reasoning_content: 'hidden internal reasoning',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_deepseek_reasoning',
+				model: 'deepseek-v4-pro',
+			}),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		const response = await gateway.generate({
+			...deepSeekRequest,
+			model: 'deepseek-v4-pro',
+		});
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.thinking?.type).toBe('enabled');
+		expect(requestBody.reasoning_effort).toBe('high');
+		expect(response.message.content).toBe('Reasoned answer');
+	});
+
+	it('includes available_tools, deterministic tool temperature, and tool call parsing', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"README.md"}',
+										name: 'file.read',
+									},
+									id: 'call_deepseek_tool',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_deepseek_tool',
+				model: 'deepseek-v4-flash',
+			}),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		const response = await gateway.generate({
+			...deepSeekRequest,
+			available_tools: callableToolsRequest,
+		});
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.tool_choice).toBe('auto');
+		expect(requestBody.temperature).toBe(0);
+		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual([
+			'file.read',
+			'shell.exec',
+		]);
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_deepseek_tool',
+			tool_input: {
+				path: 'README.md',
+			},
+			tool_name: 'file.read',
+		});
+	});
+
+	it('streams DeepSeek text deltas, ignores keep-alive comments, and returns a terminal response chunk', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				': keep-alive',
+				'data: {"id":"chatcmpl_deepseek_stream","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","content":"Hello "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_stream","model":"deepseek-v4-flash","choices":[{"delta":{"content":"from DeepSeek"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = [];
+
+		for await (const chunk of gateway.stream(deepSeekRequest)) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		expect(requestBody.stream).toBe(true);
+		expect(chunks).toEqual([
+			{
+				text_delta: 'Hello ',
+				type: 'text.delta',
+			},
+			{
+				text_delta: 'from DeepSeek',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Hello from DeepSeek',
+						role: 'assistant',
+					},
+					model: 'deepseek-v4-flash',
+					provider: 'deepseek',
+					response_id: 'chatcmpl_deepseek_stream',
+					usage: {
+						input_tokens: 7,
+						output_tokens: 9,
+						total_tokens: 16,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('rejects image attachments until a DeepSeek vision path is explicitly validated', async () => {
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		await expect(
+			gateway.generate({
+				...deepSeekRequest,
+				attachments: [
+					{
+						blob_id: 'blob_image',
+						data_url: 'data:image/png;base64,AA==',
+						kind: 'image',
+						media_type: 'image/png',
+						size_bytes: 2,
+					},
+				],
+			}),
+		).rejects.toThrow('DeepSeek gateway currently supports text/document attachments only');
+	});
+});
+
+describe('SambaNovaGateway', () => {
+	it('maps the internal request and response shapes for generate()', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from SambaNova',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_sambanova_123',
+				model: 'DeepSeek-V3.1-cb',
+				usage: {
+					completion_tokens: 9,
+					prompt_tokens: 7,
+					total_tokens: 16,
+				},
+			}),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		const response = await gateway.generate(sambaNovaRequest);
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(calls[0]?.url).toBe('https://api.sambanova.ai/v1/chat/completions');
+		expect(calls[0]?.headers.Authorization).toBe('Bearer sambanova-key');
+		expect(requestBody.model).toBe('DeepSeek-V3.1-cb');
+		expect(requestBody.max_tokens).toBe(96);
+		expect(requestBody.messages).toEqual([
+			{ content: 'You are helpful.', role: 'system' },
+			{ content: 'Hello SambaNova', role: 'user' },
+		]);
+		expect(response).toEqual({
+			finish_reason: 'stop',
+			message: {
+				content: 'Hello from SambaNova',
+				role: 'assistant',
+			},
+			model: 'DeepSeek-V3.1-cb',
+			provider: 'sambanova',
+			response_id: 'chatcmpl_sambanova_123',
+			usage: {
+				input_tokens: 7,
+				output_tokens: 9,
+				total_tokens: 16,
+			},
+		});
+	});
+
+	it('routes generate() to a loopback OpenAI-compatible baseUrl for local LM Studio smoke', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from local vision',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_lmstudio_123',
+				model: 'qwen/qwen3.5-9b',
+			}),
+		);
+		const gateway = new OpenAiGateway({
+			apiKey: 'lmstudio-local',
+			baseUrl: 'http://localhost:1234/v1',
+		});
+
+		await gateway.generate({
+			...openAiRequest,
+			model: 'qwen/qwen3.5-9b',
+		});
+
+		expect(calls[0]?.url).toBe('http://localhost:1234/v1/chat/completions');
+		expect(calls[0]?.headers.Authorization).toBe('Bearer lmstudio-local');
+	});
+
+	it('rejects non-loopback OpenAI-compatible baseUrl values', async () => {
+		const gateway = new OpenAiGateway({
+			apiKey: 'openai-compatible-key',
+			baseUrl: 'https://example.com/v1',
+		});
+
+		await expect(gateway.generate(openAiRequest)).rejects.toThrow(
+			'OpenAI-compatible baseUrl is limited to loopback hosts unless RUNA_OPENAI_COMPAT_ALLOW_REMOTE=1 is set.',
+		);
+	});
+
+	it('allows remote OpenAI-compatible baseUrl values only behind an explicit env flag', async () => {
+		gatewayTestEnvironment.RUNA_OPENAI_COMPAT_ALLOW_REMOTE = '1';
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Hello from a remote OpenAI-compatible gateway',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_remote_compat_123',
+				model: 'qwen/qwen3.5-9b',
+			}),
+		);
+		const gateway = new OpenAiGateway({
+			apiKey: 'remote-compatible-key',
+			baseUrl: 'https://openai-compatible.example/v1',
+		});
+
+		await gateway.generate({
+			...openAiRequest,
+			model: 'qwen/qwen3.5-9b',
+		});
+
+		expect(calls[0]?.url).toBe('https://openai-compatible.example/v1/chat/completions');
+		expect(calls[0]?.headers.Authorization).toBe('Bearer remote-compatible-key');
+	});
+
+	it('includes available_tools and tool call parsing for generate()', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"README.md"}',
+										name: 'file.read',
+									},
+									id: 'call_sambanova_tool',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_sambanova_tool',
+				model: 'DeepSeek-V3.1-cb',
+			}),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		const response = await gateway.generate({
+			...sambaNovaRequest,
+			available_tools: callableToolsRequest,
+		});
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.tool_choice).toBe('auto');
+		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual([
+			'file.read',
+			'shell.exec',
+		]);
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_sambanova_tool',
+			tool_input: {
+				path: 'README.md',
+			},
+			tool_name: 'file.read',
+		});
+	});
+
+	it('streams SambaNova text deltas and returns a terminal response chunk', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_sambanova_stream","model":"DeepSeek-V3.1-cb","choices":[{"delta":{"role":"assistant","content":"Hello "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_sambanova_stream","model":"DeepSeek-V3.1-cb","choices":[{"delta":{"content":"from SambaNova"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		const chunks = [];
+
+		for await (const chunk of gateway.stream(sambaNovaRequest)) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.stream).toBe(true);
+		expect(chunks).toEqual([
+			{
+				text_delta: 'Hello ',
+				type: 'text.delta',
+			},
+			{
+				text_delta: 'from SambaNova',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Hello from SambaNova',
+						role: 'assistant',
+					},
+					model: 'DeepSeek-V3.1-cb',
+					provider: 'sambanova',
+					response_id: 'chatcmpl_sambanova_stream',
+					usage: {
+						input_tokens: 7,
+						output_tokens: 9,
+						total_tokens: 16,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
 	});
 });
 
@@ -1056,6 +1535,138 @@ describe('GroqGateway', () => {
 			},
 			tool_name: 'file.read',
 		});
+		expect(response.tool_call_candidates).toEqual([
+			{
+				call_id: 'call_groq_tool',
+				tool_input: {
+					path: 'src/example.ts',
+				},
+				tool_name: 'file.read',
+			},
+		]);
+	});
+
+	it('parses multiple Groq tool calls additively while keeping the first candidate for backward compatibility', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: 'Calling tools',
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"src/example.ts"}',
+										name: 'file.read',
+									},
+									id: 'call_groq_multi_1',
+									type: 'function',
+								},
+								{
+									function: {
+										arguments: '{"path":"docs/vision.md"}',
+										name: 'file.read',
+									},
+									id: 'call_groq_multi_2',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_tool_multi_123',
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		const response = await gateway.generate(groqRequest);
+
+		expect(response.message).toEqual({
+			content: 'Calling tools',
+			role: 'assistant',
+		});
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_groq_multi_1',
+			tool_input: {
+				path: 'src/example.ts',
+			},
+			tool_name: 'file.read',
+		});
+		expect(response.tool_call_candidates).toEqual([
+			{
+				call_id: 'call_groq_multi_1',
+				tool_input: {
+					path: 'src/example.ts',
+				},
+				tool_name: 'file.read',
+			},
+			{
+				call_id: 'call_groq_multi_2',
+				tool_input: {
+					path: 'docs/vision.md',
+				},
+				tool_name: 'file.read',
+			},
+		]);
+	});
+
+	it('keeps valid Groq tool call candidates when a later candidate is malformed', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"src/example.ts"}',
+										name: 'file.read',
+									},
+									id: 'call_groq_partial_valid',
+									type: 'function',
+								},
+								{
+									function: {
+										arguments: 'not-json',
+										name: 'file.read',
+									},
+									id: 'call_groq_partial_invalid',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_tool_partial_123',
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		const response = await gateway.generate(groqRequest);
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_groq_partial_valid',
+			tool_input: {
+				path: 'src/example.ts',
+			},
+			tool_name: 'file.read',
+		});
+		expect(response.tool_call_candidates).toEqual([
+			{
+				call_id: 'call_groq_partial_valid',
+				tool_input: {
+					path: 'src/example.ts',
+				},
+				tool_name: 'file.read',
+			},
+		]);
 	});
 
 	it('keeps request-side tool enablement and response-side continuation seam aligned for Groq', async () => {
@@ -1170,7 +1781,7 @@ describe('GroqGateway', () => {
 		const gateway = new GroqGateway({ apiKey: 'groq-key' });
 
 		await expect(gateway.generate(groqRequest)).rejects.toThrowError(
-			'Groq response contained an invalid tool call candidate.',
+			'Groq generate response contained only invalid tool call candidates.',
 		);
 	});
 
@@ -1206,7 +1817,7 @@ describe('GroqGateway', () => {
 				...groqRequest,
 				available_tools: callableToolsRequest,
 			}),
-		).rejects.toThrowError('Groq response contained an invalid tool call candidate.');
+		).rejects.toThrowError('Groq generate response contained only invalid tool call candidates.');
 	});
 
 	it('logs structured provider debug context with run and trace correlation when enabled', async () => {
@@ -1293,6 +1904,67 @@ describe('GroqGateway', () => {
 		]);
 	});
 
+	it('streams multiple Groq tool calls into additive candidate lists', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_stream_tool_123","model":"llama-3.3-70b-versatile","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_stream_groq_1","type":"function","function":{"name":"file.read","arguments":"{\\"path\\":\\"src/example.ts\\"}"}},{"index":1,"id":"call_stream_groq_2","type":"function","function":{"name":"file.read","arguments":"{\\"path\\":\\"docs/vision.md\\"}"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_stream_tool_123","model":"llama-3.3-70b-versatile","choices":[{"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":8,"completion_tokens":12,"total_tokens":20}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		const chunks = [];
+
+		for await (const chunk of gateway.stream(groqRequest)) {
+			chunks.push(chunk);
+		}
+
+		expect(chunks).toEqual([
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: '',
+						role: 'assistant',
+					},
+					model: 'llama-3.3-70b-versatile',
+					provider: 'groq',
+					response_id: 'chatcmpl_stream_tool_123',
+					tool_call_candidate: {
+						call_id: 'call_stream_groq_1',
+						tool_input: {
+							path: 'src/example.ts',
+						},
+						tool_name: 'file.read',
+					},
+					tool_call_candidates: [
+						{
+							call_id: 'call_stream_groq_1',
+							tool_input: {
+								path: 'src/example.ts',
+							},
+							tool_name: 'file.read',
+						},
+						{
+							call_id: 'call_stream_groq_2',
+							tool_input: {
+								path: 'docs/vision.md',
+							},
+							tool_name: 'file.read',
+						},
+					],
+					usage: {
+						input_tokens: 8,
+						output_tokens: 12,
+						total_tokens: 20,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
 	it('maps additive multimodal attachments onto the last Groq user message', async () => {
 		const { calls } = installFetchMock(
 			mockJsonResponse(200, {
@@ -1329,6 +2001,14 @@ describe('GroqGateway', () => {
 					size_bytes: 12,
 					text_content: 'Merhaba Runa',
 				},
+				{
+					blob_id: 'blob_doc_1',
+					filename: 'brief.pdf',
+					kind: 'document',
+					media_type: 'application/pdf',
+					size_bytes: 4096,
+					storage_ref: 'blob_doc_1',
+				},
 			],
 		});
 
@@ -1352,6 +2032,14 @@ describe('GroqGateway', () => {
 			},
 			{
 				text: 'Attached text file (notes.txt, text/plain):\nMerhaba Runa',
+				type: 'text',
+			},
+			{
+				text: [
+					'Attached document artifact (brief.pdf, application/pdf, 4096 bytes).',
+					'Storage reference: blob_doc_1.',
+					'No document text preview is available in this phase; do not assume the document body was parsed.',
+				].join('\n'),
 				type: 'text',
 			},
 		]);

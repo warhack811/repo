@@ -3,6 +3,10 @@ import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import type { CurrentRunProgressSurface } from '../../lib/chat-runtime/current-run-progress.js';
 import { uiCopy } from '../../localization/copy.js';
 import { RunStatusChips } from './RunStatusChips.js';
+import { ThinkingBlock } from './ThinkingBlock.js';
+import type { ThinkingStep, ThinkingStepStatus } from './ThinkingBlock.js';
+import { ToolActivityIndicator } from './ToolActivityIndicator.js';
+import type { ToolActivityItem } from './ToolActivityIndicator.js';
 
 type RunProgressPanelProps = Readonly<{
 	feedbackBanner?: ReactNode;
@@ -23,28 +27,6 @@ const sectionLabelStyle: CSSProperties = {
 	letterSpacing: '0.08em',
 	textTransform: 'uppercase',
 	color: '#93c5fd',
-};
-
-const stepGridStyle: CSSProperties = {
-	display: 'grid',
-	gap: '10px',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
-};
-
-const stepCardStyle: CSSProperties = {
-	padding: '12px',
-	borderRadius: '14px',
-	border: '1px solid rgba(148, 163, 184, 0.18)',
-	background: 'rgba(15, 23, 42, 0.62)',
-	display: 'grid',
-	gap: '8px',
-	minWidth: 0,
-};
-
-const stepMetaStyle: CSSProperties = {
-	display: 'flex',
-	gap: '8px',
-	flexWrap: 'wrap',
 };
 
 const chipStyle: CSSProperties = {
@@ -86,6 +68,69 @@ function getPanelAccent(tone: CurrentRunProgressSurface['status_tone']): Readonl
 	}
 }
 
+function getThinkingStepStatus(
+	item: CurrentRunProgressSurface['step_items'][number],
+): ThinkingStepStatus {
+	if (item.kind === 'tool_failed' || item.state === 'failed' || item.state === 'error') {
+		return 'failed';
+	}
+
+	if (
+		item.kind === 'tool_completed' ||
+		item.kind === 'assistant_completed' ||
+		item.kind === 'model_completed' ||
+		item.state === 'completed' ||
+		item.state === 'success'
+	) {
+		return 'completed';
+	}
+
+	if (
+		item.kind === 'approval_requested' ||
+		item.state === 'pending' ||
+		item.state === 'requested'
+	) {
+		return 'paused';
+	}
+
+	if (item.kind === 'tool_requested' || item.state === 'active') {
+		return 'active';
+	}
+
+	return 'pending';
+}
+
+function createThinkingSteps(progress: CurrentRunProgressSurface): readonly ThinkingStep[] {
+	return progress.step_items.map((item, index) => ({
+		detail: item.detail,
+		id: `${item.kind}:${item.call_id ?? item.label}:${index}`,
+		label: item.label,
+		status: getThinkingStepStatus(item),
+		tool_name: item.tool_name,
+	}));
+}
+
+function createToolActivityItems(progress: CurrentRunProgressSurface): readonly ToolActivityItem[] {
+	return progress.step_items
+		.filter(
+			(item) =>
+				item.kind === 'tool_requested' ||
+				item.kind === 'tool_completed' ||
+				item.kind === 'tool_failed',
+		)
+		.map((item, index) => ({
+			detail: item.detail,
+			id: `${item.kind}:${item.call_id ?? item.label}:${index}`,
+			label: item.tool_name ?? item.label,
+			status:
+				item.kind === 'tool_failed'
+					? 'failed'
+					: item.kind === 'tool_completed'
+						? 'completed'
+						: 'active',
+		}));
+}
+
 export function RunProgressPanel({
 	feedbackBanner,
 	progress,
@@ -122,9 +167,6 @@ export function RunProgressPanel({
 						</h3>
 						<div style={{ color: '#cbd5e1', lineHeight: 1.6 }}>{progress.detail}</div>
 					</div>
-					{progress.correlation_label ? (
-						<code style={chipStyle}>{progress.correlation_label}</code>
-					) : null}
 				</div>
 			</div>
 
@@ -132,12 +174,12 @@ export function RunProgressPanel({
 
 			<div style={{ display: 'grid', gap: '10px' }}>
 				<div style={sectionLabelStyle}>{uiCopy.run.runtimePhases}</div>
-				<RunStatusChips ariaLabel="Current run runtime phases" items={progress.phase_items} />
+				<RunStatusChips ariaLabel="Current work phases" items={progress.phase_items} />
 			</div>
 
 			<div style={{ display: 'grid', gap: '10px' }}>
 				<div style={sectionLabelStyle}>{uiCopy.run.currentSurfaceContext}</div>
-				<RunStatusChips ariaLabel="Current run context" items={progress.meta_items} />
+				<RunStatusChips ariaLabel="Current work context" items={progress.meta_items} />
 			</div>
 
 			{progress.approval_block?.payload.target_label ? (
@@ -170,32 +212,11 @@ export function RunProgressPanel({
 							</div>
 						) : null}
 					</div>
-					<div style={stepGridStyle}>
-						{progress.step_items.map((item, index) => (
-							<div
-								key={`${item.kind}:${item.call_id ?? item.label}:${index}`}
-								style={{
-									...stepCardStyle,
-									borderColor:
-										index === progress.step_items.length - 1
-											? 'rgba(96, 165, 250, 0.26)'
-											: 'rgba(148, 163, 184, 0.18)',
-								}}
-							>
-								<div style={{ color: '#f8fafc', fontWeight: 600 }}>{item.label}</div>
-								{item.detail ? (
-									<div style={{ color: '#cbd5e1', lineHeight: 1.5 }}>{item.detail}</div>
-								) : null}
-								{item.tool_name || item.call_id || item.state ? (
-									<div style={stepMetaStyle}>
-										{item.state ? <span style={chipStyle}>{item.state}</span> : null}
-										{item.tool_name ? <code style={chipStyle}>{item.tool_name}</code> : null}
-										{item.call_id ? <code style={chipStyle}>{item.call_id}</code> : null}
-									</div>
-								) : null}
-							</div>
-						))}
-					</div>
+					<ThinkingBlock
+						isActive={progress.status_tone === 'info' || progress.status_tone === 'warning'}
+						steps={createThinkingSteps(progress)}
+					/>
+					<ToolActivityIndicator items={createToolActivityItems(progress)} />
 				</div>
 			) : null}
 

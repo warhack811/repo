@@ -4,6 +4,7 @@ import { defaultGatewayModels } from '@runa/types';
 
 import { ClaudeGateway } from './claude-gateway.js';
 import { resolveGatewayConfig } from './config-resolver.js';
+import { DeepSeekGateway } from './deepseek-gateway.js';
 import { GatewayConfigurationError } from './errors.js';
 import { buildProviderFallbackChain, shouldAttemptProviderFallback } from './fallback-chain.js';
 import { GeminiGateway } from './gemini-gateway.js';
@@ -11,6 +12,7 @@ import { GroqGateway } from './groq-gateway.js';
 import { applyModelRouteToRequest, resolveModelRoute } from './model-router.js';
 import { OpenAiGateway } from './openai-gateway.js';
 import type { CreateGatewayOptions, GatewayProvider, GatewayProviderConfig } from './providers.js';
+import { SambaNovaGateway } from './sambanova-gateway.js';
 
 function instantiateGateway({ config, provider }: CreateGatewayOptions): ModelGateway {
 	const resolvedConfig = resolveGatewayConfig(provider, config);
@@ -24,13 +26,24 @@ function instantiateGateway({ config, provider }: CreateGatewayOptions): ModelGa
 	switch (provider) {
 		case 'claude':
 			return new ClaudeGateway(resolvedConfig);
+		case 'deepseek':
+			return new DeepSeekGateway(resolvedConfig);
 		case 'gemini':
 			return new GeminiGateway(resolvedConfig);
 		case 'groq':
 			return new GroqGateway(resolvedConfig);
 		case 'openai':
 			return new OpenAiGateway(resolvedConfig);
+		case 'sambanova':
+			return new SambaNovaGateway(resolvedConfig);
 	}
+}
+
+function resolveRouteModelForProvider(
+	route: ReturnType<typeof resolveModelRoute>,
+	provider: GatewayProvider,
+): string {
+	return provider === route.routed_provider ? route.routed_model : defaultGatewayModels[provider];
 }
 
 function buildGatewayConfigForProvider(
@@ -91,7 +104,7 @@ class RoutedModelGateway implements ModelGateway {
 				return await gateway.generate(
 					applyModelRouteToRequest(request, {
 						...route,
-						routed_model: defaultGatewayModels[provider],
+						routed_model: resolveRouteModelForProvider(route, provider),
 						routed_provider: provider,
 					}),
 				);
@@ -139,7 +152,7 @@ class RoutedModelGateway implements ModelGateway {
 				for await (const chunk of gateway.stream(
 					applyModelRouteToRequest(request, {
 						...route,
-						routed_model: defaultGatewayModels[provider],
+						routed_model: resolveRouteModelForProvider(route, provider),
 						routed_provider: provider,
 					}),
 				)) {

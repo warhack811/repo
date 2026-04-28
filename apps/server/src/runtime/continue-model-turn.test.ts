@@ -9,6 +9,7 @@ import { continueModelTurn } from './continue-model-turn.js';
 function createToolDefinition(
 	execute: (input: ToolCallInput, context: ToolExecutionContext) => Promise<ToolResult>,
 	metadataOverrides: Partial<ToolDefinition['metadata']> = {},
+	name: ToolDefinition['name'] = 'file.read',
 ): ToolDefinition {
 	return {
 		description: 'Test tool definition for model turn continuation.',
@@ -20,7 +21,7 @@ function createToolDefinition(
 			side_effect_level: 'read',
 			...metadataOverrides,
 		},
-		name: 'file.read',
+		name,
 	};
 }
 
@@ -180,6 +181,222 @@ describe('continueModelTurn', () => {
 			result_status: 'error',
 			tool_name: 'file.read',
 		});
+	});
+
+	it('executes schedulable tool_calls batches in parallel while preserving model order in tool_results', async () => {
+		const registry = new ToolRegistry();
+		const startedCalls: string[] = [];
+		let releaseFileRead: (() => void) | undefined;
+		let releaseWebSearch: (() => void) | undefined;
+		let resolveBothStarted: (() => void) | undefined;
+		const bothStarted = new Promise<void>((resolve) => {
+			resolveBothStarted = resolve;
+		});
+		const rememberStartedCall = (callId: string): void => {
+			startedCalls.push(callId);
+
+			if (startedCalls.length === 2) {
+				resolveBothStarted?.();
+			}
+		};
+
+		registry.register(
+			createToolDefinition(async (input) => {
+				rememberStartedCall(input.call_id);
+				await new Promise<void>((resolve) => {
+					releaseFileRead = resolve;
+				});
+
+				return {
+					call_id: input.call_id,
+					output: {
+						content: 'file body',
+					},
+					status: 'success',
+					tool_name: 'file.read',
+				};
+			}),
+		);
+		registry.register(
+			createToolDefinition(
+				async (input) => {
+					rememberStartedCall(input.call_id);
+					await new Promise<void>((resolve) => {
+						releaseWebSearch = resolve;
+					});
+
+					return {
+						call_id: input.call_id,
+						output: {
+							results: ['web result'],
+						},
+						status: 'success',
+						tool_name: 'web.search',
+					};
+				},
+				{
+					capability_class: 'search',
+				},
+				'web.search',
+			),
+		);
+
+		const continuation = continueModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_continue_tool_calls',
+				trace_id: 'trace_continue_tool_calls',
+				working_directory: 'd:\\ai\\Runa',
+			},
+			model_turn_outcome: {
+				kind: 'tool_calls',
+				tool_calls: [
+					{
+						call_id: 'call_continue_batch_file',
+						kind: 'tool_call',
+						tool_input: {
+							path: 'src/example.ts',
+						},
+						tool_name: 'file.read',
+					},
+					{
+						call_id: 'call_continue_batch_web',
+						kind: 'tool_call',
+						tool_input: {
+							query: 'Runa',
+						},
+						tool_name: 'web.search',
+					},
+				],
+			},
+			registry,
+			run_id: 'run_continue_tool_calls',
+			trace_id: 'trace_continue_tool_calls',
+		});
+
+		await bothStarted;
+		expect(startedCalls).toEqual(['call_continue_batch_file', 'call_continue_batch_web']);
+
+		releaseWebSearch?.();
+		releaseFileRead?.();
+
+		const result = await continuation;
+
+		expect(result.status).toBe('completed');
+
+		if (result.status !== 'completed' || result.outcome_kind !== 'tool_calls') {
+			throw new Error('Expected batched tool_calls continuation to complete.');
+		}
+
+		expect(result.tool_result).toMatchObject({
+			call_id: 'call_continue_batch_web',
+			tool_name: 'web.search',
+		});
+		expect(result.tool_results).toEqual([
+			{
+				call_id: 'call_continue_batch_file',
+				output: {
+					content: 'file body',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+			{
+				call_id: 'call_continue_batch_web',
+				output: {
+					results: ['web result'],
+				},
+				status: 'success',
+				tool_name: 'web.search',
+			},
+		]);
+		expect(result.events).toHaveLength(4);
+	});
+
+	it('executes safe tool_calls before stopping at an approval-required candidate', async () => {
+		const registry = new ToolRegistry();
+		let writeExecuteCount = 0;
+
+		registry.register(
+			createToolDefinition(async (input) => ({
+				call_id: input.call_id,
+				output: {
+					content: 'file body',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			})),
+		);
+		registry.register({
+			...createToolDefinition(
+				async (input) => {
+					writeExecuteCount += 1;
+
+					return {
+						call_id: input.call_id,
+						output: {
+							written: true,
+						},
+						status: 'success',
+						tool_name: 'file.write',
+					};
+				},
+				{
+					requires_approval: true,
+					risk_level: 'medium',
+					side_effect_level: 'write',
+				},
+			),
+			name: 'file.write',
+		} satisfies ToolDefinition);
+
+		const result = await continueModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_continue_tool_calls_approval',
+				trace_id: 'trace_continue_tool_calls_approval',
+				working_directory: 'd:\\ai\\Runa',
+			},
+			model_turn_outcome: {
+				kind: 'tool_calls',
+				tool_calls: [
+					{
+						call_id: 'call_continue_batch_safe',
+						kind: 'tool_call',
+						tool_input: {
+							path: 'src/example.ts',
+						},
+						tool_name: 'file.read',
+					},
+					{
+						call_id: 'call_continue_batch_approval',
+						kind: 'tool_call',
+						tool_input: {
+							content: 'new content',
+							path: 'src/example.ts',
+						},
+						tool_name: 'file.write',
+					},
+				],
+			},
+			registry,
+			run_id: 'run_continue_tool_calls_approval',
+			trace_id: 'trace_continue_tool_calls_approval',
+		});
+
+		expect(result.status).toBe('approval_required');
+
+		if (result.status !== 'approval_required' || result.outcome_kind !== 'tool_calls') {
+			throw new Error('Expected batched tool_calls continuation to stop at approval.');
+		}
+
+		expect(result.call_id).toBe('call_continue_batch_approval');
+		expect(result.tool_result).toMatchObject({
+			call_id: 'call_continue_batch_safe',
+			tool_name: 'file.read',
+		});
+		expect(result.tool_results).toHaveLength(1);
+		expect(writeExecuteCount).toBe(0);
 	});
 
 	it('returns approval_required for gated tool_call outcomes before execution', async () => {

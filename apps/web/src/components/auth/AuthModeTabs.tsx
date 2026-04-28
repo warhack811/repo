@@ -56,16 +56,24 @@ type AuthModeTabsProps = Readonly<{
 	activeMode: LoginPageMode;
 	onSelectMode: (mode: LoginPageMode) => void;
 	panelIdBase?: string;
+	showTokenMode?: boolean;
 }>;
 
 export function AuthModeTabs({
 	activeMode,
 	onSelectMode,
 	panelIdBase = 'auth-mode-panel',
+	showTokenMode = true,
 }: AuthModeTabsProps): ReactElement {
+	const visibleTabs = showTokenMode ? tabs : tabs.filter((tab) => tab.id !== 'token');
+	const visibleTabListStyle: CSSProperties = {
+		...tabListStyle,
+		gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))`,
+	};
+
 	return (
-		<div role="tablist" aria-label={uiCopy.auth.modeLabel} style={tabListStyle}>
-			{tabs.map((tab) => {
+		<div role="tablist" aria-label={uiCopy.auth.modeLabel} style={visibleTabListStyle}>
+			{visibleTabs.map((tab) => {
 				const isActive = tab.id === activeMode;
 				const panelId = `${panelIdBase}-${tab.id}`;
 				const tabId = `${panelIdBase}-tab-${tab.id}`;

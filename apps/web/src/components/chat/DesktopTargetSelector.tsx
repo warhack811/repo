@@ -133,7 +133,7 @@ export function DesktopTargetSelector({
 						style={createOptionStyle(selectedConnectionId === null)}
 					>
 						<span style={optionTitleStyle}>Masaustu secilmedi</span>
-						<span style={optionMetaStyle}>Sonraki istek normal sohbet akışında kalsın.</span>
+						<span style={optionMetaStyle}>Sonraki istek normal sohbet akisinda kalsin.</span>
 					</button>
 					{devices.map((device) => {
 						const isSelected = selectedConnectionId === device.connection_id;
@@ -166,7 +166,7 @@ export function DesktopTargetSelector({
 					}}
 				>
 					<div style={selectorHintStyle}>
-						Masaüstü listesi şimdilik yenilenemedi. Sohbet burada çalışmaya devam ediyor.
+						Masaustu listesi simdilik yenilenemedi. Sohbet burada calismaya devam ediyor.
 					</div>
 					{typeof onRetry === 'function' ? (
 						<button type="button" onClick={onRetry} style={retryButtonStyle}>

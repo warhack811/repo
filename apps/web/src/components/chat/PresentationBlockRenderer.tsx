@@ -634,9 +634,20 @@ export function renderDiffBlock(
 					</div>
 				</div>
 			) : null}
-			<div style={codeBlockContainerStyle}>
-				<pre style={preStyle}>{block.payload.diff_text}</pre>
-			</div>
+			<details>
+				<summary
+					style={{
+						...inspectionActionButtonStyle,
+						display: 'inline-flex',
+						marginBottom: '10px',
+					}}
+				>
+					View diff
+				</summary>
+				<div style={codeBlockContainerStyle}>
+					<pre style={preStyle}>{block.payload.diff_text}</pre>
+				</div>
+			</details>
 		</article>
 	);
 }

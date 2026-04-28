@@ -1,0 +1,138 @@
+/**
+ * Runa Desktop Agent - Renderer Styles
+ * Standalone CSS for React components
+ */
+
+.app-container {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+	padding: 24px;
+}
+
+.app-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 48px;
+}
+
+.app-title {
+	font-size: 28px;
+	font-weight: 700;
+}
+
+.version-badge {
+	font-size: 12px;
+	color: #9ca3af;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 4px 12px;
+	border-radius: 16px;
+}
+
+.app-main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 32px;
+}
+
+.status-card {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 16px;
+	padding: 24px 32px;
+	min-width: 300px;
+}
+
+.status-indicator {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+}
+
+.status-content {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.status-label {
+	font-size: 12px;
+	color: #9ca3af;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.status-value {
+	font-size: 18px;
+	font-weight: 600;
+}
+
+.info-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 16px;
+	width: 100%;
+	max-width: 400px;
+}
+
+.info-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	background: rgba(255, 255, 255, 0.03);
+	padding: 12px 16px;
+	border-radius: 8px;
+}
+
+.info-label {
+	font-size: 11px;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.info-value {
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.actions {
+	display: flex;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.action-button {
+	padding: 12px 32px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	border: none;
+	transition: all 0.2s ease;
+}
+
+.action-button.primary {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+}
+
+.action-button.secondary {
+	background: rgba(255, 255, 255, 0.1);
+	color: #e5e7eb;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.app-footer {
+	text-align: center;
+	padding: 16px;
+	color: #4b5563;
+	font-size: 12px;
+}

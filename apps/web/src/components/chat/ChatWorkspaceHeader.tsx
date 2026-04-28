@@ -45,7 +45,7 @@ export function ChatWorkspaceHeader({
 	statusLabel,
 }: ChatWorkspaceHeaderProps): ReactElement {
 	return (
-		<section
+		<header
 			className="runa-card runa-card--hero runa-ambient-panel"
 			style={heroPanelStyle}
 			aria-labelledby="chat-workspace-heading"
@@ -66,6 +66,6 @@ export function ChatWorkspaceHeader({
 				</div>
 				<div style={createStatusPillStyle(connectionStatus)}>{statusLabel}</div>
 			</div>
-		</section>
+		</header>
 	);
 }

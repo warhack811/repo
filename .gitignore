@@ -3,6 +3,12 @@ node_modules/
 
 # Build outputs
 dist/
+build/
+release/
+dist-electron/
+playwright-report/
+test-results/
+apps/desktop-agent/release/
 
 # Turborepo
 .turbo/
@@ -18,6 +24,8 @@ dist/
 # IDE
 .vscode/
 .idea/
+.claude/
+.codex-screenshots/
 *.swp
 *.swo
 
@@ -32,3 +40,14 @@ coverage/
 *.log
 .tmp-dev-logs/
 .tmp-*.err
+dom.txt
+server_logs.txt
+
+# Local scratch/proof files
+scratch_*
+scratch*.json
+test_loop.mjs
+test_ui.mjs
+packages/db/check_tables.mjs
+packages/db/test_db.mjs
+packages/db/test_local_db.mjs

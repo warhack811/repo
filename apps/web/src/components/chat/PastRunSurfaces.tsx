@@ -8,6 +8,7 @@ import { PresentationRunSurfaceCard } from './PresentationRunSurfaceCard.js';
 type PastRunSurfacesProps = Readonly<{
 	expandedPastRunIds: readonly string[];
 	inspectionAnchorIdsByDetailId: ReadonlyMap<string, string | undefined>;
+	isDeveloperMode?: boolean;
 	onRequestInspection: (runId: string, targetKind: InspectionTargetKind, targetId?: string) => void;
 	onResolveApproval: (approvalId: string, decision: ApprovalResolveDecision) => void;
 	onToggleExpanded: (runId: string, nextOpen: boolean) => void;
@@ -25,6 +26,7 @@ type PastRunSurfacesProps = Readonly<{
 export function PastRunSurfaces({
 	expandedPastRunIds,
 	inspectionAnchorIdsByDetailId,
+	isDeveloperMode = false,
 	onRequestInspection,
 	onResolveApproval,
 	onToggleExpanded,
@@ -41,6 +43,7 @@ export function PastRunSurfaces({
 					expanded={expandedPastRunIds.includes(surface.run_id)}
 					inspectionAnchorIdsByDetailId={inspectionAnchorIdsByDetailId}
 					isCurrent={false}
+					isDeveloperMode={isDeveloperMode}
 					onRequestInspection={onRequestInspection}
 					onResolveApproval={onResolveApproval}
 					onToggleExpanded={onToggleExpanded}

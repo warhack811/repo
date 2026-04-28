@@ -1,16 +1,31 @@
 import type { ToolDefinition, ToolName, ToolRegistryEntry, ToolRegistryLike } from '@runa/types';
 
+import { agentDelegateTool } from './agent-delegate.js';
+import { browserClickTool } from './browser-click.js';
+import { browserExtractTool } from './browser-extract.js';
+import { browserFillTool } from './browser-fill.js';
+import { browserNavigateTool } from './browser-navigate.js';
 import { desktopClickTool } from './desktop-click.js';
+import { desktopClipboardReadTool, desktopClipboardWriteTool } from './desktop-clipboard.js';
 import { desktopKeypressTool } from './desktop-keypress.js';
+import { desktopLaunchTool } from './desktop-launch.js';
 import { desktopScreenshotTool } from './desktop-screenshot.js';
 import { desktopScrollTool } from './desktop-scroll.js';
 import { desktopTypeTool } from './desktop-type.js';
+import { desktopVerifyStateTool } from './desktop-verify-state.js';
+import { desktopVisionAnalyzeTool } from './desktop-vision-analyze.js';
 import { editPatchTool } from './edit-patch.js';
 import { fileListTool } from './file-list.js';
 import { fileReadTool } from './file-read.js';
+import { fileShareTool } from './file-share.js';
+import { fileWatchTool } from './file-watch.js';
 import { fileWriteTool } from './file-write.js';
 import { gitDiffTool } from './git-diff.js';
 import { gitStatusTool } from './git-status.js';
+import { memoryDeleteTool } from './memory-delete.js';
+import { memoryListTool } from './memory-list.js';
+import { memorySaveTool } from './memory-save.js';
+import { memorySearchTool } from './memory-search.js';
 import { searchCodebaseTool } from './search-codebase.js';
 import { searchGrepTool } from './search-grep.js';
 import { shellExecTool } from './shell-exec.js';
@@ -86,12 +101,28 @@ export class ToolRegistry implements ToolRegistryLike {
 }
 
 export const builtInTools = [
+	agentDelegateTool,
+	browserNavigateTool,
+	browserExtractTool,
+	browserClickTool,
+	browserFillTool,
 	desktopClickTool,
+	desktopClipboardReadTool,
+	desktopClipboardWriteTool,
 	desktopKeypressTool,
+	desktopLaunchTool,
 	desktopScrollTool,
+	desktopVisionAnalyzeTool,
+	desktopVerifyStateTool,
 	fileReadTool,
+	fileShareTool,
 	fileWriteTool,
+	fileWatchTool,
 	fileListTool,
+	memorySaveTool,
+	memorySearchTool,
+	memoryListTool,
+	memoryDeleteTool,
 	searchCodebaseTool,
 	searchGrepTool,
 	webSearchTool,

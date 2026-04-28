@@ -1,3 +1,37 @@
+/**
+ * Runa Design System - Chat Surface Density Reduction
+ *
+ * DESIGN PHILOSOPHY: "More single flow, less panel stack"
+ * The goal is to reduce the "card inside card" feeling and overall framed visual weight.
+ *
+ * KEY CHANGES:
+ * 1. Removed ambient glow from .runa-chat-surface - the ::after pseudo-element was adding
+ *    visual weight and making the surface feel like a contained card
+ *
+ * 2. Simplified .runa-transcript-details - now uses minimal left border instead of
+ *    heavy background/border/radius, feels like part of transcript flow
+ *
+ * 3. .runa-composer-options integrated into composer - only subtle top border separates
+ *    it from main composer, no card treatment
+ *
+ * 4. Added .runa-attachment-preview utility - provides subtle treatment for inline content
+ *    without creating nested card feeling
+ *
+ * 5. Reduced visual weight across all chat surface elements:
+ *    - Lower background opacities
+ *    - Reduced border strengths
+ *    - Smaller border-radius values
+ *    - Lighter shadows or none
+ *    - Softer hover states
+ *
+ * CARD DENSITY GUIDELINES:
+ * - .runa-card: Full treatment for primary content panels only
+ * - .runa-card--subtle: Lightweight for nested content (no shadow, reduced borders)
+ * - .runa-card--chat: Lighter treatment for chat-specific containers
+ * - .runa-attachment-preview: Inline content that shouldn't feel like cards
+ * - Avoid using card classes for every container; prefer flat/semi-transparent styles
+ */
+
 :root {
 	--font-body: "Outfit", "Segoe UI", sans-serif;
 	--font-heading: "Sora", "Outfit", "Segoe UI", sans-serif;
@@ -168,6 +202,19 @@ body::before {
 	min-width: 0;
 }
 
+.runa-app-shell-nav {
+	gap: 14px;
+}
+
+.runa-app-shell-main {
+	gap: 20px;
+}
+
+/* DENSITY REDUCTION: Base card styling. Use variant modifiers for different levels of emphasis.
+ * - runa-card: Full card treatment for primary content panels
+ * - runa-card--subtle: Lightweight treatment for nested content (no shadow, reduced borders)
+ * - runa-card--chat: Lighter treatment for chat-specific containers
+ * - For inline content that shouldn't feel like cards, use runa-attachment-preview or similar utility classes */
 .runa-card {
 	position: relative;
 	overflow: hidden;
@@ -181,6 +228,7 @@ body::before {
 	backdrop-filter: blur(12px);
 	transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms
 		ease, background 220ms ease;
+	animation: runa-surface-enter 220ms ease both;
 }
 
 .runa-card--hero {
@@ -193,16 +241,22 @@ body::before {
 	background: var(--gradient-panel-strong);
 }
 
+/* DENSITY REDUCTION: Chat cards use lighter background for less visual weight in the chat surface */
 .runa-card--chat {
-	background: linear-gradient(180deg, rgba(12, 18, 31, 0.88) 0%, rgba(7, 11, 20, 0.74) 100%);
+	background: rgba(12, 18, 31, 0.6);
+	box-shadow: 0 8px 20px rgba(2, 6, 23, 0.15);
+	backdrop-filter: blur(8px);
 }
 
+/* DENSITY REDUCTION: Subtle cards use even lighter treatment for nested content.
+ * - Reduced border opacity and removed shadow for less visual weight
+ * - Use for secondary content that needs separation but not full card treatment */
 .runa-card--subtle {
 	padding: var(--space-subcard);
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.16);
-	background: var(--gradient-subcard);
-	box-shadow: var(--shadow-panel-soft);
+	border: 1px solid rgba(148, 163, 184, 0.1);
+	background: rgba(8, 14, 24, 0.5);
+	box-shadow: none;
 }
 
 .runa-card--soft-grid {
@@ -291,6 +345,10 @@ body::before {
 	transform: translateY(-1px);
 }
 
+.runa-button:active:not(:disabled) {
+	transform: translateY(0);
+}
+
 .runa-button:disabled {
 	cursor: not-allowed;
 	opacity: 0.6;
@@ -343,6 +401,7 @@ body::before {
 	padding: 12px 14px;
 	border-radius: 14px;
 	line-height: 1.5;
+	animation: runa-slide-up 180ms ease both;
 }
 
 .runa-alert--info {
@@ -361,6 +420,22 @@ body::before {
 	background: rgba(127, 29, 29, 0.28);
 	border: 1px solid rgba(248, 113, 113, 0.36);
 	color: #fecaca;
+}
+
+.runa-developer-details {
+	color: hsl(var(--color-text-muted));
+}
+
+.runa-developer-details summary {
+	cursor: pointer;
+	font-weight: 700;
+	color: hsl(var(--color-text));
+}
+
+.runa-developer-details__content {
+	display: grid;
+	gap: 12px;
+	padding-top: 14px;
 }
 
 .runa-metric {
@@ -470,15 +545,337 @@ pre {
 	overflow: hidden;
 }
 
-.runa-chat-surface::after {
-	content: "";
-	position: absolute;
-	inset: auto -60px -90px auto;
-	width: 240px;
-	height: 240px;
+/* DENSITY REDUCTION: Removed ambient glow (::after pseudo-element) to reduce card feeling.
+ * The glow was adding visual weight and making the chat surface feel like a contained card.
+ * Now the surface feels more open and integrated with the page flow. */
+
+.runa-page--chat-product {
+	padding-top: calc(12px + var(--safe-area-top));
+	padding-bottom: calc(16px + var(--safe-area-bottom));
+}
+
+.runa-app-shell-main--chat {
+	margin: 0 auto;
+	width: min(100%, 1280px);
+}
+
+/* DENSITY REDUCTION: Chat header simplified to reduce card feeling.
+ * - Reduced background opacity and border strength
+ * - Smaller border-radius for a less "panelled" look
+ * - Softer shadow to keep it present but not heavy */
+.runa-chat-header {
+	align-items: center;
+	background: rgba(6, 11, 21, 0.7);
+	backdrop-filter: blur(12px);
+	border: 1px solid rgba(148, 163, 184, 0.12);
+	border-radius: 16px;
+	box-shadow: 0 8px 24px rgba(2, 6, 23, 0.18);
+	display: flex;
+	gap: 14px;
+	justify-content: space-between;
+	padding: 10px 12px;
+	position: sticky;
+	top: calc(var(--safe-area-top) + 10px);
+	z-index: 30;
+}
+
+.runa-chat-header__left,
+.runa-chat-header__right {
+	align-items: center;
+	display: flex;
+	gap: 10px;
+	min-width: 0;
+}
+
+.runa-chat-header__brand {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+.runa-chat-header__brand strong {
+	color: #f8fafc;
+	font-family: var(--font-heading);
+	font-size: 16px;
+}
+
+.runa-chat-header__brand span {
+	color: hsl(var(--color-text-muted));
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* DENSITY REDUCTION: Icon buttons simplified - smaller border-radius and softer styling */
+.runa-chat-icon-button {
+	align-items: center;
+	background: rgba(15, 23, 42, 0.5);
+	border: 1px solid rgba(148, 163, 184, 0.14);
+	border-radius: 10px;
+	color: hsl(var(--color-text));
+	cursor: pointer;
+	display: inline-flex;
+	height: 40px;
+	justify-content: center;
+	min-width: 40px;
+	text-decoration: none;
+	transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.runa-chat-icon-button:hover {
+	background: rgba(30, 41, 59, 0.6);
+	border-color: rgba(245, 158, 11, 0.25);
+	transform: translateY(-1px);
+}
+
+.runa-chat-presence {
+	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: 999px;
-	background: radial-gradient(circle, rgba(148, 163, 184, 0.12), transparent 70%);
-	pointer-events: none;
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+	max-width: min(240px, 34vw);
+	overflow: hidden;
+	padding: 8px 10px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.runa-chat-presence--open {
+	background: rgba(20, 83, 45, 0.24);
+	border-color: rgba(34, 197, 94, 0.3);
+	color: #bbf7d0;
+}
+
+.runa-chat-layout {
+	align-items: start;
+	display: grid;
+	gap: 16px;
+	grid-template-columns: minmax(0, 1fr);
+	margin-top: 10px;
+	min-width: 0;
+}
+
+.runa-chat-layout__sidebar,
+.runa-chat-layout__main,
+.runa-chat-layout__composer,
+.runa-chat-layout__work {
+	min-width: 0;
+}
+
+.runa-chat-layout__main {
+	display: grid;
+	gap: 16px;
+	margin: 0 auto;
+	max-width: 920px;
+	width: min(100%, 920px);
+}
+
+.runa-chat-layout__sidebar .runa-conversation-sidebar {
+	top: calc(var(--safe-area-top) + 12px);
+}
+
+/* DENSITY REDUCTION: Simplified transcript-details to feel integrated, not a floating card.
+ * - Removed heavy background, border, and border-radius that made it feel like a panel
+ * - Now uses subtle border only when open, minimal padding
+ * - Feels like part of the transcript flow rather than a separate widget */
+.runa-transcript-details {
+	color: hsl(var(--color-text-muted));
+	display: grid;
+	gap: 12px;
+	padding: 12px 0;
+	border-left: 1px solid rgba(148, 163, 184, 0.12);
+	padding-left: 12px;
+	margin-left: 4px;
+}
+
+.runa-transcript-details > summary {
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 700;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.runa-transcript-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.runa-transcript-details[open] > summary {
+	color: hsl(var(--color-text));
+}
+
+/* DENSITY REDUCTION: Composer options integrated as part of composer, not a nested card.
+ * - Uses only a subtle top border to separate from main composer
+ * - No background, border-radius, or shadow that would create card-in-card feeling
+ * - Minimal padding to keep it lightweight and connected */
+.runa-composer-options {
+	border-top: 1px solid rgba(148, 163, 184, 0.14);
+	display: grid;
+	gap: 12px;
+	padding-top: 4px;
+}
+
+.runa-composer-options > summary {
+	align-items: center;
+	color: hsl(var(--color-text-muted));
+	cursor: pointer;
+	display: flex;
+	flex-wrap: wrap;
+	font-size: 13px;
+	font-weight: 600;
+	gap: 8px 12px;
+	justify-content: space-between;
+	list-style: none;
+	padding: 8px 0 2px;
+	margin: 0;
+}
+
+.runa-composer-options > summary::-webkit-details-marker {
+	display: none;
+}
+
+.runa-composer-options[open] > summary {
+	color: hsl(var(--color-text));
+}
+
+.runa-composer-options > summary::-webkit-details-marker {
+	display: none;
+}
+
+.runa-composer-options > summary:hover {
+	background: rgba(148, 163, 184, 0.06);
+	color: hsl(var(--color-text));
+}
+
+.runa-composer-options > summary:hover .runa-composer-options__icon {
+	opacity: 1;
+}
+
+.runa-composer-options > summary:hover .runa-composer-options__chevron {
+	opacity: 0.7;
+}
+
+.runa-composer-options__header {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+}
+
+.runa-composer-options__icon {
+	color: hsl(var(--color-text-muted));
+	opacity: 0.6;
+	transition: opacity 150ms ease;
+}
+
+.runa-composer-options__chevron {
+	color: hsl(var(--color-text-muted));
+	opacity: 0.5;
+	transition: transform 200ms ease, opacity 150ms ease;
+}
+
+.runa-composer-options[open] > summary .runa-composer-options__chevron {
+	transform: rotate(180deg);
+}
+
+.runa-composer-options__hint {
+	color: hsl(var(--color-text-soft));
+	font-size: 12px;
+	font-weight: 500;
+}
+
+/* DENSITY REDUCTION: Composer options content stays lightweight with no card treatment.
+ * Content flows naturally without heavy borders, backgrounds, or shadows */
+.runa-composer-options__content {
+	display: grid;
+	gap: 14px;
+	padding-top: 8px;
+}
+
+/* DENSITY REDUCTION: Attachment previews and similar inline cards use subtle treatment.
+ * - No border-radius, shadow, or backdrop-filter
+ * - Minimal background that hints at presence without creating a panel
+ * - Use these classes for any inline content that shouldn't feel like a nested card */
+.runa-attachment-preview {
+	background: rgba(15, 23, 42, 0.42);
+	border: 1px solid rgba(148, 163, 184, 0.1);
+	padding: 12px 14px;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.runa-attachment-preview__meta {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+.runa-attachment-preview__name {
+	font-size: 13px;
+	font-weight: 600;
+	color: hsl(var(--color-text));
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.runa-attachment-preview__size {
+	font-size: 11px;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-composer-options__content {
+	display: grid;
+	gap: 14px;
+	padding-top: 8px;
+}
+
+.runa-chat-empty-state {
+	display: grid;
+	gap: 14px;
+	padding: 16px 0;
+}
+
+.runa-chat-empty-state__hint {
+	color: hsl(var(--color-text-muted));
+	font-size: 13px;
+	margin: 0;
+}
+
+.runa-chat-suggestion-grid {
+	display: grid;
+	gap: 8px;
+	grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 540px) {
+	.runa-chat-suggestion-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.runa-chat-suggestion {
+	background: transparent;
+	border: 1px solid rgba(148, 163, 184, 0.12);
+	border-radius: 10px;
+	color: hsl(var(--color-text-muted));
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.4;
+	padding: 10px 12px;
+	text-align: left;
+	transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.runa-chat-suggestion:hover {
+	background: rgba(15, 23, 42, 0.42);
+	border-color: rgba(148, 163, 184, 0.2);
+	color: hsl(var(--color-text));
 }
 
 .runa-nav-meta {
@@ -668,6 +1065,262 @@ pre {
 	word-break: break-word;
 }
 
+.runa-conversation-sidebar-trigger {
+	display: none;
+}
+
+.runa-sidebar-backdrop {
+	display: none;
+	transition: opacity 180ms ease;
+}
+
+.runa-chat-layout__sidebar .runa-sidebar-backdrop {
+	background: rgba(2, 6, 23, 0.62);
+	border: 0;
+	display: block;
+	inset: 0;
+	position: fixed;
+	z-index: 35;
+}
+
+.runa-conversation-sidebar {
+	align-self: start;
+	animation: none;
+	bottom: calc(var(--safe-area-bottom) + 12px);
+	display: grid;
+	gap: 14px;
+	left: 12px;
+	max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 24px);
+	overflow: auto;
+	opacity: 0;
+	pointer-events: none;
+	position: fixed;
+	right: auto;
+	top: calc(var(--safe-area-top) + 12px);
+	transform: translateX(-18px);
+	transition: opacity 180ms ease, transform 220ms ease;
+	width: min(360px, calc(100vw - 24px));
+	z-index: 40;
+}
+
+.runa-conversation-sidebar--open {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateX(0);
+}
+
+.runa-conversation-sidebar__header,
+.runa-conversation-sidebar__footer {
+	align-items: center;
+	background: rgba(4, 9, 19, 0.58);
+	backdrop-filter: blur(12px);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+	margin: calc(var(--space-subcard) * -1);
+	margin-bottom: 0;
+	padding: var(--space-subcard);
+	position: sticky;
+	z-index: 2;
+}
+
+.runa-conversation-sidebar__header {
+	top: calc(var(--space-subcard) * -1);
+}
+
+.runa-conversation-sidebar__footer {
+	bottom: calc(var(--space-subcard) * -1);
+	margin-bottom: calc(var(--space-subcard) * -1);
+	margin-top: 0;
+}
+
+.runa-conversation-group {
+	display: grid;
+	gap: 10px;
+}
+
+.runa-conversation-group__label {
+	color: hsl(var(--color-text-soft));
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+/* DENSITY REDUCTION: Conversation items use softer styling to reduce card stacking */
+.runa-conversation-item {
+	background: rgba(7, 11, 20, 0.4);
+	border: 1px solid rgba(148, 163, 184, 0.1);
+	border-radius: 12px;
+	color: hsl(var(--color-text));
+	cursor: pointer;
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	padding: 14px 15px;
+	text-align: left;
+	transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.runa-conversation-item:hover,
+.runa-conversation-item:focus-visible {
+	transform: translateY(-1px);
+}
+
+/* DENSITY REDUCTION: Active conversation items use subtler highlight */
+.runa-conversation-item--active {
+	background: rgba(245, 158, 11, 0.12);
+	border-color: rgba(245, 158, 11, 0.3);
+}
+
+.runa-conversation-item__top {
+	align-items: center;
+	display: flex;
+	gap: 12px;
+	justify-content: space-between;
+	min-width: 0;
+}
+
+.runa-conversation-item__top strong,
+.runa-conversation-preview {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.runa-conversation-preview {
+	color: hsl(var(--color-text-muted));
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.runa-conversation-time {
+	color: hsl(var(--color-text-soft));
+	font-size: 12px;
+}
+
+.runa-conversation-role {
+	background: rgba(59, 130, 246, 0.18);
+	border-radius: 999px;
+	color: #bfdbfe;
+	flex: 0 0 auto;
+	font-size: 11px;
+	font-weight: 700;
+	padding: 3px 8px;
+}
+
+.runa-conversation-members {
+	border-top: 1px solid rgba(148, 163, 184, 0.14);
+	padding-top: 12px;
+}
+
+.runa-conversation-members summary {
+	cursor: pointer;
+	font-weight: 700;
+}
+
+/* DENSITY REDUCTION: Conversation members use subtle styling */
+.runa-conversation-member {
+	align-items: center;
+	background: rgba(15, 23, 42, 0.4);
+	border: 1px solid rgba(148, 163, 184, 0.08);
+	border-radius: 10px;
+	display: flex;
+	gap: 12px;
+	justify-content: space-between;
+	min-width: 0;
+	padding: 10px 12px;
+}
+
+.runa-conversation-skeleton {
+	animation: runa-skeleton-pulse 1.3s ease-in-out infinite;
+	background: linear-gradient(
+		90deg,
+		rgba(148, 163, 184, 0.08),
+		rgba(148, 163, 184, 0.2),
+		rgba(148, 163, 184, 0.08)
+	);
+	background-size: 240% 100%;
+	border-radius: 18px;
+	height: 86px;
+}
+
+/* DENSITY REDUCTION: Settings rows use subtler styling for less card stacking */
+.runa-settings-row {
+	align-items: center;
+	background: rgba(9, 14, 25, 0.5);
+	border: 1px solid rgba(148, 163, 184, 0.1);
+	border-radius: 12px;
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+	padding: 14px 16px;
+}
+
+.runa-settings-row--stacked {
+	align-items: stretch;
+	display: grid;
+}
+
+.runa-device-card__top {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+	min-width: 0;
+}
+
+.runa-voice-button--listening {
+	animation: runa-recording-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes runa-skeleton-pulse {
+	0% {
+		background-position: 100% 0;
+	}
+
+	100% {
+		background-position: -100% 0;
+	}
+}
+
+@keyframes runa-surface-enter {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes runa-slide-up {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes runa-recording-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.18);
+	}
+
+	50% {
+		box-shadow: 0 0 0 7px rgba(245, 158, 11, 0);
+	}
+}
+
 .runa-markdown--streaming::after {
 	content: "";
 	display: inline-block;
@@ -699,8 +1352,20 @@ pre {
 		width: 100%;
 	}
 
+	.runa-chat-layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.runa-chat-layout__sidebar {
+		display: contents;
+	}
+
 	.runa-app-shell-header__top {
 		gap: 14px;
+	}
+
+	.runa-app-shell-nav {
+		gap: 12px;
 	}
 }
 
@@ -739,9 +1404,61 @@ pre {
 		align-items: stretch;
 	}
 
+	.runa-chat-header {
+		align-items: stretch;
+		border-radius: 14px;
+		flex-direction: column;
+	}
+
+	.runa-chat-header__right {
+		justify-content: space-between;
+	}
+
+	.runa-chat-presence {
+		max-width: none;
+	}
+
+	.runa-chat-layout {
+		margin-top: 12px;
+	}
+
 	.runa-developer-toggle {
 		width: 100%;
 		justify-content: space-between;
+	}
+
+	.runa-conversation-sidebar-trigger {
+		display: block;
+	}
+
+	.runa-sidebar-backdrop {
+		background: rgba(2, 6, 23, 0.62);
+		border: 0;
+		display: block;
+		inset: 0;
+		position: fixed;
+		z-index: 35;
+	}
+
+	.runa-conversation-sidebar {
+		animation: none;
+		bottom: calc(var(--safe-area-bottom) + 10px);
+		left: 10px;
+		max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 20px);
+		opacity: 0;
+		overflow: auto;
+		pointer-events: none;
+		position: fixed;
+		right: 10px;
+		top: calc(var(--safe-area-top) + 10px);
+		transform: translateY(16px);
+		z-index: 40;
+	}
+
+	.runa-conversation-sidebar--open {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
 	}
 }
 
@@ -761,12 +1478,35 @@ pre {
 		top: calc(var(--safe-area-top) + 6px);
 	}
 
+	.runa-app-shell-nav {
+		gap: 10px;
+	}
+
 	.runa-button,
 	.runa-developer-toggle {
 		min-height: 46px;
 	}
 
+	.runa-chat-header__left {
+		align-items: flex-start;
+	}
+
+	.runa-chat-suggestion-grid {
+		grid-template-columns: 1fr;
+	}
+
 	.runa-markdown__table {
 		min-width: 280px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+		transition-duration: 0.001ms !important;
 	}
 }

@@ -3,10 +3,12 @@ import type { ModelRouteIntent } from './model-router.js';
 import type { GatewayProvider } from './providers.js';
 
 const fallbackPriorityByProvider: Readonly<Record<GatewayProvider, readonly GatewayProvider[]>> = {
-	claude: ['openai', 'gemini', 'groq'],
-	gemini: ['openai', 'claude', 'groq'],
-	groq: ['gemini', 'openai', 'claude'],
-	openai: ['claude', 'gemini', 'groq'],
+	claude: ['openai', 'gemini', 'deepseek', 'sambanova', 'groq'],
+	deepseek: ['groq', 'sambanova', 'openai', 'gemini', 'claude'],
+	gemini: ['openai', 'claude', 'deepseek', 'sambanova', 'groq'],
+	groq: ['deepseek', 'gemini', 'openai', 'sambanova', 'claude'],
+	openai: ['claude', 'gemini', 'deepseek', 'sambanova', 'groq'],
+	sambanova: ['deepseek', 'groq', 'openai', 'gemini', 'claude'],
 };
 
 function getIntentAdjustedPriority(
@@ -17,7 +19,9 @@ function getIntentAdjustedPriority(
 		return fallbackPriorityByProvider[provider];
 	}
 
-	return intent === 'cheap' ? ['gemini', 'openai', 'claude'] : ['openai', 'gemini', 'claude'];
+	return intent === 'cheap'
+		? ['deepseek', 'gemini', 'sambanova', 'openai', 'claude']
+		: ['openai', 'gemini', 'deepseek', 'sambanova', 'claude'];
 }
 
 export function buildProviderFallbackChain(

@@ -30,7 +30,13 @@ function createModelRequest(overrides: Partial<ModelRequest> = {}): ModelRequest
 }
 
 function setEnvVariable(
-	name: 'ANTHROPIC_API_KEY' | 'GEMINI_API_KEY' | 'OPENAI_API_KEY',
+	name:
+		| 'ANTHROPIC_API_KEY'
+		| 'DEEPSEEK_API_KEY'
+		| 'GEMINI_API_KEY'
+		| 'OPENAI_API_KEY'
+		| 'RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED'
+		| 'RUNA_MODEL_ROUTER_ENABLED',
 	value: string | undefined,
 ): void {
 	process.env[name] = value;
@@ -49,8 +55,11 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 	setEnvVariable('ANTHROPIC_API_KEY', undefined);
+	setEnvVariable('DEEPSEEK_API_KEY', undefined);
 	setEnvVariable('GEMINI_API_KEY', undefined);
 	setEnvVariable('OPENAI_API_KEY', undefined);
+	setEnvVariable('RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED', undefined);
+	setEnvVariable('RUNA_MODEL_ROUTER_ENABLED', undefined);
 });
 
 describe('model-router helpers', () => {
@@ -112,7 +121,58 @@ describe('model-router helpers', () => {
 		expect(route).toMatchObject({
 			intent: 'cheap',
 			reason: 'heuristic_cheap',
-			routed_provider: 'groq',
+			routed_model: 'deepseek-v4-flash',
+			routed_provider: 'deepseek',
+		});
+	});
+
+	it('uses DeepSeek model tiers by default when DeepSeek is the requested provider', () => {
+		const cheapRoute = resolveModelRoute({
+			request: createModelRequest({
+				messages: [{ content: 'Merhaba', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+		const reasoningRoute = resolveModelRoute({
+			request: createModelRequest({
+				messages: [
+					{
+						content: 'Bu mimariyi derin analiz et ve riskleri karsilastir.',
+						role: 'user',
+					},
+				],
+			}),
+			requested_provider: 'deepseek',
+		});
+
+		expect(cheapRoute).toMatchObject({
+			intent: 'cheap',
+			routed_model: 'deepseek-v4-flash',
+			routed_provider: 'deepseek',
+		});
+		expect(reasoningRoute).toMatchObject({
+			intent: 'deep_reasoning',
+			routed_model: 'deepseek-v4-pro',
+			routed_provider: 'deepseek',
+		});
+	});
+
+	it('can disable DeepSeek model-tier routing through server env', () => {
+		setEnvVariable('RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED', '0');
+
+		const route = resolveModelRoute({
+			request: createModelRequest({
+				messages: [{ content: 'Merhaba', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+
+		expect(route).toMatchObject({
+			allow_provider_fallback: false,
+			intent: 'balanced',
+			reason: 'requested_provider',
+			routed_model: 'deepseek-v4-flash',
+			routed_provider: 'deepseek',
 		});
 	});
 
@@ -163,7 +223,7 @@ describe('fallback-chain helpers', () => {
 				requested_provider: 'groq',
 				routed_provider: 'claude',
 			}),
-		).toEqual(['groq', 'openai', 'gemini']);
+		).toEqual(['groq', 'openai', 'gemini', 'deepseek', 'sambanova']);
 	});
 
 	it('attempts fallback only for provider/configuration failures', () => {
@@ -245,5 +305,48 @@ describe('router-aware gateway factory', () => {
 
 		expect(calls).toEqual(['https://api.groq.com/openai/v1/chat/completions']);
 		expect(response.provider).toBe('groq');
+	});
+
+	it('routes short requests to DeepSeek when the global router is enabled and env key is present', async () => {
+		const calls: string[] = [];
+		setEnvVariable('DEEPSEEK_API_KEY', 'deepseek-env-key');
+		setEnvVariable('RUNA_MODEL_ROUTER_ENABLED', '1');
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string) => {
+				calls.push(url);
+
+				return mockJsonResponse(200, {
+					choices: [
+						{
+							finish_reason: 'stop',
+							message: {
+								content: 'Hello from DeepSeek',
+								role: 'assistant',
+							},
+						},
+					],
+					id: 'chatcmpl_router_deepseek',
+					model: 'deepseek-v4-flash',
+				});
+			}),
+		);
+
+		const gateway = createModelGateway({
+			config: {
+				apiKey: 'openai-key',
+			},
+			provider: 'openai',
+		});
+		const response = await gateway.generate(
+			createModelRequest({
+				messages: [{ content: 'Merhaba', role: 'user' }],
+			}),
+		);
+
+		expect(calls).toEqual(['https://api.deepseek.com/chat/completions']);
+		expect(response.model).toBe('deepseek-v4-flash');
+		expect(response.provider).toBe('deepseek');
 	});
 });

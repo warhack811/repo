@@ -6,6 +6,7 @@ import type {
 	ModelStreamChunk,
 } from '@runa/types';
 
+import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
 import { postJson } from './provider-http.js';
@@ -102,13 +103,64 @@ interface OpenAiToolCallAccumulator {
 }
 
 const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
+const LOCAL_OPENAI_COMPAT_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
+const REMOTE_OPENAI_COMPAT_ENV = 'RUNA_OPENAI_COMPAT_ALLOW_REMOTE';
 
-function buildAttachmentTextPart(attachment: Extract<ModelAttachment, { readonly kind: 'text' }>): {
+function ensureTrailingSlash(value: string): string {
+	return value.endsWith('/') ? value : `${value}/`;
+}
+
+function allowsRemoteOpenAiCompatibleBaseUrl(): boolean {
+	return process.env[REMOTE_OPENAI_COMPAT_ENV] === '1';
+}
+
+function resolveOpenAiChatCompletionsUrl(config: GatewayProviderConfig): string {
+	const configuredBaseUrl = config.baseUrl?.trim();
+
+	if (!configuredBaseUrl) {
+		return OPENAI_CHAT_COMPLETIONS_URL;
+	}
+
+	let parsedUrl: URL;
+
+	try {
+		parsedUrl = new URL(configuredBaseUrl);
+	} catch (error: unknown) {
+		throw new GatewayConfigurationError(
+			error instanceof Error
+				? `OpenAI-compatible baseUrl must be a valid URL: ${error.message}`
+				: 'OpenAI-compatible baseUrl must be a valid URL.',
+		);
+	}
+
+	if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+		throw new GatewayConfigurationError('OpenAI-compatible baseUrl must use http or https.');
+	}
+
+	if (
+		!LOCAL_OPENAI_COMPAT_HOSTS.has(parsedUrl.hostname.toLowerCase()) &&
+		!allowsRemoteOpenAiCompatibleBaseUrl()
+	) {
+		throw new GatewayConfigurationError(
+			`OpenAI-compatible baseUrl is limited to loopback hosts unless ${REMOTE_OPENAI_COMPAT_ENV}=1 is set.`,
+		);
+	}
+
+	if (parsedUrl.pathname.endsWith('/chat/completions')) {
+		return parsedUrl.toString();
+	}
+
+	return new URL('chat/completions', ensureTrailingSlash(parsedUrl.toString())).toString();
+}
+
+function buildAttachmentTextPart(
+	attachment: Exclude<ModelAttachment, { readonly kind: 'image' }>,
+): {
 	readonly text: string;
 	readonly type: 'text';
 } {
 	return {
-		text: `Attached text file (${attachment.filename ?? attachment.blob_id}, ${attachment.media_type}):\n${attachment.text_content}`,
+		text: describeAttachmentForTextPart(attachment),
 		type: 'text',
 	};
 }
@@ -364,7 +416,7 @@ export class OpenAiGateway implements ModelGateway {
 				Authorization: `Bearer ${this.#config.apiKey}`,
 			},
 			provider: this.provider,
-			url: OPENAI_CHAT_COMPLETIONS_URL,
+			url: resolveOpenAiChatCompletionsUrl(this.#config),
 		});
 
 		return parseOpenAiResponse(payload);
@@ -387,7 +439,7 @@ export class OpenAiGateway implements ModelGateway {
 		let response: Response;
 
 		try {
-			response = await fetchImplementation(OPENAI_CHAT_COMPLETIONS_URL, {
+			response = await fetchImplementation(resolveOpenAiChatCompletionsUrl(this.#config), {
 				body: JSON.stringify(requestBody),
 				headers: {
 					Authorization: `Bearer ${this.#config.apiKey}`,

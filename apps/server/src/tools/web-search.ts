@@ -16,12 +16,15 @@ import {
 
 const DEFAULT_MAX_RESULTS = 5;
 const DEFAULT_SERPER_ENDPOINT = 'https://google.serper.dev/search';
+const DEFAULT_SERPER_NEWS_ENDPOINT = 'https://google.serper.dev/news';
 const MAX_MAX_RESULTS = 5;
 const MAX_QUERY_LENGTH = 160;
 const MAX_SNIPPET_LENGTH = 280;
+const LOCALE_PATTERN = /^[a-z]{2}$/iu;
 const PROVIDER_RESULT_MULTIPLIER = 2;
 const REQUEST_TIMEOUT_MS = 8_000;
 
+const COMMUNITY_RESEARCH_HOST_SUFFIXES = ['researchgate.net', 'scholar.google.com'] as const;
 const GENERAL_WEB_HOST_SUFFIXES = [
 	'dev.to',
 	'facebook.com',
@@ -37,6 +40,27 @@ const GENERAL_WEB_HOST_SUFFIXES = [
 	'twitter.com',
 	'x.com',
 	'youtube.com',
+] as const;
+
+const OFFICIAL_SOURCE_HOST_SUFFIXES = [
+	'europa.eu',
+	'gov.tr',
+	'meb.gov.tr',
+	'nih.gov',
+	'who.int',
+] as const;
+
+const REPUTABLE_RESEARCH_HOST_SUFFIXES = [
+	'arxiv.org',
+	'acm.org',
+	'doi.org',
+	'ieee.org',
+	'jstor.org',
+	'ncbi.nlm.nih.gov',
+	'nature.com',
+	'pubmed.ncbi.nlm.nih.gov',
+	'sciencedirect.com',
+	'wikipedia.org',
 ] as const;
 
 const REPUTABLE_TECH_HOST_SUFFIXES = [
@@ -64,6 +88,7 @@ const DOCS_LIKE_PATH_SEGMENTS = [
 	'reference',
 ];
 const DOCS_LIKE_SUBDOMAINS = ['api', 'developer', 'developers', 'docs', 'learn', 'platform'];
+const COMMUNITY_HOST_SEGMENTS = ['community', 'discourse', 'discuss', 'forum', 'forums'];
 const NON_VENDOR_PATH_SEGMENTS = [
 	'article',
 	'articles',
@@ -79,8 +104,10 @@ export type WebSearchProvider = 'serper';
 
 export type WebSearchArguments = ToolArguments & {
 	readonly freshness_required?: boolean;
+	readonly locale?: string;
 	readonly max_results?: number;
 	readonly query: string;
+	readonly search_type?: string;
 };
 
 export interface WebSearchResultItem {
@@ -93,10 +120,24 @@ export interface WebSearchResultItem {
 	readonly url: string;
 }
 
+export interface WebSearchAnswerBoxData {
+	readonly snippet: string;
+	readonly source?: string;
+	readonly title?: string;
+}
+
+export interface WebSearchKnowledgeGraphData {
+	readonly description?: string;
+	readonly source?: string;
+	readonly title?: string;
+}
+
 export interface WebSearchSuccessData {
+	readonly answer_box?: WebSearchAnswerBoxData;
 	readonly authority_note?: string;
 	readonly freshness_note?: string;
 	readonly is_truncated: boolean;
+	readonly knowledge_graph?: WebSearchKnowledgeGraphData;
 	readonly results: readonly WebSearchResultItem[];
 	readonly search_provider: WebSearchProvider;
 }
@@ -119,24 +160,70 @@ interface SearchEnvironment extends NodeJS.ProcessEnv {
 	readonly SERPER_ENDPOINT?: string;
 }
 
+type SearchType = 'news' | 'organic';
+
+interface SearchSettings {
+	readonly locale?: string;
+	readonly max_results: number;
+	readonly query: string;
+	readonly search_type: SearchType;
+}
+
+interface SerperAnswerBoxCandidate {
+	readonly answer?: unknown;
+	readonly link?: unknown;
+	readonly snippet?: unknown;
+	readonly source?: unknown;
+	readonly title?: unknown;
+}
+
+interface SerperKnowledgeGraphCandidate {
+	readonly description?: unknown;
+	readonly source?: unknown;
+	readonly title?: unknown;
+	readonly website?: unknown;
+}
+
+interface SerperNewsResultCandidate {
+	readonly date?: unknown;
+	readonly link?: unknown;
+	readonly position?: unknown;
+	readonly snippet?: unknown;
+	readonly source?: unknown;
+	readonly title?: unknown;
+}
+
 interface SerperOrganicResultCandidate {
 	readonly date?: unknown;
 	readonly link?: unknown;
 	readonly position?: unknown;
 	readonly snippet?: unknown;
+	readonly source?: unknown;
 	readonly title?: unknown;
 }
 
 interface SerperResponseCandidate {
+	readonly answerBox?: unknown;
+	readonly answer_box?: unknown;
+	readonly knowledgeGraph?: unknown;
+	readonly knowledge_graph?: unknown;
+	readonly news?: unknown;
 	readonly organic?: unknown;
 }
 
-interface SerperOrganicResult {
+interface SerperSearchResult {
 	readonly date?: string;
 	readonly link: string;
 	readonly position?: number;
 	readonly snippet?: string;
+	readonly source?: string;
 	readonly title: string;
+}
+
+interface SerperParsedResponse {
+	readonly answer_box?: WebSearchAnswerBoxData;
+	readonly knowledge_graph?: WebSearchKnowledgeGraphData;
+	readonly results: readonly SerperSearchResult[];
 }
 
 interface WebSearchErrorResultCandidate {
@@ -163,6 +250,20 @@ function normalizeQuery(query: string): string | undefined {
 	}
 
 	return normalizedQuery;
+}
+
+function normalizeLocale(locale: string | undefined): string | undefined {
+	if (locale === undefined) {
+		return undefined;
+	}
+
+	const normalizedLocale = normalizeText(locale).toLocaleLowerCase();
+
+	if (!LOCALE_PATTERN.test(normalizedLocale)) {
+		return undefined;
+	}
+
+	return normalizedLocale;
 }
 
 function normalizeMaxResults(maxResults: number | undefined): number | undefined {
@@ -203,6 +304,28 @@ function isGeneralWebHost(hostname: string): boolean {
 	return GENERAL_WEB_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
 }
 
+function isCommunityResearchHost(hostname: string): boolean {
+	return COMMUNITY_RESEARCH_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
+}
+
+function isCommunityLikeHost(hostname: string): boolean {
+	return hostname.split('.').some((segment) => COMMUNITY_HOST_SEGMENTS.includes(segment));
+}
+
+function isOfficialInstitutionHost(hostname: string): boolean {
+	return (
+		OFFICIAL_SOURCE_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix)) ||
+		hostname.endsWith('.gov') ||
+		hostname.includes('.gov.') ||
+		hostname.endsWith('.edu') ||
+		hostname.includes('.edu.')
+	);
+}
+
+function isReputableResearchHost(hostname: string): boolean {
+	return REPUTABLE_RESEARCH_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
+}
+
 function isReputableTechHost(hostname: string): boolean {
 	return REPUTABLE_TECH_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
 }
@@ -215,8 +338,9 @@ function hasDocsLikeSignal(hostname: string, pathName: string): boolean {
 		.filter((segment) => segment.length > 0);
 
 	return (
-		hostSegments.some((segment) => DOCS_LIKE_SUBDOMAINS.includes(segment)) ||
-		pathSegments.some((segment) => DOCS_LIKE_PATH_SEGMENTS.includes(segment))
+		!hostSegments.some((segment) => COMMUNITY_HOST_SEGMENTS.includes(segment)) &&
+		(hostSegments.some((segment) => DOCS_LIKE_SUBDOMAINS.includes(segment)) ||
+			pathSegments.some((segment) => DOCS_LIKE_PATH_SEGMENTS.includes(segment)))
 	);
 }
 
@@ -237,8 +361,20 @@ function isVendorLikeHost(hostname: string, pathName: string): boolean {
 function detectTrustTier(url: URL): WebSearchTrustTier {
 	const hostname = normalizeHostname(url.hostname);
 
+	if (isCommunityResearchHost(hostname) || isCommunityLikeHost(hostname)) {
+		return 'general';
+	}
+
+	if (isOfficialInstitutionHost(hostname)) {
+		return 'official';
+	}
+
 	if (hasDocsLikeSignal(hostname, url.pathname)) {
 		return 'official';
+	}
+
+	if (isReputableResearchHost(hostname)) {
+		return 'reputable';
 	}
 
 	if (isReputableTechHost(hostname)) {
@@ -261,7 +397,7 @@ function getAuthorityNote(trustTier: WebSearchTrustTier): string {
 		case 'reputable':
 			return 'Reputable technical source; still secondary to official docs.';
 		case 'general':
-			return 'General web result; treat as lower-trust context.';
+			return 'General web result, aggregator, or community-uploaded source; treat as lower-trust context.';
 	}
 }
 
@@ -288,34 +424,130 @@ function getTrustRank(trustTier: WebSearchTrustTier): number {
 	}
 }
 
-function isSerperOrganicResult(value: unknown): value is SerperOrganicResult {
+function normalizeOptionalText(value: unknown): string | undefined {
+	if (typeof value !== 'string') {
+		return undefined;
+	}
+
+	const normalizedValue = normalizeText(value);
+
+	return normalizedValue.length > 0 ? normalizedValue : undefined;
+}
+
+function normalizeSourceLabel(rawSource: unknown, rawUrl: unknown): string | undefined {
+	const normalizedSource = normalizeOptionalText(rawSource);
+
+	if (normalizedSource) {
+		return sanitizePromptContent(normalizedSource);
+	}
+
+	const normalizedUrl = normalizeOptionalText(rawUrl);
+
+	if (!normalizedUrl) {
+		return undefined;
+	}
+
+	try {
+		return normalizeHostname(new URL(normalizedUrl).hostname);
+	} catch {
+		return sanitizePromptContent(normalizedUrl);
+	}
+}
+
+function isSerperSearchResult(value: unknown): value is SerperSearchResult {
 	if (!isRecord(value)) {
 		return false;
 	}
 
-	const candidate = value as SerperOrganicResultCandidate;
+	const candidate = value as SerperOrganicResultCandidate | SerperNewsResultCandidate;
 
 	return (
 		typeof candidate.title === 'string' &&
 		typeof candidate.link === 'string' &&
 		(candidate.snippet === undefined || typeof candidate.snippet === 'string') &&
 		(candidate.date === undefined || typeof candidate.date === 'string') &&
-		(candidate.position === undefined || typeof candidate.position === 'number')
+		(candidate.position === undefined || typeof candidate.position === 'number') &&
+		(candidate.source === undefined || typeof candidate.source === 'string')
 	);
 }
 
-function parseSerperOrganicResults(payload: unknown): readonly SerperOrganicResult[] {
+function parseSerperSearchResults(
+	payload: unknown,
+	searchType: SearchType,
+): readonly SerperSearchResult[] {
 	if (!isRecord(payload)) {
 		return [];
 	}
 
 	const candidate = payload as SerperResponseCandidate;
+	const rawResults = searchType === 'news' ? candidate.news : candidate.organic;
 
-	if (!Array.isArray(candidate.organic)) {
+	if (!Array.isArray(rawResults)) {
 		return [];
 	}
 
-	return candidate.organic.filter((result) => isSerperOrganicResult(result));
+	return rawResults.filter((result) => isSerperSearchResult(result));
+}
+
+function parseSerperAnswerBox(payload: unknown): WebSearchAnswerBoxData | undefined {
+	if (!isRecord(payload)) {
+		return undefined;
+	}
+
+	const candidate = payload as SerperAnswerBoxCandidate;
+	const snippetCandidate =
+		normalizeOptionalText(candidate.snippet) ?? normalizeOptionalText(candidate.answer);
+
+	if (!snippetCandidate) {
+		return undefined;
+	}
+
+	return {
+		snippet: sanitizePromptContent(normalizeSnippet(snippetCandidate)),
+		source: normalizeSourceLabel(candidate.source, candidate.link),
+		title: sanitizeOptionalPromptContent(normalizeOptionalText(candidate.title)),
+	};
+}
+
+function parseSerperKnowledgeGraph(payload: unknown): WebSearchKnowledgeGraphData | undefined {
+	if (!isRecord(payload)) {
+		return undefined;
+	}
+
+	const candidate = payload as SerperKnowledgeGraphCandidate;
+	const title = normalizeOptionalText(candidate.title);
+	const description = normalizeOptionalText(candidate.description);
+	const source = normalizeSourceLabel(candidate.source, candidate.website);
+
+	if (!title && !description && !source) {
+		return undefined;
+	}
+
+	return {
+		description: sanitizeOptionalPromptContent(description),
+		source,
+		title: sanitizeOptionalPromptContent(title),
+	};
+}
+
+function parseSerperResponse(payload: unknown, searchType: SearchType): SerperParsedResponse {
+	if (!isRecord(payload)) {
+		return {
+			results: [],
+		};
+	}
+
+	const candidate = payload as SerperResponseCandidate;
+	const answerBox = parseSerperAnswerBox(candidate.answerBox ?? candidate.answer_box);
+	const knowledgeGraph = parseSerperKnowledgeGraph(
+		candidate.knowledgeGraph ?? candidate.knowledge_graph,
+	);
+
+	return {
+		...(answerBox ? { answer_box: answerBox } : {}),
+		...(knowledgeGraph ? { knowledge_graph: knowledgeGraph } : {}),
+		results: parseSerperSearchResults(candidate, searchType),
+	};
 }
 
 function createErrorResult(
@@ -388,12 +620,29 @@ function toExecutionErrorResult(input: WebSearchInput, error: unknown): WebSearc
 	);
 }
 
-function getSearchEndpoint(environment: SearchEnvironment): string {
+function getSearchEndpoint(environment: SearchEnvironment, searchType: SearchType): string {
 	const configuredEndpoint = environment.SERPER_ENDPOINT?.trim();
 
-	return configuredEndpoint && configuredEndpoint.length > 0
-		? configuredEndpoint
-		: DEFAULT_SERPER_ENDPOINT;
+	if (!configuredEndpoint || configuredEndpoint.length === 0) {
+		return searchType === 'news' ? DEFAULT_SERPER_NEWS_ENDPOINT : DEFAULT_SERPER_ENDPOINT;
+	}
+
+	if (searchType === 'organic') {
+		return configuredEndpoint;
+	}
+
+	try {
+		const parsedEndpoint = new URL(configuredEndpoint);
+		const normalizedPath = parsedEndpoint.pathname.replace(/\/+$/u, '');
+
+		parsedEndpoint.pathname = normalizedPath.endsWith('/search')
+			? `${normalizedPath.slice(0, -'/search'.length)}/news`
+			: `${normalizedPath}/news`;
+
+		return parsedEndpoint.toString();
+	} catch {
+		return DEFAULT_SERPER_NEWS_ENDPOINT;
+	}
 }
 
 function getSearchApiKey(environment: SearchEnvironment): string | undefined {
@@ -405,9 +654,8 @@ function getSearchApiKey(environment: SearchEnvironment): string | undefined {
 async function requestSerperResults(
 	dependencies: WebSearchDependencies,
 	input: WebSearchInput,
-	query: string,
-	maxResults: number,
-): Promise<readonly SerperOrganicResult[]> {
+	settings: SearchSettings,
+): Promise<SerperParsedResponse> {
 	const apiKey = getSearchApiKey(dependencies.environment);
 
 	if (!apiKey) {
@@ -426,19 +674,26 @@ async function requestSerperResults(
 	const timeoutHandle = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
 	try {
-		const response = await dependencies.fetch(getSearchEndpoint(dependencies.environment), {
-			body: JSON.stringify({
-				num: Math.min(maxResults * PROVIDER_RESULT_MULTIPLIER, 10),
-				q: query,
-				tbs: input.arguments.freshness_required === true ? 'qdr:m' : undefined,
-			}),
-			headers: {
-				'content-type': 'application/json',
-				'X-API-KEY': apiKey,
+		const response = await dependencies.fetch(
+			getSearchEndpoint(dependencies.environment, settings.search_type),
+			{
+				body: JSON.stringify({
+					hl: settings.locale,
+					num: Math.min(settings.max_results * PROVIDER_RESULT_MULTIPLIER, 10),
+					q: settings.query,
+					tbs:
+						settings.search_type === 'organic' && input.arguments.freshness_required === true
+							? 'qdr:m'
+							: undefined,
+				}),
+				headers: {
+					'content-type': 'application/json',
+					'X-API-KEY': apiKey,
+				},
+				method: 'POST',
+				signal: controller.signal,
 			},
-			method: 'POST',
-			signal: controller.signal,
-		});
+		);
 
 		if (!response.ok) {
 			const responseBody = normalizeSnippet(await response.text());
@@ -455,20 +710,20 @@ async function requestSerperResults(
 			);
 		}
 
-		return parseSerperOrganicResults((await response.json()) as unknown);
+		return parseSerperResponse((await response.json()) as unknown, settings.search_type);
 	} finally {
 		clearTimeout(timeoutHandle);
 	}
 }
 
 function shapeResults(
-	organicResults: readonly SerperOrganicResult[],
+	searchResults: readonly SerperSearchResult[],
 	maxResults: number,
 ): Readonly<{
 	readonly is_truncated: boolean;
 	readonly results: readonly WebSearchResultItem[];
 }> {
-	const shapedResults = organicResults
+	const shapedResults = searchResults
 		.flatMap((result) => {
 			try {
 				const url = new URL(result.link);
@@ -489,7 +744,7 @@ function shapeResults(
 						authority_note: sanitizePromptContent(getAuthorityNote(trustTier)),
 						freshness_hint: sanitizeOptionalPromptContent(getFreshnessHint(result.date)),
 						snippet: sanitizePromptContent(normalizeSnippet(result.snippet)),
-						source: hostname,
+						source: normalizeSourceLabel(result.source, result.link) ?? hostname,
 						title: sanitizePromptContent(normalizeText(result.title)),
 						trust_tier: trustTier,
 						url: url.toString(),
@@ -523,6 +778,115 @@ function shapeResults(
 	};
 }
 
+function getFreshnessNote(
+	searchType: SearchType,
+	freshnessRequired: boolean | undefined,
+): string | undefined {
+	if (searchType === 'news') {
+		return 'News search was requested; provider dates and snippets may lag the source article page.';
+	}
+
+	if (freshnessRequired === true) {
+		return 'Freshness was requested; snippets and provider dates may still lag the live page.';
+	}
+
+	return undefined;
+}
+
+function normalizeSearchSettings(input: WebSearchInput): SearchSettings | WebSearchErrorResult {
+	const query = input.arguments.query;
+	const normalizedQuery = typeof query === 'string' ? normalizeQuery(query) : undefined;
+
+	if (!normalizedQuery) {
+		return createErrorResult(
+			input,
+			'INVALID_INPUT',
+			`query must be a non-empty string with at most ${MAX_QUERY_LENGTH} characters.`,
+			{
+				reason: 'invalid_query',
+			},
+			false,
+		);
+	}
+
+	const searchTypeArgument = input.arguments.search_type;
+	const normalizedSearchType =
+		searchTypeArgument === undefined
+			? 'organic'
+			: typeof searchTypeArgument === 'string' &&
+					(searchTypeArgument === 'organic' || searchTypeArgument === 'news')
+				? searchTypeArgument
+				: undefined;
+
+	if (!normalizedSearchType) {
+		return createErrorResult(
+			input,
+			'INVALID_INPUT',
+			'search_type must be "organic" or "news" when provided.',
+			{
+				reason: 'invalid_search_type',
+			},
+			false,
+		);
+	}
+
+	if (
+		input.arguments.freshness_required !== undefined &&
+		typeof input.arguments.freshness_required !== 'boolean'
+	) {
+		return createErrorResult(
+			input,
+			'INVALID_INPUT',
+			'freshness_required must be a boolean when provided.',
+			{
+				reason: 'invalid_freshness_required',
+			},
+			false,
+		);
+	}
+
+	const maxResults = normalizeMaxResults(input.arguments.max_results);
+
+	if (maxResults === undefined) {
+		return createErrorResult(
+			input,
+			'INVALID_INPUT',
+			'max_results must be a positive integer when provided.',
+			{
+				reason: 'invalid_max_results',
+			},
+			false,
+		);
+	}
+
+	const localeArgument = input.arguments.locale;
+	const normalizedLocale =
+		localeArgument === undefined
+			? undefined
+			: typeof localeArgument === 'string'
+				? normalizeLocale(localeArgument)
+				: undefined;
+
+	if (localeArgument !== undefined && !normalizedLocale) {
+		return createErrorResult(
+			input,
+			'INVALID_INPUT',
+			'locale must be a two-letter language code such as "tr" or "en" when provided.',
+			{
+				reason: 'invalid_locale',
+			},
+			false,
+		);
+	}
+
+	return {
+		locale: normalizedLocale,
+		max_results: maxResults,
+		query: normalizedQuery,
+		search_type: normalizedSearchType,
+	};
+}
+
 export function createWebSearchTool(
 	dependencies: WebSearchDependencies = {
 		environment: process.env as SearchEnvironment,
@@ -542,80 +906,47 @@ export function createWebSearchTool(
 						'Maximum number of authority-ranked public web results to return, capped to a small safe limit.',
 					type: 'number',
 				},
+				locale: {
+					description: 'Two-letter language code such as "tr" or "en".',
+					type: 'string',
+				},
 				query: {
 					description:
 						'Short public-web search query for fresh, external, vendor, release, or latest information. Do not use when repo or local sources already answer the implementation question.',
 					required: true,
 					type: 'string',
 				},
+				search_type: {
+					description: 'Type of search: "organic" (default) or "news" for recent news articles.',
+					type: 'string',
+				},
 			},
 		},
 		description:
-			'Performs a small, read-only public web search for external or freshness-sensitive questions with authority-first shaping, provenance-aware results, conservative low-trust filtering, and optional freshness bias. It complements local truth rather than replacing it.',
+			'Performs a small, read-only public web search for external or freshness-sensitive questions with authority-first shaping, provenance-aware results, answer-box and knowledge-graph capture, conservative low-trust filtering, optional locale hints, and news-mode support. It complements local truth rather than replacing it.',
 		async execute(input): Promise<WebSearchResult> {
-			const query = input.arguments.query;
-			const normalizedQuery = typeof query === 'string' ? normalizeQuery(query) : undefined;
+			const normalizedSettings = normalizeSearchSettings(input);
 
-			if (!normalizedQuery) {
-				return createErrorResult(
-					input,
-					'INVALID_INPUT',
-					`query must be a non-empty string with at most ${MAX_QUERY_LENGTH} characters.`,
-					{
-						reason: 'invalid_query',
-					},
-					false,
-				);
-			}
-
-			if (
-				input.arguments.freshness_required !== undefined &&
-				typeof input.arguments.freshness_required !== 'boolean'
-			) {
-				return createErrorResult(
-					input,
-					'INVALID_INPUT',
-					'freshness_required must be a boolean when provided.',
-					{
-						reason: 'invalid_freshness_required',
-					},
-					false,
-				);
-			}
-
-			const maxResults = normalizeMaxResults(input.arguments.max_results);
-
-			if (maxResults === undefined) {
-				return createErrorResult(
-					input,
-					'INVALID_INPUT',
-					'max_results must be a positive integer when provided.',
-					{
-						reason: 'invalid_max_results',
-					},
-					false,
-				);
+			if (isWebSearchErrorResult(normalizedSettings)) {
+				return normalizedSettings;
 			}
 
 			try {
-				const organicResults = await requestSerperResults(
-					dependencies,
-					input,
-					normalizedQuery,
-					maxResults,
-				);
-				const shapedResults = shapeResults(organicResults, maxResults);
+				const serperResponse = await requestSerperResults(dependencies, input, normalizedSettings);
+				const shapedResults = shapeResults(serperResponse.results, normalizedSettings.max_results);
 
 				return {
 					call_id: input.call_id,
 					output: {
+						answer_box: serperResponse.answer_box,
 						authority_note:
-							'Authority-first ordering prioritizes docs-like and vendor sources; lower-trust general web results are filtered out.',
-						freshness_note:
-							input.arguments.freshness_required === true
-								? 'Freshness was requested; snippets and provider dates may still lag the live page.'
-								: undefined,
+							'Authority-first ordering prioritizes official, vendor, and reputable sources; high-signal answer surfaces retain provenance and lower-trust general web results are filtered only when clearly noisy.',
+						freshness_note: getFreshnessNote(
+							normalizedSettings.search_type,
+							input.arguments.freshness_required,
+						),
 						is_truncated: shapedResults.is_truncated,
+						knowledge_graph: serperResponse.knowledge_graph,
 						results: shapedResults.results,
 						search_provider: 'serper',
 					},

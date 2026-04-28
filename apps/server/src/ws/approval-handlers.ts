@@ -1,4 +1,4 @@
-import type { ApprovalRequest, RenderBlock, ToolCallInput } from '@runa/types';
+import type { ApprovalRequest, RenderBlock, ToolCallInput, ToolResult } from '@runa/types';
 
 import {
 	type ApprovalStore,
@@ -20,7 +20,7 @@ import {
 	rememberInspectionContext,
 } from './presentation.js';
 import { resumeApprovedAutoContinue } from './run-execution.js';
-import { getDefaultToolRegistry, getPolicyWiring } from './runtime-dependencies.js';
+import { getDefaultToolRegistryAsync, getPolicyWiring } from './runtime-dependencies.js';
 import {
 	type WebSocketConnection,
 	createStandalonePresentationBlocksMessage,
@@ -86,12 +86,11 @@ export async function handleApprovalResolveMessage(
 	}
 
 	const policyWiring = getPolicyWiring(options);
+	const resolvedToolRegistry = options.toolRegistry ?? (await getDefaultToolRegistryAsync());
 	const toolDefinition =
 		pendingApprovalEntry.approval_request.tool_name === undefined
 			? undefined
-			: (options.toolRegistry ?? getDefaultToolRegistry()).get(
-					pendingApprovalEntry.approval_request.tool_name,
-				);
+			: resolvedToolRegistry.get(pendingApprovalEntry.approval_request.tool_name);
 	const approvalDecision = policyWiring.resolveApprovalDecision(socket, {
 		pending_approval: pendingApprovalEntry,
 		tool_definition: toolDefinition,
@@ -122,6 +121,7 @@ export async function handleApprovalResolveMessage(
 			},
 		]),
 	];
+	let approvedReplayToolResult: ToolResult | undefined;
 
 	if (
 		resolvedApprovalResult.status === 'approved' &&
@@ -153,7 +153,7 @@ export async function handleApprovalResolveMessage(
 				trace_id: pendingApprovalEntry.approval_request.trace_id,
 				working_directory: pendingApprovalEntry.pending_tool_call.working_directory,
 			},
-			registry: options.toolRegistry ?? getDefaultToolRegistry(),
+			registry: resolvedToolRegistry,
 			run_id: pendingApprovalEntry.approval_request.run_id,
 			tool_input: replayToolInput,
 			tool_name: replayToolInput.tool_name,
@@ -178,6 +178,7 @@ export async function handleApprovalResolveMessage(
 				throw new Error(ingestedReplayResult.failure.message);
 			}
 
+			approvedReplayToolResult = ingestedReplayResult.tool_result;
 			blocks.push(
 				...createToolResultPresentationBlocks([
 					{
@@ -243,6 +244,25 @@ export async function handleApprovalResolveMessage(
 			}
 		} else {
 			return;
+		}
+	}
+
+	if (
+		resolvedApprovalResult.status === 'approved' &&
+		approvalDecision.request.kind !== 'auto_continue' &&
+		approvedReplayToolResult !== undefined &&
+		pendingApprovalEntry.auto_continue_context !== undefined &&
+		pendingApprovalEntry.approval_request.tool_name?.startsWith('desktop.') === true
+	) {
+		const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options, {
+			initial_tool_result: approvedReplayToolResult,
+			initial_turn_count: pendingApprovalEntry.auto_continue_context.turn_count,
+		});
+
+		if (!resumed) {
+			throw new Error(
+				`Pending desktop continuation context missing: ${pendingApprovalEntry.approval_request.approval_id}`,
+			);
 		}
 	}
 }

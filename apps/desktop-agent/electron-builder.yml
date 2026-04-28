@@ -1,0 +1,39 @@
+appId: com.runa.desktop-agent
+productName: "Runa Desktop"
+copyright: "Copyright © 2026 Runa Team"
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - electron/**/*
+  - build/**/*
+  - package.json
+
+extraMetadata:
+  main: electron/main.cjs
+
+asar: false
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  executableName: "Runa Desktop"
+  signAndEditExecutable: false
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+# Electron-builder config
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
+
+# Build configuration
+npmRebuild: false
+nodeGypRebuild: false

@@ -1,15 +1,15 @@
+import { Clock3, type LucideIcon, MessageCircle, Monitor, UserRound } from 'lucide-react';
 import type { CSSProperties, ReactElement } from 'react';
 import { NavLink } from 'react-router-dom';
 
-import { useDeveloperMode } from '../../hooks/useDeveloperMode.js';
-import { pillStyle } from '../../lib/chat-styles.js';
 import { uiCopy } from '../../localization/copy.js';
 
-export type AuthenticatedPageId = 'account' | 'chat' | 'developer';
+export type AuthenticatedPageId = 'account' | 'chat' | 'developer' | 'devices' | 'history';
 
 interface AppNavItem {
 	readonly description: string;
 	readonly id: AuthenticatedPageId;
+	readonly icon: LucideIcon;
 	readonly label: string;
 	readonly to: string;
 }
@@ -18,64 +18,81 @@ const appNavItems: readonly AppNavItem[] = [
 	{
 		description: uiCopy.appNav.chatDescription,
 		id: 'chat',
+		icon: MessageCircle,
 		label: uiCopy.appNav.chatLabel,
 		to: '/chat',
 	},
 	{
-		description: uiCopy.appNav.accountDescription,
-		id: 'account',
-		label: uiCopy.appNav.accountLabel,
-		to: '/account',
+		description: uiCopy.appNav.historyDescription,
+		id: 'history',
+		icon: Clock3,
+		label: uiCopy.appNav.historyLabel,
+		to: '/history',
 	},
 	{
-		description: uiCopy.appNav.developerDescription,
-		id: 'developer',
-		label: uiCopy.appNav.developerLabel,
-		to: '/developer',
+		description: uiCopy.appNav.devicesDescription,
+		id: 'devices',
+		icon: Monitor,
+		label: uiCopy.appNav.devicesLabel,
+		to: '/devices',
+	},
+	{
+		description: uiCopy.appNav.accountDescription,
+		id: 'account',
+		icon: UserRound,
+		label: uiCopy.appNav.accountLabel,
+		to: '/account',
 	},
 ] as const;
 
 const navGridStyle: CSSProperties = {
 	display: 'grid',
-	gap: '10px',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
+	gap: '4px',
+	gridTemplateColumns: 'repeat(auto-fit, minmax(min(132px, 100%), 1fr))',
 };
 
 const navButtonStyle: CSSProperties = {
-	display: 'grid',
-	gap: '6px',
-	alignContent: 'start',
+	display: 'flex',
+	gap: '8px',
+	alignItems: 'center',
 	textAlign: 'left',
-	padding: '16px 18px',
-	borderRadius: '18px',
-	border: '1px solid rgba(148, 163, 184, 0.22)',
-	background: 'linear-gradient(180deg, rgba(9, 14, 25, 0.78) 0%, rgba(6, 11, 21, 0.72) 100%)',
+	padding: '6px 10px',
+	borderRadius: '10px',
+	border: '1px solid rgba(148, 163, 184, 0.12)',
+	background: 'rgba(9, 14, 25, 0.4)',
 	color: 'hsl(var(--color-text))',
 	cursor: 'pointer',
-	transition:
-		'transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease',
+	transition: 'border-color 140ms ease, background 140ms ease',
 	minWidth: 0,
-	minHeight: '96px',
-	boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+	minHeight: '40px',
 };
 
 const activeNavButtonStyle: CSSProperties = {
-	border: '1px solid rgba(245, 158, 11, 0.42)',
-	background:
-		'radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 40%), linear-gradient(180deg, rgba(46, 29, 8, 0.88) 0%, rgba(15, 23, 42, 0.82) 100%)',
-	boxShadow: 'var(--shadow-glow)',
+	border: '1px solid rgba(245, 158, 11, 0.28)',
+	background: 'rgba(46, 29, 8, 0.5)',
 };
 
 const navLabelStyle: CSSProperties = {
-	fontSize: '15px',
-	fontWeight: 700,
+	fontSize: '13px',
+	fontWeight: 600,
 };
 
 const navDescriptionStyle: CSSProperties = {
-	fontSize: '12px',
-	lineHeight: 1.5,
-	color: 'hsl(var(--color-text-soft))',
+	fontSize: '10px',
+	lineHeight: 1.3,
+	color: 'hsl(var(--color-text-dim))',
 	overflowWrap: 'anywhere',
+};
+
+const navIconStyle: CSSProperties = {
+	display: 'grid',
+	placeItems: 'center',
+	width: '24px',
+	height: '24px',
+	borderRadius: '8px',
+	border: '1px solid rgba(148, 163, 184, 0.08)',
+	background: 'rgba(15, 23, 42, 0.4)',
+	flex: '0 0 auto',
 };
 
 type AppNavProps = Readonly<{
@@ -83,32 +100,12 @@ type AppNavProps = Readonly<{
 }>;
 
 export function AppNav({ activePage }: AppNavProps): ReactElement {
-	const { isDeveloperMode, toggleDeveloperMode } = useDeveloperMode();
-	const visibleNavItems = appNavItems.filter(
-		(item) => item.id !== 'developer' || isDeveloperMode || activePage === 'developer',
-	);
-
 	return (
 		<nav aria-label={uiCopy.appNav.navLabel} style={{ display: 'grid', gap: '12px' }}>
-			<div className="runa-nav-meta">
-				<div className="runa-subtle-copy" style={{ fontSize: '13px' }}>
-					{isDeveloperMode
-						? 'Developer surfaces are visible for this browser.'
-						: 'Main navigation stays focused on conversation by default.'}
-				</div>
-				<button
-					type="button"
-					aria-pressed={isDeveloperMode}
-					onClick={toggleDeveloperMode}
-					className={`runa-developer-toggle${isDeveloperMode ? ' runa-developer-toggle--active' : ''}`}
-				>
-					<span>{uiCopy.appNav.developerLabel}</span>
-					<span className="runa-developer-toggle__switch" aria-hidden="true" />
-				</button>
-			</div>
 			<div style={navGridStyle}>
-				{visibleNavItems.map((item) => {
+				{appNavItems.map((item) => {
 					const isActive = item.id === activePage;
+					const Icon = item.icon;
 
 					return (
 						<NavLink
@@ -122,11 +119,13 @@ export function AppNav({ activePage }: AppNavProps): ReactElement {
 								textDecoration: 'none',
 							}}
 						>
-							<span style={{ ...pillStyle, width: 'fit-content', padding: '6px 10px' }}>
-								{isActive ? 'Primary' : 'Secondary'}
+							<span style={navIconStyle} aria-hidden="true">
+								<Icon size={14} />
 							</span>
-							<span style={navLabelStyle}>{item.label}</span>
-							<span style={navDescriptionStyle}>{item.description}</span>
+							<span style={{ display: 'grid', gap: '3px', minWidth: 0 }}>
+								<span style={navLabelStyle}>{item.label}</span>
+								<span style={navDescriptionStyle}>{item.description}</span>
+							</span>
 						</NavLink>
 					);
 				})}

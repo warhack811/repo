@@ -36,7 +36,7 @@ export function StreamingMessageSurface({
 
 	return (
 		<div style={streamingSurfaceStyle} aria-live="polite">
-			<div style={secondaryLabelStyle}>Live response</div>
+			<div style={secondaryLabelStyle}>Canli yanit</div>
 			<MarkdownRenderer
 				className="runa-streaming-response"
 				content={currentStreamingText}

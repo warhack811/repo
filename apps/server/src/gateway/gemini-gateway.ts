@@ -6,6 +6,7 @@ import type {
 	ModelStreamChunk,
 } from '@runa/types';
 
+import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
 import { postJson } from './provider-http.js';
@@ -101,12 +102,14 @@ interface GeminiToolCallAccumulator {
 	tool_name?: string;
 }
 
-function buildAttachmentTextPart(attachment: Extract<ModelAttachment, { readonly kind: 'text' }>): {
+function buildAttachmentTextPart(
+	attachment: Exclude<ModelAttachment, { readonly kind: 'image' }>,
+): {
 	readonly text: string;
 	readonly type: 'text';
 } {
 	return {
-		text: `Attached text file (${attachment.filename ?? attachment.blob_id}, ${attachment.media_type}):\n${attachment.text_content}`,
+		text: describeAttachmentForTextPart(attachment),
 		type: 'text',
 	};
 }
