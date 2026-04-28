@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react';
 
 import type { InspectionTargetKind } from '../../ws-types.js';
-import type { InspectionActionState } from './PresentationBlockRenderer.js';
-import { ActionDetailModal } from './capability/index.js';
-import type { ActionDetailItem, CapabilityTone } from './capability/index.js';
+import type { InspectionActionState } from '../chat/PresentationBlockRenderer.js';
+import { ActionDetailModal } from '../chat/capability/index.js';
+import type { ActionDetailItem, CapabilityTone } from '../chat/capability/index.js';
 
 type InspectionActionDetailModalProps = Readonly<{
 	actionState: InspectionActionState;

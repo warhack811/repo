@@ -11,8 +11,8 @@ import {
 	appShellSecondaryButtonStyle,
 	appShellSecondaryLabelStyle,
 } from '../components/app/AppShell.js';
-import { OperatorControlsPanel } from '../components/chat/OperatorControlsPanel.js';
-import { TransportMessagesPanel } from '../components/chat/TransportMessagesPanel.js';
+import { OperatorControlsPanel } from '../components/developer/OperatorControlsPanel.js';
+import { TransportMessagesPanel } from '../components/developer/TransportMessagesPanel.js';
 import type { UseChatRuntimeResult } from '../hooks/useChatRuntime.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
 import { uiCopy } from '../localization/copy.js';
@@ -41,7 +41,7 @@ const codeStyle: CSSProperties = {
 	maxHeight: '240px',
 };
 
-type DashboardPageProps = Readonly<{
+type DeveloperPageProps = Readonly<{
 	authContext: AuthContext;
 	authError: string | null;
 	hasStoredBearerToken: boolean;
@@ -63,7 +63,7 @@ function stringifyUserMetadata(authContext: AuthContext): string {
 	return JSON.stringify(authContext.user?.metadata ?? {}, null, 2);
 }
 
-export function DashboardPage({
+export function DeveloperPage({
 	authContext,
 	authError,
 	hasStoredBearerToken,
@@ -71,7 +71,7 @@ export function DashboardPage({
 	onClearAuthToken,
 	onRefreshAuthContext,
 	runtime,
-}: DashboardPageProps): ReactElement {
+}: DeveloperPageProps): ReactElement {
 	const { isDeveloperMode } = useDeveloperMode();
 	const [showTransportMessages, setShowTransportMessages] = useState(false);
 	const runtimeConfig = useChatStoreSelector(runtime.store, selectRuntimeConfigState);

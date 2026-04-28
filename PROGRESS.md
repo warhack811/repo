@@ -7,11 +7,71 @@
 
 ## Mevcut Durum Ozeti
 
-- **Tarih:** 27 Nisan 2026
-- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, GAP-12 desktop-agent bridge/input/launch shell zemini ilerledi
+- **Tarih:** 28 Nisan 2026
+- **Faz:** Core Hardening (Phase 2) - UI Overhaul serisi acildi (UI-OVERHAUL-01..06); 01 kapatildi.
 - **Vizyon:** Basit kullanicidan teknik uzmana kadar herkesin kullanabilecegi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI calisma ortagi.
-- **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
-- **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
+- **Odak:** Rakip seviyesi (Claude Cowork / Linear / sade ChatGPT) UI hedefine 6 asamali overhaul plani; chat-first manifesto'nun kod yuzeyine tam tasinmasi ile baslandi.
+- **Son Onemli Olay:** 2026-04-28 tarihinde UI Overhaul plani belgelendi (`docs/UI-OVERHAUL-01..06.md`) ve UI-OVERHAUL-01 (Operator/Developer Surface Hard Isolation + Manifesto-CI Gate) closure'a alindi.
+
+### UI Overhaul - 28 Nisan 2026
+
+UI tarafini rakip seviyesine cikarmak icin 6 asamali overhaul plani belgelendi:
+
+1. **UI-OVERHAUL-01:** Operator/Developer surface hard isolation + manifesto-CI gate
+2. **UI-OVERHAUL-02:** Design tokens + CSS architecture (CSS Modules + CSS variables)
+3. **UI-OVERHAUL-03:** Inline style migration + Runa* primitive expansion
+4. **UI-OVERHAUL-04:** Chat visual hierarchy: PresentationBlockRenderer split, approval inline, code block polish
+5. **UI-OVERHAUL-05:** Mobile-first responsive audit (320/414/768/1280)
+6. **UI-OVERHAUL-06:** Brand polish + onboarding wizard + LoginPage kucultme
+
+Belgeler `docs/UI-OVERHAUL-01.md` ... `docs/UI-OVERHAUL-06.md` altinda; format TASK-TEMPLATE + UI-PHASE-7 disiplini (Sinirlar, Yapma Listesi, Done Kriteri, Browser QA).
+
+### UI-OVERHAUL-02 Closure - 28 Nisan 2026
+
+**Design Tokens & CSS Architecture Foundation**
+
+- `apps/web/src/index.css` (1272 satir) -> 1 satir (`@import "./styles/index.css"`).
+- `apps/web/src/styles/` dizini olusturuldu:
+  - `tokens.css` — tum CSS custom properties (dark default + `[data-theme="light"]` overrides; spacing scale, radius, motion, gradient, safe-area)
+  - `reset.css` — modern minimal reset (box-sizing, html/body, element defaults, `::selection`, `:focus-visible`, `prefers-reduced-motion`)
+  - `primitives.css` — tum `.runa-*` class'lari (card, button, input, pill, alert, chat layout, sidebar, markdown, settings rows, media queries)
+  - `animations.css` — tum `@keyframes` (skeleton-pulse, surface-enter, slide-up, recording-pulse, stream-caret, fadeIn, shimmer)
+  - `index.css` — yalniz `@import` sirasi
+- `apps/web/src/lib/theme.ts` olusturuldu: `Theme`, `applyTheme()`, `getStoredTheme()`, `storeTheme()` — `data-theme` attribute ile `<html>` uzerinde calisiyor; `localStorage` ile persist.
+- `apps/web/src/main.tsx` -> `applyTheme(getStoredTheme())` app mount'tan once cagriliyor (FOUC olmaz).
+- `apps/web/src/pages/SettingsPage.tsx` -> "Gorunum / Tema" section eklendi: Sistem / Koyu / Acik uclu toggle; secili durum `runa-button--secondary-active` ile vurgulaniyor.
+- Tum `[data-theme="light"]` overrides primitives.css + tokens.css icerisinde tanimli; mevcut dark gorsel degismez, light theme fonksiyonel.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types build` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS (Biome, 105 dosya)
+  - `pnpm.cmd --filter @runa/web test` PASS (9 dosya / 21 test)
+  - `pnpm.cmd --filter @runa/web build` PASS (CSS bundle: 25.53 kB / 5.89 kB gzip)
+  - `pnpm.cmd manifesto:check` PASS (0 violation)
+- Sonraki adim: **UI-OVERHAUL-03** — Inline style migration (`style={{}}` kullanan 51 dosya) ve `chat-styles.ts` temizligi.
+
+### UI-OVERHAUL-01 Closure - 28 Nisan 2026
+
+- `apps/web/src/components/chat/` altindaki developer-only paneller `apps/web/src/components/developer/` altina tasindi:
+  - `OperatorControlsPanel.tsx`
+  - `TransportMessagesPanel.tsx`
+  - `RunTimelinePanel.tsx`
+  - `InspectionActionDetailModal.tsx` (capability ve PresentationBlockRenderer referanslari `../chat/...` olarak guncellendi)
+  - `ChatDeveloperHint.tsx`
+- Eski chat-side dosyalar silindi; re-export shim birakilmadi (manifesto kesin ayrimi gerektirir).
+- `apps/web/src/pages/DashboardPage.tsx` -> `apps/web/src/pages/DeveloperPage.tsx` rename'i tamamlandi; default ve named export `DeveloperPage` olarak guncel.
+- `apps/web/src/App.tsx` `DashboardPage` import'u `DeveloperPage` olarak guncellendi; `/dashboard` -> `/chat` redirect korundu.
+- `apps/web/src/pages/ChatPage.tsx` `RunTimelinePanel` import'u `React.lazy` + `Suspense` ile sarildi; developer mode kapaliyken bundle'a girmiyor (build kanitli: `RunTimelinePanel-J39TX6Jg.js 3.05 kB` ayri chunk).
+- Manifesto-CI gate: `scripts/ci/manifesto-check.mjs` eklendi; `apps/web/src/components/{chat,auth,approval,desktop,settings,ui}/` ve `apps/web/src/pages/` (DeveloperPage haric) altinda yasakli kelimeleri tarar (Raw Transport, Model Override, principal, stored token, bearer token, transport messages, minimum seam, ham transport). Pattern identifier-aware: `authContext.principal.kind` gibi TS field access'leri ignore eder; sadece user-visible JSX text / string literal yakalar.
+- `package.json` (root) `manifesto:check` script eklendi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/types build` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS (Biome)
+  - `pnpm.cmd --filter @runa/web test` PASS (`9` dosya / `21` test)
+  - `pnpm.cmd --filter @runa/web build` PASS (RunTimelinePanel ayri lazy chunk)
+  - `pnpm.cmd manifesto:check` PASS (0 violation)
+- Durust kalan durum: Bu closure davranis degistirmez; sadece surface ayrimi yapar. `useDeveloperMode()` toggle mantigi korundu. Browser QA bu turda kosulmadi (worktree environment); UI-OVERHAUL-02 baslamadan once dev server uzerinden manuel veya Playwright visual regression baseline guncellenmeli. Mevcut `FirstImpressionPolish.test.tsx` ve `ChatFirstShell.test.tsx` zaten chat surface'da ham operator dilini reddediyor; degisiklik gerekmedi.
 
 ### Root TASK / UI-PHASE Closure Audit - 27 Nisan 2026
 

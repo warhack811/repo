@@ -1,5 +1,7 @@
 import { type CSSProperties, type ReactElement, useCallback, useEffect, useState } from 'react';
 
+import { type Theme, applyTheme, getStoredTheme, storeTheme } from '../lib/theme.js';
+
 import type { AuthContext, DesktopDevicePresenceSnapshot } from '@runa/types';
 
 import {
@@ -69,12 +71,19 @@ function getDesktopDeviceError(state: DesktopDevicesState): string | null {
 	return state.status === 'error' ? state.message : null;
 }
 
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+	{ value: 'system', label: 'Sistem' },
+	{ value: 'dark', label: 'Koyu' },
+	{ value: 'light', label: 'Açık' },
+];
+
 export function SettingsPage({
 	authContext,
 	authError,
 	isAuthPending,
 	onLogout,
 }: SettingsPageProps): ReactElement {
+	const [theme, setTheme] = useState<Theme>(getStoredTheme);
 	const [desktopDevicesState, setDesktopDevicesState] = useState<DesktopDevicesState>({
 		status: 'idle',
 	});
@@ -299,6 +308,39 @@ export function SettingsPage({
 				</section>
 
 				<ProjectMemorySummary status="unavailable" />
+
+				<section
+					style={appShellPanelStyle}
+					className="runa-card runa-card--subtle"
+					aria-labelledby="theme-heading"
+				>
+					<div style={{ display: 'grid', gap: '10px', marginBottom: '18px' }}>
+						<div style={appShellSecondaryLabelStyle}>Görünüm</div>
+						<h2 id="theme-heading" style={{ margin: 0, fontSize: '20px' }}>
+							Tema
+						</h2>
+						<p style={appShellMutedTextStyle}>
+							Arayüz rengini tercihine göre ayarla. Sistem seçeneği cihazın temasını takip eder.
+						</p>
+					</div>
+					<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+						{THEME_OPTIONS.map(({ value, label }) => (
+							<button
+								key={value}
+								type="button"
+								onClick={() => {
+									storeTheme(value);
+									applyTheme(value);
+									setTheme(value);
+								}}
+								className={`runa-button ${theme === value ? 'runa-button--secondary-active' : 'runa-button--secondary'}`}
+								style={{ flex: '1 1 0', minWidth: 0 }}
+							>
+								{label}
+							</button>
+						))}
+					</div>
+				</section>
 
 				<section
 					style={appShellPanelStyle}

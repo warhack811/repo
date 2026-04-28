@@ -8,7 +8,7 @@ import { useAuth } from './hooks/useAuth.js';
 import { type UseChatRuntimeResult, useChatRuntime } from './hooks/useChatRuntime.js';
 import { useConversations } from './hooks/useConversations.js';
 import { ChatPage } from './pages/ChatPage.js';
-import { DashboardPage } from './pages/DashboardPage.js';
+import { DeveloperPage } from './pages/DeveloperPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
 
@@ -82,7 +82,7 @@ function DeveloperRoute({
 	runtime,
 }: DeveloperRouteProps): ReactElement {
 	return (
-		<DashboardPage
+		<DeveloperPage
 			authContext={authContext}
 			authError={authError}
 			hasStoredBearerToken={hasStoredBearerToken}

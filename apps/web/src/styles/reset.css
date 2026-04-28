@@ -1,0 +1,125 @@
+/* ==========================================================
+   Runa CSS Reset — modern minimal
+   ========================================================== */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	color-scheme: dark;
+	scroll-behavior: smooth;
+	background: #090d16;
+}
+
+[data-theme="light"] {
+	color-scheme: light;
+	background: #f8fafc;
+}
+
+body {
+	margin: 0;
+	min-width: 320px;
+	min-height: 100vh;
+	min-height: 100dvh;
+	background: var(--page-background);
+	color: hsl(var(--color-text));
+	font-family: var(--font-body);
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	overscroll-behavior-y: none;
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	background: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+	background-size: 72px 72px;
+	mask-image: radial-gradient(circle at center, black 45%, transparent 95%);
+	opacity: 0.22;
+}
+
+[data-theme="light"] body::before {
+	display: none;
+}
+
+#root {
+	min-height: 100vh;
+	min-height: 100dvh;
+	isolation: isolate;
+}
+
+img,
+picture,
+svg,
+canvas {
+	display: block;
+	max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+}
+
+button {
+	color: inherit;
+}
+
+textarea {
+	line-height: 1.6;
+}
+
+a {
+	color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0;
+	font-family: var(--font-heading);
+	letter-spacing: -0.03em;
+}
+
+p {
+	margin: 0;
+}
+
+code,
+pre {
+	font-family: var(--font-mono);
+}
+
+::selection {
+	background: rgba(245, 158, 11, 0.28);
+	color: hsl(var(--color-text));
+}
+
+:focus-visible {
+	outline: 2px solid rgba(245, 158, 11, 0.9);
+	outline-offset: 3px;
+	box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+		transition-duration: 0.001ms !important;
+	}
+}

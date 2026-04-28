@@ -1,6 +1,6 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import type { ReactElement } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
 import { ChatHeader } from '../components/chat/ChatHeader.js';
@@ -14,12 +14,17 @@ import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRen
 import type { InspectionActionState } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
-import { RunTimelinePanel } from '../components/chat/RunTimelinePanel.js';
 import {
 	buildInspectionSurfaceMeta,
 	createInspectionDetailRequestKey,
 	getInspectionDetailBlockId,
 } from '../components/chat/chat-presentation.js';
+
+const RunTimelinePanel = lazy(() =>
+	import('../components/developer/RunTimelinePanel.js').then((module) => ({
+		default: module.RunTimelinePanel,
+	})),
+);
 import type { UseChatRuntimeResult } from '../hooks/useChatRuntime.js';
 import { useChatRuntimeView } from '../hooks/useChatRuntimeView.js';
 import type { UseConversationsResult } from '../hooks/useConversations.js';
@@ -449,18 +454,20 @@ export function ChatPage({
 			/>
 
 			{isDeveloperMode ? (
-				<RunTimelinePanel
-					currentInspectionSurfaceMeta={currentInspectionSurfaceMeta}
-					currentPresentationContent={currentPresentationContent}
-					currentRunProgressPanel={currentRunProgressPanel}
-					emptyStateContent={emptyRunTimelineContent}
-					pastPresentationContent={pastPresentationContent}
-					pastPresentationSurfaceCount={pastPresentationSurfaces.length}
-					presentationRunSurfaceCount={presentationRunSurfaces.length}
-					recentSessionRunsLabel={uiCopy.run.pastRuns}
-					showRecentSessionRuns={showRecentSessionRuns}
-					onToggleRecentSessionRuns={() => setShowRecentSessionRuns((current) => !current)}
-				/>
+				<Suspense fallback={null}>
+					<RunTimelinePanel
+						currentInspectionSurfaceMeta={currentInspectionSurfaceMeta}
+						currentPresentationContent={currentPresentationContent}
+						currentRunProgressPanel={currentRunProgressPanel}
+						emptyStateContent={emptyRunTimelineContent}
+						pastPresentationContent={pastPresentationContent}
+						pastPresentationSurfaceCount={pastPresentationSurfaces.length}
+						presentationRunSurfaceCount={presentationRunSurfaces.length}
+						recentSessionRunsLabel={uiCopy.run.pastRuns}
+						showRecentSessionRuns={showRecentSessionRuns}
+						onToggleRecentSessionRuns={() => setShowRecentSessionRuns((current) => !current)}
+					/>
+				</Suspense>
 			) : null}
 		</ChatShell>
 	);
