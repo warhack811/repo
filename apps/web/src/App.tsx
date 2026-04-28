@@ -13,6 +13,11 @@ import { LoginPage } from './pages/LoginPage.js';
 const ChatPage = lazy(() =>
 	import('./pages/ChatPage.js').then((module) => ({ default: module.ChatPage })),
 );
+const CapabilityPreviewPage = lazy(() =>
+	import('./pages/CapabilityPreviewPage.js').then((module) => ({
+		default: module.CapabilityPreviewPage,
+	})),
+);
 const DeveloperPage = lazy(() =>
 	import('./pages/DeveloperPage.js').then((module) => ({ default: module.DeveloperPage })),
 );
@@ -53,7 +58,7 @@ type DeveloperRouteProps = Readonly<{
 }>;
 
 function resolveActivePage(pathname: string): AuthenticatedPageId {
-	if (pathname === '/developer') {
+	if (pathname === '/developer' || pathname.startsWith('/developer/')) {
 		return 'developer';
 	}
 
@@ -204,6 +209,7 @@ function AuthenticatedApp(
 								/>
 							}
 						/>
+						<Route path="developer/capability-preview" element={<CapabilityPreviewPage />} />
 						<Route path="dashboard" element={<Navigate replace to="/history" />} />
 						<Route path="settings" element={<Navigate replace to="/account" />} />
 						<Route path="*" element={<Navigate replace to="/chat" />} />
