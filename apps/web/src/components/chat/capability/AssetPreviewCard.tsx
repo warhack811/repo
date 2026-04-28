@@ -1,6 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactElement, ReactNode } from 'react';
-
-import { designTokens } from '../../../lib/design-tokens.js';
+import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { RunaBadge, RunaCard } from '../../ui/index.js';
 import type { AssetPreviewKind } from './types.js';
 
@@ -17,70 +15,6 @@ export type AssetPreviewCardProps = Readonly<
 		title: ReactNode;
 	}
 >;
-
-const previewFrameStyle: CSSProperties = {
-	alignItems: 'center',
-	aspectRatio: '16 / 10',
-	background: 'rgba(3, 7, 18, 0.62)',
-	border: `1px solid ${designTokens.color.border.soft}`,
-	borderRadius: designTokens.radius.image,
-	display: 'flex',
-	justifyContent: 'center',
-	minHeight: '140px',
-	overflow: 'hidden',
-};
-
-const imageStyle: CSSProperties = {
-	display: 'block',
-	height: '100%',
-	objectFit: 'cover',
-	width: '100%',
-};
-
-const placeholderStyle: CSSProperties = {
-	color: designTokens.color.foreground.soft,
-	fontSize: designTokens.typography.small.fontSize,
-	padding: designTokens.spacing.lg,
-	textAlign: 'center',
-};
-
-const headerStyle: CSSProperties = {
-	alignItems: 'flex-start',
-	display: 'flex',
-	gap: designTokens.spacing.md,
-	justifyContent: 'space-between',
-	minWidth: 0,
-};
-
-const titleStackStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.xs,
-	minWidth: 0,
-};
-
-const titleStyle: CSSProperties = {
-	color: designTokens.color.foreground.strong,
-	fontSize: '15px',
-	fontWeight: 700,
-	lineHeight: 1.4,
-};
-
-const subtitleStyle: CSSProperties = {
-	color: designTokens.color.foreground.muted,
-	fontSize: designTokens.typography.small.fontSize,
-	lineHeight: designTokens.typography.small.lineHeight,
-};
-
-const metaStyle: CSSProperties = {
-	color: designTokens.color.foreground.soft,
-	fontSize: designTokens.typography.small.fontSize,
-	lineHeight: designTokens.typography.small.lineHeight,
-};
-
-const selectedStyle: CSSProperties = {
-	borderColor: designTokens.color.border.accent,
-	boxShadow: designTokens.shadow.glow,
-};
 
 function shouldRenderImage(
 	kind: AssetPreviewKind,
@@ -110,27 +44,43 @@ export function AssetPreviewCard({
 	return (
 		<RunaCard
 			{...cardProps}
-			className={['runa-asset-preview-card', className].filter(Boolean).join(' ')}
-			style={{ ...(isSelected ? selectedStyle : undefined), ...style }}
+			className={[
+				['runa-asset-preview-card', className].filter(Boolean).join(' '),
+				'runa-migrated-components-chat-capability-assetpreviewcard-1',
+			]
+				.filter(Boolean)
+				.join(' ')}
 			tone="subtle"
 		>
-			<div style={previewFrameStyle}>
+			<div className="runa-migrated-components-chat-capability-assetpreviewcard-2">
 				{shouldRenderImage(kind, previewUrl) ? (
-					<img alt={alt ?? ''} src={previewUrl} style={imageStyle} />
+					<img
+						alt={alt ?? ''}
+						src={previewUrl}
+						className="runa-migrated-components-chat-capability-assetpreviewcard-3"
+					/>
 				) : (
-					<div style={placeholderStyle}>
+					<div className="runa-migrated-components-chat-capability-assetpreviewcard-4">
 						{previewUrl ? 'Preview is available for this asset.' : 'Preview will appear here.'}
 					</div>
 				)}
 			</div>
-			<div style={headerStyle}>
-				<div style={titleStackStyle}>
-					<div style={titleStyle}>{title}</div>
-					{subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
+			<div className="runa-migrated-components-chat-capability-assetpreviewcard-5">
+				<div className="runa-migrated-components-chat-capability-assetpreviewcard-6">
+					<div className="runa-migrated-components-chat-capability-assetpreviewcard-7">{title}</div>
+					{subtitle ? (
+						<div className="runa-migrated-components-chat-capability-assetpreviewcard-8">
+							{subtitle}
+						</div>
+					) : null}
 				</div>
 				<RunaBadge tone="neutral">{formatKindLabel(kind)}</RunaBadge>
 			</div>
-			{metaSlot ? <div style={metaStyle}>{metaSlot}</div> : null}
+			{metaSlot ? (
+				<div className="runa-migrated-components-chat-capability-assetpreviewcard-9">
+					{metaSlot}
+				</div>
+			) : null}
 			{actionSlot}
 			{children}
 		</RunaCard>

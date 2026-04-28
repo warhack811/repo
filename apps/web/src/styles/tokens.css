@@ -5,9 +5,22 @@
 
 :root {
 	/* ---- Typography ---- */
-	--font-body: "Outfit", "Segoe UI", sans-serif;
-	--font-heading: "Sora", "Outfit", "Segoe UI", sans-serif;
+	--font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+	--font-body: var(--font-sans);
+	--font-heading: var(--font-sans);
 	--font-mono: "Consolas", "SFMono-Regular", monospace;
+	--text-xs: 0.75rem;
+	--text-sm: 0.875rem;
+	--text-base: 1rem;
+	--text-lg: 1.125rem;
+	--text-xl: 1.25rem;
+	--text-2xl: 1.5rem;
+	--text-3xl: 2rem;
+	--text-4xl: 2.5rem;
+	--leading-tight: 1.12;
+	--leading-snug: 1.35;
+	--leading-normal: 1.6;
+	--tracking-heading: 0;
 
 	/* ---- Color palette (dark default — HSL channels for hsl()) ---- */
 	--color-bg: 221 39% 8%;
@@ -89,6 +102,14 @@
 	--duration-normal: 180ms;
 	--duration-slow: 220ms;
 	--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+	--ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (max-width: 480px) {
+	:root {
+		--text-3xl: 1.75rem;
+		--text-4xl: 2rem;
+	}
 }
 
 /* ----------------------------------------------------------

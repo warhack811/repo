@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import type {
 	RunStatusChipItem,
@@ -9,37 +9,6 @@ type RunStatusChipsProps = Readonly<{
 	ariaLabel?: string;
 	items: readonly RunStatusChipItem[];
 }>;
-
-const chipListStyle: CSSProperties = {
-	display: 'flex',
-	flexWrap: 'wrap',
-	gap: '10px',
-	margin: 0,
-	padding: 0,
-	listStyle: 'none',
-};
-
-const chipBaseStyle: CSSProperties = {
-	display: 'grid',
-	gap: '4px',
-	minWidth: 'fit-content',
-	padding: '10px 12px',
-	borderRadius: '14px',
-	background: 'rgba(15, 23, 42, 0.7)',
-	border: '1px solid rgba(148, 163, 184, 0.22)',
-};
-
-const chipLabelStyle: CSSProperties = {
-	fontSize: '10px',
-	letterSpacing: '0.1em',
-	textTransform: 'uppercase',
-};
-
-const chipValueStyle: CSSProperties = {
-	fontSize: '13px',
-	fontWeight: 700,
-	lineHeight: 1.2,
-};
 
 function getChipPalette(tone: RunStatusChipTone): Readonly<{
 	readonly background: string;
@@ -95,21 +64,17 @@ export function RunStatusChips({
 	}
 
 	return (
-		<ul aria-label={ariaLabel} style={chipListStyle}>
+		<ul aria-label={ariaLabel} className="runa-migrated-components-chat-runstatuschips-1">
 			{items.map((item) => {
 				const palette = getChipPalette(item.tone);
 
 				return (
 					<li
 						key={`${item.label}:${item.value}`}
-						style={{
-							...chipBaseStyle,
-							background: palette.background,
-							borderColor: palette.borderColor,
-						}}
+						className="runa-migrated-components-chat-runstatuschips-2"
 					>
-						<span style={{ ...chipLabelStyle, color: palette.labelColor }}>{item.label}</span>
-						<span style={{ ...chipValueStyle, color: palette.valueColor }}>{item.value}</span>
+						<span className="runa-migrated-components-chat-runstatuschips-3">{item.label}</span>
+						<span className="runa-migrated-components-chat-runstatuschips-4">{item.value}</span>
 					</li>
 				);
 			})}

@@ -12,6 +12,10 @@ const deepSeekModelByIntent: Readonly<Record<ModelRouteIntent, string>> = {
 	tool_heavy: 'deepseek-v4-pro',
 };
 
+function readNonEmptyEnvironmentValue(value: string | undefined): string | undefined {
+	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
 type ModelRouterMetadataContainer = Readonly<{
 	model_router?: unknown;
 }>;
@@ -54,6 +58,21 @@ function isTruthyEnvironmentFlag(value: string | undefined): boolean {
 
 function isDisabledEnvironmentFlag(value: string | undefined): boolean {
 	return value === '0' || value?.toLowerCase() === 'false';
+}
+
+function resolveDeepSeekModelForIntent(intent: ModelRouteIntent): string {
+	const env = process.env as NodeJS.ProcessEnv & {
+		readonly DEEPSEEK_FAST_MODEL?: string;
+		readonly DEEPSEEK_REASONING_MODEL?: string;
+	};
+	const fastModel = readNonEmptyEnvironmentValue(env.DEEPSEEK_FAST_MODEL);
+	const reasoningModel = readNonEmptyEnvironmentValue(env.DEEPSEEK_REASONING_MODEL);
+
+	if (intent === 'deep_reasoning' || intent === 'tool_heavy') {
+		return reasoningModel ?? deepSeekModelByIntent[intent];
+	}
+
+	return fastModel ?? deepSeekModelByIntent[intent];
 }
 
 function isModelRouterEnabled(
@@ -140,7 +159,11 @@ export function classifyModelRouteIntent(request: ModelRequest): ModelRouteInten
 			'analiz',
 			'analyze',
 			'compare',
-			'deep',
+			'deep analysis',
+			'deep reasoning',
+			'deeply',
+			'derin',
+			'mimari',
 			'refactor',
 		])
 	) {
@@ -218,7 +241,7 @@ export function resolveModelRoute(
 						: intent === 'tool_heavy'
 							? 'heuristic_tool_heavy'
 							: 'requested_provider',
-			routed_model: deepSeekModelByIntent[intent],
+			routed_model: resolveDeepSeekModelForIntent(intent),
 			routed_provider: 'deepseek',
 		};
 	}

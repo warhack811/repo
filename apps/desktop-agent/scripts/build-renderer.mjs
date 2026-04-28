@@ -3,9 +3,10 @@
  * Bundles React app with esbuild
  */
 
+import { copyFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +33,11 @@ async function buildRenderer() {
 				'process.env.NODE_ENV': isProduction ? '"production"' : '"development"',
 			},
 		});
+		await mkdir(path.join(__dirname, '../electron/renderer'), { recursive: true });
+		await copyFile(
+			path.join(__dirname, '../dist-electron/renderer/App.js'),
+			path.join(__dirname, '../electron/renderer/App.js'),
+		);
 
 		console.log('Renderer build completed successfully');
 	} catch (error) {

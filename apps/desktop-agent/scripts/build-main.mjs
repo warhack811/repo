@@ -3,10 +3,10 @@
  * Simple TypeScript compilation followed by a simple CJS wrapper
  */
 
+import * as fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
-import * as fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,26 +32,18 @@ async function buildMain() {
 		// Read the output
 		let output = await fs.promises.readFile(
 			path.join(__dirname, '../dist-electron/main.cjs'),
-			'utf-8'
+			'utf-8',
 		);
 
 		// The issue is that electron package's main field returns executable path
 		// When running inside electron.exe, Node should handle require('electron') correctly
 		// But our bundled code may be getting wrong module resolution
 		// Let's just ensure the require is clean
-		output = output.replace(
-			/__toESM\(require\("electron"\), [^)]+\)/,
-			'require("electron")'
-		);
-		output = output.replace(
-			/__toESM\(require\("path"\), [^)]+\)/,
-			'require("path")'
-		);
+		output = output.replace(/__toESM\(require\("electron"\), [^)]+\)/, 'require("electron")');
+		output = output.replace(/__toESM\(require\("path"\), [^)]+\)/, 'require("path")');
 
-		await fs.promises.writeFile(
-			path.join(__dirname, '../dist-electron/main.cjs'),
-			output
-		);
+		await fs.promises.writeFile(path.join(__dirname, '../dist-electron/main.cjs'), output);
+		await fs.promises.writeFile(path.join(__dirname, '../electron/main.cjs'), output);
 
 		// Build preload as CJS
 		await esbuild.build({
@@ -68,22 +60,20 @@ async function buildMain() {
 
 		let preloadOutput = await fs.promises.readFile(
 			path.join(__dirname, '../dist-electron/preload.cjs'),
-			'utf-8'
+			'utf-8',
 		);
 
 		preloadOutput = preloadOutput.replace(
 			/__toESM\(require\("electron"\), [^)]+\)/,
-			'require("electron")'
+			'require("electron")',
 		);
-		preloadOutput = preloadOutput.replace(
-			/__toESM\(require\("path"\), [^)]+\)/,
-			'require("path")'
-		);
+		preloadOutput = preloadOutput.replace(/__toESM\(require\("path"\), [^)]+\)/, 'require("path")');
 
 		await fs.promises.writeFile(
 			path.join(__dirname, '../dist-electron/preload.cjs'),
-			preloadOutput
+			preloadOutput,
 		);
+		await fs.promises.writeFile(path.join(__dirname, '../electron/preload.cjs'), preloadOutput);
 
 		console.log('Main process build completed');
 	} catch (error) {

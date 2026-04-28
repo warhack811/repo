@@ -1,7 +1,7 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
-import { appShellMutedTextStyle, appShellSecondaryLabelStyle } from '../app/AppShell.js';
+import { RunaSkeleton } from '../ui/RunaSkeleton.js';
 
 type DevicePresencePanelProps = Readonly<{
 	devices: readonly DesktopDevicePresenceSnapshot[];
@@ -9,27 +9,6 @@ type DevicePresencePanelProps = Readonly<{
 	isLoading?: boolean;
 	onRefresh?: () => void;
 }>;
-
-const deviceCardStyle: CSSProperties = {
-	display: 'grid',
-	gap: '10px',
-	padding: '14px 16px',
-	borderRadius: '18px',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	background: 'rgba(9, 14, 25, 0.68)',
-	minWidth: 0,
-};
-
-const badgeStyle: CSSProperties = {
-	borderRadius: '999px',
-	border: '1px solid rgba(74, 222, 128, 0.24)',
-	color: '#bbf7d0',
-	background: 'rgba(20, 83, 45, 0.18)',
-	fontSize: '12px',
-	fontWeight: 700,
-	padding: '6px 10px',
-	textTransform: 'uppercase',
-};
 
 function formatConnectedAt(connectedAt: string): string {
 	const parsed = new Date(connectedAt);
@@ -61,13 +40,18 @@ export function DevicePresencePanel({
 	onRefresh,
 }: DevicePresencePanelProps): ReactElement {
 	return (
-		<div style={{ display: 'grid', gap: '14px' }}>
-			<div style={{ display: 'grid', gap: '10px' }}>
-				<div style={appShellSecondaryLabelStyle}>Bagli bilgisayar</div>
-				<h2 id="online-devices-heading" style={{ margin: 0, fontSize: '20px' }}>
+		<div className="runa-migrated-components-desktop-devicepresencepanel-1">
+			<div className="runa-migrated-components-desktop-devicepresencepanel-2">
+				<div className="runa-migrated-components-desktop-devicepresencepanel-3">
+					Bagli bilgisayar
+				</div>
+				<h2
+					id="online-devices-heading"
+					className="runa-migrated-components-desktop-devicepresencepanel-4"
+				>
 					Cihaz durumu
 				</h2>
-				<p style={appShellMutedTextStyle}>
+				<p className="runa-migrated-components-desktop-devicepresencepanel-5">
 					Masaustu companion oturumu aciksa burada gorunur. Runa bagli olmayan bir cihazi hazir gibi
 					gostermez.
 				</p>
@@ -81,35 +65,43 @@ export function DevicePresencePanel({
 			) : null}
 
 			{isLoading ? (
-				<div style={deviceCardStyle} aria-live="polite">
-					<div style={{ color: '#f8fafc', fontWeight: 700 }}>Cihazlar kontrol ediliyor</div>
-					<div style={appShellMutedTextStyle}>
-						Bu hesaba bagli aktif bir masaustu oturumu araniyor.
-					</div>
-				</div>
+				<output
+					aria-busy="true"
+					className="runa-migrated-components-desktop-devicepresencepanel-6 runa-device-skeleton"
+				>
+					<RunaSkeleton variant="text" />
+					<RunaSkeleton variant="rect" />
+				</output>
 			) : null}
 
 			{!isLoading && !error && devices.length === 0 ? (
-				<div style={deviceCardStyle}>
-					<div style={{ color: '#f8fafc', fontWeight: 700 }}>Bagli cihaz yok</div>
-					<div style={appShellMutedTextStyle}>
+				<div className="runa-migrated-components-desktop-devicepresencepanel-9">
+					<div className="runa-migrated-components-desktop-devicepresencepanel-10">
+						Bagli cihaz yok
+					</div>
+					<div className="runa-migrated-components-desktop-devicepresencepanel-11">
 						Masaustu companion oturumu acildiginda burada durumu ve izinli yetenekleri gorunecek.
 					</div>
 				</div>
 			) : null}
 
 			{devices.map((device) => (
-				<article key={device.connection_id} style={deviceCardStyle}>
+				<article
+					key={device.connection_id}
+					className="runa-migrated-components-desktop-devicepresencepanel-12"
+				>
 					<div className="runa-device-card__top">
-						<div style={{ display: 'grid', gap: '6px', minWidth: 0 }}>
-							<div style={{ color: '#f8fafc', fontWeight: 700, overflowWrap: 'anywhere' }}>
+						<div className="runa-migrated-components-desktop-devicepresencepanel-13">
+							<div className="runa-migrated-components-desktop-devicepresencepanel-14">
 								{getDeviceLabel(device)}
 							</div>
-							<div style={appShellMutedTextStyle}>
+							<div className="runa-migrated-components-desktop-devicepresencepanel-15">
 								Son gorulme {formatConnectedAt(device.connected_at)}
 							</div>
 						</div>
-						<span style={badgeStyle}>{device.status}</span>
+						<span className="runa-migrated-components-desktop-devicepresencepanel-16">
+							{device.status}
+						</span>
 					</div>
 
 					{device.capabilities.length > 0 ? (
@@ -121,12 +113,14 @@ export function DevicePresencePanel({
 							))}
 						</div>
 					) : (
-						<div style={appShellMutedTextStyle}>Bu cihaz icin acik yetenek bildirilmedi.</div>
+						<div className="runa-migrated-components-desktop-devicepresencepanel-17">
+							Bu cihaz icin acik yetenek bildirilmedi.
+						</div>
 					)}
 
 					<details>
 						<summary>Baglanti bilgisi</summary>
-						<div style={{ ...appShellMutedTextStyle, marginTop: '8px', overflowWrap: 'anywhere' }}>
+						<div className="runa-migrated-components-desktop-devicepresencepanel-18">
 							Connection {device.connection_id}
 						</div>
 					</details>

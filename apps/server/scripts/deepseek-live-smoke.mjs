@@ -126,7 +126,13 @@ function buildRequest(input) {
 				role: 'user',
 			},
 		],
-		metadata: input.metadata,
+		metadata: {
+			...input.metadata,
+			model_router: {
+				...(input.metadata?.model_router ?? {}),
+				allow_provider_fallback: false,
+			},
+		},
 		run_id: input.runId,
 		trace_id: input.traceId,
 	};

@@ -1,0 +1,36 @@
+.card {
+	backdrop-filter: blur(12px);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	display: grid;
+	gap: var(--space-4);
+	min-width: 0;
+	overflow: hidden;
+	padding: var(--space-panel);
+	position: relative;
+	transition: border-color var(--duration-normal) var(--ease-standard), background
+		var(--duration-normal) var(--ease-standard);
+}
+
+.default {
+	background: var(--gradient-panel);
+}
+
+.hero {
+	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
+		var(--gradient-panel-strong);
+	border-color: rgba(245, 158, 11, 0.24);
+}
+
+.strong {
+	background: var(--gradient-panel-strong);
+}
+
+.subtle {
+	background: var(--gradient-subcard);
+	border-color: rgba(148, 163, 184, 0.12);
+	border-radius: var(--radius-soft);
+	box-shadow: var(--shadow-panel-soft);
+	padding: var(--space-subcard);
+}

@@ -22,6 +22,8 @@ import type { DesktopAgentConfig } from './auth.js';
 import { executeDesktopAgentInput } from './input.js';
 import { type DesktopAgentScreenshotPayload, captureDesktopScreenshot } from './screenshot.js';
 
+const DESKTOP_AGENT_HANDSHAKE_TIMEOUT_MS = 15_000;
+
 export interface DesktopAgentBridgeOptions extends DesktopAgentConfig {
 	readonly capture_screenshot?: () => Promise<DesktopAgentScreenshotPayload>;
 	readonly web_socket_factory?: (url: string) => WebSocket;
@@ -118,7 +120,12 @@ async function waitForServerMessage(
 		| ((message: DesktopAgentServerMessage) => message is DesktopAgentSessionAcceptedServerMessage),
 ): Promise<DesktopAgentConnectionReadyServerMessage | DesktopAgentSessionAcceptedServerMessage> {
 	return await new Promise((resolve, reject) => {
+		const timeout = setTimeout(() => {
+			cleanup();
+			reject(new Error('Desktop agent bridge handshake timed out.'));
+		}, DESKTOP_AGENT_HANDSHAKE_TIMEOUT_MS);
 		const cleanup = () => {
+			clearTimeout(timeout);
 			socket.removeEventListener('close', handleClose);
 			socket.removeEventListener('error', handleError);
 			socket.removeEventListener('message', handleMessage);
@@ -261,6 +268,10 @@ export async function startDesktopAgentBridge(
 	bridgeUrl.searchParams.set('access_token', options.access_token);
 
 	const socket = socketFactory(bridgeUrl.toString());
+	const connectionReadyPromise = waitForServerMessage(
+		socket,
+		isDesktopAgentConnectionReadyServerMessage,
+	);
 
 	await new Promise<void>((resolve, reject) => {
 		socket.addEventListener('open', () => resolve(), { once: true });
@@ -271,9 +282,13 @@ export async function startDesktopAgentBridge(
 		);
 	});
 
-	await waitForServerMessage(socket, isDesktopAgentConnectionReadyServerMessage);
+	await connectionReadyPromise;
+	const sessionAcceptedPromise = waitForServerMessage(
+		socket,
+		isDesktopAgentSessionAcceptedServerMessage,
+	);
 	sendClientMessage(socket, createHelloMessage(options));
-	await waitForServerMessage(socket, isDesktopAgentSessionAcceptedServerMessage);
+	await sessionAcceptedPromise;
 
 	const captureScreenshot = options.capture_screenshot ?? captureDesktopScreenshot;
 

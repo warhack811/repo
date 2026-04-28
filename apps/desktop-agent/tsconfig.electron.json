@@ -6,14 +6,14 @@
 		"moduleResolution": "node",
 		"resolveJsonModule": true,
 		"outDir": "./dist-electron",
-		"rootDir": "./electron",
+		"rootDir": ".",
 		"strict": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"allowSyntheticDefaultImports": true
 	},
-	"include": ["electron/*.ts", "electron/*.mts"],
+	"include": ["electron/*.ts", "electron/*.mts", "src/**/*.ts"],
 	"exclude": ["node_modules", "dist-electron", "release"],
 	"buildOnSave": false
 }

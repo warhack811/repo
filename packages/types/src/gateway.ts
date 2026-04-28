@@ -56,6 +56,7 @@ export type ModelCallableToolScalarType = 'boolean' | 'number' | 'string';
 
 export interface ModelCallableToolScalarParameter {
 	readonly description?: string;
+	readonly enum?: readonly string[];
 	readonly required?: boolean;
 	readonly type: ModelCallableToolScalarType;
 }

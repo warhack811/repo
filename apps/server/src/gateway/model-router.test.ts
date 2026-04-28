@@ -33,12 +33,19 @@ function setEnvVariable(
 	name:
 		| 'ANTHROPIC_API_KEY'
 		| 'DEEPSEEK_API_KEY'
+		| 'DEEPSEEK_FAST_MODEL'
+		| 'DEEPSEEK_REASONING_MODEL'
 		| 'GEMINI_API_KEY'
 		| 'OPENAI_API_KEY'
 		| 'RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED'
 		| 'RUNA_MODEL_ROUTER_ENABLED',
 	value: string | undefined,
 ): void {
+	if (value === undefined) {
+		delete process.env[name];
+		return;
+	}
+
 	process.env[name] = value;
 }
 
@@ -56,6 +63,8 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	setEnvVariable('ANTHROPIC_API_KEY', undefined);
 	setEnvVariable('DEEPSEEK_API_KEY', undefined);
+	setEnvVariable('DEEPSEEK_FAST_MODEL', undefined);
+	setEnvVariable('DEEPSEEK_REASONING_MODEL', undefined);
 	setEnvVariable('GEMINI_API_KEY', undefined);
 	setEnvVariable('OPENAI_API_KEY', undefined);
 	setEnvVariable('RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED', undefined);
@@ -129,7 +138,12 @@ describe('model-router helpers', () => {
 	it('uses DeepSeek model tiers by default when DeepSeek is the requested provider', () => {
 		const cheapRoute = resolveModelRoute({
 			request: createModelRequest({
-				messages: [{ content: 'Merhaba', role: 'user' }],
+				messages: [
+					{
+						content: 'Reply with exactly: deepseek key ok',
+						role: 'user',
+					},
+				],
 			}),
 			requested_provider: 'deepseek',
 		});
@@ -174,6 +188,27 @@ describe('model-router helpers', () => {
 			routed_model: 'deepseek-v4-flash',
 			routed_provider: 'deepseek',
 		});
+	});
+
+	it('honors DeepSeek model-tier env overrides when DeepSeek routing is active', () => {
+		setEnvVariable('DEEPSEEK_FAST_MODEL', 'deepseek-fast-custom');
+		setEnvVariable('DEEPSEEK_REASONING_MODEL', 'deepseek-reasoning-custom');
+
+		const cheapRoute = resolveModelRoute({
+			request: createModelRequest({
+				messages: [{ content: 'Merhaba', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+		const reasoningRoute = resolveModelRoute({
+			request: createModelRequest({
+				messages: [{ content: 'architecture analiz yap', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+
+		expect(cheapRoute.routed_model).toBe('deepseek-fast-custom');
+		expect(reasoningRoute.routed_model).toBe('deepseek-reasoning-custom');
 	});
 
 	it('honors an explicit preferred provider when router metadata enables it', () => {

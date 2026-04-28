@@ -11,7 +11,7 @@ import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
-import { serializeCallableTool } from './request-tools.js';
+import { type SerializedCallableTool, serializeCallableTool } from './request-tools.js';
 import { parseToolCallCandidateParts } from './tool-call-candidate.js';
 
 type DeepSeekThinkingType = 'disabled' | 'enabled';
@@ -44,6 +44,11 @@ interface DeepSeekChatCompletionRequest {
 		readonly function: ReturnType<typeof serializeCallableTool>;
 		readonly type: 'function';
 	}>;
+}
+
+interface DeepSeekPreparedRequest {
+	readonly body: DeepSeekChatCompletionRequest;
+	readonly toolNameByAlias: ReadonlyMap<string, string>;
 }
 
 interface DeepSeekChatCompletionResponse {
@@ -203,6 +208,51 @@ function mapDeepSeekFinishReason(finishReason?: string | null): ModelResponse['f
 	}
 }
 
+function buildDeepSeekToolAlias(toolName: string): string {
+	return toolName.replace(/[^a-zA-Z0-9_-]/gu, '_');
+}
+
+function buildDeepSeekTools(request: ModelRequest): Readonly<{
+	readonly toolNameByAlias: ReadonlyMap<string, string>;
+	readonly tools?: DeepSeekChatCompletionRequest['tools'];
+}> {
+	const toolNameByAlias = new Map<string, string>();
+	const tools = request.available_tools?.map((tool) => {
+		const alias = buildDeepSeekToolAlias(tool.name);
+
+		if (toolNameByAlias.has(alias)) {
+			throw new GatewayRequestError(
+				'deepseek',
+				`DeepSeek tool alias collision for ${tool.name}; choose unique provider-safe tool names before sending the request.`,
+			);
+		}
+
+		toolNameByAlias.set(alias, tool.name);
+
+		const serializedTool: SerializedCallableTool = {
+			...serializeCallableTool(tool),
+			name: alias,
+		};
+
+		return {
+			function: serializedTool,
+			type: 'function' as const,
+		};
+	});
+
+	return {
+		toolNameByAlias,
+		tools,
+	};
+}
+
+function resolveDeepSeekToolName(
+	toolName: unknown,
+	toolNameByAlias: ReadonlyMap<string, string>,
+): unknown {
+	return typeof toolName === 'string' ? (toolNameByAlias.get(toolName) ?? toolName) : toolName;
+}
+
 function buildDebugContext(request: ModelRequest): Parameters<typeof postJson>[0]['debug_context'] {
 	const compiledContext = formatCompiledContext(request.compiled_context) ?? '';
 
@@ -221,18 +271,15 @@ function buildDebugContext(request: ModelRequest): Parameters<typeof postJson>[0
 	};
 }
 
-function buildDeepSeekRequestBody(
+function buildDeepSeekRequest(
 	config: GatewayProviderConfig,
 	request: ModelRequest,
-): DeepSeekChatCompletionRequest {
+): DeepSeekPreparedRequest {
 	assertSupportedAttachments(request);
 
 	const model = request.model ?? config.defaultModel;
 	const compiledContext = formatCompiledContext(request.compiled_context);
-	const tools = request.available_tools?.map((tool) => ({
-		function: serializeCallableTool(tool),
-		type: 'function' as const,
-	}));
+	const { toolNameByAlias, tools } = buildDeepSeekTools(request);
 
 	if (!model) {
 		throw new GatewayConfigurationError(
@@ -243,37 +290,41 @@ function buildDeepSeekRequestBody(
 	const thinkingType = resolveThinkingType(request, model);
 
 	return {
-		max_tokens: request.max_output_tokens,
-		messages: [
-			...(compiledContext
-				? [
-						{
-							content: compiledContext,
-							role: 'system' as const,
-						},
-					]
-				: []),
-			...appendAttachmentsToLastUserMessage(request),
-		],
-		model,
-		reasoning_effort: thinkingType === 'enabled' ? resolveReasoningEffort(request) : undefined,
-		temperature: request.temperature ?? (tools && tools.length > 0 ? 0 : undefined),
-		thinking: {
-			type: thinkingType,
+		body: {
+			max_tokens: request.max_output_tokens,
+			messages: [
+				...(compiledContext
+					? [
+							{
+								content: compiledContext,
+								role: 'system' as const,
+							},
+						]
+					: []),
+				...appendAttachmentsToLastUserMessage(request),
+			],
+			model,
+			reasoning_effort: thinkingType === 'enabled' ? resolveReasoningEffort(request) : undefined,
+			temperature: request.temperature ?? (tools && tools.length > 0 ? 0 : undefined),
+			thinking: {
+				type: thinkingType,
+			},
+			tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
+			tools,
 		},
-		tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
-		tools,
+		toolNameByAlias,
 	};
 }
 
 function parseDeepSeekToolCallCandidates(
 	toolCalls: readonly DeepSeekResponseToolCall[] | undefined,
+	toolNameByAlias: ReadonlyMap<string, string>,
 ): Pick<ModelResponse, 'tool_call_candidate' | 'tool_call_candidates'> {
 	const candidates = [...(toolCalls ?? [])].map((toolCall) => {
 		const candidate = parseToolCallCandidateParts({
 			call_id: toolCall.id,
 			tool_input: toolCall.function?.arguments,
-			tool_name: toolCall.function?.name,
+			tool_name: resolveDeepSeekToolName(toolCall.function?.name, toolNameByAlias),
 		});
 
 		if (!candidate) {
@@ -292,7 +343,10 @@ function parseDeepSeekToolCallCandidates(
 	};
 }
 
-function parseDeepSeekResponse(payload: unknown): ModelResponse {
+function parseDeepSeekResponse(
+	payload: unknown,
+	toolNameByAlias: ReadonlyMap<string, string>,
+): ModelResponse {
 	if (!payload || typeof payload !== 'object') {
 		throw new GatewayResponseError('deepseek', 'DeepSeek response must be an object.');
 	}
@@ -301,7 +355,7 @@ function parseDeepSeekResponse(payload: unknown): ModelResponse {
 	const choice = response.choices?.[0];
 	const content = choice?.message?.content;
 	const role = choice?.message?.role;
-	const toolCalls = parseDeepSeekToolCallCandidates(choice?.message?.tool_calls);
+	const toolCalls = parseDeepSeekToolCallCandidates(choice?.message?.tool_calls, toolNameByAlias);
 	const messageContent =
 		typeof content === 'string'
 			? content
@@ -388,6 +442,7 @@ async function* parseDeepSeekSseEvents(body: NonNullable<Response['body']>): Asy
 
 function parseDeepSeekToolCallAccumulator(
 	toolCallsByIndex: ReadonlyMap<number, DeepSeekToolCallAccumulator>,
+	toolNameByAlias: ReadonlyMap<string, string>,
 ): Pick<ModelResponse, 'tool_call_candidate' | 'tool_call_candidates'> {
 	const candidates = [...toolCallsByIndex.entries()]
 		.sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
@@ -395,7 +450,7 @@ function parseDeepSeekToolCallAccumulator(
 			const candidate = parseToolCallCandidateParts({
 				call_id: toolCall.call_id,
 				tool_input: toolCall.arguments_text,
-				tool_name: toolCall.tool_name,
+				tool_name: resolveDeepSeekToolName(toolCall.tool_name, toolNameByAlias),
 			});
 
 			if (!candidate) {
@@ -423,8 +478,9 @@ export class DeepSeekGateway implements ModelGateway {
 	}
 
 	async generate(request: ModelRequest): Promise<ModelResponse> {
+		const preparedRequest = buildDeepSeekRequest(this.#config, request);
 		const payload = await postJson({
-			body: buildDeepSeekRequestBody(this.#config, request),
+			body: preparedRequest.body,
 			debug_context: buildDebugContext(request),
 			headers: {
 				Authorization: `Bearer ${this.#config.apiKey}`,
@@ -433,12 +489,13 @@ export class DeepSeekGateway implements ModelGateway {
 			url: DEEPSEEK_CHAT_COMPLETIONS_URL,
 		});
 
-		return parseDeepSeekResponse(payload);
+		return parseDeepSeekResponse(payload, preparedRequest.toolNameByAlias);
 	}
 
 	async *stream(request: ModelRequest): AsyncIterable<ModelStreamChunk> {
+		const preparedRequest = buildDeepSeekRequest(this.#config, request);
 		const requestBody: DeepSeekChatCompletionRequest = {
-			...buildDeepSeekRequestBody(this.#config, request),
+			...preparedRequest.body,
 			stream: true,
 		};
 		const fetchImplementation = globalThis.fetch;
@@ -500,7 +557,7 @@ export class DeepSeekGateway implements ModelGateway {
 			}
 
 			yield {
-				response: parseDeepSeekResponse(parsedPayload),
+				response: parseDeepSeekResponse(parsedPayload, preparedRequest.toolNameByAlias),
 				type: 'response.completed',
 			};
 			return;
@@ -574,7 +631,10 @@ export class DeepSeekGateway implements ModelGateway {
 			finishReason = firstChoice?.finish_reason ?? finishReason;
 		}
 
-		const parsedToolCalls = parseDeepSeekToolCallAccumulator(toolCallsByIndex);
+		const parsedToolCalls = parseDeepSeekToolCallAccumulator(
+			toolCallsByIndex,
+			preparedRequest.toolNameByAlias,
+		);
 		const resolvedModel = responseModel ?? request.model ?? this.#config.defaultModel;
 
 		if (!resolvedModel) {

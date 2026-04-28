@@ -29,8 +29,8 @@ describe('chat-first shell pieces', () => {
 	it('renders honest first-impression suggestions', () => {
 		const markup = renderToStaticMarkup(<EmptyState onSubmitSuggestion={() => undefined} />);
 
-		expect(markup).toContain('Bugun neyi birlikte ilerletelim?');
-		expect(markup).toContain('kaynaklariyla toparla');
+		expect(markup).toContain('Bugun ne yapmak istersin?');
+		expect(markup).toContain('Arastir ve ozetle');
 		expect(markup).toContain('onay isteyen');
 		expect(markup).not.toContain('operator');
 	});

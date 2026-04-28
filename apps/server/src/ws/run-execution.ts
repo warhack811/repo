@@ -409,6 +409,7 @@ interface FinalizeLiveRunResultOptions {
 }
 
 interface ExecuteLiveRunOptions {
+	readonly approvalStore: ApprovalStore;
 	readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
 	readonly create_storage_download_url?: RuntimeWebSocketHandlerOptions['create_storage_download_url'];
 	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
@@ -1660,7 +1661,7 @@ async function executeLiveRun(
 				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 				desktop_target_connection_id: payload.desktop_target_connection_id,
 			}),
-		on_yield: ({ snapshot, yield: loopYield }) => {
+		on_yield: async ({ snapshot, yield: loopYield }) => {
 			for (const toolResult of snapshot.tool_results ?? []) {
 				rememberToolResult(toolResult);
 			}
@@ -1699,6 +1700,32 @@ async function executeLiveRun(
 
 			if (turnPresentationBlocks.length === 0) {
 				return;
+			}
+
+			if (hasNewApproval && snapshot.approval_request !== undefined) {
+				await persistApprovalPresentationInputs(
+					options.approvalStore,
+					createAutomaticApprovalPresentationInputs(
+						{
+							approval_request: snapshot.approval_request,
+							events,
+							final_state: snapshot.current_runtime_state ?? 'WAITING_APPROVAL',
+							pending_tool_call: withPendingDesktopTargetConnectionId(
+								snapshot.pending_tool_call,
+								payload,
+							),
+							runtime_events: runtimeEvents,
+							status: 'approval_required',
+							tool_arguments: snapshot.tool_arguments,
+							tool_result: snapshot.tool_result,
+							tool_result_history: snapshot.tool_results,
+							turn_count: snapshot.turn_count,
+						},
+						options.workingDirectory,
+						payload,
+					),
+					approvalPersistenceScopeFromAuthContext(options.auth_context),
+				);
 			}
 
 			if (hasNewToolResult) {
@@ -1941,6 +1968,7 @@ export async function resumeApprovedAutoContinue(
 	const pendingContext = pendingApproval.auto_continue_context;
 	const toolRegistry = options.toolRegistry ?? (await getDefaultToolRegistryAsync());
 	const continuationResult = await executeLiveRun(_socket, pendingContext.payload, {
+		approvalStore: options.approvalStore,
 		auth_context: options.auth_context,
 		create_storage_download_url: options.create_storage_download_url,
 		desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
@@ -2100,6 +2128,7 @@ export async function handleRunRequestMessage(
 
 	try {
 		result = await executeLiveRun(socket, resolvedPayload, {
+			approvalStore: options.approvalStore,
 			auth_context: options.auth_context,
 			create_storage_download_url: options.create_storage_download_url,
 			desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,

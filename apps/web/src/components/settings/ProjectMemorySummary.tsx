@@ -1,21 +1,13 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
-import { appShellMutedTextStyle, appShellSecondaryLabelStyle } from '../app/AppShell.js';
+import { RunaSkeleton } from '../ui/RunaSkeleton.js';
 
 type ProjectMemorySummaryProps = Readonly<{
+	isLoading?: boolean;
 	sourceCount?: number;
 	status: 'available' | 'empty' | 'unavailable';
 	summary?: string;
 }>;
-
-const panelStyle: CSSProperties = {
-	display: 'grid',
-	gap: '12px',
-	padding: '14px 16px',
-	borderRadius: '18px',
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	background: 'rgba(9, 14, 25, 0.68)',
-};
 
 function getStatusCopy(status: ProjectMemorySummaryProps['status']): {
 	readonly body: string;
@@ -41,6 +33,7 @@ function getStatusCopy(status: ProjectMemorySummaryProps['status']): {
 }
 
 export function ProjectMemorySummary({
+	isLoading = false,
 	sourceCount,
 	status,
 	summary,
@@ -48,13 +41,30 @@ export function ProjectMemorySummary({
 	const statusCopy = getStatusCopy(status);
 
 	return (
-		<section style={panelStyle} aria-labelledby="project-memory-heading">
-			<div style={{ display: 'grid', gap: '8px' }}>
-				<div style={appShellSecondaryLabelStyle}>Gizlilik ve hafiza</div>
-				<h2 id="project-memory-heading" style={{ margin: 0, fontSize: '20px' }}>
+		<section
+			className="runa-migrated-components-settings-projectmemorysummary-1"
+			aria-labelledby="project-memory-heading"
+		>
+			<div className="runa-migrated-components-settings-projectmemorysummary-2">
+				<div className="runa-migrated-components-settings-projectmemorysummary-3">
+					Gizlilik ve hafiza
+				</div>
+				<h2
+					id="project-memory-heading"
+					className="runa-migrated-components-settings-projectmemorysummary-4"
+				>
 					Proje hafizasi
 				</h2>
-				<p style={appShellMutedTextStyle}>{summary?.trim() || statusCopy.body}</p>
+				<p className="runa-migrated-components-settings-projectmemorysummary-5">
+					{isLoading ? (
+						<output aria-busy="true" className="runa-memory-skeleton">
+							<RunaSkeleton variant="text" />
+							<RunaSkeleton variant="text" />
+						</output>
+					) : (
+						summary?.trim() || statusCopy.body
+					)}
+				</p>
 			</div>
 
 			<div className="runa-inline-cluster">

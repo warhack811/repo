@@ -1,32 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
-
-const controlRowStyle: CSSProperties = {
-	display: 'flex',
-	alignItems: 'center',
-	gap: '10px',
-	flexWrap: 'wrap',
-};
-
-const secondaryButtonStyle: CSSProperties = {
-	display: 'inline-flex',
-	alignItems: 'center',
-	justifyContent: 'center',
-	gap: '8px',
-	padding: '10px 14px',
-	borderRadius: '14px',
-	border: '1px solid rgba(148, 163, 184, 0.22)',
-	background: 'rgba(10, 15, 27, 0.86)',
-	color: '#e5e7eb',
-	fontWeight: 600,
-	cursor: 'pointer',
-	transition: 'transform 180ms ease, border-color 180ms ease, background 180ms ease',
-};
-
-const noteStyle: CSSProperties = {
-	fontSize: '13px',
-	lineHeight: 1.5,
-	color: '#94a3b8',
-};
+import type { ReactElement } from 'react';
 
 type VoiceComposerControlsProps = Readonly<{
 	canReadLatestResponse: boolean;
@@ -52,21 +24,20 @@ export function VoiceComposerControls({
 	voiceStatusMessage,
 }: VoiceComposerControlsProps): ReactElement {
 	return (
-		<div style={{ display: 'grid', gap: '10px' }}>
-			<div style={controlRowStyle}>
+		<div className="runa-migrated-components-chat-voicecomposercontrols-1">
+			<div className="runa-migrated-components-chat-voicecomposercontrols-2">
 				<button
 					type="button"
 					onClick={onToggleListening}
 					disabled={!isVoiceSupported}
-					style={{
-						...secondaryButtonStyle,
-						borderColor: isListening ? 'rgba(245, 158, 11, 0.42)' : 'rgba(148, 163, 184, 0.22)',
-						background: isListening ? 'rgba(120, 53, 15, 0.32)' : secondaryButtonStyle.background,
-						opacity: isVoiceSupported ? 1 : 0.6,
-					}}
-					className={`runa-button runa-button--secondary${
-						isListening ? ' runa-voice-button--listening' : ''
-					}`}
+					className={[
+						`runa-button runa-button--secondary${
+							isListening ? ' runa-voice-button--listening' : ''
+						}`,
+						'runa-migrated-components-chat-voicecomposercontrols-3',
+					]
+						.filter(Boolean)
+						.join(' ')}
 					aria-pressed={isListening}
 				>
 					{isListening ? 'Dinlemeyi durdur' : 'Sesle yaz'}
@@ -76,17 +47,13 @@ export function VoiceComposerControls({
 					type="button"
 					onClick={isSpeaking ? onStopSpeaking : onReadLatestResponse}
 					disabled={!canReadLatestResponse || !isSpeechPlaybackSupported}
-					style={{
-						...secondaryButtonStyle,
-						opacity: canReadLatestResponse && isSpeechPlaybackSupported ? 1 : 0.6,
-					}}
-					className="runa-button runa-button--secondary"
+					className="runa-button runa-button--secondary runa-migrated-components-chat-voicecomposercontrols-4"
 				>
 					{isSpeaking ? 'Okumayi durdur' : 'Son yaniti oku'}
 				</button>
 			</div>
 
-			<div style={noteStyle} aria-live="polite">
+			<div className="runa-migrated-components-chat-voicecomposercontrols-5" aria-live="polite">
 				{voiceStatusMessage ??
 					(isVoiceSupported
 						? 'Mikrofonu acip kisa bir not soyleyebilir veya son yaniti sesli okutabilirsin.'

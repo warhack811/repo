@@ -9,6 +9,8 @@ dist-electron/
 playwright-report/
 test-results/
 apps/desktop-agent/release/
+apps/desktop-agent/electron/renderer/App.js
+apps/desktop-agent/electron/renderer/App.js.map
 
 # Turborepo
 .turbo/
@@ -25,7 +27,10 @@ apps/desktop-agent/release/
 .vscode/
 .idea/
 .claude/
+.claire/
 .codex-screenshots/
+apps/web/.qa-screenshots/
+apps/web/.qa-screenshots-auth-chat/
 *.swp
 *.swo
 

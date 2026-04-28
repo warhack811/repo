@@ -4,21 +4,26 @@
  * Minimal React application for the desktop launch surface.
  */
 
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 declare global {
 	// eslint-disable-next-line no-var
-	var runaDesktop: {
-		versions: {
-			node: string;
-			chrome: string;
-			electron: string;
-		};
-		platform: string;
-		getShellState(): Promise<unknown>;
-		onShellStateChange(callback: (state: unknown) => void): () => void;
-	} | undefined;
+	var runaDesktop:
+		| {
+				versions: {
+					node: string;
+					chrome: string;
+					electron: string;
+				};
+				platform: string;
+				getShellState(): Promise<unknown>;
+				connect(): Promise<unknown>;
+				disconnect(): Promise<unknown>;
+				onShellStateChange(callback: (state: unknown) => void): () => void;
+		  }
+		| undefined;
 }
 
 interface ShellState {
@@ -38,7 +43,9 @@ function App(): React.JSX.Element {
 	useEffect(() => {
 		// Get version info from preload
 		if (globalThis.window.runaDesktop) {
-			setVersionInfo(`Electron ${globalThis.window.runaDesktop.versions.electron} / Chrome ${globalThis.window.runaDesktop.versions.chrome}`);
+			setVersionInfo(
+				`Electron ${globalThis.window.runaDesktop.versions.electron} / Chrome ${globalThis.window.runaDesktop.versions.chrome}`,
+			);
 
 			// Get initial shell state
 			globalThis.window.runaDesktop
@@ -97,7 +104,9 @@ function App(): React.JSX.Element {
 				<div className="info-grid">
 					<div className="info-item">
 						<span className="info-label">Platform</span>
-						<span className="info-value">{globalThis.window.runaDesktop?.platform || 'unknown'}</span>
+						<span className="info-value">
+							{globalThis.window.runaDesktop?.platform || 'unknown'}
+						</span>
 					</div>
 					<div className="info-item">
 						<span className="info-label">Agent</span>
@@ -110,6 +119,7 @@ function App(): React.JSX.Element {
 						<button
 							className="action-button primary"
 							data-action-role="sign-in-button"
+							type="button"
 							onClick={() => {
 								// Open web interface for sign in
 								console.log('Sign in action triggered');
@@ -123,8 +133,9 @@ function App(): React.JSX.Element {
 						<button
 							className="action-button secondary"
 							data-action-role="disconnect-button"
+							type="button"
 							onClick={() => {
-								console.log('Disconnect action triggered');
+								void globalThis.window.runaDesktop?.disconnect();
 							}}
 						>
 							Disconnect
@@ -135,8 +146,9 @@ function App(): React.JSX.Element {
 						<button
 							className="action-button primary"
 							data-action-role="connect-button"
+							type="button"
 							onClick={() => {
-								console.log('Connect action triggered');
+								void globalThis.window.runaDesktop?.connect();
 							}}
 						>
 							Connect

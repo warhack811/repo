@@ -7,6 +7,7 @@ import type {
 
 interface JsonSchemaScalarProperty {
 	readonly description?: string;
+	readonly enum?: readonly string[];
 	readonly type: ModelCallableToolScalarParameter['type'];
 }
 
@@ -135,11 +136,20 @@ function toJsonSchemaProperty(
 		};
 	}
 
-	return {
+	const property: JsonSchemaScalarProperty = {
 		description:
 			options.include_parameter_descriptions === false ? undefined : parameter.description,
 		type: parameter.type,
 	};
+
+	if (parameter.type === 'string' && parameter.enum && parameter.enum.length > 0) {
+		return {
+			...property,
+			enum: parameter.enum,
+		};
+	}
+
+	return property;
 }
 
 export function buildToolJsonSchema(

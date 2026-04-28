@@ -95,6 +95,76 @@ describe('agent.delegate tool', () => {
 		});
 	});
 
+	it('normalizes obvious model role aliases before delegating', async () => {
+		let observedRequest: AgentDelegationRequest | undefined;
+		const result = await agentDelegateTool.execute(
+			{
+				arguments: {
+					sub_agent_role: 'developer' as never,
+					task: 'Implement the bounded renderer hardening change.',
+				},
+				call_id: 'call_alias',
+				tool_name: 'agent.delegate',
+			},
+			createExecutionContext({
+				async delegate_agent(request) {
+					observedRequest = request;
+
+					return {
+						evidence: [],
+						role: request.role,
+						status: 'completed',
+						summary: 'Implemented.',
+						turns_used: 2,
+					};
+				},
+			}),
+		);
+
+		expect(observedRequest?.role).toBe('coder');
+		expect(result).toMatchObject({
+			output: {
+				role: 'coder',
+			},
+			status: 'success',
+		});
+	});
+
+	it('rejects unknown model role aliases without exposing raw validator copy', async () => {
+		const result = await agentDelegateTool.execute(
+			{
+				arguments: {
+					sub_agent_role: 'planner' as never,
+					task: 'Plan the bounded renderer hardening change.',
+				},
+				call_id: 'call_unknown_role',
+				tool_name: 'agent.delegate',
+			},
+			createExecutionContext(),
+		);
+
+		expect(result).toMatchObject({
+			details: {
+				allowed_values: ['researcher', 'reviewer', 'coder'],
+				argument: 'sub_agent_role',
+				reason: 'invalid_role',
+			},
+			error_code: 'INVALID_INPUT',
+			error_message: 'Runa could not safely choose a sub-agent role for this delegated step.',
+			status: 'error',
+		});
+	});
+
+	it('publishes machine-readable allowed roles in the callable schema', () => {
+		const roleParameterName = 'sub_agent_role';
+
+		expect(agentDelegateTool.callable_schema?.parameters?.[roleParameterName]).toMatchObject({
+			enum: ['researcher', 'reviewer', 'coder'],
+			required: true,
+			type: 'string',
+		});
+	});
+
 	it('keeps approval-required and high-risk tools out of role allowlists', () => {
 		const registry = createBuiltInToolRegistry();
 		const roles = ['researcher', 'reviewer', 'coder'] as const;

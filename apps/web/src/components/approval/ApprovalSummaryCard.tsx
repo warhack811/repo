@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import { uiCopy } from '../../localization/copy.js';
 import type { RenderBlock } from '../../ws-types.js';
@@ -11,51 +11,6 @@ export type ApprovalSummaryCardProps = Readonly<{
 	emphasis?: string;
 	eyebrow?: string;
 }>;
-
-const cardStyle: CSSProperties = {
-	borderRadius: '22px',
-	border: '1px solid rgba(148, 163, 184, 0.2)',
-	background:
-		'linear-gradient(180deg, rgba(34, 23, 8, 0.84) 0%, rgba(12, 18, 31, 0.9) 56%, rgba(6, 11, 21, 0.92) 100%)',
-	padding: '20px',
-	display: 'grid',
-	gap: '16px',
-	minWidth: 0,
-	boxShadow: '0 24px 54px rgba(2, 6, 23, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-	backdropFilter: 'blur(18px)',
-	transition:
-		'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease',
-};
-
-const secondaryLabelStyle: CSSProperties = {
-	fontSize: '11px',
-	letterSpacing: '0.08em',
-	textTransform: 'uppercase',
-	color: 'hsl(var(--color-text-soft))',
-};
-
-const detailsCardStyle: CSSProperties = {
-	padding: '14px 16px',
-	borderRadius: '16px',
-	border: '1px solid rgba(148, 163, 184, 0.18)',
-	background: 'rgba(8, 14, 24, 0.72)',
-	display: 'grid',
-	gap: '8px',
-	minWidth: 0,
-	transition: 'opacity 220ms ease, transform 220ms ease, border-color 220ms ease',
-};
-
-const targetBadgeStyle: CSSProperties = {
-	display: 'inline-flex',
-	alignItems: 'center',
-	padding: '6px 10px',
-	borderRadius: '999px',
-	border: '1px solid rgba(148, 163, 184, 0.2)',
-	background: 'rgba(10, 16, 28, 0.72)',
-	color: '#e2e8f0',
-	fontSize: '12px',
-	fontWeight: 600,
-};
 
 function getApprovalAccent(status: ApprovalBlock['payload']['status']): {
 	readonly borderColor: string;
@@ -151,116 +106,79 @@ export function ApprovalSummaryCard({
 	const accent = getApprovalAccent(block.payload.status);
 
 	return (
-		<article
-			style={{
-				...cardStyle,
-				borderColor: accent.borderColor,
-				transform: 'translateY(0)',
-			}}
-		>
-			<div
-				style={{
-					display: 'flex',
-					justifyContent: 'space-between',
-					alignItems: 'flex-start',
-					gap: '12px',
-					flexWrap: 'wrap',
-				}}
-			>
-				<div style={{ display: 'grid', gap: '4px', minWidth: 0 }}>
-					<span lang="tr" style={secondaryLabelStyle}>
+		<article className="runa-migrated-components-approval-approvalsummarycard-1">
+			<div className="runa-migrated-components-approval-approvalsummarycard-2">
+				<div className="runa-migrated-components-approval-approvalsummarycard-3">
+					<span lang="tr" className="runa-migrated-components-approval-approvalsummarycard-4">
 						{eyebrow}
 					</span>
-					<strong style={{ fontSize: '18px', color: 'hsl(var(--color-text))' }}>
+					<strong className="runa-migrated-components-approval-approvalsummarycard-5">
 						{block.payload.title}
 					</strong>
 				</div>
-				<span
-					style={{
-						padding: '5px 11px',
-						borderRadius: '999px',
-						background: accent.chipBackground,
-						border: `1px solid ${accent.borderColor}`,
-						color: accent.chipColor,
-						fontSize: '11px',
-						fontWeight: 700,
-						letterSpacing: '0.08em',
-						textTransform: 'uppercase',
-					}}
-					lang="tr"
-				>
+				<span className="runa-migrated-components-approval-approvalsummarycard-6" lang="tr">
 					{formatStatusLabel(block.payload.status)}
 				</span>
 			</div>
 
-			<div style={{ color: 'hsl(var(--color-text))', lineHeight: 1.7 }}>
+			<div className="runa-migrated-components-approval-approvalsummarycard-7">
 				{block.payload.summary}
 			</div>
 
 			{block.payload.target_label ? (
-				<div style={{ display: 'grid', gap: '8px' }}>
-					<div lang="tr" style={secondaryLabelStyle}>
+				<div className="runa-migrated-components-approval-approvalsummarycard-8">
+					<div lang="tr" className="runa-migrated-components-approval-approvalsummarycard-9">
 						Hedef cihaz
 					</div>
-					<div style={targetBadgeStyle}>{block.payload.target_label}</div>
+					<div className="runa-migrated-components-approval-approvalsummarycard-10">
+						{block.payload.target_label}
+					</div>
 				</div>
 			) : null}
 
-			<div
-				style={{
-					padding: '14px 16px',
-					borderRadius: '16px',
-					background: accent.emphasisBackground,
-					color: accent.emphasisColor,
-					lineHeight: 1.6,
-					boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-				}}
-			>
+			<div className="runa-migrated-components-approval-approvalsummarycard-11">
 				{emphasis ?? getDefaultEmphasis(block)}
 			</div>
 
-			<details style={detailsCardStyle}>
-				<summary
-					style={{
-						cursor: 'pointer',
-						color: 'hsl(var(--color-text))',
-						fontWeight: 600,
-						transition: 'opacity 180ms ease, transform 180ms ease',
-					}}
-				>
+			<details className="runa-migrated-components-approval-approvalsummarycard-12">
+				<summary className="runa-migrated-components-approval-approvalsummarycard-13">
 					{uiCopy.approval.details}
 				</summary>
-				<div style={{ display: 'grid', gap: '10px' }}>
+				<div className="runa-migrated-components-approval-approvalsummarycard-14">
 					<div>
-						<div lang="tr" style={secondaryLabelStyle}>
+						<div lang="tr" className="runa-migrated-components-approval-approvalsummarycard-15">
 							{uiCopy.approval.action}
 						</div>
-						<div style={{ color: 'hsl(var(--color-text))' }}>
+						<div className="runa-migrated-components-approval-approvalsummarycard-16">
 							{formatActionKind(block.payload.action_kind)}
 						</div>
 					</div>
 					{block.payload.tool_name ? (
 						<div>
-							<div lang="tr" style={secondaryLabelStyle}>
+							<div lang="tr" className="runa-migrated-components-approval-approvalsummarycard-17">
 								{uiCopy.approval.tool}
 							</div>
-							<code style={{ color: '#fde68a', fontSize: '12px' }}>{block.payload.tool_name}</code>
+							<code className="runa-migrated-components-approval-approvalsummarycard-18">
+								{block.payload.tool_name}
+							</code>
 						</div>
 					) : null}
 					{block.payload.call_id ? (
 						<div>
-							<div style={secondaryLabelStyle}>{uiCopy.approval.callId}</div>
-							<code style={{ color: 'hsl(var(--color-text-muted))', fontSize: '12px' }}>
+							<div className="runa-migrated-components-approval-approvalsummarycard-19">
+								{uiCopy.approval.callId}
+							</div>
+							<code className="runa-migrated-components-approval-approvalsummarycard-20">
 								{block.payload.call_id}
 							</code>
 						</div>
 					) : null}
 					{block.payload.note ? (
 						<div>
-							<div lang="tr" style={secondaryLabelStyle}>
+							<div lang="tr" className="runa-migrated-components-approval-approvalsummarycard-21">
 								{uiCopy.approval.note}
 							</div>
-							<div style={{ color: 'hsl(var(--color-text-muted))', lineHeight: 1.6 }}>
+							<div className="runa-migrated-components-approval-approvalsummarycard-22">
 								{block.payload.note}
 							</div>
 						</div>

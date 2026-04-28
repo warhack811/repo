@@ -122,8 +122,10 @@ interface StoredRuntimeConfigCandidate {
 }
 
 const RUNTIME_CONFIG_STORAGE_KEY = 'runa.developer.runtime_config';
-const DEFAULT_PROVIDER: GatewayProvider = 'groq';
+const DEFAULT_PROVIDER: GatewayProvider = 'deepseek';
 const DEFAULT_MODEL = runtimeDefaultGatewayModels[DEFAULT_PROVIDER];
+const LEGACY_DEFAULT_PROVIDER: GatewayProvider = 'groq';
+const LEGACY_DEFAULT_MODEL = runtimeDefaultGatewayModels[LEGACY_DEFAULT_PROVIDER];
 
 function isGatewayProviderValue(value: unknown): value is GatewayProvider {
 	return typeof value === 'string' && gatewayProviders.includes(value as GatewayProvider);
@@ -149,6 +151,18 @@ function createDefaultRuntimeConfig(): Readonly<{
 		model: DEFAULT_MODEL,
 		provider: DEFAULT_PROVIDER,
 	};
+}
+
+function shouldMigrateStoredRuntimeConfigToDefaultProvider(
+	config: Readonly<{
+		model: string;
+		provider: GatewayProvider;
+	}>,
+): boolean {
+	return (
+		config.provider === LEGACY_DEFAULT_PROVIDER &&
+		(config.model.trim().length === 0 || config.model.trim() === LEGACY_DEFAULT_MODEL)
+	);
 }
 
 function isStoredRuntimeConfigCandidate(value: unknown): value is StoredRuntimeConfigCandidate {
@@ -180,22 +194,30 @@ function readStoredRuntimeConfig(): Readonly<{
 			return createDefaultRuntimeConfig();
 		}
 
-		return {
+		const parsedProvider = isGatewayProviderValue(parsedValue.provider)
+			? parsedValue.provider
+			: DEFAULT_PROVIDER;
+		const parsedModel =
+			typeof parsedValue.model === 'string' && parsedValue.model.trim().length > 0
+				? parsedValue.model
+				: runtimeDefaultGatewayModels[parsedProvider];
+		const storedConfig = {
 			apiKey: typeof parsedValue.apiKey === 'string' ? parsedValue.apiKey : '',
 			includePresentationBlocks:
 				typeof parsedValue.includePresentationBlocks === 'boolean'
 					? parsedValue.includePresentationBlocks
 					: true,
-			model:
-				typeof parsedValue.model === 'string' && parsedValue.model.trim().length > 0
-					? parsedValue.model
-					: runtimeDefaultGatewayModels[
-							isGatewayProviderValue(parsedValue.provider) ? parsedValue.provider : DEFAULT_PROVIDER
-						],
-			provider: isGatewayProviderValue(parsedValue.provider)
-				? parsedValue.provider
-				: DEFAULT_PROVIDER,
+			model: parsedModel,
+			provider: parsedProvider,
 		};
+
+		if (shouldMigrateStoredRuntimeConfigToDefaultProvider(storedConfig)) {
+			const migratedConfig = createDefaultRuntimeConfig();
+			persistRuntimeConfig(migratedConfig);
+			return migratedConfig;
+		}
+
+		return storedConfig;
 	} catch {
 		return createDefaultRuntimeConfig();
 	}

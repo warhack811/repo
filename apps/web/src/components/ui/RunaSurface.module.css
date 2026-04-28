@@ -1,0 +1,41 @@
+.surface {
+	display: grid;
+	min-width: 0;
+}
+
+.comfortable {
+	gap: clamp(18px, 3vw, 24px);
+}
+
+.compact {
+	gap: var(--space-5);
+}
+
+.plain {
+	background: transparent;
+}
+
+.page {
+	background: var(--page-background);
+	color: hsl(var(--color-text));
+	font-family: var(--font-body);
+	min-height: 100dvh;
+	padding: var(--space-page-y) var(--space-page-x);
+}
+
+.panel {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+}
+
+.hero {
+	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
+		var(--gradient-panel-strong);
+	border: 1px solid rgba(245, 158, 11, 0.24);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+}

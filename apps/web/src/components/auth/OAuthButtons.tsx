@@ -1,29 +1,7 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import type { OAuthProvider } from '@runa/types';
-
-import { secondaryButtonStyle, subcardStyle } from '../../lib/chat-styles.js';
 import { uiCopy } from '../../localization/copy.js';
-
-const providerGridStyle: CSSProperties = {
-	display: 'grid',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))',
-	gap: '10px',
-};
-
-const providerButtonStyle: CSSProperties = {
-	...secondaryButtonStyle,
-	width: '100%',
-	minHeight: '52px',
-	fontWeight: 700,
-};
-
-const providerDescriptionStyle: CSSProperties = {
-	margin: 0,
-	color: 'hsl(var(--color-text-soft))',
-	fontSize: '13px',
-	lineHeight: 1.6,
-};
 
 const providers = [
 	{
@@ -46,8 +24,8 @@ type OAuthButtonsProps = Readonly<{
 
 export function OAuthButtons({ isDisabled, onStartOAuth }: OAuthButtonsProps): ReactElement {
 	return (
-		<div className="runa-card runa-card--subtle runa-card--soft-grid" style={subcardStyle}>
-			<div style={providerGridStyle}>
+		<div className="runa-card runa-card--subtle runa-card--soft-grid runa-migrated-components-auth-oauthbuttons-1">
+			<div className="runa-migrated-components-auth-oauthbuttons-2">
 				{providers.map((provider) => (
 					<button
 						key={provider.provider}
@@ -55,17 +33,13 @@ export function OAuthButtons({ isDisabled, onStartOAuth }: OAuthButtonsProps): R
 						disabled={isDisabled}
 						onClick={() => onStartOAuth(provider.provider)}
 						aria-label={provider.label}
-						style={{
-							...providerButtonStyle,
-							opacity: isDisabled ? 0.6 : 1,
-						}}
-						className="runa-button runa-button--secondary"
+						className="runa-button runa-button--secondary runa-migrated-components-auth-oauthbuttons-3"
 					>
 						{provider.label}
 					</button>
 				))}
 			</div>
-			<p style={providerDescriptionStyle}>{uiCopy.auth.oauthDescription}</p>
+			<p className="runa-migrated-components-auth-oauthbuttons-4">{uiCopy.auth.oauthDescription}</p>
 		</div>
 	);
 }

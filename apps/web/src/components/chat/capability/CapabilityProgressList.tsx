@@ -1,6 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactElement } from 'react';
-
-import { designTokens } from '../../../lib/design-tokens.js';
+import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge } from '../../ui/index.js';
 import type { CapabilityProgressStep, CapabilityStatus, CapabilityTone } from './types.js';
 
@@ -9,39 +7,6 @@ export type CapabilityProgressListProps = Readonly<
 		steps: readonly CapabilityProgressStep[];
 	}
 >;
-
-const listStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.sm,
-	listStyle: 'none',
-	margin: 0,
-	padding: 0,
-};
-
-const itemStyle: CSSProperties = {
-	alignItems: 'flex-start',
-	background: 'rgba(15, 23, 42, 0.46)',
-	border: `1px solid ${designTokens.color.border.soft}`,
-	borderRadius: designTokens.radius.soft,
-	display: 'grid',
-	gap: designTokens.spacing.xs,
-	gridTemplateColumns: 'minmax(0, 1fr) auto',
-	minWidth: 0,
-	padding: designTokens.spacing.md,
-	transition: designTokens.motion.transition.surface,
-};
-
-const labelStyle: CSSProperties = {
-	color: designTokens.color.foreground.text,
-	fontWeight: 700,
-	lineHeight: 1.4,
-};
-
-const descriptionStyle: CSSProperties = {
-	color: designTokens.color.foreground.muted,
-	fontSize: designTokens.typography.small.fontSize,
-	lineHeight: designTokens.typography.small.lineHeight,
-};
 
 function getStatusTone(status: CapabilityStatus): CapabilityTone {
 	switch (status) {
@@ -75,14 +40,27 @@ export function CapabilityProgressList({
 	return (
 		<ol
 			{...listProps}
-			className={['runa-capability-progress-list', className].filter(Boolean).join(' ')}
-			style={{ ...listStyle, ...style }}
+			className={[
+				['runa-capability-progress-list', className].filter(Boolean).join(' '),
+				'runa-migrated-components-chat-capability-capabilityprogresslist-1',
+			]
+				.filter(Boolean)
+				.join(' ')}
 		>
 			{steps.map((step) => (
-				<li key={step.id} style={itemStyle}>
+				<li
+					key={step.id}
+					className="runa-migrated-components-chat-capability-capabilityprogresslist-2"
+				>
 					<div>
-						<div style={labelStyle}>{step.label}</div>
-						{step.description ? <div style={descriptionStyle}>{step.description}</div> : null}
+						<div className="runa-migrated-components-chat-capability-capabilityprogresslist-3">
+							{step.label}
+						</div>
+						{step.description ? (
+							<div className="runa-migrated-components-chat-capability-capabilityprogresslist-4">
+								{step.description}
+							</div>
+						) : null}
 					</div>
 					<RunaBadge tone={getStatusTone(step.status)}>{formatStatusLabel(step.status)}</RunaBadge>
 				</li>

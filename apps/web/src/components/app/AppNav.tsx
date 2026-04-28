@@ -1,5 +1,5 @@
 import { Clock3, type LucideIcon, MessageCircle, Monitor, UserRound } from 'lucide-react';
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import { uiCopy } from '../../localization/copy.js';
@@ -45,64 +45,17 @@ const appNavItems: readonly AppNavItem[] = [
 	},
 ] as const;
 
-const navGridStyle: CSSProperties = {
-	display: 'grid',
-	gap: '4px',
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(132px, 100%), 1fr))',
-};
-
-const navButtonStyle: CSSProperties = {
-	display: 'flex',
-	gap: '8px',
-	alignItems: 'center',
-	textAlign: 'left',
-	padding: '6px 10px',
-	borderRadius: '10px',
-	border: '1px solid rgba(148, 163, 184, 0.12)',
-	background: 'rgba(9, 14, 25, 0.4)',
-	color: 'hsl(var(--color-text))',
-	cursor: 'pointer',
-	transition: 'border-color 140ms ease, background 140ms ease',
-	minWidth: 0,
-	minHeight: '40px',
-};
-
-const activeNavButtonStyle: CSSProperties = {
-	border: '1px solid rgba(245, 158, 11, 0.28)',
-	background: 'rgba(46, 29, 8, 0.5)',
-};
-
-const navLabelStyle: CSSProperties = {
-	fontSize: '13px',
-	fontWeight: 600,
-};
-
-const navDescriptionStyle: CSSProperties = {
-	fontSize: '10px',
-	lineHeight: 1.3,
-	color: 'hsl(var(--color-text-dim))',
-	overflowWrap: 'anywhere',
-};
-
-const navIconStyle: CSSProperties = {
-	display: 'grid',
-	placeItems: 'center',
-	width: '24px',
-	height: '24px',
-	borderRadius: '8px',
-	border: '1px solid rgba(148, 163, 184, 0.08)',
-	background: 'rgba(15, 23, 42, 0.4)',
-	flex: '0 0 auto',
-};
-
 type AppNavProps = Readonly<{
 	activePage: AuthenticatedPageId;
 }>;
 
 export function AppNav({ activePage }: AppNavProps): ReactElement {
 	return (
-		<nav aria-label={uiCopy.appNav.navLabel} style={{ display: 'grid', gap: '12px' }}>
-			<div style={navGridStyle}>
+		<nav
+			aria-label={uiCopy.appNav.navLabel}
+			className="runa-app-nav runa-migrated-components-app-appnav-1"
+		>
+			<div className="runa-app-nav__items runa-migrated-components-app-appnav-2">
 				{appNavItems.map((item) => {
 					const isActive = item.id === activePage;
 					const Icon = item.icon;
@@ -113,18 +66,23 @@ export function AppNav({ activePage }: AppNavProps): ReactElement {
 							to={item.to}
 							aria-controls="authenticated-app-content"
 							aria-label={`${item.label}. ${item.description}`}
-							style={{
-								...navButtonStyle,
-								...(isActive ? activeNavButtonStyle : {}),
-								textDecoration: 'none',
-							}}
+							className={`runa-app-nav__item${
+								isActive ? ' runa-app-nav__item--active' : ''
+							} runa-migrated-components-app-appnav-3`}
 						>
-							<span style={navIconStyle} aria-hidden="true">
+							<span
+								className="runa-app-nav__icon runa-migrated-components-app-appnav-4"
+								aria-hidden="true"
+							>
 								<Icon size={14} />
 							</span>
-							<span style={{ display: 'grid', gap: '3px', minWidth: 0 }}>
-								<span style={navLabelStyle}>{item.label}</span>
-								<span style={navDescriptionStyle}>{item.description}</span>
+							<span className="runa-app-nav__copy runa-migrated-components-app-appnav-5">
+								<span className="runa-app-nav__label runa-migrated-components-app-appnav-6">
+									{item.label}
+								</span>
+								<span className="runa-app-nav__description runa-migrated-components-app-appnav-7">
+									{item.description}
+								</span>
 							</span>
 						</NavLink>
 					);

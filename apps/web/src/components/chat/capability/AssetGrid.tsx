@@ -1,7 +1,4 @@
-import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactElement } from 'react';
-
-import { emptyStateCardStyle } from '../../../lib/chat-styles.js';
-import { designTokens } from '../../../lib/design-tokens.js';
+import type { HTMLAttributes, KeyboardEvent, ReactElement } from 'react';
 import { AssetPreviewCard } from './AssetPreviewCard.js';
 import type { AssetPreviewItem } from './types.js';
 
@@ -12,17 +9,6 @@ export type AssetGridProps = Readonly<
 		emptyLabel?: string;
 	}
 >;
-
-const gridStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.md,
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
-	minWidth: 0,
-};
-
-const selectableCardStyle: CSSProperties = {
-	cursor: 'pointer',
-};
 
 function handleSelectableKeyDown(
 	event: KeyboardEvent<HTMLDivElement>,
@@ -46,14 +32,20 @@ export function AssetGrid({
 	...gridProps
 }: AssetGridProps): ReactElement | null {
 	if (items.length === 0) {
-		return emptyLabel ? <div style={emptyStateCardStyle}>{emptyLabel}</div> : null;
+		return emptyLabel ? (
+			<div className="runa-migrated-components-chat-capability-assetgrid-1">{emptyLabel}</div>
+		) : null;
 	}
 
 	return (
 		<div
 			{...gridProps}
-			className={['runa-asset-grid', className].filter(Boolean).join(' ')}
-			style={{ ...gridStyle, ...style }}
+			className={[
+				['runa-asset-grid', className].filter(Boolean).join(' '),
+				'runa-migrated-components-chat-capability-assetgrid-2',
+			]
+				.filter(Boolean)
+				.join(' ')}
 		>
 			{items.map((item) => {
 				const isSelectable = Boolean(onSelect);
@@ -71,7 +63,7 @@ export function AssetGrid({
 						}
 						previewUrl={item.previewUrl}
 						role={isSelectable ? 'button' : undefined}
-						style={isSelectable ? selectableCardStyle : undefined}
+						className="runa-migrated-components-chat-capability-assetgrid-3"
 						subtitle={item.subtitle}
 						tabIndex={isSelectable ? 0 : undefined}
 						title={item.title}

@@ -1,6 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactElement } from 'react';
-
-import { designTokens } from '../../../lib/design-tokens.js';
+import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaButton } from '../../ui/index.js';
 import type { CapabilityResultAction, CapabilityResultActionTone } from './types.js';
 
@@ -9,13 +7,6 @@ export type CapabilityResultActionsProps = Readonly<
 		actions: readonly CapabilityResultAction[];
 	}
 >;
-
-const actionRowStyle: CSSProperties = {
-	alignItems: 'center',
-	display: 'flex',
-	flexWrap: 'wrap',
-	gap: designTokens.spacing.sm,
-};
 
 function getButtonVariant(
 	tone: CapabilityResultActionTone | undefined,
@@ -43,8 +34,12 @@ export function CapabilityResultActions({
 	return (
 		<div
 			{...rowProps}
-			className={['runa-capability-result-actions', className].filter(Boolean).join(' ')}
-			style={{ ...actionRowStyle, ...style }}
+			className={[
+				['runa-capability-result-actions', className].filter(Boolean).join(' '),
+				'runa-migrated-components-chat-capability-capabilityresultactions-1',
+			]
+				.filter(Boolean)
+				.join(' ')}
 		>
 			{actions.map((action) => (
 				<RunaButton

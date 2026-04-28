@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import type { CurrentRunProgressSurface } from '../../lib/chat-runtime/current-run-progress.js';
 import { uiCopy } from '../../localization/copy.js';
@@ -12,33 +12,6 @@ type RunProgressPanelProps = Readonly<{
 	feedbackBanner?: ReactNode;
 	progress: CurrentRunProgressSurface;
 }>;
-
-const panelStyle: CSSProperties = {
-	borderRadius: '18px',
-	border: '1px solid rgba(96, 165, 250, 0.22)',
-	background: 'linear-gradient(180deg, rgba(10, 20, 38, 0.94) 0%, rgba(3, 8, 24, 0.9) 100%)',
-	padding: 'clamp(16px, 3vw, 20px)',
-	display: 'grid',
-	gap: '16px',
-};
-
-const sectionLabelStyle: CSSProperties = {
-	fontSize: '11px',
-	letterSpacing: '0.08em',
-	textTransform: 'uppercase',
-	color: '#93c5fd',
-};
-
-const chipStyle: CSSProperties = {
-	display: 'inline-flex',
-	alignItems: 'center',
-	padding: '3px 8px',
-	borderRadius: '999px',
-	background: 'rgba(15, 23, 42, 0.82)',
-	border: '1px solid rgba(148, 163, 184, 0.18)',
-	color: '#cbd5e1',
-	fontSize: '11px',
-};
 
 function getPanelAccent(tone: CurrentRunProgressSurface['status_tone']): Readonly<{
 	readonly borderColor: string;
@@ -140,71 +113,60 @@ export function RunProgressPanel({
 	return (
 		<section
 			aria-labelledby="current-run-progress-heading"
-			style={{
-				...panelStyle,
-				borderColor: accent.borderColor,
-			}}
+			className="runa-migrated-components-chat-runprogresspanel-1"
 		>
-			<div style={{ display: 'grid', gap: '8px' }}>
-				<div style={{ ...sectionLabelStyle, color: accent.eyebrowColor }}>
+			<div className="runa-migrated-components-chat-runprogresspanel-2">
+				<div className="runa-migrated-components-chat-runprogresspanel-3">
 					{uiCopy.run.currentRunProgress}
 				</div>
-				<div
-					style={{
-						display: 'flex',
-						justifyContent: 'space-between',
-						alignItems: 'flex-start',
-						gap: '12px',
-						flexWrap: 'wrap',
-					}}
-				>
-					<div style={{ display: 'grid', gap: '8px', maxWidth: 'min(760px, 100%)' }}>
+				<div className="runa-migrated-components-chat-runprogresspanel-4">
+					<div className="runa-migrated-components-chat-runprogresspanel-5">
 						<h3
 							id="current-run-progress-heading"
-							style={{ margin: 0, fontSize: '20px', color: '#f8fafc' }}
+							className="runa-migrated-components-chat-runprogresspanel-6"
 						>
 							{progress.headline}
 						</h3>
-						<div style={{ color: '#cbd5e1', lineHeight: 1.6 }}>{progress.detail}</div>
+						<div className="runa-migrated-components-chat-runprogresspanel-7">
+							{progress.detail}
+						</div>
 					</div>
 				</div>
 			</div>
 
 			{feedbackBanner}
 
-			<div style={{ display: 'grid', gap: '10px' }}>
-				<div style={sectionLabelStyle}>{uiCopy.run.runtimePhases}</div>
+			<div className="runa-migrated-components-chat-runprogresspanel-8">
+				<div className="runa-migrated-components-chat-runprogresspanel-9">
+					{uiCopy.run.runtimePhases}
+				</div>
 				<RunStatusChips ariaLabel="Current work phases" items={progress.phase_items} />
 			</div>
 
-			<div style={{ display: 'grid', gap: '10px' }}>
-				<div style={sectionLabelStyle}>{uiCopy.run.currentSurfaceContext}</div>
+			<div className="runa-migrated-components-chat-runprogresspanel-10">
+				<div className="runa-migrated-components-chat-runprogresspanel-11">
+					{uiCopy.run.currentSurfaceContext}
+				</div>
 				<RunStatusChips ariaLabel="Current work context" items={progress.meta_items} />
 			</div>
 
 			{progress.approval_block?.payload.target_label ? (
-				<div style={{ display: 'grid', gap: '8px' }}>
-					<div style={sectionLabelStyle}>Hedef cihaz</div>
-					<div style={{ ...chipStyle, width: 'fit-content', color: '#f8fafc' }}>
+				<div className="runa-migrated-components-chat-runprogresspanel-12">
+					<div className="runa-migrated-components-chat-runprogresspanel-13">Hedef cihaz</div>
+					<div className="runa-migrated-components-chat-runprogresspanel-14">
 						{progress.approval_block.payload.target_label}
 					</div>
 				</div>
 			) : null}
 
 			{progress.step_items.length > 0 ? (
-				<div style={{ display: 'grid', gap: '10px' }}>
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'center',
-							gap: '12px',
-							flexWrap: 'wrap',
-						}}
-					>
-						<div style={sectionLabelStyle}>{uiCopy.run.observedSteps}</div>
+				<div className="runa-migrated-components-chat-runprogresspanel-15">
+					<div className="runa-migrated-components-chat-runprogresspanel-16">
+						<div className="runa-migrated-components-chat-runprogresspanel-17">
+							{uiCopy.run.observedSteps}
+						</div>
 						{progress.hidden_step_count > 0 ? (
-							<div style={{ color: '#94a3b8', fontSize: '12px' }}>
+							<div className="runa-migrated-components-chat-runprogresspanel-18">
 								{uiCopy.run.showingLatestSteps.replace(
 									'{count}',
 									progress.step_items.length.toString(),
@@ -221,7 +183,7 @@ export function RunProgressPanel({
 			) : null}
 
 			{progress.approval_block ? (
-				<div style={{ color: '#fcd34d', fontSize: '13px', lineHeight: 1.6 }}>
+				<div className="runa-migrated-components-chat-runprogresspanel-19">
 					{uiCopy.run.approvalBoundary}: {progress.approval_block.payload.title}
 				</div>
 			) : null}

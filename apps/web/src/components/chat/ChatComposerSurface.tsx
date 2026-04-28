@@ -1,10 +1,7 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
-import type { CSSProperties, FormEvent, ReactElement } from 'react';
+import type { FormEvent, ReactElement } from 'react';
 import { useId } from 'react';
 import { Link } from 'react-router-dom';
-
-import { secondaryLabelStyle } from '../../lib/chat-styles.js';
-import { designTokens } from '../../lib/design-tokens.js';
 import { uiCopy } from '../../localization/copy.js';
 import type { ModelAttachment } from '../../ws-types.js';
 import { RunaButton, RunaCard, RunaTextarea } from '../ui/index.js';
@@ -51,47 +48,6 @@ type ChatComposerSurfaceProps = Readonly<{
 	submitButtonLabel: string;
 	voiceStatusMessage: string | null;
 }>;
-
-const composerCardStyle: CSSProperties = {
-	background: designTokens.color.background.panelStrong,
-	border: `1px solid ${designTokens.color.border.soft}`,
-	borderRadius: designTokens.radius.card,
-	boxShadow: '0 24px 60px rgba(2, 6, 23, 0.38)',
-	display: 'grid',
-	gap: designTokens.spacing.lg,
-	padding: designTokens.spacing.panel,
-};
-
-const inlineRowStyle: CSSProperties = {
-	alignItems: 'center',
-	display: 'flex',
-	flexWrap: 'wrap',
-	gap: designTokens.spacing.md,
-	justifyContent: 'space-between',
-};
-
-const secondaryButtonLinkStyle: CSSProperties = {
-	alignItems: 'center',
-	background: 'rgba(9, 14, 25, 0.82)',
-	border: '1px solid rgba(148, 163, 184, 0.26)',
-	borderRadius: designTokens.radius.button,
-	color: '#e5e7eb',
-	display: 'inline-flex',
-	fontWeight: 600,
-	justifyContent: 'center',
-	padding: '10px 14px',
-	textDecoration: 'none',
-	transition: 'transform 180ms ease, border-color 180ms ease, background 180ms ease',
-};
-
-const attachmentPreviewStyle: CSSProperties = {
-	border: `1px solid ${designTokens.color.border.soft}`,
-	borderRadius: '16px',
-	background: 'rgba(9, 14, 25, 0.68)',
-	display: 'grid',
-	gap: designTokens.spacing.xs,
-	padding: '12px 14px',
-};
 
 function shouldDisableSubmit(input: {
 	readonly connectionStatus: string;
@@ -153,13 +109,15 @@ export function ChatComposerSurface({
 
 	return (
 		<section
-			className="runa-card runa-card--strong runa-chat-surface"
-			style={composerCardStyle}
+			className="runa-card runa-card--strong runa-chat-surface runa-migrated-components-chat-chatcomposersurface-1"
 			aria-labelledby="chat-composer-heading"
 		>
-			<div style={{ display: 'grid', gap: designTokens.spacing.xs }}>
-				<div style={secondaryLabelStyle}>Sohbet</div>
-				<h2 id="chat-composer-heading" style={{ margin: 0, fontSize: '20px' }}>
+			<div className="runa-migrated-components-chat-chatcomposersurface-2">
+				<div className="runa-migrated-components-chat-chatcomposersurface-3">Sohbet</div>
+				<h2
+					id="chat-composer-heading"
+					className="runa-migrated-components-chat-chatcomposersurface-4"
+				>
 					Neyi ilerletmek istiyorsun?
 				</h2>
 				<div className="runa-subtle-copy">
@@ -169,16 +127,8 @@ export function ChatComposerSurface({
 			</div>
 
 			{showDeveloperControls && !apiKey.trim() && isRuntimeConfigReady ? (
-				<div
-					style={{
-						alignItems: 'center',
-						display: 'flex',
-						fontSize: '13px',
-						gap: designTokens.spacing.sm,
-					}}
-					className="runa-alert runa-alert--warning"
-				>
-					<span style={{ color: '#f59e0b' }}>Baglanti</span>
+				<div className="runa-alert runa-alert--warning runa-migrated-components-chat-chatcomposersurface-5">
+					<span className="runa-migrated-components-chat-chatcomposersurface-6">Baglanti</span>
 					Gelistirici ayarlarindaki varsayilan baglanti kullanilacak.
 				</div>
 			) : null}
@@ -186,32 +136,25 @@ export function ChatComposerSurface({
 			{!isRuntimeConfigReady ? (
 				<output
 					aria-live="polite"
-					style={{
-						display: 'grid',
-						gap: designTokens.spacing.sm,
-						transition: designTokens.motion.transition.surface,
-					}}
-					className="runa-alert runa-alert--warning"
+					className="runa-alert runa-alert--warning runa-migrated-components-chat-chatcomposersurface-7"
 				>
-					<div style={{ color: designTokens.color.foreground.warning, fontWeight: 700 }}>
+					<div className="runa-migrated-components-chat-chatcomposersurface-8">
 						Runa su anda mesaj gondermeye hazir degil.
 					</div>
 					<div className="runa-subtle-copy">
 						Baglanti hazir oldugunda mesajini buradan gonderebilirsin.
 					</div>
 					{showDeveloperControls ? (
-						<div style={{ display: 'flex', gap: designTokens.spacing.sm, flexWrap: 'wrap' }}>
+						<div className="runa-migrated-components-chat-chatcomposersurface-9">
 							<RunaButton
-								className="runa-button runa-button--primary"
+								className="runa-button runa-button--primary runa-migrated-components-chat-chatcomposersurface-10"
 								onClick={onOpenDeveloperMode}
-								style={{ boxShadow: 'none', padding: '10px 14px' }}
 								variant="primary"
 							>
 								Developer Mode'u etkinlestir
 							</RunaButton>
 							<Link
-								className="runa-button runa-button--secondary"
-								style={secondaryButtonLinkStyle}
+								className="runa-button runa-button--secondary runa-migrated-components-chat-chatcomposersurface-11"
 								to="/developer"
 							>
 								{uiCopy.chat.openDeveloper}
@@ -221,9 +164,14 @@ export function ChatComposerSurface({
 				</output>
 			) : null}
 
-			<form onSubmit={onSubmit} style={{ display: 'grid', gap: designTokens.spacing.md }}>
-				<label htmlFor={promptTextareaId} style={{ display: 'grid', gap: designTokens.spacing.xs }}>
-					<span style={{ color: '#e5e7eb', fontWeight: 600 }}>{uiCopy.chat.send}</span>
+			<form onSubmit={onSubmit} className="runa-migrated-components-chat-chatcomposersurface-12">
+				<label
+					htmlFor={promptTextareaId}
+					className="runa-migrated-components-chat-chatcomposersurface-13"
+				>
+					<span className="runa-migrated-components-chat-chatcomposersurface-14">
+						{uiCopy.chat.send}
+					</span>
 					<RunaTextarea
 						className="runa-input runa-input--textarea"
 						id={promptTextareaId}
@@ -256,9 +204,9 @@ export function ChatComposerSurface({
 					voiceStatusMessage={voiceStatusMessage}
 				/>
 
-				<div style={{ display: 'grid', gap: designTokens.spacing.sm }}>
-					<div style={inlineRowStyle}>
-						<div style={secondaryLabelStyle}>Dosyalar</div>
+				<div className="runa-migrated-components-chat-chatcomposersurface-15">
+					<div className="runa-migrated-components-chat-chatcomposersurface-16">
+						<div className="runa-migrated-components-chat-chatcomposersurface-17">Dosyalar</div>
 						<FileUploadButton
 							accessToken={accessToken}
 							disabled={!isRuntimeConfigReady || isSubmitting}
@@ -274,12 +222,16 @@ export function ChatComposerSurface({
 						sohbetin baglaminda kullanir.
 					</div>
 					{attachments.length > 0 ? (
-						<div style={{ display: 'grid', gap: designTokens.spacing.sm }}>
+						<div className="runa-migrated-components-chat-chatcomposersurface-18">
 							{attachments.map((attachment) => (
-								<RunaCard key={attachment.blob_id} style={attachmentPreviewStyle} tone="subtle">
-									<div style={inlineRowStyle}>
-										<div style={{ display: 'grid', gap: designTokens.spacing.xxs }}>
-											<strong style={{ color: designTokens.color.foreground.strong }}>
+								<RunaCard
+									key={attachment.blob_id}
+									className="runa-migrated-components-chat-chatcomposersurface-19"
+									tone="subtle"
+								>
+									<div className="runa-migrated-components-chat-chatcomposersurface-20">
+										<div className="runa-migrated-components-chat-chatcomposersurface-21">
+											<strong className="runa-migrated-components-chat-chatcomposersurface-22">
 												{attachment.filename ?? attachment.blob_id}
 											</strong>
 											<div className="runa-subtle-copy">
@@ -287,7 +239,7 @@ export function ChatComposerSurface({
 											</div>
 										</div>
 										<RunaButton
-											className="runa-button runa-button--secondary"
+											className="runa-button runa-button--secondary runa-migrated-components-chat-chatcomposersurface-23"
 											onClick={() =>
 												onAttachmentsChange(
 													attachments.filter(
@@ -295,7 +247,6 @@ export function ChatComposerSurface({
 													),
 												)
 											}
-											style={{ padding: '8px 12px' }}
 											variant="secondary"
 										>
 											Kaldir
@@ -305,32 +256,14 @@ export function ChatComposerSurface({
 										<img
 											alt={attachment.filename ?? 'Uploaded attachment preview'}
 											src={attachment.data_url}
-											style={{
-												border: `1px solid ${designTokens.color.border.soft}`,
-												borderRadius: designTokens.radius.image,
-												maxWidth: 'min(220px, 100%)',
-											}}
+											className="runa-migrated-components-chat-chatcomposersurface-24"
 										/>
 									) : attachment.kind === 'text' ? (
-										<div
-											style={{
-												color: '#cbd5e1',
-												fontSize: '13px',
-												lineHeight: 1.5,
-												whiteSpace: 'pre-wrap',
-											}}
-										>
+										<div className="runa-migrated-components-chat-chatcomposersurface-25">
 											{attachment.text_content}
 										</div>
 									) : (
-										<div
-											style={{
-												color: '#cbd5e1',
-												fontSize: '13px',
-												lineHeight: 1.5,
-												whiteSpace: 'pre-wrap',
-											}}
-										>
+										<div className="runa-migrated-components-chat-chatcomposersurface-26">
 											{attachment.text_preview ?? 'Dokuman eklendi'}
 										</div>
 									)}
@@ -348,20 +281,18 @@ export function ChatComposerSurface({
 				{lastError ? (
 					<div
 						role="alert"
-						style={{ lineHeight: 1.5, transition: designTokens.motion.transition.surface }}
-						className="runa-alert runa-alert--danger"
+						className="runa-alert runa-alert--danger runa-migrated-components-chat-chatcomposersurface-27"
 					>
 						<strong>Runa bu istegi baslatamadi. </strong>
 						{lastError}
 					</div>
 				) : null}
 
-				<div style={inlineRowStyle}>
-					<div style={{ color: '#94a3b8', fontSize: '13px' }}>{statusLabel}</div>
+				<div className="runa-migrated-components-chat-chatcomposersurface-28">
+					<div className="runa-migrated-components-chat-chatcomposersurface-29">{statusLabel}</div>
 					<RunaButton
-						className="runa-button runa-button--primary"
+						className="runa-button runa-button--primary runa-migrated-components-chat-chatcomposersurface-30"
 						disabled={isSubmitDisabled}
-						style={{ width: 'min(220px, 100%)' }}
 						type="submit"
 						variant="primary"
 					>

@@ -69,6 +69,37 @@ describe('map-tool-result', () => {
 		});
 	});
 
+	it('uses product language for agent delegation role validation errors', () => {
+		const result: ToolResult<'agent.delegate'> = {
+			call_id: 'call_delegate_role',
+			details: {
+				allowed_values: ['researcher', 'reviewer', 'coder'],
+				argument: 'sub_agent_role',
+				reason: 'invalid_role',
+			},
+			error_code: 'INVALID_INPUT',
+			error_message: 'Runa could not safely choose a sub-agent role for this delegated step.',
+			status: 'error',
+			tool_name: 'agent.delegate',
+		};
+
+		const block = mapToolResultToBlock({
+			call_id: 'call_delegate_role',
+			created_at: createdAt,
+			result,
+			tool_name: 'agent.delegate',
+		});
+
+		expect(block.payload).toMatchObject({
+			call_id: 'call_delegate_role',
+			error_code: 'INVALID_INPUT',
+			status: 'error',
+			summary:
+				'Runa could not safely start that delegated step, so it stopped before taking action.',
+			tool_name: 'agent.delegate',
+		});
+	});
+
 	it('maps an ingested tool result using the same shared block surface', () => {
 		const result: IngestedToolResult = {
 			call_id: 'call_ingested_tool',

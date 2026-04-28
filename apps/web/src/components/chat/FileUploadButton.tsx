@@ -1,23 +1,8 @@
 import type { UploadAttachmentResponse } from '@runa/types';
-import type { CSSProperties, ChangeEvent, ReactElement } from 'react';
+import type { ChangeEvent, ReactElement } from 'react';
 import { useId, useRef, useState } from 'react';
 
 import type { ModelAttachment } from '../../ws-types.js';
-
-const buttonStyle: CSSProperties = {
-	display: 'inline-flex',
-	alignItems: 'center',
-	justifyContent: 'center',
-	gap: '8px',
-	padding: '10px 14px',
-	borderRadius: '14px',
-	border: '1px solid rgba(148, 163, 184, 0.22)',
-	background: 'rgba(10, 15, 27, 0.86)',
-	color: '#e5e7eb',
-	fontWeight: 600,
-	cursor: 'pointer',
-	transition: 'transform 180ms ease, border-color 180ms ease, background 180ms ease',
-};
 
 export const UPLOAD_ACCEPT =
 	'image/*,text/*,application/json,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
@@ -250,17 +235,10 @@ export function FileUploadButton({
 				onChange={(event) => {
 					void handleFileSelection(event);
 				}}
-				style={{ display: 'none' }}
+				className="runa-migrated-components-chat-fileuploadbutton-1"
 				type="file"
 			/>
-			<label
-				htmlFor={inputId}
-				style={{
-					...buttonStyle,
-					cursor: disabled || isUploading ? 'not-allowed' : 'pointer',
-					opacity: disabled || isUploading ? 0.6 : 1,
-				}}
-			>
+			<label htmlFor={inputId} className="runa-migrated-components-chat-fileuploadbutton-2">
 				{isUploading ? 'Yukleniyor...' : 'Dosya ekle'}
 			</label>
 		</>

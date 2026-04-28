@@ -1,0 +1,35 @@
+.skeleton {
+	animation: runa-shimmer 1.3s linear infinite;
+	background: linear-gradient(
+		90deg,
+		rgba(148, 163, 184, 0.1),
+		rgba(148, 163, 184, 0.22),
+		rgba(148, 163, 184, 0.1)
+	);
+	background-size: 200% 100%;
+	display: block;
+}
+
+.text {
+	border-radius: var(--radius-pill);
+	height: 1em;
+	width: 100%;
+}
+
+.circle {
+	aspect-ratio: 1;
+	border-radius: 50%;
+	width: 40px;
+}
+
+.rect {
+	border-radius: var(--radius-soft);
+	min-height: 80px;
+	width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.skeleton {
+		animation: none;
+	}
+}

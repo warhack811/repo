@@ -31,8 +31,8 @@ describe('first-impression polish surfaces', () => {
 		const markup = renderLoginPage();
 
 		expect(markup).toContain('Runa ile devam et');
-		expect(markup).toContain('Calisma alanin hazirlaniyor');
-		expect(markup).toContain('Gelistirici girisi');
+		expect(markup).toContain('E-posta ve şifre ile giriş yap.');
+		expect(markup).toContain('Diğer giriş yöntemleri');
 		expect(markup).not.toContain('principal');
 		expect(markup).not.toContain('stored token seam');
 		expect(markup).not.toContain('Mevcut tarayici auth durumu');

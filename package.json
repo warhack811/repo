@@ -12,7 +12,9 @@
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
 		"test:e2e": "pnpm build && playwright test",
-		"manifesto:check": "node scripts/ci/manifesto-check.mjs"
+		"manifesto:check": "node scripts/ci/manifesto-check.mjs",
+		"primitive:coverage": "node scripts/ci/primitive-coverage.mjs",
+		"style:check": "node scripts/ci/style-check.mjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.0",

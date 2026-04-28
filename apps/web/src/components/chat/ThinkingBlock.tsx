@@ -1,4 +1,7 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
+
+import { RunaDisclosure } from '../ui/index.js';
+import styles from './ThinkingBlock.module.css';
 
 export type ThinkingStepStatus = 'active' | 'completed' | 'failed' | 'paused' | 'pending';
 
@@ -17,46 +20,34 @@ type ThinkingBlockProps = Readonly<{
 	steps: readonly ThinkingStep[];
 }>;
 
-const panelStyle: CSSProperties = {
-	background: 'rgba(15, 23, 42, 0.56)',
-	border: '1px solid rgba(96, 165, 250, 0.2)',
-	borderRadius: '16px',
-	display: 'grid',
-	gap: '12px',
-	padding: '14px',
-};
+function ThinkingDots(): ReactElement {
+	return (
+		<span aria-hidden="true" className={styles['dots']}>
+			<span />
+			<span />
+			<span />
+		</span>
+	);
+}
 
-const stepStyle: CSSProperties = {
-	border: '1px solid rgba(148, 163, 184, 0.16)',
-	borderRadius: '12px',
-	display: 'grid',
-	gap: '6px',
-	padding: '10px',
-};
-
-const chipStyle: CSSProperties = {
-	background: 'rgba(15, 23, 42, 0.8)',
-	border: '1px solid rgba(148, 163, 184, 0.18)',
-	borderRadius: '999px',
-	color: '#cbd5e1',
-	fontSize: '11px',
-	padding: '3px 8px',
-	width: 'fit-content',
-};
-
-function getStatusColor(status: ThinkingStepStatus): string {
-	switch (status) {
-		case 'active':
-			return '#93c5fd';
-		case 'completed':
-			return '#86efac';
-		case 'failed':
-			return '#fca5a5';
-		case 'paused':
-			return '#fde68a';
-		case 'pending':
-			return '#cbd5e1';
-	}
+function renderStep(step: ThinkingStep): ReactElement {
+	return (
+		<div className={styles['step']} key={step.id}>
+			<div className={styles['stepTop']}>
+				<div className={styles['stepTitle']}>{step.label}</div>
+				<code className={styles['chip']}>{step.status}</code>
+			</div>
+			{step.detail ? <div className={styles['detail']}>{step.detail}</div> : null}
+			{step.tool_name || step.duration_ms !== undefined ? (
+				<div className={styles['meta']}>
+					{step.tool_name ? <code className={styles['chip']}>{step.tool_name}</code> : null}
+					{step.duration_ms !== undefined ? (
+						<code className={styles['chip']}>{step.duration_ms}ms</code>
+					) : null}
+				</div>
+			) : null}
+		</div>
+	);
 }
 
 export function ThinkingBlock({
@@ -68,50 +59,24 @@ export function ThinkingBlock({
 		return null;
 	}
 
+	const title = isActive ? (
+		<span className={styles['title']}>
+			<ThinkingDots />
+			Runa calisiyor - Dusunuyor...
+		</span>
+	) : (
+		<span className={styles['title']}>Dusunme sureci</span>
+	);
+
 	return (
-		<section aria-label="Runa work summary" style={panelStyle}>
-			<div
-				style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', flexWrap: 'wrap' }}
-			>
-				<strong style={{ color: '#f8fafc' }}>
-					{isActive ? 'Runa calisiyor' : 'Calisma ozeti'}
-				</strong>
-				{duration !== undefined ? <code style={chipStyle}>{duration}ms</code> : null}
+		<section aria-label="Runa work summary" className={styles['thinking']}>
+			<div className={styles['header']}>
+				{title}
+				{duration !== undefined ? <code className={styles['duration']}>{duration}ms</code> : null}
 			</div>
-			<div style={{ display: 'grid', gap: '8px' }}>
-				{steps.map((step) => (
-					<div
-						key={step.id}
-						style={{ ...stepStyle, borderColor: `${getStatusColor(step.status)}55` }}
-					>
-						<div
-							style={{
-								alignItems: 'center',
-								display: 'flex',
-								flexWrap: 'wrap',
-								gap: '8px',
-								justifyContent: 'space-between',
-							}}
-						>
-							<div style={{ color: '#f8fafc', fontWeight: 600 }}>{step.label}</div>
-							<code style={{ ...chipStyle, color: getStatusColor(step.status) }}>
-								{step.status}
-							</code>
-						</div>
-						{step.detail ? (
-							<div style={{ color: '#cbd5e1', lineHeight: 1.5 }}>{step.detail}</div>
-						) : null}
-						{step.tool_name || step.duration_ms !== undefined ? (
-							<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-								{step.tool_name ? <code style={chipStyle}>{step.tool_name}</code> : null}
-								{step.duration_ms !== undefined ? (
-									<code style={chipStyle}>{step.duration_ms}ms</code>
-								) : null}
-							</div>
-						) : null}
-					</div>
-				))}
-			</div>
+			<RunaDisclosure defaultOpen={isActive} title={isActive ? 'Canli adimlar' : 'Detayi goster'}>
+				<div className={styles['steps']}>{steps.map((step) => renderStep(step))}</div>
+			</RunaDisclosure>
 		</section>
 	);
 }
