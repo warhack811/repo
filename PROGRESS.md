@@ -563,6 +563,14 @@
 - Durust kalan durum: bu backfill, repo ledger'ini mevcut kod gercegiyle hizaladi. Hala acik olan alanlar actual desktop window host implementation'i, signed-in device presence'in web tarafinda urunlesmesi, release-grade liveness/reconnect cleanup, native app packaging/installer ve browser.interact gibi sonraki capability'lerdir.
 - Sonraki onerilen gorev: future desktop wrapper icin bu host-agnostic launch document/action contract'ini gercek ince window host implementation'ina baglamak; packaging/installer veya OAuth flow'u hala ayri turda ele alinmali.
 
+### Track C / UI Foundation Phase 10 - Manual Smoke + Screenshot Review - 24 Nisan 2026
+
+- Smoke review yapildi ve `docs/ui-smoke/ui-foundation-phase-10-smoke-2026-04-24.md` altinda raporlandi. Bu tur report-only tutuldu; runtime, UI logic, server, desktop-agent, package/lockfile veya shared package source dosyalari degistirilmedi.
+- Calisan komutlar: `pnpm.cmd install --frozen-lockfile`, `pnpm.cmd --filter @runa/types build`, `pnpm.cmd --filter @runa/web typecheck`, `pnpm.cmd --filter @runa/web build`, smoke ortami icin `pnpm.cmd --filter @runa/db build`, `pnpm.cmd --filter @runa/web dev` ve `pnpm.cmd --filter @runa/server dev`.
+- Browser/viewport kontrolu Playwright inline automation ile yapildi; `agent-browser` CLI bu makinede yoktu. Local dev auth ile authenticated shell acildi; `/chat`, `/developer`, `/dashboard -> /chat`, `/settings -> /account`, `/account` ve `1440x900`, `1024x768`, `390x844` chat viewport'lari kontrol edildi.
+- Blocker: browser console route smoke sirasinda authenticated yuzeylerde `Maximum update depth exceeded` uyarisi verdi. High priority bulgular: `/conversations` ve `/desktop/devices` 404 gorunurlugu ile chat yuzeyinde user-visible half-ASCII Turkce copy.
+- Sonraki onerilen gorev: once React maximum update depth uyarisi ve authenticated first-run 404 yuzeyleri icin dar patch; ardindan yalniz copy/encoding polish patch'i.
+
 ### Docs Governance / Track C - Desktop Companion + Device Presence Dokuman Hizalamasi - 23 Nisan 2026
 
 - `AGENTS.md`, `README.md`, `implementation-blueprint.md`, `docs/technical-architecture.md` ve `docs/post-mvp-strategy.md` desktop tarafi icin ayni authoritative dilde hizalandi. Eski "desktop-agent repoda yok / hala planli" anlatimi temizlenirken bugunku repo gercegi olarak secure bridge/runtime foundation ve `desktop.screenshot` vertical slice'i korunmus sekilde yazildi.
