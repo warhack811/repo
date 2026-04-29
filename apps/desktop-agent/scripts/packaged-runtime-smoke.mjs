@@ -9,7 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const packageRoot = path.resolve(__dirname, '..');
 
-const serverBaseUrl = process.env.RUNA_SMOKE_SERVER_URL ?? 'http://127.0.0.1:3000';
+const READY_TOKEN = 'DESKTOP_PACKAGED_SMOKE_SERVER_READY';
+const externalServerBaseUrl = process.env.RUNA_SMOKE_SERVER_URL?.trim();
 const webBaseUrl = process.env.RUNA_SMOKE_WEB_URL ?? 'http://127.0.0.1:5173';
 const packagedExePath =
 	process.env.RUNA_DESKTOP_PACKAGED_EXE ??
@@ -37,6 +38,90 @@ async function withTimeout(promise, label) {
 	} finally {
 		clearTimeout(timeout);
 	}
+}
+
+function createSpawnInvocation(command, args) {
+	if (process.platform !== 'win32' || !command.endsWith('.cmd')) {
+		return {
+			args,
+			command,
+		};
+	}
+
+	const shellCommand = process.env.ComSpec ?? 'cmd.exe';
+
+	return {
+		args: ['/d', '/s', '/c', command, ...args],
+		command: shellCommand,
+	};
+}
+
+function createReadyPromise(child) {
+	return new Promise((resolve, reject) => {
+		let stdoutBuffer = '';
+		let stderrBuffer = '';
+		let resolved = false;
+
+		child.stdout.on('data', (chunk) => {
+			const text = chunk.toString();
+			stdoutBuffer += text;
+			const lines = stdoutBuffer.split(/\r?\n/u);
+			stdoutBuffer = lines.pop() ?? '';
+
+			for (const line of lines) {
+				if (!line.startsWith(`${READY_TOKEN} `)) {
+					continue;
+				}
+
+				try {
+					resolved = true;
+					resolve(JSON.parse(line.slice(READY_TOKEN.length + 1)));
+				} catch (error) {
+					reject(
+						new Error(
+							`Failed to parse packaged smoke server ready payload: ${
+								error instanceof Error ? error.message : String(error)
+							}`,
+						),
+					);
+				}
+			}
+		});
+
+		child.stderr.on('data', (chunk) => {
+			stderrBuffer += chunk.toString();
+		});
+
+		child.once('exit', (code, signal) => {
+			if (resolved) {
+				return;
+			}
+
+			reject(
+				new Error(
+					`Packaged smoke server exited before ready signal (code=${code ?? 'null'}, signal=${
+						signal ?? 'null'
+					}). stderr tail: ${stderrBuffer.slice(-1200)}`,
+				),
+			);
+		});
+	});
+}
+
+function spawnSmokeServer() {
+	const command = process.platform === 'win32' ? 'node.exe' : 'node';
+	const invocation = createSpawnInvocation(command, ['scripts/packaged-runtime-smoke-server.mjs']);
+	const child = spawn(invocation.command, invocation.args, {
+		cwd: packageRoot,
+		env: process.env,
+		stdio: ['ignore', 'pipe', 'pipe'],
+		windowsHide: true,
+	});
+
+	return {
+		child,
+		ready: createReadyPromise(child),
+	};
 }
 
 async function fetchDevAccessToken() {
@@ -84,6 +169,7 @@ async function listDevices(accessToken) {
 async function waitForDevice(accessToken) {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
+		assertPackagedProcessAlive();
 		const devices = await listDevices(accessToken);
 		const match = devices.find((device) => device?.agent_id === smokeAgentId);
 		if (match) {
@@ -288,10 +374,31 @@ async function killProcessTree(child) {
 	child.kill('SIGTERM');
 }
 
+let packagedProcessExit = null;
+let serverBaseUrl = externalServerBaseUrl ?? '';
+
+function assertPackagedProcessAlive() {
+	if (packagedProcessExit !== null) {
+		throw new Error(
+			`Packaged desktop app exited before presence proof completed (code=${
+				packagedProcessExit.code ?? 'null'
+			}, signal=${packagedProcessExit.signal ?? 'null'}).`,
+		);
+	}
+}
+
 async function main() {
+	let smokeServer = null;
+
+	if (!externalServerBaseUrl) {
+		smokeServer = spawnSmokeServer();
+		const readyPayload = await withTimeout(smokeServer.ready, 'packaged smoke server startup');
+		serverBaseUrl = readyPayload.server_base_url;
+	}
+
 	const accessToken = await fetchDevAccessToken();
 	const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'runa-desktop-packaged-smoke-'));
-	const logPath = path.join(userDataDir, 'packaged-runtime-smoke.log');
+	const logPath = path.join(os.tmpdir(), `runa-desktop-packaged-smoke-${smokeId}.log`);
 
 	const child = spawn(packagedExePath, ['--no-sandbox'], {
 		env: {
@@ -305,6 +412,13 @@ async function main() {
 		},
 		stdio: ['ignore', 'pipe', 'pipe'],
 		windowsHide: false,
+	});
+
+	child.once('exit', (code, signal) => {
+		packagedProcessExit = {
+			code,
+			signal,
+		};
 	});
 
 	let stdout = '';
@@ -326,6 +440,9 @@ async function main() {
 	} finally {
 		await killProcessTree(child);
 		removedAfterShutdown = await waitForDeviceRemoval(accessToken);
+		if (smokeServer) {
+			await killProcessTree(smokeServer.child);
+		}
 		await writeFile(logPath, `STDOUT\n${stdout}\n\nSTDERR\n${stderr}\n`);
 	}
 

@@ -12,6 +12,7 @@
 		"test:approval-persistence-live-smoke": "pnpm --filter @runa/db build && pnpm exec tsc && node scripts/approval-persistence-live-smoke.mjs",
 		"test:anthropic-live-smoke": "pnpm exec tsc && node scripts/anthropic-live-smoke.mjs",
 		"test:core-coverage": "node scripts/capture-core-coverage.mjs",
+		"test:persistence-release-proof": "pnpm --filter @runa/db build && pnpm exec tsc && node scripts/persistence-release-proof.mjs",
 		"test:formal-repeatability": "node scripts/formal-demo-repeatability.mjs",
 		"test:groq-demo-rehearsal": "node scripts/groq-demo-rehearsal.mjs",
 		"test:groq-live-smoke": "pnpm exec tsc && node scripts/groq-live-smoke.mjs",

@@ -25,14 +25,10 @@ importers:
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(lightningcss@1.32.0)
 
   apps/desktop-agent:
-    dependencies:
+    devDependencies:
       '@runa/types':
         specifier: workspace:*
         version: link:../../packages/types
-      electron-updater:
-        specifier: ^6.6.2
-        version: 6.8.3
-    devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -48,6 +44,9 @@ importers:
       electron-builder:
         specifier: ^26.0.12
         version: 26.0.12(electron-builder-squirrel-windows@26.0.12)
+      electron-updater:
+        specifier: ^6.6.2
+        version: 6.8.3
       esbuild:
         specifier: ^0.24.0
         version: 0.24.2

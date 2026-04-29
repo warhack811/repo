@@ -14,9 +14,10 @@ files:
 extraMetadata:
   main: electron/main.cjs
 
-asar: false
+asar: true
 
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:
@@ -29,6 +30,8 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
 
 # Electron-builder config
 electronDownload:
