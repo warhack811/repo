@@ -7,6 +7,8 @@ const runtimeConfigStorageKey = 'runa.developer.runtime_config';
 const activeConversationStorageKey = 'runa.chat.active_conversation_id';
 const onboardingCompletedStorageKey = 'runa.onboarding.completed';
 const proofFilePath = join(os.tmpdir(), 'runa-e2e-proof', 'approval-proof.txt');
+const e2eProvider = 'deepseek';
+const e2eModel = 'deepseek-v4-flash';
 
 async function bootstrapLocalDevChat(page: Page): Promise<void> {
 	const baseUrl = test.info().project.use.baseURL;
@@ -22,10 +24,10 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 			window.localStorage.setItem(
 				storageKey,
 				JSON.stringify({
-					apiKey: 'e2e-openai-key',
+					apiKey: '',
 					includePresentationBlocks: true,
-					model: 'gpt-4o-mini',
-					provider: 'openai',
+					model: 'deepseek-v4-flash',
+					provider: 'deepseek',
 				}),
 			);
 		},
@@ -38,6 +40,17 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 	await page.waitForURL('**/chat');
 	await expect(page.getByText('Bugun ne yapmak istersin?')).toBeVisible();
 	await expect(page.locator('textarea')).toBeVisible();
+	await expect
+		.poll(async () =>
+			page.evaluate((storageKey) => {
+				const rawValue = window.localStorage.getItem(storageKey);
+				return rawValue ? JSON.parse(rawValue) : null;
+			}, runtimeConfigStorageKey),
+		)
+		.toMatchObject({
+			model: e2eModel,
+			provider: e2eProvider,
+		});
 	await expect(page.getByRole('button', { name: /send|gonder|g.nder/i })).toBeEnabled({
 		timeout: 20_000,
 	});

@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
-import { RunaBadge, RunaCard } from '../../ui/index.js';
+import { RunaBadge } from '../../ui/RunaBadge.js';
+import { RunaCard } from '../../ui/RunaCard.js';
 import type { AssetPreviewKind } from './types.js';
 
 export type AssetPreviewCardProps = Readonly<

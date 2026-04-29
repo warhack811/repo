@@ -2,7 +2,7 @@ import { ChevronDown } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import type { RenderBlock } from '../../../ws-types.js';
-import { RunaDisclosure } from '../../ui/index.js';
+import { RunaDisclosure } from '../../ui/RunaDisclosure.js';
 import { cx } from '../../ui/ui-utils.js';
 import styles from './BlockRenderer.module.css';
 

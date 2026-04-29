@@ -34,6 +34,7 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
+import '../styles/routes/chat-migration.css';
 
 type ChatPageProps = Readonly<{
 	conversations: UseConversationsResult;

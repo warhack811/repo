@@ -13,6 +13,7 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
+import '../styles/routes/developer-migration.css';
 
 type DeveloperPageProps = Readonly<{
 	authContext: AuthContext;

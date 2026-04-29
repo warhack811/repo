@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ConversationSummary, UseConversationsResult } from '../hooks/useConversations.js';
+import '../styles/routes/history-migration.css';
 
 type HistoryPageProps = Readonly<{
 	conversations: UseConversationsResult;

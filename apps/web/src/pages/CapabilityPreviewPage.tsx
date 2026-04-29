@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 
 import {
@@ -20,110 +20,12 @@ import type {
 	CapabilityProgressStep,
 	CapabilityResultAction,
 } from '../components/chat/capability/index.js';
-import { RunaBadge, RunaButton, RunaCard } from '../components/ui/index.js';
+import { RunaBadge } from '../components/ui/RunaBadge.js';
+import { RunaButton } from '../components/ui/RunaButton.js';
+import { RunaCard } from '../components/ui/RunaCard.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
-import { designTokens } from '../lib/design-tokens.js';
-
-const pageStackStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.xl,
-	minWidth: 0,
-};
-
-const panelStyle: CSSProperties = {
-	background: designTokens.color.background.panel,
-	border: `1px solid ${designTokens.color.border.soft}`,
-	borderRadius: designTokens.radius.card,
-	boxShadow: designTokens.shadow.panel,
-	padding: designTokens.spacing.xl,
-};
-
-const mutedTextStyle: CSSProperties = {
-	color: designTokens.color.foreground.muted,
-	lineHeight: 1.6,
-	margin: 0,
-};
-
-const secondaryLabelStyle: CSSProperties = {
-	color: designTokens.color.foreground.soft,
-	fontSize: '12px',
-	fontWeight: 700,
-	letterSpacing: '0.08em',
-	textTransform: 'uppercase',
-};
-
-const headerStyle: CSSProperties = {
-	...panelStyle,
-	background:
-		'radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 28%), linear-gradient(180deg, rgba(20, 26, 40, 0.92) 0%, rgba(15, 23, 42, 0.8) 100%)',
-};
-
-const sectionStyle: CSSProperties = {
-	...panelStyle,
-	display: 'grid',
-	gap: designTokens.spacing.lg,
-};
-
-const sectionHeaderStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.xs,
-	minWidth: 0,
-};
-
-const sectionTitleStyle: CSSProperties = {
-	color: designTokens.color.foreground.strong,
-	fontSize: '20px',
-	lineHeight: 1.35,
-	margin: 0,
-};
-
-const twoColumnGridStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.lg,
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
-	minWidth: 0,
-};
-
-const compactGridStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.md,
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
-	minWidth: 0,
-};
-
-const riskRowStyle: CSSProperties = {
-	alignItems: 'center',
-	display: 'flex',
-	flexWrap: 'wrap',
-	gap: designTokens.spacing.sm,
-};
-
-const metaGridStyle: CSSProperties = {
-	display: 'grid',
-	gap: designTokens.spacing.sm,
-	gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
-};
-
-const metaItemStyle: CSSProperties = {
-	background: 'rgba(7, 11, 20, 0.56)',
-	border: `1px solid ${designTokens.color.border.soft}`,
-	borderRadius: designTokens.radius.soft,
-	display: 'grid',
-	gap: designTokens.spacing.xs,
-	padding: designTokens.spacing.md,
-};
-
-const detailTextStyle: CSSProperties = {
-	color: designTokens.color.foreground.muted,
-	lineHeight: designTokens.typography.text.lineHeight,
-	margin: 0,
-};
-
-const selectedNoteStyle: CSSProperties = {
-	color: designTokens.color.foreground.info,
-	fontSize: designTokens.typography.small.fontSize,
-	lineHeight: designTokens.typography.small.lineHeight,
-};
+import '../styles/routes/capability-migration.css';
+import styles from './CapabilityPreviewPage.module.css';
 
 function createPreviewDataUri(label: string, primary: string, secondary: string): string {
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-label="${label}"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="${primary}"/><stop offset="1" stop-color="${secondary}"/></linearGradient></defs><rect width="960" height="600" fill="#020617"/><rect x="56" y="56" width="848" height="488" rx="34" fill="url(#g)" opacity="0.9"/><circle cx="760" cy="156" r="82" fill="rgba(255,255,255,0.22)"/><rect x="112" y="380" width="420" height="28" rx="14" fill="rgba(255,255,255,0.72)"/><rect x="112" y="432" width="300" height="22" rx="11" fill="rgba(255,255,255,0.46)"/><text x="112" y="180" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="56" font-weight="700">${label}</text></svg>`;
@@ -225,10 +127,10 @@ const baseAssets: readonly AssetPreviewItem[] = [
 
 function renderSectionHeader(eyebrow: string, title: string, description: string): ReactElement {
 	return (
-		<div style={sectionHeaderStyle}>
-			<div style={secondaryLabelStyle}>{eyebrow}</div>
-			<h2 style={sectionTitleStyle}>{title}</h2>
-			<p style={mutedTextStyle}>{description}</p>
+		<div className={styles['sectionHeader']}>
+			<div className={styles['eyebrow']}>{eyebrow}</div>
+			<h2 className={styles['sectionTitle']}>{title}</h2>
+			<p className={styles['mutedText']}>{description}</p>
 		</div>
 	);
 }
@@ -291,18 +193,18 @@ export function CapabilityPreviewPage(): ReactElement {
 
 	if (!isDeveloperMode) {
 		return (
-			<section style={sectionStyle} aria-labelledby="capability-preview-disabled-heading">
-				<div style={sectionHeaderStyle}>
-					<div style={secondaryLabelStyle}>Internal preview</div>
-					<h2 id="capability-preview-disabled-heading" style={sectionTitleStyle}>
+			<section className={styles['section']} aria-labelledby="capability-preview-disabled-heading">
+				<div className={styles['sectionHeader']}>
+					<div className={styles['eyebrow']}>Internal preview</div>
+					<h2 id="capability-preview-disabled-heading" className={styles['sectionTitle']}>
 						Developer Mode is required
 					</h2>
-					<p style={mutedTextStyle}>
+					<p className={styles['mutedText']}>
 						This route is reserved for internal visual QA. Enable Developer Mode to inspect
 						capability UI states.
 					</p>
 				</div>
-				<div style={{ width: 'fit-content' }}>
+				<div className={styles['fitContent']}>
 					<RunaButton onClick={() => setDeveloperMode(true)}>Enable Developer Mode</RunaButton>
 				</div>
 			</section>
@@ -310,32 +212,35 @@ export function CapabilityPreviewPage(): ReactElement {
 	}
 
 	return (
-		<div style={pageStackStyle}>
-			<section style={headerStyle} aria-labelledby="capability-preview-heading">
-				<div style={sectionHeaderStyle}>
-					<div style={secondaryLabelStyle}>Internal visual QA</div>
-					<h2 id="capability-preview-heading" style={{ ...sectionTitleStyle, fontSize: '24px' }}>
+		<div className={styles['pageStack']}>
+			<section
+				className={`${styles['section']} ${styles['header']}`}
+				aria-labelledby="capability-preview-heading"
+			>
+				<div className={styles['sectionHeader']}>
+					<div className={styles['eyebrow']}>Internal visual QA</div>
+					<h2 id="capability-preview-heading" className={styles['sectionTitleLarge']}>
 						Capability component harness
 					</h2>
-					<p style={mutedTextStyle}>
+					<p className={styles['mutedText']}>
 						Static scenarios for the capability UI foundation. Controls update local preview state
 						only and do not call runtime, approval, file, desktop, or upload paths.
 					</p>
 				</div>
-				<div style={riskRowStyle}>
+				<div className={styles['riskRow']}>
 					<RunaBadge tone="info">Developer route</RunaBadge>
 					<RunaBadge tone="neutral">Local state only</RunaBadge>
 					<RunaBadge tone="success">No runtime wiring</RunaBadge>
 				</div>
 			</section>
 
-			<section style={sectionStyle} aria-labelledby="capability-cards-heading">
+			<section className={styles['section']} aria-labelledby="capability-cards-heading">
 				{renderSectionHeader(
 					'Cards',
 					'Capability card states',
 					'Research, desktop, file, success, warning, and error examples share one visual rhythm.',
 				)}
-				<div style={compactGridStyle}>
+				<div className={styles['compactGrid']}>
 					<CapabilityCard
 						description="Summarizes source scope, confidence, and next inspection affordance."
 						eyebrow="Research"
@@ -366,7 +271,7 @@ export function CapabilityPreviewPage(): ReactElement {
 						title="Open target app"
 						tone="warning"
 					>
-						<div style={detailTextStyle}>Device: Windows preview companion</div>
+						<div className={styles['detailText']}>Device: Windows preview companion</div>
 					</CapabilityCard>
 					<CapabilityCard
 						description="Frames a file operation without exposing raw payloads."
@@ -374,7 +279,7 @@ export function CapabilityPreviewPage(): ReactElement {
 						status="queued"
 						title="Stage report patch"
 					>
-						<div style={detailTextStyle}>Files affected: 2 preview entries</div>
+						<div className={styles['detailText']}>Files affected: 2 preview entries</div>
 					</CapabilityCard>
 					<CapabilityCard
 						description="Developer-facing failure tone for a blocked capability."
@@ -386,13 +291,13 @@ export function CapabilityPreviewPage(): ReactElement {
 				</div>
 			</section>
 
-			<section style={sectionStyle} aria-labelledby="progress-preview-heading">
+			<section className={styles['section']} aria-labelledby="progress-preview-heading">
 				{renderSectionHeader(
 					'Progress',
 					'Progress list and active queue',
 					'The queue uses completed, running, waiting, and queued states without live transport.',
 				)}
-				<div style={twoColumnGridStyle}>
+				<div className={styles['twoColumnGrid']}>
 					<CapabilityCard
 						description="A compact ordered list for multi-step capability work."
 						eyebrow="Progress"
@@ -428,14 +333,14 @@ export function CapabilityPreviewPage(): ReactElement {
 				</div>
 			</section>
 
-			<section style={sectionStyle} aria-labelledby="asset-preview-heading">
+			<section className={styles['section']} aria-labelledby="asset-preview-heading">
 				{renderSectionHeader(
 					'Assets',
 					'Asset grid, preview card, modal, and compare',
 					'Inline placeholders keep the harness self-contained while exercising selection and modal flows.',
 				)}
-				<div style={twoColumnGridStyle}>
-					<div style={{ display: 'grid', gap: designTokens.spacing.md, minWidth: 0 }}>
+				<div className={styles['twoColumnGrid']}>
+					<div className={styles['assetStack']}>
 						<AssetGrid
 							items={assets}
 							onSelect={(asset) => {
@@ -443,7 +348,7 @@ export function CapabilityPreviewPage(): ReactElement {
 							}}
 						/>
 						{selectedAsset ? (
-							<div style={selectedNoteStyle}>Selected asset: {selectedAsset.title}</div>
+							<div className={styles['selectedNote']}>Selected asset: {selectedAsset.title}</div>
 						) : null}
 					</div>
 					{selectedAsset ? (
@@ -462,18 +367,18 @@ export function CapabilityPreviewPage(): ReactElement {
 				<BeforeAfterCompare before={sourceAsset} after={desktopAsset} />
 			</section>
 
-			<section style={sectionStyle} aria-labelledby="approval-preview-heading">
+			<section className={styles['section']} aria-labelledby="approval-preview-heading">
 				{renderSectionHeader(
 					'Approval',
 					'Risk badges and approval detail',
 					'Approval buttons are no-op UI controls that only update the preview status below.',
 				)}
-				<div style={riskRowStyle}>
+				<div className={styles['riskRow']}>
 					<ActionRiskBadge riskLevel="low" />
 					<ActionRiskBadge riskLevel="medium" />
 					<ActionRiskBadge riskLevel="high" />
 				</div>
-				<div style={twoColumnGridStyle}>
+				<div className={styles['twoColumnGrid']}>
 					<ApprovalDecisionCard
 						description="Preview of the chat-native decision card for guarded actions."
 						onApprove={() => setDecisionState('approved')}
@@ -481,27 +386,27 @@ export function CapabilityPreviewPage(): ReactElement {
 						riskLevel="medium"
 						title="Approve desktop inspection"
 					>
-						<div style={metaGridStyle}>
+						<div className={styles['metaGrid']}>
 							{actionDetails.slice(0, 3).map((detail) => (
-								<div key={detail.id} style={metaItemStyle}>
-									<div style={secondaryLabelStyle}>{detail.label}</div>
-									<div style={detailTextStyle}>{detail.value}</div>
+								<div key={detail.id} className={styles['metaItem']}>
+									<div className={styles['eyebrow']}>{detail.label}</div>
+									<div className={styles['detailText']}>{detail.value}</div>
 								</div>
 							))}
 						</div>
-						<div style={{ width: 'fit-content' }}>
+						<div className={styles['fitContent']}>
 							<RunaButton onClick={() => setIsActionDetailOpen(true)} variant="secondary">
 								Open action detail
 							</RunaButton>
 						</div>
 					</ApprovalDecisionCard>
 					<RunaCard tone="subtle">
-						<div style={sectionHeaderStyle}>
-							<div style={secondaryLabelStyle}>Decision state</div>
-							<h3 style={{ ...sectionTitleStyle, fontSize: '18px' }}>
+						<div className={styles['sectionHeader']}>
+							<div className={styles['eyebrow']}>Decision state</div>
+							<h3 className={styles['sectionTitleSmall']}>
 								{decisionState === 'idle' ? 'No local decision yet' : `Locally ${decisionState}`}
 							</h3>
-							<p style={detailTextStyle}>
+							<p className={styles['detailText']}>
 								This text proves the controls are wired only to this harness state.
 							</p>
 						</div>

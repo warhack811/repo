@@ -3,7 +3,8 @@ import type { ReactElement } from 'react';
 
 import { uiCopy } from '../../../localization/copy.js';
 import type { ApprovalResolveDecision, RenderBlock } from '../../../ws-types.js';
-import { RunaButton, RunaDisclosure } from '../../ui/index.js';
+import { RunaButton } from '../../ui/RunaButton.js';
+import { RunaDisclosure } from '../../ui/RunaDisclosure.js';
 import { cx } from '../../ui/ui-utils.js';
 import styles from './BlockRenderer.module.css';
 

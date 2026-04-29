@@ -1,0 +1,363 @@
+/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+
+.runa-migrated-components-auth-authmodetabs-1 {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.runa-migrated-components-auth-authmodetabs-2 {
+	display: grid;
+	gap: 2px;
+	justify-items: start;
+	padding: 12px 14px;
+	border-radius: 14px;
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	background: linear-gradient(180deg, rgba(15, 23, 42, 0.72) 0%, rgba(9, 14, 25, 0.7) 100%);
+	color: #cbd5e1;
+	font-weight: 700;
+	cursor: pointer;
+	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms
+		ease;
+}
+
+.runa-migrated-components-auth-authmodetabs-3 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+	padding: 4px 8px;
+	margin-bottom: 6px;
+	width: fit-content;
+}
+
+.runa-migrated-components-auth-oauthbuttons-1 {
+	padding: var(--space-subcard);
+	border-radius: var(--radius-soft);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	background: var(--gradient-subcard);
+	min-width: 0;
+}
+
+.runa-migrated-components-auth-oauthbuttons-2 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+	gap: 10px;
+}
+
+.runa-migrated-components-auth-oauthbuttons-3 {
+	padding: 10px 14px;
+	border-radius: var(--radius-pill);
+	border: 1px solid hsl(var(--color-border-soft) / 0.8);
+	background: var(--gradient-secondary-button);
+	color: hsl(var(--color-text));
+	cursor: pointer;
+	box-shadow: var(--shadow-inset);
+	width: 100%;
+	min-height: 52px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-oauthbuttons-4 {
+	margin: 0px;
+	color: hsl(var(--color-text-soft));
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-loginpage-1 {
+	min-height: 100vh;
+	background: var(--page-background);
+	color: hsl(var(--color-text));
+	font-family: var(--font-body);
+	padding: var(--space-page-y) var(--space-page-x);
+}
+
+.runa-migrated-pages-loginpage-2 {
+	display: grid;
+	gap: 20px;
+	min-width: 0px;
+}
+
+.runa-migrated-pages-loginpage-3 {
+	border: 1px solid rgba(245, 158, 11, 0.24);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 32%),
+		linear-gradient(180deg, rgba(20, 26, 40, 0.94) 0%, rgba(15, 23, 42, 0.84) 100%);
+}
+
+.runa-migrated-pages-loginpage-4 {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.runa-migrated-pages-loginpage-5 {
+	display: grid;
+	gap: 10px;
+	max-width: min(720px, 100%);
+}
+
+.runa-migrated-pages-loginpage-6 {
+	margin: 0px;
+	font-size: var(--text-4xl);
+}
+
+.runa-migrated-pages-loginpage-7 {
+	margin: 0px;
+	color: #cbd5e1;
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-loginpage-8 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-loginpage-9 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+	gap: 20px;
+	align-items: start;
+}
+
+.runa-migrated-pages-loginpage-10 {
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.08), transparent 28%),
+		linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 16, 28, 0.76) 100%);
+}
+
+.runa-migrated-pages-loginpage-11 {
+	display: grid;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.runa-migrated-pages-loginpage-12 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-loginpage-13 {
+	margin: 0px;
+	font-size: 22px;
+}
+
+.runa-migrated-pages-loginpage-14 {
+	color: #cbd5e1;
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-loginpage-15 {
+	padding: var(--space-subcard);
+	border-radius: var(--radius-soft);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	background: var(--gradient-subcard);
+	min-width: 0;
+}
+
+.runa-migrated-pages-loginpage-16 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-loginpage-17 {
+	margin-top: 6px;
+	font-size: 16px;
+	color: #f8fafc;
+}
+
+.runa-migrated-pages-loginpage-18 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-loginpage-19 {
+	margin-top: 6px;
+	color: #cbd5e1;
+}
+
+.runa-migrated-pages-loginpage-20 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-loginpage-21 {
+	margin-top: 6px;
+	color: #cbd5e1;
+}
+
+.runa-migrated-pages-loginpage-22 {
+	line-height: 1.5;
+	padding: var(--space-subcard);
+	border-radius: var(--radius-soft);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	background: var(--gradient-subcard);
+	min-width: 0;
+	margin-top: 16px;
+}
+
+.runa-migrated-pages-loginpage-23 {
+	line-height: 1.5;
+	padding: var(--space-subcard);
+	border-radius: var(--radius-soft);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	background: var(--gradient-subcard);
+	min-width: 0;
+	margin-top: 16px;
+}
+
+.runa-migrated-pages-loginpage-24 {
+	padding: var(--space-subcard);
+	border-radius: var(--radius-soft);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	background: var(--gradient-subcard);
+	min-width: 0;
+	margin-top: 16px;
+}
+
+.runa-migrated-pages-loginpage-25 {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+}
+
+.runa-migrated-pages-loginpage-29 {
+	display: grid;
+	gap: 10px;
+	margin-top: 14px;
+}
+
+.runa-migrated-pages-loginpage-30 {
+	display: grid;
+	gap: 8px;
+}
+
+.runa-migrated-pages-loginpage-33 {
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	background: radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.1), transparent 28%),
+		linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 16, 28, 0.76) 100%);
+}
+
+.runa-migrated-pages-loginpage-34 {
+	display: grid;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.runa-migrated-pages-loginpage-35 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-loginpage-36 {
+	margin: 0px;
+	font-size: 22px;
+}
+
+.runa-migrated-pages-loginpage-37 {
+	color: #cbd5e1;
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-loginpage-38 {
+	margin-bottom: 16px;
+}
+
+.runa-migrated-pages-loginpage-39 {
+	display: grid;
+	gap: 14px;
+}
+
+.runa-migrated-pages-loginpage-40 {
+	display: grid;
+	gap: 14px;
+}
+
+.runa-migrated-pages-loginpage-41 {
+	display: grid;
+	gap: 8px;
+}
+
+.runa-migrated-pages-loginpage-43 {
+	display: grid;
+	gap: 8px;
+}
+
+.runa-migrated-pages-loginpage-45 {
+	display: grid;
+	gap: 8px;
+}
+
+.runa-migrated-pages-loginpage-47 {
+	color: #94a3b8;
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-loginpage-48 {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+}
+
+.runa-migrated-pages-loginpage-49 {
+	padding: 12px 16px;
+	border-radius: var(--radius-pill);
+	border: none;
+	background: var(--gradient-primary-button);
+	color: hsl(var(--color-accent-foreground));
+	font-weight: 700;
+	cursor: pointer;
+	width: 100%;
+}
+
+.runa-migrated-pages-loginpage-50 {
+	margin-top: 20px;
+	padding-top: 18px;
+	border-top: 1px solid rgba(148, 163, 184, 0.12);
+	display: grid;
+	gap: 12px;
+}
+
+.runa-migrated-pages-loginpage-51 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}

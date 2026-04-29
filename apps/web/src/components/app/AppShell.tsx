@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { uiCopy } from '../../localization/copy.js';
-import { RunaBadge, RunaSurface } from '../ui/index.js';
+import { RunaBadge } from '../ui/RunaBadge.js';
+import { RunaSurface } from '../ui/RunaSurface.js';
 import { AppNav, type AuthenticatedPageId } from './AppNav.js';
 
 const pageCopyById: Record<

@@ -1,0 +1,648 @@
+/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+
+.runa-migrated-components-auth-profilecard-1 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-migrated-components-auth-profilecard-2 {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.runa-migrated-components-auth-profilecard-3 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-profilecard-4 {
+	margin: 0px;
+	font-size: 22px;
+}
+
+.runa-migrated-components-auth-profilecard-5 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-components-auth-profilecard-6 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	gap: 12px;
+}
+
+.runa-migrated-components-auth-profilecard-7 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	border-color: rgba(245, 158, 11, 0.18);
+}
+
+.runa-migrated-components-auth-profilecard-8 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-profilecard-9 {
+	color: #f8fafc;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-profilecard-10 {
+	color: #cbd5e1;
+}
+
+.runa-migrated-components-auth-profilecard-11 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	border-color: rgba(96, 165, 250, 0.18);
+}
+
+.runa-migrated-components-auth-profilecard-12 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-profilecard-13 {
+	color: #f8fafc;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-profilecard-14 {
+	color: #cbd5e1;
+}
+
+.runa-migrated-components-auth-profilecard-15 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	border-color: rgba(148, 163, 184, 0.18);
+}
+
+.runa-migrated-components-auth-profilecard-16 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-profilecard-17 {
+	color: #f8fafc;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-profilecard-18 {
+	color: #cbd5e1;
+}
+
+.runa-migrated-components-auth-profilecard-19 {
+	display: grid;
+	gap: 10px;
+	margin-top: 18px;
+}
+
+.runa-migrated-components-auth-profilecard-20 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-profilecard-21 {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.runa-migrated-components-auth-profilecard-22 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	font-weight: 700;
+	padding: 6px 10px;
+	border-color: rgba(148, 163, 184, 0.24);
+	background: rgba(6, 11, 21, 0.78);
+	color: #e2e8f0;
+	font-size: 11px;
+	overflow-wrap: anywhere;
+	text-transform: none;
+	letter-spacing: 0.03em;
+}
+
+.runa-migrated-components-auth-profilecard-23 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-components-auth-sessioncard-1 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-migrated-components-auth-sessioncard-2 {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.runa-migrated-components-auth-sessioncard-3 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-sessioncard-4 {
+	margin: 0px;
+	font-size: 22px;
+}
+
+.runa-migrated-components-auth-sessioncard-5 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-components-auth-sessioncard-6 {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.runa-migrated-components-auth-sessioncard-7 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-sessioncard-8 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	font-size: 12px;
+	font-weight: 700;
+	border-color: rgba(96, 165, 250, 0.26);
+	color: #bfdbfe;
+}
+
+.runa-migrated-components-auth-sessioncard-9 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	gap: 12px;
+}
+
+.runa-migrated-components-auth-sessioncard-10 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	border-color: rgba(245, 158, 11, 0.18);
+}
+
+.runa-migrated-components-auth-sessioncard-11 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-sessioncard-12 {
+	color: #f8fafc;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-sessioncard-13 {
+	color: #cbd5e1;
+}
+
+.runa-migrated-components-auth-sessioncard-14 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	border-color: rgba(96, 165, 250, 0.18);
+}
+
+.runa-migrated-components-auth-sessioncard-15 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-sessioncard-16 {
+	color: #f8fafc;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-sessioncard-17 {
+	color: #cbd5e1;
+}
+
+.runa-migrated-components-auth-sessioncard-18 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	border-color: rgba(148, 163, 184, 0.18);
+}
+
+.runa-migrated-components-auth-sessioncard-19 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-sessioncard-20 {
+	color: #f8fafc;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-sessioncard-21 {
+	color: #cbd5e1;
+}
+
+.runa-migrated-components-auth-sessioncard-22 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	border-color: rgba(148, 163, 184, 0.18);
+}
+
+.runa-migrated-components-auth-sessioncard-23 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-auth-sessioncard-24 {
+	color: #f8fafc;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.runa-migrated-components-auth-sessioncard-25 {
+	color: #cbd5e1;
+}
+
+.runa-migrated-components-settings-projectmemorysummary-1 {
+	display: grid;
+	gap: 12px;
+	padding: 14px 16px;
+	border-radius: 18px;
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: rgba(9, 14, 25, 0.68);
+}
+
+.runa-migrated-components-settings-projectmemorysummary-2 {
+	display: grid;
+	gap: 8px;
+}
+
+.runa-migrated-components-settings-projectmemorysummary-3 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-components-settings-projectmemorysummary-4 {
+	margin: 0px;
+	font-size: 20px;
+}
+
+.runa-migrated-components-settings-projectmemorysummary-5 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-1 {
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 30%),
+		linear-gradient(180deg, rgba(20, 26, 40, 0.92) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
+.runa-migrated-pages-settingspage-2 {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.runa-migrated-pages-settingspage-3 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-settingspage-4 {
+	margin: 0px;
+	font-size: 24px;
+}
+
+.runa-migrated-pages-settingspage-5 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-6 {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 16px;
+}
+
+.runa-migrated-pages-settingspage-7 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-settingspage-8 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	font-size: 12px;
+	font-weight: 700;
+	border-color: rgba(96, 165, 250, 0.26);
+	color: #bfdbfe;
+}
+
+.runa-migrated-pages-settingspage-9 {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	align-items: stretch;
+}
+
+.runa-migrated-pages-settingspage-10 {
+	padding: 10px 14px;
+	border-radius: var(--radius-pill);
+	background: var(--gradient-secondary-button);
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: var(--shadow-inset);
+	border: 1px solid rgba(248, 113, 113, 0.36);
+	color: #fecaca;
+	width: 100%;
+}
+
+.runa-migrated-pages-settingspage-11 {
+	margin-top: 16px;
+	line-height: 1.5;
+}
+
+.runa-migrated-pages-settingspage-12 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+	gap: 20px;
+}
+
+.runa-migrated-pages-settingspage-13 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-migrated-pages-settingspage-14 {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.runa-migrated-pages-settingspage-15 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-settingspage-16 {
+	margin: 0px;
+	font-size: 20px;
+}
+
+.runa-migrated-pages-settingspage-17 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-18 {
+	display: grid;
+	gap: 14px;
+}
+
+.runa-migrated-pages-settingspage-19 {
+	display: grid;
+	gap: 6px;
+}
+
+.runa-migrated-pages-settingspage-20 {
+	color: #f8fafc;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-settingspage-21 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-22 {
+	color: #f8fafc;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-settingspage-23 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-24 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-25 {
+	padding: 10px 14px;
+	border-radius: var(--radius-pill);
+	border: 1px solid hsl(var(--color-border-soft) / 0.8);
+	background: var(--gradient-secondary-button);
+	color: hsl(var(--color-text));
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: var(--shadow-inset);
+}
+
+.runa-migrated-pages-settingspage-26 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-migrated-pages-settingspage-27 {
+	display: grid;
+	gap: 10px;
+}
+
+.runa-migrated-pages-settingspage-28 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-settingspage-29 {
+	margin: 0px;
+	font-size: 20px;
+}
+
+.runa-migrated-pages-settingspage-30 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-31 {
+	display: grid;
+	gap: 6px;
+}
+
+.runa-migrated-pages-settingspage-32 {
+	color: #f8fafc;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-settingspage-33 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-settingspage-34 {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	align-items: stretch;
+}
+
+.runa-migrated-pages-settingspage-35 {
+	padding: 10px 14px;
+	border-radius: var(--radius-pill);
+	border: 1px solid hsl(var(--color-border-soft) / 0.8);
+	background: var(--gradient-secondary-button);
+	color: hsl(var(--color-text));
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: var(--shadow-inset);
+	text-align: center;
+	text-decoration: none;
+}

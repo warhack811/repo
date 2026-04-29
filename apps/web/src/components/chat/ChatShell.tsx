@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import { RunaSurface } from '../ui/index.js';
+import { RunaSurface } from '../ui/RunaSurface.js';
 
 type ChatShellProps = Readonly<{
 	children: ReactNode;

@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { useId } from 'react';
-import { RunaBadge } from '../../ui/index.js';
+import { RunaBadge } from '../../ui/RunaBadge.js';
 import type { CapabilityStatus, CapabilityTone } from './types.js';
 
 export type CapabilityCardElement = 'article' | 'div';

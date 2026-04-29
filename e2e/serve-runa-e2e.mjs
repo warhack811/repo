@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -12,7 +12,9 @@ const serverNodeModulesRoot = resolve(workspaceRoot, 'apps', 'server', 'node_mod
 const proofDirectory = join(os.tmpdir(), 'runa-e2e-proof');
 const proofFilePath = join(proofDirectory, 'approval-proof.txt');
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';
-const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
+const DEEPSEEK_CHAT_COMPLETIONS_URL = 'https://api.deepseek.com/chat/completions';
+const envFilePath = resolve(workspaceRoot, '.env');
+const envLocalFilePath = resolve(workspaceRoot, '.env.local');
 
 mkdirSync(proofDirectory, { recursive: true });
 rmSync(proofFilePath, { force: true });
@@ -21,6 +23,59 @@ process.env.NODE_ENV ??= 'development';
 process.env.RUNA_DEV_AUTH_ENABLED ??= '1';
 process.env.RUNA_DEV_AUTH_SECRET ??= 'runa-e2e-dev-secret';
 process.env.RUNA_DEV_AUTH_EMAIL ??= 'dev@runa.local';
+
+function normalizeEnvValue(rawValue) {
+	const trimmedValue = rawValue.trim();
+
+	if (
+		(trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
+		(trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))
+	) {
+		return trimmedValue.slice(1, -1);
+	}
+
+	return trimmedValue;
+}
+
+function loadEnvironmentFile(filePath, fileOwnedKeys) {
+	if (!existsSync(filePath)) {
+		return;
+	}
+
+	const envFileContents = readFileSync(filePath, 'utf8');
+
+	for (const envLine of envFileContents.split(/\r?\n/u)) {
+		const trimmedLine = envLine.trim();
+
+		if (trimmedLine.length === 0 || trimmedLine.startsWith('#') || trimmedLine.startsWith('//')) {
+			continue;
+		}
+
+		const separatorIndex = trimmedLine.indexOf('=');
+
+		if (separatorIndex <= 0) {
+			continue;
+		}
+
+		const key = trimmedLine.slice(0, separatorIndex).trim();
+		const rawValue = trimmedLine.slice(separatorIndex + 1);
+
+		if (key.length === 0 || (process.env[key] !== undefined && !fileOwnedKeys.has(key))) {
+			continue;
+		}
+
+		process.env[key] = normalizeEnvValue(rawValue);
+		fileOwnedKeys.add(key);
+	}
+}
+
+{
+	const fileOwnedKeys = new Set();
+	loadEnvironmentFile(envFilePath, fileOwnedKeys);
+	loadEnvironmentFile(envLocalFilePath, fileOwnedKeys);
+}
+
+process.env.DEEPSEEK_API_KEY ??= 'e2e-deepseek-key';
 
 const originalFetch = globalThis.fetch?.bind(globalThis);
 
@@ -57,15 +112,23 @@ function findLastUserMessage(messages) {
 	return '';
 }
 
+function collectUserMessageText(messages) {
+	return (messages ?? [])
+		.filter((message) => message?.role === 'user' && typeof message.content === 'string')
+		.map((message) => message.content)
+		.join('\n');
+}
+
 function isContinuationRequest(lastUserMessage) {
 	return lastUserMessage.startsWith(
 		'Continue the same user request using the latest ingested tool result from the runtime context.',
 	);
 }
 
-function createMockOpenAiResponse(requestBody) {
+function createMockDeepSeekResponse(requestBody) {
+	const userMessageText = collectUserMessageText(requestBody.messages);
 	const lastUserMessage = findLastUserMessage(requestBody.messages ?? []);
-	const model = requestBody.model ?? 'gpt-4o-mini';
+	const model = requestBody.model ?? 'deepseek-v4-flash';
 
 	if (isContinuationRequest(lastUserMessage)) {
 		return createJsonResponse({
@@ -78,7 +141,7 @@ function createMockOpenAiResponse(requestBody) {
 					},
 				},
 			],
-			id: 'chatcmpl_e2e_completed',
+			id: 'deepseek_e2e_completed',
 			model,
 			usage: {
 				completion_tokens: 24,
@@ -88,7 +151,7 @@ function createMockOpenAiResponse(requestBody) {
 		});
 	}
 
-	if (lastUserMessage.toLowerCase().includes('approval')) {
+	if (userMessageText.toLowerCase().includes('approval')) {
 		return createJsonResponse({
 			choices: [
 				{
@@ -104,16 +167,16 @@ function createMockOpenAiResponse(requestBody) {
 										overwrite: true,
 										path: proofFilePath,
 									}),
-									name: 'file.write',
+									name: 'file_write',
 								},
-								id: 'call_e2e_file_write',
+								id: 'call_deepseek_e2e_file_write',
 								type: 'function',
 							},
 						],
 					},
 				},
 			],
-			id: 'chatcmpl_e2e_approval',
+			id: 'deepseek_e2e_approval',
 			model,
 			usage: {
 				completion_tokens: 16,
@@ -133,7 +196,7 @@ function createMockOpenAiResponse(requestBody) {
 				},
 			},
 		],
-		id: 'chatcmpl_e2e_chat',
+		id: 'deepseek_e2e_chat',
 		model,
 		usage: {
 			completion_tokens: 8,
@@ -151,8 +214,8 @@ globalThis.fetch = async (input, init) => {
 				? input.url
 				: String(input);
 
-	if (url === OPENAI_CHAT_COMPLETIONS_URL) {
-		return createMockOpenAiResponse(readRequestBody(init));
+	if (url === DEEPSEEK_CHAT_COMPLETIONS_URL) {
+		return createMockDeepSeekResponse(readRequestBody(init));
 	}
 
 	return originalFetch(input, init);

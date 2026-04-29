@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactElement } from 'react';
-import { RunaBadge } from '../../ui/index.js';
+import { RunaBadge } from '../../ui/RunaBadge.js';
 import type { CapabilityProgressStep, CapabilityStatus, CapabilityTone } from './types.js';
 
 export type CapabilityProgressListProps = Readonly<

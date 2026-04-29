@@ -1,0 +1,146 @@
+/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+
+.runa-migrated-pages-devicespage-1 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-migrated-pages-devicespage-2 {
+	display: grid;
+	gap: 10px;
+}
+
+.runa-migrated-pages-devicespage-3 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-devicespage-4 {
+	margin: 0px;
+	font-size: 24px;
+}
+
+.runa-migrated-pages-devicespage-5 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-devicespage-6 {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 16px;
+}
+
+.runa-migrated-pages-devicespage-7 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-devicespage-8 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	font-size: 12px;
+	font-weight: 700;
+	border-color: rgba(96, 165, 250, 0.26);
+	color: #bfdbfe;
+}
+
+.runa-migrated-pages-devicespage-9 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+	gap: 16px;
+}
+
+.runa-migrated-pages-devicespage-10 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.runa-migrated-pages-devicespage-11 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-devicespage-12 {
+	color: #f8fafc;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-devicespage-13 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-devicespage-14 {
+	padding: 14px 16px;
+	border-radius: var(--radius-soft);
+	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.runa-migrated-pages-devicespage-15 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-devicespage-16 {
+	color: #f8fafc;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-devicespage-17 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-devicespage-18 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}

@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactElement } from 'react';
-import { RunaButton } from '../../ui/index.js';
+import { RunaButton } from '../../ui/RunaButton.js';
 import type { CapabilityResultAction, CapabilityResultActionTone } from './types.js';
 
 export type CapabilityResultActionsProps = Readonly<

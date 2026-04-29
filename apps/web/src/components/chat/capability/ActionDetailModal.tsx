@@ -1,6 +1,6 @@
 import type { DialogHTMLAttributes, MouseEvent, ReactElement, ReactNode } from 'react';
 import { useId } from 'react';
-import { RunaButton } from '../../ui/index.js';
+import { RunaButton } from '../../ui/RunaButton.js';
 import { ActionRiskBadge } from './ActionRiskBadge.js';
 import { CapabilityResultActions } from './CapabilityResultActions.js';
 import type {

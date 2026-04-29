@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { useState } from 'react';
 
 import type { RenderBlock } from '../../../ws-types.js';
-import { RunaButton } from '../../ui/index.js';
+import { RunaButton } from '../../ui/RunaButton.js';
 import { cx } from '../../ui/ui-utils.js';
 import styles from './BlockRenderer.module.css';
 

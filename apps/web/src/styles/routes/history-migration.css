@@ -1,0 +1,156 @@
+/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+
+.runa-migrated-pages-historypage-1 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-migrated-pages-historypage-2 {
+	display: grid;
+	gap: 10px;
+}
+
+.runa-migrated-pages-historypage-3 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-historypage-4 {
+	margin: 0px;
+	font-size: 24px;
+}
+
+.runa-migrated-pages-historypage-5 {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+}
+
+.runa-migrated-pages-historypage-6 {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	align-items: stretch;
+	margin-top: 18px;
+}
+
+.runa-migrated-pages-historypage-7 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.runa-migrated-pages-historypage-8 {
+	padding: 10px 14px;
+	border-radius: var(--radius-pill);
+	border: 1px solid hsl(var(--color-border-soft) / 0.8);
+	background: var(--gradient-secondary-button);
+	color: hsl(var(--color-text));
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: var(--shadow-inset);
+}
+
+.runa-migrated-pages-historypage-9 {
+	background: var(--gradient-panel);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-panel);
+	padding: var(--space-panel);
+	backdrop-filter: blur(12px);
+	position: relative;
+	overflow: hidden;
+}
+
+.runa-migrated-pages-historypage-10 {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: end;
+}
+
+.runa-migrated-pages-historypage-11 {
+	display: grid;
+	gap: 8px;
+	min-width: 0px;
+}
+
+.runa-migrated-pages-historypage-12 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-historypage-13 {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 999px;
+	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	background: rgba(15, 23, 42, 0.5);
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	font-weight: 700;
+	width: fit-content;
+}
+
+.runa-migrated-pages-historypage-14 {
+	margin: 18px 0 12px;
+	font-size: 20px;
+}
+
+.runa-migrated-pages-historypage-15 {
+	margin-top: 8px;
+}
+
+.runa-migrated-pages-historypage-16 {
+	display: grid;
+	gap: 12px;
+}
+
+.runa-migrated-pages-historypage-17 {
+	display: grid;
+	gap: 10px;
+}
+
+.runa-migrated-pages-historypage-18 {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-migrated-pages-historypage-19 {
+	display: grid;
+	gap: 12px;
+}
+
+.runa-migrated-pages-historypage-20 {
+	display: grid;
+	gap: 8px;
+	width: 100%;
+	text-align: left;
+	padding: 14px 16px;
+	border-radius: 18px;
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: rgba(9, 14, 25, 0.68);
+	color: #f8fafc;
+	cursor: pointer;
+}

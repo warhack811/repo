@@ -12,6 +12,8 @@ import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { type Theme, applyTheme, getStoredTheme, storeTheme } from '../lib/theme.js';
 import { uiCopy } from '../localization/copy.js';
+import '../styles/routes/desktop-device-presence-migration.css';
+import '../styles/routes/settings-migration.css';
 
 type SettingsTab = 'account' | 'developer' | 'devices' | 'memory' | 'preferences';
 

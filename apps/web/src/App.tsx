@@ -9,6 +9,7 @@ import { useAuth } from './hooks/useAuth.js';
 import { type UseChatRuntimeResult, useChatRuntime } from './hooks/useChatRuntime.js';
 import { useConversations } from './hooks/useConversations.js';
 import { LoginPage } from './pages/LoginPage.js';
+import './styles/routes/app-shell-migration.css';
 
 const ChatPage = lazy(() =>
 	import('./pages/ChatPage.js').then((module) => ({ default: module.ChatPage })),

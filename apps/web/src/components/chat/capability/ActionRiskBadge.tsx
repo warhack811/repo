@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-import { RunaBadge } from '../../ui/index.js';
+import { RunaBadge } from '../../ui/RunaBadge.js';
 import type { ActionRiskLevel, CapabilityTone } from './types.js';
 
 export type ActionRiskBadgeProps = Readonly<{

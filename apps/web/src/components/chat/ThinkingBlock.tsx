@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-import { RunaDisclosure } from '../ui/index.js';
+import { RunaDisclosure } from '../ui/RunaDisclosure.js';
 import styles from './ThinkingBlock.module.css';
 
 export type ThinkingStepStatus = 'active' | 'completed' | 'failed' | 'paused' | 'pending';

@@ -13,6 +13,50 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
 
+### Track C / UI Overhaul Follow-up - Capability Preview + DeepSeek E2E Alignment - 29 Nisan 2026
+
+- `apps/web/src/pages/CapabilityPreviewPage.tsx` inline `CSSProperties`/`style=` yuzeyinden cikarildi ve sayfa-yani `apps/web/src/pages/CapabilityPreviewPage.module.css` dosyasina tasindi. Sayfa 509 satirdan 426 satira indi; `style:check` kapsaminda yeniden ihlal uretmiyor.
+- Capability preview stilleri token/CSS variable tabanina baglandi; React tarafinda yalniz semantic `className` kullaniliyor. Bu, UI-OVERHAUL-03 style gate'inin sonradan eklenen preview yuzeyleri icin de sert kalmasini saglar.
+- Approval E2E bootstrap'i eski hardcoded OpenAI override'indan cikarildi. `e2e/chat-e2e.spec.ts` artik `provider=deepseek`, `model=deepseek-v4-flash`, request key'i bos config ile server env fallback yolunu kullaniyor ve localStorage runtime config'ini test icinde assert ediyor.
+- `e2e/serve-runa-e2e.mjs` DeepSeek chat completions endpoint'ini deterministic harness icinde mock'luyor; `.env` / `.env.local` degerlerini yukleyebiliyor, yoksa yalniz test icin `e2e-deepseek-key` fallback'i kullaniyor. Mock DeepSeek provider-safe `file_write` tool alias'i donuyor ve adapter'in canonical `file.write` approval path'ini kanitliyor.
+- Dogrulama:
+  - `pnpm.cmd run style:check` PASS (`violations=0`)
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`9` dosya / `22` test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd test:e2e` PASS (`9` test; DeepSeek approval E2E + UI-OVERHAUL-05/06 visual specs)
+  - `pnpm.cmd typecheck` PASS
+  - `pnpm.cmd lint` PASS
+  - `pnpm.cmd run manifesto:check` PASS (`violations=0`)
+  - `pnpm.cmd run primitive:coverage` REPORT (`primitive_total=46`, `native_interactive_total=51`; non-blocking takip metrigi)
+- Test notu: Ilk E2E tekrar kosusunda port `3000` mevcut `apps/server/dist/index.js` sureci tarafindan tutuldugu icin Playwright yanlis server'i reuse edebiliyordu. Bu lokal surec kapatildiktan sonra E2E kendi DeepSeek harness'iyle 9/9 PASS verdi.
+
+### Track C / UI Overhaul Follow-up - Global CSS Performance Split / Critical CSS - 29 Nisan 2026
+
+- Global `apps/web/src/styles/inline-migration.css` kritik import zincirinden cikarildi ve silindi. Icindeki `737` migrated rule rota sahipli CSS dosyalarina bolundu: `apps/web/src/styles/routes/app-shell-migration.css`, `login-migration.css`, `chat-migration.css`, `capability-migration.css`, `settings-migration.css`, `desktop-device-presence-migration.css`, `developer-migration.css`, `devices-migration.css`, `history-migration.css`.
+- Route CSS importlari ilgili lazy page girislerine baglandi: `ChatPage`, `CapabilityPreviewPage`, `SettingsPage`, `DeveloperPage`, `DevicesPage`, `HistoryPage`; login ve authenticated shell icin yalniz gerekli minimum CSS statik kaldi.
+- UI primitive barrel importlari kritik path'ten temizlendi. `AppShell`, chat block/capability component'leri ve `CapabilityPreviewPage` artik `components/ui/index.js` yerine ilgili primitive dosyalarini dogrudan import ediyor; boylece kullanilmayan modal/skeleton CSS'i ilk HTML stylesheet listesine girmiyor.
+- Production build kaniti: onceki global CSS follow-up hedefinde `dist/assets/index-*.css` yaklasik `143.66 kB` idi; bu turda global kritik CSS chunk'i `50.13 kB` raw / `9.04 kB` gzip seviyesine indi. Initial stylesheet toplamı `index + RunaBadge + RunaSurface/types` olarak yaklasik `51.60 kB` raw; chat route CSS'i ayri `63.99 kB` raw / `6.55 kB` gzip lazy chunk oldu.
+- Lighthouse production-preview kaniti (`http://127.0.0.1:4175`, Lighthouse `13.1.0`):
+  - Desktop: Performance `99`, Accessibility `100`, Best Practices `96`, SEO `92`; FCP `0.7s`, LCP `0.8s`, TBT `0ms`.
+  - Mobile: Performance `79`, Accessibility `100`, Best Practices `96`, SEO `92`; FCP `3.8s`, LCP `3.9s`, TBT `0ms`.
+  - `unused-css-rules` temiz (`overallSavingsBytes=0`). Render-blocking listesi artik `index-*.css`, `types-*.css`, `RunaBadge-*.css` ile sinirli; onceki `ui`, `RunaSkeleton`, `RunaModal` critical stylesheet istekleri kalkti.
+  - Desktop Lighthouse komutu Windows temp cleanup `EPERM` ile exit code `1` donebildi, fakat JSON rapor yazildi ve skorlar `apps/web/lighthouse-desktop-critical-css.report.json` icinden okundu. Mobile son kosu exit code `0` verdi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd run style:check` PASS (`violations=0`)
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`9` dosya / `22` test)
+  - `pnpm.cmd typecheck` PASS
+  - `pnpm.cmd lint` PASS
+  - `pnpm.cmd run manifesto:check` PASS (`violations=0`)
+  - `pnpm.cmd run primitive:coverage` REPORT (`primitive_total=46`, `native_interactive_total=51`; non-blocking takip metrigi)
+  - `pnpm.cmd test:e2e` PASS (`9` test; DeepSeek approval E2E + UI visual specs)
+- Test notu: Ilk E2E kosusunda port `3000` eski `apps/server/dist/index.js` sureci tarafindan tutuldugu icin approval senaryosu yanlis backend'e baglanip fail etti. Surec kapatildiktan sonra ayni komut temiz harness ile 9/9 PASS verdi.
+- Kalan performans gercegi: Mobile Lighthouse Performance 90+ henuz yakalanmadi; CSS debt'in buyuk global parcasi kapandi, kalan mobile skor baskisi daha cok ana JS/route bootstrap ve mevcut kritik `index` stylesheet'in render-blocking dogasindan geliyor. Yeni dependency eklenmedi; `apps/server/**`, `packages/**`, `apps/desktop-agent/**` bu gorevde degistirilmedi.
+
 ### GitHub CI / PR #11 Quality Gate Fix - 29 Nisan 2026
 
 - PR #11 `quality` check kirigi incelendi. Ilk GitHub Actions hatasi `pnpm lint` altinda root `biome check .` idi; generated/temp desktop ciktilari ve eski format drift'i kalite kapisini kirletiyordu.
