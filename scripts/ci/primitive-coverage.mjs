@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -17,7 +17,11 @@ async function* walk(dir) {
 		const info = await stat(full);
 		if (info.isDirectory()) {
 			yield* walk(full);
-		} else if (info.isFile() && /\.(?:tsx|jsx)$/u.test(entry) && !/\.(?:test|spec)\./u.test(entry)) {
+		} else if (
+			info.isFile() &&
+			/\.(?:tsx|jsx)$/u.test(entry) &&
+			!/\.(?:test|spec)\./u.test(entry)
+		) {
 			yield full;
 		}
 	}

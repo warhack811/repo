@@ -13,6 +13,19 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
 
+### GitHub CI / PR #11 Quality Gate Fix - 29 Nisan 2026
+
+- PR #11 `quality` check kirigi incelendi. Ilk GitHub Actions hatasi `pnpm lint` altinda root `biome check .` idi; generated/temp desktop ciktilari ve eski format drift'i kalite kapisini kirletiyordu.
+- `biome.json` ve `.gitignore` generated desktop ciktilarini, `temp-asar` klasorunu, local `.claire` worktree'lerini ve Lighthouse rapor artifact'lerini lint kapsamindan cikartacak sekilde daraltildi.
+- Gercek kaynak dosyalarinda mekanik Biome format/import duzeltmeleri yapildi: CI helper scriptleri, desktop smoke script'i, UI fixture ve capability preview sayfasi.
+- Lint sonrasi ortaya cikacak server test kirigi de kapatildi: approval request incremental asamada persist edildiyse finalize asamasinda ikinci kez persist edilmiyor; desktop approval continuation context'i artik yalniz son snapshot'i degil birikmis tool-result history'yi tasiyor. Boylece approval replay ve desktop vision-loop testleri mevcut runtime davranisiyla yeniden hizalandi.
+- Dogrulama:
+  - `pnpm.cmd typecheck` PASS
+  - `pnpm.cmd lint` PASS
+  - `pnpm.cmd test` PASS
+  - `pnpm.cmd build` PASS
+- Durust kalan durum: Bu kayit local CI parity proof'udur. GitHub Actions tekrar kosup PR #11 `quality` ve ardindan `e2e` check'lerini yesil gostermeden merge claim'i yapilmamalidir.
+
 ### Track C / Desktop Installer Trust & Packaging Polish - 29 Nisan 2026
 
 - Sertifika henuz temin edilmedigi icin code signing bilincli olarak kapsam disi tutuldu; buna ragmen installer guveni icin kalan paketleme uyarilari kapatildi.

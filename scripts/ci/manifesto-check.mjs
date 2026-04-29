@@ -47,9 +47,7 @@ const SCAN_ROOTS = Object.freeze([
 	'apps/web/src/pages',
 ]);
 
-const PAGES_ALLOWLIST = new Set([
-	'apps/web/src/pages/DeveloperPage.tsx',
-]);
+const PAGES_ALLOWLIST = new Set(['apps/web/src/pages/DeveloperPage.tsx']);
 
 async function* walk(dir) {
 	let entries;

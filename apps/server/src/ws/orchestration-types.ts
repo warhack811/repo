@@ -73,6 +73,7 @@ export interface RuntimeWebSocketHandlerOptions extends RuntimePresentationHooks
 }
 
 export interface RunToolWebSocketResult extends PresentationCompatibleRunResult {
+	readonly already_persisted_approval_id?: string;
 	readonly approval_request?: ApprovalRequest;
 	readonly assistant_text?: string;
 	readonly error_code?: string;

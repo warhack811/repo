@@ -43,7 +43,10 @@ function Fixture(): JSX.Element {
 							<section className="runa-card runa-card--strong" data-testid="composer">
 								<label>
 									Mesaj
-									<textarea className="runa-input runa-input--textarea" defaultValue="Mobile composer" />
+									<textarea
+										className="runa-input runa-input--textarea"
+										defaultValue="Mobile composer"
+									/>
 								</label>
 								<button className="runa-button runa-button--primary" type="button">
 									Gonder
@@ -84,7 +87,12 @@ function Fixture(): JSX.Element {
 				<RunaModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Modal fixture">
 					<div data-testid="modal-content">Responsive modal content</div>
 				</RunaModal>
-				<RunaSheet isOpen={isSheetOpen} onClose={() => setIsSheetOpen(false)} side="bottom" title="Sheet fixture">
+				<RunaSheet
+					isOpen={isSheetOpen}
+					onClose={() => setIsSheetOpen(false)}
+					side="bottom"
+					title="Sheet fixture"
+				>
 					<div data-testid="sheet-content">Responsive sheet content</div>
 				</RunaSheet>
 			</main>

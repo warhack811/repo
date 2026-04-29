@@ -9,6 +9,11 @@ dist-electron/
 playwright-report/
 test-results/
 apps/desktop-agent/release/
+apps/desktop-agent/temp-asar/
+apps/desktop-agent/electron/main.cjs
+apps/desktop-agent/electron/main.js
+apps/desktop-agent/electron/preload.cjs
+apps/desktop-agent/electron/preload.js
 apps/desktop-agent/electron/renderer/App.js
 apps/desktop-agent/electron/renderer/App.js.map
 
@@ -31,6 +36,8 @@ apps/desktop-agent/electron/renderer/App.js.map
 .codex-screenshots/
 apps/web/.qa-screenshots/
 apps/web/.qa-screenshots-auth-chat/
+apps/web/*.report.json
+apps/web/*.report.html
 *.swp
 *.swo
 
