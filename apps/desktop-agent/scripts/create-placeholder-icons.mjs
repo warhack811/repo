@@ -1,16 +1,17 @@
 /**
- * Create placeholder icon files for Electron app
- * Creates a 256x256 PNG icon as required by electron-builder
+ * Create Electron icon files from the shared Runa web app icon.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const buildDir = path.join(__dirname, '../build');
+const webIcon512Path = path.join(__dirname, '../../web/public/icons/icon-512.png');
+const webIcon192Path = path.join(__dirname, '../../web/public/icons/icon-192.png');
 
 // Create a valid 256x256 PNG file
 // This is a minimal PNG with a purple gradient
@@ -33,7 +34,7 @@ function createPNG(width, height) {
 		Buffer.from([0, 0, 0, 13]), // length
 		Buffer.from('IHDR'),
 		ihdrData,
-		uint32ToBuffer(ihdrCrc)
+		uint32ToBuffer(ihdrCrc),
 	]);
 
 	// IDAT chunk - raw pixel data with zlib compression
@@ -57,7 +58,7 @@ function createPNG(width, height) {
 		uint32ToBuffer(compressed.length),
 		Buffer.from('IDAT'),
 		compressed,
-		uint32ToBuffer(idatCrc)
+		uint32ToBuffer(idatCrc),
 	]);
 
 	// IEND chunk
@@ -65,7 +66,7 @@ function createPNG(width, height) {
 	const iend = Buffer.concat([
 		Buffer.from([0, 0, 0, 0]),
 		Buffer.from('IEND'),
-		uint32ToBuffer(iendCrc)
+		uint32ToBuffer(iendCrc),
 	]);
 
 	return Buffer.concat([signature, ihdr, idat, iend]);
@@ -85,7 +86,7 @@ function crc32(data) {
 	for (let i = 0; i < 256; i++) {
 		let c = i;
 		for (let j = 0; j < 8; j++) {
-			c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+			c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
 		}
 		table[i] = c;
 	}
@@ -123,7 +124,8 @@ function deflate(data) {
 
 // Adler32 checksum
 function adler32(data) {
-	let a = 1, b = 0;
+	let a = 1;
+	let b = 0;
 	for (let i = 0; i < data.length; i++) {
 		a = (a + data[i]) % 65521;
 		b = (b + a) % 65521;
@@ -140,12 +142,16 @@ function ensureDir(dirPath) {
 async function createIcons() {
 	ensureDir(buildDir);
 
-	// Create 256x256 PNG
-	const png256 = createPNG(256, 256);
-	fs.writeFileSync(path.join(buildDir, 'icon.png'), png256);
+	const png512 = fs.existsSync(webIcon512Path)
+		? await fs.promises.readFile(webIcon512Path)
+		: createPNG(256, 256);
+	const icoSourcePng = fs.existsSync(webIcon192Path)
+		? await fs.promises.readFile(webIcon192Path)
+		: png512;
+	fs.writeFileSync(path.join(buildDir, 'icon.png'), png512);
 
-	// Create ICO file with the 256x256 PNG embedded
-	const pngSize = png256.length;
+	// ICO supports PNG-compressed image payloads. Width/height are capped to one byte.
+	const pngSize = icoSourcePng.length;
 	const icoHeader = Buffer.alloc(6);
 	icoHeader.writeUInt16LE(0, 0); // Reserved
 	icoHeader.writeUInt16LE(1, 2); // ICO type
@@ -161,12 +167,12 @@ async function createIcons() {
 	icoEntry.writeUInt32LE(pngSize, 8); // image size
 	icoEntry.writeUInt32LE(22, 12); // offset to image data
 
-	const icoData = Buffer.concat([icoHeader, icoEntry, png256]);
+	const icoData = Buffer.concat([icoHeader, icoEntry, icoSourcePng]);
 	fs.writeFileSync(path.join(buildDir, 'icon.ico'), icoData);
 
 	console.log('Icons created in', buildDir);
-	console.log('- icon.png (256x256 PNG)');
-	console.log('- icon.ico (256x256 ICO)');
+	console.log('- icon.png (Runa branded PNG)');
+	console.log('- icon.ico (Runa branded ICO)');
 }
 
 createIcons().catch(console.error);

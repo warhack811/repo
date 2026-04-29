@@ -1718,7 +1718,7 @@ async function executeLiveRun(
 							status: 'approval_required',
 							tool_arguments: snapshot.tool_arguments,
 							tool_result: snapshot.tool_result,
-							tool_result_history: snapshot.tool_results,
+							tool_result_history: toolResultHistory,
 							turn_count: snapshot.turn_count,
 						},
 						options.workingDirectory,
@@ -1765,6 +1765,7 @@ async function executeLiveRun(
 			);
 
 			const result = {
+				already_persisted_approval_id: lastIncrementalApprovalId,
 				approval_request: finalSnapshot.approval_request,
 				assistant_text: finalSnapshot.assistant_text,
 				error_code:
@@ -1893,10 +1894,16 @@ async function finalizeLiveRunResult(
 		finalizeOptions.working_directory,
 		payload,
 	);
+	const automaticApprovalPersistenceInputs = automaticApprovalPresentationInputs.filter(
+		(input) =>
+			input.kind !== 'request_result' ||
+			input.result.status !== 'approval_required' ||
+			input.result.approval_request.approval_id !== result.already_persisted_approval_id,
+	);
 
 	await persistApprovalPresentationInputs(
 		options.approvalStore,
-		automaticApprovalPresentationInputs,
+		automaticApprovalPersistenceInputs,
 		approvalPersistenceScopeFromAuthContext(options.auth_context),
 	);
 

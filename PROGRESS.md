@@ -13,6 +13,66 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
 
+### GitHub CI / PR #11 Quality Gate Fix - 29 Nisan 2026
+
+- PR #11 `quality` check kirigi incelendi. Ilk GitHub Actions hatasi `pnpm lint` altinda root `biome check .` idi; generated/temp desktop ciktilari ve eski format drift'i kalite kapisini kirletiyordu.
+- `biome.json` ve `.gitignore` generated desktop ciktilarini, `temp-asar` klasorunu, local `.claire` worktree'lerini ve Lighthouse rapor artifact'lerini lint kapsamindan cikartacak sekilde daraltildi.
+- Gercek kaynak dosyalarinda mekanik Biome format/import duzeltmeleri yapildi: CI helper scriptleri, desktop smoke script'i, UI fixture ve capability preview sayfasi.
+- Lint sonrasi ortaya cikacak server test kirigi de kapatildi: approval request incremental asamada persist edildiyse finalize asamasinda ikinci kez persist edilmiyor; desktop approval continuation context'i artik yalniz son snapshot'i degil birikmis tool-result history'yi tasiyor. Boylece approval replay ve desktop vision-loop testleri mevcut runtime davranisiyla yeniden hizalandi.
+- Dogrulama:
+  - `pnpm.cmd typecheck` PASS
+  - `pnpm.cmd lint` PASS
+  - `pnpm.cmd test` PASS
+  - `pnpm.cmd build` PASS
+- Durust kalan durum: Bu kayit local CI parity proof'udur. GitHub Actions tekrar kosup PR #11 `quality` ve ardindan `e2e` check'lerini yesil gostermeden merge claim'i yapilmamalidir.
+
+### Track C / Desktop Installer Trust & Packaging Polish - 29 Nisan 2026
+
+- Sertifika henuz temin edilmedigi icin code signing bilincli olarak kapsam disi tutuldu; buna ragmen installer guveni icin kalan paketleme uyarilari kapatildi.
+- `apps/desktop-agent/scripts/create-placeholder-icons.mjs` artik placeholder icon yerine web uygulamasindaki Runa brand icon kaynaklarini kullanarak `build/icon.png` ve `build/icon.ico` uretir.
+- `electron-builder.yml` Runa icon'larini Windows executable, installer ve uninstaller metadata'sina bagladi. Son `dist:win` ciktisinda eski `default Electron icon is used` uyarisi tekrar etmedi.
+- Paketleme stratejisi `asar: true` durumuna tasindi. Son artifact'te `release/win-unpacked/resources/app.asar` olustu ve asar integrity executable resource guncellendi; buna ragmen packaged runtime proof yesil kaldi.
+- `apps/desktop-agent/package.json` icindeki nested `npm run` zinciri kaldirildi. Yeni `scripts/build-windows-installer.mjs` build orchestrator'i icon, main, renderer ve electron-builder adimlarini shell zinciri olmadan siralar. Son `dist:win` ciktisinda npm `recursive` warning'i tekrar etmedi.
+- `apps/desktop-agent/scripts/start-electron.mjs` icindeki `shell: true` kaldirildi ve Node builtin importlari temizlendi. Ayrica electron-builder'in Node 25 altinda kendi dependency collector yolundan gelen `DEP0190` deprecation trace'i izole edildi; release build orchestrator'i bu upstream build-tool deprecation ciktisini bastirarak app/runtime proof'unu kirletmez.
+- Runtime dependency yuzeyi daraltildi: Electron main/renderer bundle oldugu icin desktop-agent `dependencies` alani bosaltildi, `@runa/types` ve `electron-updater` build-time/dev dependency tarafina tasindi; `pnpm-lock.yaml` lockfile-only install ile senkronize edildi.
+- Authenticode durumu acikca dogrulandi: `release/win-unpacked/Runa Desktop.exe` ve `release/Runa Desktop Setup 0.1.0.exe` `Get-AuthenticodeSignature` ile `NotSigned`. Bu beklenen durumdur; sertifika gelene kadar signed artifact claim'i yoktur.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck:electron` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck:renderer` PASS
+  - `pnpm.cmd exec biome check apps/desktop-agent/scripts/build-windows-installer.mjs apps/desktop-agent/scripts/create-placeholder-icons.mjs apps/desktop-agent/scripts/start-electron.mjs apps/desktop-agent/electron-builder.yml apps/desktop-agent/package.json` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent run dist:win` PASS; `asar disabled`, `default Electron icon`, npm `recursive` ve `DEP0190` warning'leri son temiz build ciktisinda gorulmedi.
+  - `pnpm.cmd --filter @runa/desktop-agent run test:presence-release-proof` PASS; `DESKTOP_PACKAGED_RUNTIME_SMOKE_SUMMARY device_online=true`, `device_removed_after_shutdown=true`, `approval_resolve_sent=true`, `screenshot_succeeded=true`, `run_status="desktop_screenshot_success"`.
+- Kalan release riski: code signing sertifikasi henuz yok. Sertifika temin edilince Authenticode signing/notarization benzeri final Windows trust adimi ayri release-hardening gorevi olarak kosulmali.
+
+### Track B / Backend Persistence Release Proof - 29 Nisan 2026
+
+- Backend persistence release kapisi icin tek otoritatif proof komutu eklendi: `pnpm.cmd --filter @runa/server run test:persistence-release-proof`.
+- Yeni `apps/server/scripts/persistence-release-proof.mjs` su zinciri tek summary altinda toplar: DB config/CRUD smoke, first-run `GET /conversations` empty-state proof, persisted conversation/message readback, local memory RLS proof ve approval persistence/reconnect live smoke.
+- Komut `PERSISTENCE_RELEASE_PROOF_SUMMARY` uretir; `PASS` olmadan backend persistence release proof tamamlanmis sayilmaz. DB/provider/ortam prerequisite'i eksikse `BLOCKED` veya net failure stage ile raporlar.
+- `docs/dev/conversation-persistence-health.md` release proof kapisini ve beklenen PASS kriterlerini dokumante edecek sekilde guncellendi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server build` PASS
+  - `pnpm.cmd exec biome check apps/server/scripts/persistence-release-proof.mjs apps/server/package.json docs/dev/conversation-persistence-health.md` PASS
+  - `pnpm.cmd --filter @runa/server run test:persistence-release-proof` PASS; `PERSISTENCE_RELEASE_PROOF_SUMMARY result="PASS"`, `failure_stage=null`, DB target `local`, DB source `DATABASE_URL`, first-run `/conversations` status `200`, persisted message count `1`, local memory RLS `PASS`, approval persistence/reconnect `PASS`.
+  - Not: ilk manuel proof denemesinde summary `PASS` uretildikten sonra Node acik handle nedeniyle sure asimina girdi. Script kapanisi deterministik hale getirildi ve package script tekrar kosuldugunda exit code `0` ile tamamlandi.
+
+### Track C / Desktop Companion Presence Release Proof - 29 Nisan 2026
+
+- Desktop companion icin release-grade online presence proof kapisi eklendi: `pnpm.cmd --filter @runa/desktop-agent run test:presence-release-proof`.
+- `apps/desktop-agent/scripts/packaged-runtime-smoke.mjs` artik disarida calisan server veya live provider key varsaymaz. `RUNA_SMOKE_SERVER_URL` verilmezse kendi gecici Fastify server'ini baslatir, local dev auth bootstrap ile access token alir, paketli `Runa Desktop.exe` process'ini o token ile calistirir ve `/desktop/devices` uzerinden gercek online cihaz gorunurlugunu bekler.
+- Yeni `apps/desktop-agent/scripts/packaged-runtime-smoke-server.mjs` gecici server helper'i eklendi. Helper repo `.env` + `.env.local` yukler, local dev auth'u acar, DeepSeek provider cagrisini canli internete veya credential'a baglamadan deterministic tool-call stub ile yanitlar ve `/ws/desktop-agent` + `/ws` runtime zincirini gercek server uzerinde calistirir.
+- Proof zinciri fake device uretmez: paketli Electron runtime gercek desktop bridge handshake yapar, server registry cihazi `online` olarak listeler, runtime `desktop.screenshot` tool'unu hedef `connection_id` ile paketli agent'a dispatch eder, approval resolve sinyali gonderilir, tool result `success` olarak doner ve process kapatilinca cihaz `/desktop/devices` listesinden kalkar.
+- `apps/desktop-agent/package.json` icine build + package + proof zincirini tek komuta toplayan `test:presence-release-proof` script'i eklendi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/desktop-agent typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd exec biome check apps/desktop-agent/scripts/packaged-runtime-smoke.mjs apps/desktop-agent/scripts/packaged-runtime-smoke-server.mjs apps/desktop-agent/package.json` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent run test:presence-release-proof` PASS; `DESKTOP_PACKAGED_RUNTIME_SMOKE_SUMMARY device_online=true`, `device_removed_after_shutdown=true`, `approval_resolve_sent=true`, `screenshot_succeeded=true`, `run_status="desktop_screenshot_success"`.
+- Durust kalan durum: Bu proof sirasinda artifact unsigned idi ve `asar usage is disabled`, `default Electron icon is used`, npm `recursive` warning ve shell deprecation warning'i gorulmustu. Bu maddeler ayni gun `Desktop Installer Trust & Packaging Polish` goreviyle kapatildi; code signing sertifikasi hala ayri release gereksinimidir.
+
 ### Track A / Gateway - DeepSeek Provider + Model Economy Routing - 28 Nisan 2026
 
 - DeepSeek, mevcut `ModelGateway` omurgasina ayri ve additive provider olarak eklendi. WS/runtime/approval/ToolRegistry contract'lari yeniden tasarlanmadi.

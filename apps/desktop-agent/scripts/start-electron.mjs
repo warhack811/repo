@@ -2,16 +2,17 @@
  * Start Electron app in development mode
  */
 
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Set required environment variables for testing
 process.env.RUNA_DESKTOP_AGENT_ID = process.env.RUNA_DESKTOP_AGENT_ID || 'test-agent-id';
-process.env.RUNA_DESKTOP_AGENT_SERVER_URL = process.env.RUNA_DESKTOP_AGENT_SERVER_URL || 'http://localhost:3001';
+process.env.RUNA_DESKTOP_AGENT_SERVER_URL =
+	process.env.RUNA_DESKTOP_AGENT_SERVER_URL || 'http://localhost:3001';
 
 const electronPath = path.join(__dirname, '../node_modules/electron/dist/electron.exe');
 const mainPath = path.join(__dirname, '../dist-electron/main.mjs');
@@ -23,7 +24,7 @@ console.log('Main path:', mainPath);
 const electronProcess = spawn(electronPath, [mainPath], {
 	env: { ...process.env },
 	stdio: ['pipe', 'pipe', 'pipe'],
-	shell: true,
+	windowsHide: true,
 });
 
 electronProcess.stdout.on('data', (data) => {

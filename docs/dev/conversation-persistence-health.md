@@ -66,6 +66,25 @@ degeri sizdirmaz; yalniz guvenli health metadata'si verir:
 
 ## Smoke
 
+Backend persistence release proof icin tek komut:
+
+```powershell
+pnpm.cmd --filter @runa/server run test:persistence-release-proof
+```
+
+Bu komut `PERSISTENCE_RELEASE_PROOF_SUMMARY` satiri uretir. Release icin
+beklenen sonuc `result: "PASS"` olmalidir ve su zinciri birlikte kanitlanir:
+
+- DB config secimi ve CRUD smoke.
+- Bos hesapta first-run `GET /conversations` 200 empty state.
+- Conversation/message persist edip ayni owner scope'unda geri okuyabilme.
+- Local memory RLS proof.
+- Approval persistence + reconnect live smoke.
+
+`result: "BLOCKED"` cikarsa bu release kaniti tamamlanmis sayilmaz; DB
+credential/engine, provider credential veya local proof prerequisite'i acikca
+duzeltilip komut yeniden kosulmalidir.
+
 ```powershell
 pnpm.cmd install --frozen-lockfile
 pnpm.cmd --filter @runa/db build
@@ -86,4 +105,3 @@ Authenticated local dev browser smoke:
 
 Demo/dev icin hedef sonuc: `/conversations` ve `/desktop/devices` 200 doner ve
 React console'da `Maximum update depth exceeded` gorulmez.
-
