@@ -230,6 +230,7 @@ const [
 	healthRoutesModule,
 	permissionEngineModule,
 	policyWiringModule,
+	usageQuotaModule,
 	registryModule,
 	registerWsModule,
 	wsAuthModule,
@@ -243,6 +244,7 @@ const [
 	import(pathToFileURL(resolve(serverDistRoot, 'routes', 'health.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'policy', 'permission-engine.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'ws', 'policy-wiring.js')).href),
+	import(pathToFileURL(resolve(serverDistRoot, 'policy', 'usage-quota.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'tools', 'registry.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'ws', 'register-ws.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'ws', 'ws-auth.js')).href),
@@ -261,6 +263,7 @@ const { conversationScopeFromAuthContext } = conversationStoreModule;
 const { registerHealthRoutes } = healthRoutesModule;
 const { createPermissionEngine } = permissionEngineModule;
 const { createWebSocketPolicyWiring } = policyWiringModule;
+const { resetUsageRateLimitStore } = usageQuotaModule;
 const { createBuiltInToolRegistry } = registryModule;
 const { attachRuntimeWebSocketHandler } = registerWsModule;
 const { rejectWebSocketConnection, verifyWebSocketHandshake } = wsAuthModule;
@@ -497,6 +500,8 @@ server.get('/ws', { websocket: true }, async (socket, request) => {
 		const subscriptionAccess = await verifyWebSocketSubscriptionAccess({
 			auth: authContext,
 		});
+
+		resetUsageRateLimitStore();
 
 		attachRuntimeWebSocketHandler(socket, {
 			approvalStore,

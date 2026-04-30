@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 
 import '../../src/styles/index.css';
+import '../../src/styles/routes/chat-migration.css';
 import { AppNav } from '../../src/components/app/AppNav.js';
 import { ChatLayout } from '../../src/components/chat/ChatLayout.js';
 import { ConversationSidebar } from '../../src/components/chat/ConversationSidebar.js';

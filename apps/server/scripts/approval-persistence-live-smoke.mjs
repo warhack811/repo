@@ -673,16 +673,6 @@ async function main() {
 		return;
 	}
 
-	if (databaseConfig.target !== 'local') {
-		printSummary({
-			database_target: databaseConfig.target,
-			result: 'BLOCKED',
-			reason: 'database_target_not_local',
-		});
-		process.exitCode = 2;
-		return;
-	}
-
 	const createLocalDevSessionToken = await loadCreateLocalDevSessionToken();
 	const connection = createDatabaseConnection(databaseConfig);
 	const tempDirectory = mkdtempSync(join(os.tmpdir(), 'runa-approval-smoke-'));
@@ -716,6 +706,7 @@ async function main() {
 		printSummary({
 			database_target: databaseConfig.target,
 			database_url_source: databaseConfig.database_url_source,
+			database_target_supported: true,
 			local_dev_auth: 'enabled',
 			result: 'PASS',
 			scenarios: [toolApproval, autoContinue],

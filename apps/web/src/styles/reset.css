@@ -34,15 +34,7 @@ body {
 }
 
 body::before {
-	content: "";
-	position: fixed;
-	inset: 0;
-	pointer-events: none;
-	background: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-	background-size: 72px 72px;
-	mask-image: radial-gradient(circle at center, black 45%, transparent 95%);
-	opacity: 0.22;
+	display: none;
 }
 
 [data-theme="light"] body::before {
@@ -90,8 +82,29 @@ h5,
 h6 {
 	margin: 0;
 	font-family: var(--font-heading);
+	font-weight: 600;
 	letter-spacing: var(--tracking-heading);
 	line-height: var(--leading-tight);
+}
+
+strong,
+b {
+	font-weight: 600;
+}
+
+h1 {
+	font-size: 28px;
+}
+
+h2 {
+	font-size: 20px;
+}
+
+h3,
+h4,
+h5,
+h6 {
+	font-size: 16px;
 }
 
 p {
@@ -112,7 +125,7 @@ pre {
 :focus-visible {
 	outline: 2px solid rgba(245, 158, 11, 0.9);
 	outline-offset: 3px;
-	box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16);
+	box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

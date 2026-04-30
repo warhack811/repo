@@ -8,10 +8,49 @@ import styles from './BlockRenderer.module.css';
 
 type ToolResultBlockProps = Readonly<{
 	block: Extract<RenderBlock, { type: 'tool_result' }>;
+	isDeveloperMode?: boolean;
 }>;
 
-export function ToolResultBlock({ block }: ToolResultBlockProps): ReactElement {
+function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{
+	readonly summary: string;
+	readonly title: string;
+}> {
+	if (block.payload.status === 'success') {
+		return {
+			summary: 'Sonuç sohbet akışına eklendi.',
+			title: 'İşlem tamamlandı',
+		};
+	}
+
+	return {
+		summary: 'Bu adım tamamlanamadı. Gerekirse yeniden deneyebilirsin.',
+		title: 'İşlem tamamlanamadı',
+	};
+}
+
+export function ToolResultBlock({
+	block,
+	isDeveloperMode = false,
+}: ToolResultBlockProps): ReactElement {
 	const isSuccess = block.payload.status === 'success';
+	const friendlyCopy = getFriendlyResultCopy(block);
+
+	if (!isDeveloperMode) {
+		return (
+			<article
+				className={cx(styles['block'], isSuccess ? styles['blockSuccess'] : styles['blockDanger'])}
+			>
+				<div className={styles['resultHeader']}>
+					<div className={styles['headerStack']}>
+						<span className={styles['eyebrow']}>Sonuç</span>
+						<strong className={styles['title']}>{friendlyCopy.title}</strong>
+					</div>
+					<span className={styles['chip']}>{isSuccess ? 'Tamamlandı' : 'Kontrol gerekli'}</span>
+				</div>
+				<p className={styles['summary']}>{friendlyCopy.summary}</p>
+			</article>
+		);
+	}
 
 	return (
 		<article

@@ -25,14 +25,13 @@ for (const viewport of viewports) {
 		await page.getByRole('button', { name: 'Atla' }).click();
 		await expect(page.getByTestId('chat-polish')).toBeVisible();
 		await expect(page.getByTestId('settings-polish')).toBeVisible();
-		await expect(page.getByRole('tab', { name: 'Preferences' })).toBeVisible();
+		await expect(page.getByRole('tab', { name: 'Tercihler' })).toBeVisible();
+		await expect(page.getByRole('tab', { name: 'Developer' })).toHaveCount(0);
+		await expect(page.getByRole('tab', { name: 'Project Memory' })).toHaveCount(0);
+		await expect(page.getByRole('tab', { name: 'Devices' })).toHaveCount(0);
 
-		await page.getByRole('tab', { name: 'Preferences' }).click();
+		await page.getByRole('tab', { name: 'Tercihler' }).click();
 		await expect(page.getByRole('heading', { name: 'Tema' })).toBeVisible();
-		await page.getByRole('tab', { name: 'Devices' }).click();
-		await expect(page.getByRole('heading', { name: 'Cihaz durumu' })).toBeVisible();
-		await page.getByRole('tab', { name: 'Project Memory' }).click();
-		await expect(page.getByRole('heading', { name: 'Proje hafizasi' })).toBeVisible();
 
 		const bodyWidth = await page.evaluate(() => document.documentElement.scrollWidth);
 		expect(bodyWidth).toBeLessThanOrEqual(viewport.width + 2);

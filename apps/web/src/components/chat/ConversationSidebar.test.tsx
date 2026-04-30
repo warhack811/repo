@@ -56,7 +56,7 @@ describe('ConversationSidebar', () => {
 		const markup = renderSidebar();
 
 		expect(markup).toContain('Yeni sohbet');
-		expect(markup).toContain('Bugun');
+		expect(markup).toContain('Bugün');
 		expect(markup).toContain('Daha eski');
 		expect(markup).toContain('UI Phase 6');
 		expect(markup).toContain('Hesap ve ayarlar');
@@ -66,8 +66,8 @@ describe('ConversationSidebar', () => {
 		const markup = renderSidebar();
 
 		expect(markup).toContain('<details');
-		expect(markup).toContain('Uyeler - Sahip');
-		expect(markup).toContain('uye kullanici id');
+		expect(markup).toContain('Üyeler - Sahip');
+		expect(markup).toContain('üye bilgisi');
 	});
 
 	it('softens raw server errors before showing them in the sidebar', () => {
@@ -76,7 +76,7 @@ describe('ConversationSidebar', () => {
 				'{"statusCode":500,"error":"Internal Server Error","message":"Failed to list conversations."}',
 		});
 
-		expect(markup).toContain('Sohbet gecmisi su anda yuklenemedi');
+		expect(markup).toContain('Sohbet geçmişi şu anda yüklenemedi');
 		expect(markup).not.toContain('Internal Server Error');
 		expect(markup).not.toContain('statusCode');
 	});

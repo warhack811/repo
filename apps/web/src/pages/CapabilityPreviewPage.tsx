@@ -136,7 +136,7 @@ function renderSectionHeader(eyebrow: string, title: string, description: string
 }
 
 export function CapabilityPreviewPage(): ReactElement {
-	const { isDeveloperMode, setDeveloperMode } = useDeveloperMode();
+	const { isDeveloperMode } = useDeveloperMode();
 	const [selectedAssetId, setSelectedAssetId] = useState(sourceAsset.id);
 	const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
 	const [isActionDetailOpen, setIsActionDetailOpen] = useState(false);
@@ -200,12 +200,9 @@ export function CapabilityPreviewPage(): ReactElement {
 						Developer Mode is required
 					</h2>
 					<p className={styles['mutedText']}>
-						This route is reserved for internal visual QA. Enable Developer Mode to inspect
-						capability UI states.
+						This route is reserved for internal visual QA and is unavailable in normal user
+						sessions.
 					</p>
-				</div>
-				<div className={styles['fitContent']}>
-					<RunaButton onClick={() => setDeveloperMode(true)}>Enable Developer Mode</RunaButton>
 				</div>
 			</section>
 		);

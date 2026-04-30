@@ -1,12 +1,12 @@
 .textarea {
-	background: var(--gradient-input);
+	background: hsl(var(--color-surface-overlay) / 0.72);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: var(--radius-soft);
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 	box-sizing: border-box;
 	color: hsl(var(--color-text));
 	font: inherit;
-	font-size: 15px;
+	font-size: 16px;
 	line-height: 1.6;
 	min-height: 140px;
 	min-width: 0;
@@ -19,6 +19,6 @@
 
 .textarea:focus-visible {
 	border-color: rgba(245, 158, 11, 0.5);
-	box-shadow: var(--shadow-glow);
+	box-shadow: none;
 	outline: none;
 }

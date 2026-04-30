@@ -26,8 +26,7 @@ export function SessionCard({
 				</div>
 				<h3 className="runa-migrated-components-auth-sessioncard-4">Oturum durumu</h3>
 				<p className="runa-migrated-components-auth-sessioncard-5">
-					Bu alan yalnız temel oturum bilgisini gösterir. Teknik metadata ve troubleshooting
-					ayrıntıları Developer Mode içinde kalır.
+					Temel oturum bilgilerini sade bir özetle görebilirsin.
 				</p>
 			</div>
 
@@ -35,10 +34,9 @@ export function SessionCard({
 				<span className="runa-migrated-components-auth-sessioncard-7">
 					{authContext.principal.kind === 'authenticated' ||
 					authContext.principal.kind === 'service'
-						? 'active'
-						: 'limited'}
+						? 'açık'
+						: 'sınırlı'}
 				</span>
-				<span className="runa-migrated-components-auth-sessioncard-8">{authContext.transport}</span>
 			</div>
 
 			<div className="runa-migrated-components-auth-sessioncard-9">

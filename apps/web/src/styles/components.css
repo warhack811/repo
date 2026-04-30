@@ -49,42 +49,29 @@
 	--color-accent: 38 92% 50%;
 	--color-accent-strong: 32 95% 44%;
 	--color-accent-foreground: 222 47% 11%;
+	--color-info: 199 89% 64%;
 	--color-success: 142 71% 45%;
+	--color-warning: 38 92% 50%;
 	--color-danger: 0 84% 67%;
-	--shadow-panel: 0 24px 60px rgba(2, 6, 23, 0.42);
-	--shadow-panel-soft: 0 18px 40px rgba(2, 6, 23, 0.28);
-	--shadow-glow: 0 0 0 1px rgba(245, 158, 11, 0.12), 0 24px 80px rgba(245, 158, 11, 0.1);
-	--shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-	--radius-panel: 24px;
-	--radius-soft: 18px;
+	--shadow-panel: none;
+	--shadow-panel-soft: none;
+	--shadow-glow: 0 0 0 1px hsl(var(--color-accent) / 0.22);
+	--shadow-inset: none;
+	--radius-panel: 16px;
+	--radius-soft: 12px;
 	--radius-pill: 999px;
 	--space-page-y: clamp(18px, 4vw, 32px);
 	--space-page-x: clamp(12px, 3vw, 16px);
 	--space-panel: clamp(18px, 3vw, 24px);
 	--space-subcard: 16px;
-	--page-background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.12), transparent 24%),
-		radial-gradient(circle at top right, rgba(148, 163, 184, 0.1), transparent 28%),
-		radial-gradient(circle at bottom center, rgba(120, 113, 108, 0.12), transparent 30%),
-		linear-gradient(180deg, hsl(var(--color-bg)) 0%, #090d16 100%);
-	--gradient-panel: linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 15, 27, 0.76) 100%);
-	--gradient-panel-strong: linear-gradient(
-		180deg,
-		rgba(12, 18, 31, 0.9) 0%,
-		rgba(9, 14, 25, 0.82) 100%
-	);
-	--gradient-subcard: linear-gradient(180deg, rgba(8, 13, 24, 0.78) 0%, rgba(4, 9, 19, 0.72) 100%);
-	--gradient-input: linear-gradient(180deg, rgba(8, 14, 24, 0.88) 0%, rgba(6, 11, 21, 0.78) 100%);
-	--gradient-primary-button: linear-gradient(135deg, #f59e0b, #ea580c);
-	--gradient-secondary-button: linear-gradient(
-		180deg,
-		rgba(15, 23, 42, 0.72) 0%,
-		rgba(9, 14, 25, 0.7) 100%
-	);
-	--gradient-secondary-button-active: radial-gradient(
-			circle at top right,
-			rgba(245, 158, 11, 0.12),
-			transparent 42%
-		), linear-gradient(180deg, rgba(46, 29, 8, 0.76) 0%, rgba(15, 23, 42, 0.82) 100%);
+	--page-background: hsl(var(--color-bg));
+	--gradient-panel: hsl(var(--color-surface) / 0.72);
+	--gradient-panel-strong: hsl(var(--color-surface-strong) / 0.78);
+	--gradient-subcard: hsl(var(--color-surface-overlay) / 0.5);
+	--gradient-input: hsl(var(--color-surface-overlay) / 0.72);
+	--gradient-primary-button: hsl(var(--color-accent));
+	--gradient-secondary-button: hsl(var(--color-surface) / 0.58);
+	--gradient-secondary-button-active: hsl(var(--color-accent) / 0.16);
 	--safe-area-top: env(safe-area-inset-top, 0px);
 	--safe-area-right: env(safe-area-inset-right, 0px);
 	--safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -131,18 +118,21 @@ body.runa-sidebar-lock {
 	display: grid;
 	min-height: 50dvh;
 	place-items: center;
+	padding: var(--space-panel);
+}
+
+.runa-route-fallback__skeleton {
+	display: grid;
+	gap: 12px;
+	width: min(420px, 100%);
+}
+
+.runa-route-fallback__skeleton [class*="rect"] {
+	min-height: 156px;
 }
 
 body::before {
-	content: "";
-	position: fixed;
-	inset: 0;
-	pointer-events: none;
-	background: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-	background-size: 72px 72px;
-	mask-image: radial-gradient(circle at center, black 45%, transparent 95%);
-	opacity: 0.22;
+	display: none;
 }
 
 #root {
@@ -243,7 +233,7 @@ body::before {
 	min-height: 48px;
 	padding: 10px 12px;
 	border: 1px solid rgba(148, 163, 184, 0.14);
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	background: rgba(15, 23, 42, 0.4);
 	color: hsl(var(--color-text-muted));
 	text-decoration: none;
@@ -273,8 +263,8 @@ body::before {
 }
 
 .runa-app-nav__label {
-	font-size: 13px;
-	font-weight: 800;
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .runa-app-nav__description {
@@ -298,8 +288,8 @@ body::before {
 	padding: var(--space-panel);
 	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.2);
-	background: var(--gradient-panel);
-	box-shadow: var(--shadow-panel);
+	background: hsl(var(--color-surface) / 0.72);
+	box-shadow: none;
 	backdrop-filter: blur(12px);
 	transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms
 		ease, background 220ms ease;
@@ -308,18 +298,17 @@ body::before {
 
 .runa-card--hero {
 	border-color: rgba(245, 158, 11, 0.24);
-	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
-		linear-gradient(180deg, rgba(20, 26, 40, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-card--strong {
-	background: var(--gradient-panel-strong);
+	background: hsl(var(--color-surface-strong) / 0.78);
 }
 
 /* DENSITY REDUCTION: Chat cards use lighter background for less visual weight in the chat surface */
 .runa-card--chat {
 	background: rgba(12, 18, 31, 0.6);
-	box-shadow: 0 8px 20px rgba(2, 6, 23, 0.15);
+	box-shadow: none;
 	backdrop-filter: blur(8px);
 }
 
@@ -376,12 +365,12 @@ body::before {
 	min-width: 0;
 	box-sizing: border-box;
 	padding: 10px 12px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.24);
-	background: var(--gradient-input);
+	background: hsl(var(--color-surface-overlay) / 0.72);
 	color: hsl(var(--color-text));
 	font-size: 14px;
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 	transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease, transform 180ms
 		ease;
 }
@@ -398,7 +387,7 @@ body::before {
 	padding: 14px 16px;
 	min-height: 140px;
 	resize: vertical;
-	font-size: 15px;
+	font-size: 16px;
 	line-height: 1.6;
 }
 
@@ -408,8 +397,8 @@ body::before {
 	justify-content: center;
 	gap: 10px;
 	padding: 12px 16px;
-	border-radius: 14px;
-	font-weight: 700;
+	border-radius: var(--radius-soft);
+	font-weight: 600;
 	cursor: pointer;
 	text-decoration: none;
 	transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease, border-color 180ms
@@ -431,23 +420,23 @@ body::before {
 
 .runa-button--primary {
 	border: none;
-	background: var(--gradient-primary-button);
-	color: var(--color-accent-foreground);
-	box-shadow: 0 18px 32px rgba(234, 88, 12, 0.22);
+	background: hsl(var(--color-accent));
+	color: hsl(var(--color-accent-foreground));
+	box-shadow: none;
 }
 
 .runa-button--secondary {
 	border: 1px solid rgba(148, 163, 184, 0.28);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 }
 
 .runa-button--secondary-active {
 	border-color: rgba(245, 158, 11, 0.34);
-	background: var(--gradient-secondary-button-active);
+	background: hsl(var(--color-accent) / 0.16);
 	color: hsl(var(--color-text));
-	box-shadow: var(--shadow-glow);
+	box-shadow: none;
 }
 
 .runa-button--danger {
@@ -465,7 +454,7 @@ body::before {
 	background: rgba(36, 24, 8, 0.7);
 	color: #fde68a;
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	max-width: 100%;
@@ -474,7 +463,7 @@ body::before {
 
 .runa-alert {
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	line-height: 1.5;
 	animation: runa-slide-up 180ms ease both;
 }
@@ -503,7 +492,7 @@ body::before {
 
 .runa-developer-details summary {
 	cursor: pointer;
-	font-weight: 700;
+	font-weight: 600;
 	color: hsl(var(--color-text));
 }
 
@@ -517,9 +506,9 @@ body::before {
 	display: grid;
 	gap: 8px;
 	padding: 14px 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
@@ -534,7 +523,7 @@ body::before {
 }
 
 .runa-empty-state {
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px dashed rgba(148, 163, 184, 0.24);
 	padding: 20px;
 	color: hsl(var(--color-text-soft));
@@ -575,8 +564,29 @@ h5,
 h6 {
 	margin: 0;
 	font-family: var(--font-heading);
+	font-weight: 600;
 	letter-spacing: var(--tracking-heading, 0);
 	line-height: var(--leading-tight, 1.12);
+}
+
+strong,
+b {
+	font-weight: 600;
+}
+
+h1 {
+	font-size: 28px;
+}
+
+h2 {
+	font-size: 20px;
+}
+
+h3,
+h4,
+h5,
+h6 {
+	font-size: 16px;
 }
 
 p {
@@ -596,24 +606,12 @@ pre {
 :focus-visible {
 	outline: 2px solid rgba(245, 158, 11, 0.9);
 	outline-offset: 3px;
-	box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16);
+	box-shadow: none;
 }
 
 .runa-ambient-panel {
 	position: relative;
 	overflow: hidden;
-}
-
-.runa-ambient-panel::before {
-	content: "";
-	position: absolute;
-	inset: -35% auto auto -10%;
-	width: 240px;
-	height: 240px;
-	border-radius: 999px;
-	background: radial-gradient(circle, rgba(245, 158, 11, 0.18), transparent 70%);
-	filter: blur(8px);
-	pointer-events: none;
 }
 
 .runa-chat-surface {
@@ -644,8 +642,8 @@ pre {
 	background: rgba(6, 11, 21, 0.7);
 	backdrop-filter: blur(12px);
 	border: 1px solid rgba(148, 163, 184, 0.12);
-	border-radius: 16px;
-	box-shadow: 0 8px 24px rgba(2, 6, 23, 0.18);
+	border-radius: var(--radius-panel);
+	box-shadow: none;
 	display: flex;
 	gap: 14px;
 	justify-content: space-between;
@@ -677,7 +675,7 @@ pre {
 
 .runa-chat-header__brand span {
 	color: hsl(var(--color-text-muted));
-	font-size: 13px;
+	font-size: 14px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -688,7 +686,7 @@ pre {
 	align-items: center;
 	background: rgba(15, 23, 42, 0.5);
 	border: 1px solid rgba(148, 163, 184, 0.14);
-	border-radius: 10px;
+	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text));
 	cursor: pointer;
 	display: inline-flex;
@@ -710,7 +708,7 @@ pre {
 	border-radius: 999px;
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 	max-width: min(240px, 34vw);
 	overflow: hidden;
 	padding: 8px 10px;
@@ -749,7 +747,13 @@ pre {
 }
 
 .runa-chat-layout__composer {
-	z-index: 15;
+	position: relative;
+	z-index: 1;
+}
+
+.runa-chat-layout__work {
+	position: relative;
+	z-index: 2;
 }
 
 .runa-chat-layout__sidebar .runa-conversation-sidebar {
@@ -772,8 +776,8 @@ pre {
 
 .runa-transcript-details > summary {
 	cursor: pointer;
-	font-size: 13px;
-	font-weight: 700;
+	font-size: 14px;
+	font-weight: 600;
 	list-style: none;
 	padding: 0;
 	margin: 0;
@@ -804,7 +808,7 @@ pre {
 	cursor: pointer;
 	display: flex;
 	flex-wrap: wrap;
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 600;
 	gap: 8px 12px;
 	justify-content: space-between;
@@ -895,7 +899,7 @@ pre {
 }
 
 .runa-attachment-preview__name {
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 600;
 	color: hsl(var(--color-text));
 	overflow: hidden;
@@ -904,7 +908,7 @@ pre {
 }
 
 .runa-attachment-preview__size {
-	font-size: 11px;
+	font-size: 12px;
 	color: hsl(var(--color-text-soft));
 }
 
@@ -928,8 +932,8 @@ pre {
 
 .runa-chat-empty-state__hint {
 	color: hsl(var(--color-text));
-	font-size: var(--text-2xl, 1.5rem);
-	font-weight: 800;
+	font-size: 20px;
+	font-weight: 600;
 	margin: 0;
 }
 
@@ -952,10 +956,10 @@ pre {
 	min-height: 92px;
 	background: rgba(15, 23, 42, 0.32);
 	border: 1px solid rgba(148, 163, 184, 0.12);
-	border-radius: 10px;
+	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text-muted));
 	cursor: pointer;
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 500;
 	line-height: 1.4;
 	padding: 10px 12px;
@@ -1006,7 +1010,7 @@ pre {
 	font-weight: 600;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	box-shadow: none;
 }
 
 .runa-developer-toggle__switch {
@@ -1027,7 +1031,7 @@ pre {
 	height: 18px;
 	border-radius: 50%;
 	background: white;
-	box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28);
+	box-shadow: none;
 	transition: transform 180ms ease;
 }
 
@@ -1035,11 +1039,11 @@ pre {
 	border-color: rgba(245, 158, 11, 0.45);
 	background: rgba(38, 26, 8, 0.78);
 	color: #fde68a;
-	box-shadow: var(--shadow-glow);
+	box-shadow: none;
 }
 
 .runa-developer-toggle--active .runa-developer-toggle__switch {
-	background: linear-gradient(135deg, #f59e0b, #ea580c);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-developer-toggle--active .runa-developer-toggle__switch::after {
@@ -1072,7 +1076,7 @@ pre {
 
 .runa-markdown__heading {
 	color: hsl(var(--color-text));
-	font-size: var(--text-lg, 1.125rem);
+	font-size: 20px;
 }
 
 .runa-markdown__list {
@@ -1089,7 +1093,7 @@ pre {
 .runa-markdown__table-wrap {
 	width: 100%;
 	overflow-x: auto;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 14, 24, 0.56);
 }
@@ -1128,17 +1132,17 @@ pre {
 	border: 1px solid rgba(148, 163, 184, 0.22);
 	background: rgba(15, 23, 42, 0.76);
 	color: #fde68a;
-	font-size: 0.92em;
+	font-size: 12px;
 }
 
 .runa-markdown__code-block {
 	display: grid;
 	gap: 10px;
 	padding: 14px 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(56, 189, 248, 0.2);
-	background: linear-gradient(180deg, rgba(8, 14, 24, 0.92) 0%, rgba(4, 9, 19, 0.88) 100%);
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	background: hsl(var(--color-surface) / 0.72);
+	box-shadow: none;
 	overflow-x: auto;
 	white-space: pre-wrap;
 }
@@ -1149,8 +1153,8 @@ pre {
 
 .runa-markdown__code-label {
 	color: #7dd3fc;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -1249,8 +1253,8 @@ pre {
 
 .runa-conversation-group__label {
 	color: hsl(var(--color-text-soft));
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -1259,7 +1263,7 @@ pre {
 .runa-conversation-item {
 	background: rgba(7, 11, 20, 0.4);
 	border: 1px solid rgba(148, 163, 184, 0.1);
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text));
 	cursor: pointer;
 	display: grid;
@@ -1298,7 +1302,7 @@ pre {
 
 .runa-conversation-preview {
 	color: hsl(var(--color-text-muted));
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.5;
 }
 
@@ -1312,8 +1316,8 @@ pre {
 	border-radius: 999px;
 	color: #bfdbfe;
 	flex: 0 0 auto;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	padding: 3px 8px;
 }
 
@@ -1324,7 +1328,7 @@ pre {
 
 .runa-conversation-members summary {
 	cursor: pointer;
-	font-weight: 700;
+	font-weight: 600;
 }
 
 /* DENSITY REDUCTION: Conversation members use subtle styling */
@@ -1332,7 +1336,7 @@ pre {
 	align-items: center;
 	background: rgba(15, 23, 42, 0.4);
 	border: 1px solid rgba(148, 163, 184, 0.08);
-	border-radius: 10px;
+	border-radius: var(--radius-soft);
 	display: flex;
 	gap: 12px;
 	justify-content: space-between;
@@ -1342,14 +1346,9 @@ pre {
 
 .runa-conversation-skeleton {
 	animation: runa-skeleton-pulse 1.3s ease-in-out infinite;
-	background: linear-gradient(
-		90deg,
-		rgba(148, 163, 184, 0.08),
-		rgba(148, 163, 184, 0.2),
-		rgba(148, 163, 184, 0.08)
-	);
+	background: hsl(var(--color-surface) / 0.72);
 	background-size: 240% 100%;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	height: 86px;
 }
 
@@ -1372,7 +1371,7 @@ pre {
 	align-items: center;
 	background: rgba(9, 14, 25, 0.5);
 	border: 1px solid rgba(148, 163, 184, 0.1);
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	display: flex;
 	gap: 16px;
 	justify-content: space-between;
@@ -1402,48 +1401,53 @@ pre {
 
 .runa-login-shell {
 	display: grid;
-	grid-template-columns: minmax(0, 0.95fr) minmax(320px, 430px);
-	gap: 20px;
-	width: min(100%, 1040px);
-	align-items: stretch;
+	grid-template-columns: 1fr;
+	gap: 18px;
+	width: min(100%, 480px);
+	align-items: start;
 }
 
 .runa-login-hero,
 .runa-login-panel {
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 22px;
-	background: var(--gradient-panel);
-	box-shadow: var(--shadow-panel);
+	border-radius: var(--radius-panel);
+	background: hsl(var(--color-surface) / 0.72);
+	box-shadow: none;
 	padding: clamp(22px, 4vw, 34px);
 }
 
 .runa-login-hero {
-	align-content: space-between;
+	align-content: center;
 	display: grid;
-	min-height: 430px;
+	min-height: auto;
 	overflow: hidden;
 	position: relative;
+	justify-items: center;
+	text-align: center;
+	padding: 0 10px;
+	border: 0;
+	background: transparent;
 }
 
 .runa-login-logo {
 	color: hsl(var(--color-text));
 	height: auto;
-	width: 180px;
+	width: 154px;
 }
 
 .runa-login-copy {
 	display: grid;
 	gap: 12px;
-	max-width: 560px;
+	max-width: 420px;
 }
 
 .runa-login-copy h1 {
-	font-size: var(--text-4xl);
+	font-size: 28px;
 }
 
 .runa-login-copy p {
 	color: hsl(var(--color-text-muted));
-	max-width: 560px;
+	max-width: 420px;
 }
 
 .runa-login-status {
@@ -1477,7 +1481,7 @@ pre {
 .runa-settings-segmented button,
 .runa-onboarding__segments button {
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	background: rgba(15, 23, 42, 0.5);
 	color: hsl(var(--color-text-muted));
 	cursor: pointer;
@@ -1506,7 +1510,7 @@ pre {
 .runa-onboarding__page label span {
 	color: hsl(var(--color-text-muted));
 	font-size: var(--text-sm);
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-login-oauth > span {
@@ -1541,11 +1545,11 @@ pre {
 }
 
 .runa-onboarding__progress span.is-active {
-	background: var(--gradient-primary-button);
+	background: hsl(var(--color-accent));
 }
 
 .runa-onboarding__page h2 {
-	font-size: var(--text-3xl);
+	font-size: 28px;
 }
 
 .runa-onboarding__page p {
@@ -1568,7 +1572,7 @@ pre {
 	align-items: center;
 	background: rgba(15, 23, 42, 0.56);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text));
 	cursor: pointer;
 	display: flex;
@@ -1641,11 +1645,11 @@ pre {
 @keyframes runa-recording-pulse {
 	0%,
 	100% {
-		box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.18);
+		box-shadow: none;
 	}
 
 	50% {
-		box-shadow: 0 0 0 7px rgba(245, 158, 11, 0);
+		box-shadow: none;
 	}
 }
 
@@ -1657,7 +1661,7 @@ pre {
 	margin-left: 0.18rem;
 	vertical-align: -0.12em;
 	border-radius: 999px;
-	background: linear-gradient(180deg, rgba(251, 191, 36, 0.95), rgba(234, 88, 12, 0.95));
+	background: hsl(var(--color-surface) / 0.72);
 	animation: runa-stream-caret 1s steps(1, end) infinite;
 }
 
@@ -1679,7 +1683,7 @@ pre {
 	}
 
 	.runa-login-hero {
-		min-height: 280px;
+		min-height: auto;
 	}
 
 	.runa-shell-frame,
@@ -1718,7 +1722,7 @@ pre {
 	}
 
 	.runa-card {
-		border-radius: 20px;
+		border-radius: var(--radius-panel);
 	}
 
 	.runa-app-shell-header {
@@ -1742,7 +1746,7 @@ pre {
 
 	.runa-chat-header {
 		align-items: stretch;
-		border-radius: 14px;
+		border-radius: var(--radius-soft);
 		flex-direction: column;
 	}
 
@@ -1788,20 +1792,20 @@ pre {
 	}
 
 	.runa-app-nav__items {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 6px;
 		padding: 6px;
 		border: 1px solid rgba(148, 163, 184, 0.16);
-		border-radius: 16px;
+		border-radius: var(--radius-panel);
 		background: rgba(4, 9, 19, 0.86);
 		backdrop-filter: blur(16px);
-		box-shadow: 0 18px 50px rgba(2, 6, 23, 0.32);
+		box-shadow: none;
 	}
 
 	.runa-app-nav__item {
 		justify-content: center;
 		min-height: 46px;
-		padding: 8px 10px;
+		padding: 8px 6px;
 	}
 
 	.runa-app-nav__description {
@@ -1869,7 +1873,7 @@ pre {
 	}
 
 	.runa-card {
-		border-radius: 18px;
+		border-radius: var(--radius-panel);
 	}
 
 	.runa-app-shell-header {
@@ -1903,7 +1907,7 @@ pre {
 
 	.runa-login-hero,
 	.runa-login-panel {
-		border-radius: 18px;
+		border-radius: var(--radius-panel);
 		padding: 18px;
 	}
 }

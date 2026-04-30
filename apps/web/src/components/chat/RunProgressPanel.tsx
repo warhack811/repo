@@ -10,6 +10,7 @@ import type { ToolActivityItem } from './ToolActivityIndicator.js';
 
 type RunProgressPanelProps = Readonly<{
 	feedbackBanner?: ReactNode;
+	isDeveloperMode?: boolean;
 	progress: CurrentRunProgressSurface;
 }>;
 
@@ -106,9 +107,11 @@ function createToolActivityItems(progress: CurrentRunProgressSurface): readonly 
 
 export function RunProgressPanel({
 	feedbackBanner,
+	isDeveloperMode = false,
 	progress,
 }: RunProgressPanelProps): ReactElement {
 	const accent = getPanelAccent(progress.status_tone);
+	const shouldShowDiagnostics = isDeveloperMode;
 
 	return (
 		<section
@@ -134,23 +137,27 @@ export function RunProgressPanel({
 				</div>
 			</div>
 
-			{feedbackBanner}
+			{shouldShowDiagnostics ? feedbackBanner : null}
 
-			<div className="runa-migrated-components-chat-runprogresspanel-8">
-				<div className="runa-migrated-components-chat-runprogresspanel-9">
-					{uiCopy.run.runtimePhases}
-				</div>
-				<RunStatusChips ariaLabel="Current work phases" items={progress.phase_items} />
-			</div>
+			{shouldShowDiagnostics ? (
+				<>
+					<div className="runa-migrated-components-chat-runprogresspanel-8">
+						<div className="runa-migrated-components-chat-runprogresspanel-9">
+							{uiCopy.run.runtimePhases}
+						</div>
+						<RunStatusChips ariaLabel="Current work phases" items={progress.phase_items} />
+					</div>
 
-			<div className="runa-migrated-components-chat-runprogresspanel-10">
-				<div className="runa-migrated-components-chat-runprogresspanel-11">
-					{uiCopy.run.currentSurfaceContext}
-				</div>
-				<RunStatusChips ariaLabel="Current work context" items={progress.meta_items} />
-			</div>
+					<div className="runa-migrated-components-chat-runprogresspanel-10">
+						<div className="runa-migrated-components-chat-runprogresspanel-11">
+							{uiCopy.run.currentSurfaceContext}
+						</div>
+						<RunStatusChips ariaLabel="Current work context" items={progress.meta_items} />
+					</div>
+				</>
+			) : null}
 
-			{progress.approval_block?.payload.target_label ? (
+			{shouldShowDiagnostics && progress.approval_block?.payload.target_label ? (
 				<div className="runa-migrated-components-chat-runprogresspanel-12">
 					<div className="runa-migrated-components-chat-runprogresspanel-13">Hedef cihaz</div>
 					<div className="runa-migrated-components-chat-runprogresspanel-14">
@@ -159,7 +166,7 @@ export function RunProgressPanel({
 				</div>
 			) : null}
 
-			{progress.step_items.length > 0 ? (
+			{shouldShowDiagnostics && progress.step_items.length > 0 ? (
 				<div className="runa-migrated-components-chat-runprogresspanel-15">
 					<div className="runa-migrated-components-chat-runprogresspanel-16">
 						<div className="runa-migrated-components-chat-runprogresspanel-17">
@@ -182,7 +189,7 @@ export function RunProgressPanel({
 				</div>
 			) : null}
 
-			{progress.approval_block ? (
+			{shouldShowDiagnostics && progress.approval_block ? (
 				<div className="runa-migrated-components-chat-runprogresspanel-19">
 					{uiCopy.run.approvalBoundary}: {progress.approval_block.payload.title}
 				</div>

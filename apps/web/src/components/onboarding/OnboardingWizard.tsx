@@ -15,33 +15,33 @@ type Purpose = 'personal' | 'research' | 'work';
 const promptCards = [
 	{
 		icon: Code2,
-		label: 'Kod/review',
-		prompt: 'Bu kodu kalite, risk ve test eksikleri acisindan incele.',
+		label: 'Kod incele',
+		prompt: 'Bu kodu kalite, risk ve test eksikleri açısından incele.',
 	},
 	{
 		icon: Search,
-		label: 'Arastirma',
-		prompt: 'Bu konu hakkinda guvenilir kaynaklarla kisa bir arastirma plani hazirla.',
+		label: 'Araştırma',
+		prompt: 'Bu konu hakkında güvenilir kaynaklarla kısa bir araştırma planı hazırla.',
 	},
 	{
 		icon: FileText,
-		label: 'Dokuman',
-		prompt: 'Bu notlari daha net, uygulanabilir bir gorev dokumanina cevir.',
+		label: 'Doküman',
+		prompt: 'Bu notları daha net, uygulanabilir bir görev dokümanına çevir.',
 	},
 	{
 		icon: MonitorSmartphone,
-		label: 'Masaustu gorev',
-		prompt: 'Bilgisayarimda yapilacak bu isi adimlara ayir ve onay gerektiren yerleri belirt.',
+		label: 'Masaüstü görev',
+		prompt: 'Bilgisayarımda yapılacak bu işi adımlara ayır ve onay gerektiren yerleri belirt.',
 	},
 	{
 		icon: Wand2,
 		label: 'Dosya analizi',
-		prompt: 'Bu dosyayi ozetle, riskleri ve sonraki aksiyonlari cikar.',
+		prompt: 'Bu dosyayı özetle, riskleri ve sonraki aksiyonları çıkar.',
 	},
 	{
 		icon: Sparkles,
 		label: 'Devam et',
-		prompt: 'Onceki konusmadan kaldigimiz isi toparla ve bir sonraki net adimi oner.',
+		prompt: 'Önceki konuşmadan kaldığımız işi toparla ve bir sonraki net adımı öner.',
 	},
 ] as const;
 
@@ -78,9 +78,9 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 	}
 
 	return (
-		<RunaModal isOpen={isOpen} onClose={complete} size="lg" title="Runa onboarding">
+		<RunaModal isOpen={isOpen} onClose={complete} size="lg" title="Runa'ya başla">
 			<section className="runa-onboarding" aria-live="polite">
-				<div className="runa-onboarding__progress" aria-label={`Onboarding adimi ${step + 1} / 4`}>
+				<div className="runa-onboarding__progress" aria-label={`Başlangıç adımı ${step + 1} / 4`}>
 					{[0, 1, 2, 3].map((item) => (
 						<span key={item} className={item <= step ? 'is-active' : undefined} />
 					))}
@@ -91,8 +91,8 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 						<div className="runa-eyebrow">RUNA</div>
 						<h2>Çalışma ortağın hazır.</h2>
 						<p>
-							Runa sohbetten başlar, onay isteyen işleri yanında tutar ve teknik yüzeyleri kalabalık
-							etmeden ikinci katmanda saklar.
+							Runa sohbetten başlar, onay isteyen işlerde seni karar noktasına getirir ve kalabalığı
+							azaltır.
 						</p>
 						<div className="runa-onboarding__actions">
 							<button
@@ -117,7 +117,7 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 					<div className="runa-onboarding__page">
 						<h2>Çalışma alanını adlandıralım.</h2>
 						<label>
-							<span>Workspace adı</span>
+							<span>Çalışma alanı adı</span>
 							<input
 								className="runa-input"
 								value={workspaceName}
@@ -127,7 +127,7 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 						<div
 							className="runa-onboarding__segments"
 							role="radiogroup"
-							aria-label="Kullanim amaci"
+							aria-label="Kullanım amacı"
 						>
 							{(['work', 'research', 'personal'] as const).map((item) => (
 								<button
@@ -162,10 +162,10 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 
 				{step === 2 ? (
 					<div className="runa-onboarding__page">
-						<h2>{workspaceName.trim() || 'Workspace'} için bilgisayar bağlantısı opsiyonel.</h2>
+						<h2>{workspaceName.trim() || 'Çalışma alanı'} için bilgisayar bağlantısı opsiyonel.</h2>
 						<p>
-							Masaüstü companion daha sonra cihazlar sayfasından kurulabilir. Runa, bağlı olmayan
-							bir cihazı hazır gibi göstermez.
+							Masaüstü uygulamasını daha sonra cihazlar sayfasından kurabilirsin. Bağlı olmayan bir
+							cihaz hazır gibi gösterilmez.
 						</p>
 						<div className="runa-onboarding__actions">
 							<button

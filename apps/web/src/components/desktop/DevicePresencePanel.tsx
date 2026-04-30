@@ -33,6 +33,41 @@ function getDeviceLabel(device: DesktopDevicePresenceSnapshot): string {
 	return `Desktop ${device.agent_id.slice(0, 8)}`;
 }
 
+function getDeviceStatusLabel(device: DesktopDevicePresenceSnapshot): string {
+	if (device.status === 'online') {
+		return 'Bağlı';
+	}
+
+	return 'Kontrol ediliyor';
+}
+
+function getCapabilityLabel(toolName: string): string {
+	switch (toolName) {
+		case 'desktop.click':
+			return 'Tıklama';
+		case 'desktop.clipboard.read':
+			return 'Panoyu okuma';
+		case 'desktop.clipboard.write':
+			return 'Panoya yazma';
+		case 'desktop.keypress':
+			return 'Klavye kısayolu';
+		case 'desktop.launch':
+			return 'Uygulama açma';
+		case 'desktop.scroll':
+			return 'Kaydırma';
+		case 'desktop.screenshot':
+			return 'Ekranı görme';
+		case 'desktop.type':
+			return 'Yazı yazma';
+		case 'desktop.verify_state':
+			return 'Ekran doğrulama';
+		case 'desktop.vision_analyze':
+			return 'Görüntü analizi';
+		default:
+			return 'Masaüstü izni';
+	}
+}
+
 export function DevicePresencePanel({
 	devices,
 	error = null,
@@ -43,24 +78,23 @@ export function DevicePresencePanel({
 		<div className="runa-migrated-components-desktop-devicepresencepanel-1">
 			<div className="runa-migrated-components-desktop-devicepresencepanel-2">
 				<div className="runa-migrated-components-desktop-devicepresencepanel-3">
-					Bagli bilgisayar
+					Bağlı bilgisayar
 				</div>
 				<h2
 					id="online-devices-heading"
 					className="runa-migrated-components-desktop-devicepresencepanel-4"
 				>
-					Cihaz durumu
+					Bilgisayar bağlantısı
 				</h2>
 				<p className="runa-migrated-components-desktop-devicepresencepanel-5">
-					Masaustu companion oturumu aciksa burada gorunur. Runa bagli olmayan bir cihazi hazir gibi
-					gostermez.
+					Bağlı bilgisayar, masaüstü adımlarını güvenli şekilde ilerletmeni sağlar.
 				</p>
 			</div>
 
 			{error ? (
 				<div role="alert" className="runa-alert runa-alert--warning">
-					<strong>Cihaz durumu su anda alinamadi. </strong>
-					{error}
+					<strong>Cihaz durumu şu anda alınamadı.</strong>
+					<div>{error}</div>
 				</div>
 			) : null}
 
@@ -77,10 +111,10 @@ export function DevicePresencePanel({
 			{!isLoading && !error && devices.length === 0 ? (
 				<div className="runa-migrated-components-desktop-devicepresencepanel-9">
 					<div className="runa-migrated-components-desktop-devicepresencepanel-10">
-						Bagli cihaz yok
+						Bağlı cihaz yok
 					</div>
 					<div className="runa-migrated-components-desktop-devicepresencepanel-11">
-						Masaustu companion oturumu acildiginda burada durumu ve izinli yetenekleri gorunecek.
+						Bilgisayar uygulamasını açınca bağlantı durumu güncellenir.
 					</div>
 				</div>
 			) : null}
@@ -96,11 +130,11 @@ export function DevicePresencePanel({
 								{getDeviceLabel(device)}
 							</div>
 							<div className="runa-migrated-components-desktop-devicepresencepanel-15">
-								Son gorulme {formatConnectedAt(device.connected_at)}
+								Son görülme {formatConnectedAt(device.connected_at)}
 							</div>
 						</div>
 						<span className="runa-migrated-components-desktop-devicepresencepanel-16">
-							{device.status}
+							{getDeviceStatusLabel(device)}
 						</span>
 					</div>
 
@@ -108,22 +142,15 @@ export function DevicePresencePanel({
 						<div className="runa-inline-cluster">
 							{device.capabilities.map((capability) => (
 								<span key={`${device.connection_id}-${capability.tool_name}`} className="runa-pill">
-									{capability.tool_name}
+									{getCapabilityLabel(capability.tool_name)}
 								</span>
 							))}
 						</div>
 					) : (
 						<div className="runa-migrated-components-desktop-devicepresencepanel-17">
-							Bu cihaz icin acik yetenek bildirilmedi.
+							Bu bilgisayar şu anda yalnız bağlantı durumunu paylaşıyor.
 						</div>
 					)}
-
-					<details>
-						<summary>Baglanti bilgisi</summary>
-						<div className="runa-migrated-components-desktop-devicepresencepanel-18">
-							Connection {device.connection_id}
-						</div>
-					</details>
 				</article>
 			))}
 
@@ -134,7 +161,7 @@ export function DevicePresencePanel({
 					onClick={onRefresh}
 					disabled={isLoading}
 				>
-					Cihazlari yenile
+					Cihazları yenile
 				</button>
 			) : null}
 		</div>

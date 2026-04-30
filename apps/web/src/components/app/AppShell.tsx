@@ -1,6 +1,10 @@
 import type { ReactElement, ReactNode } from 'react';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { uiCopy } from '../../localization/copy.js';
-import { RunaBadge } from '../ui/RunaBadge.js';
+import { CommandPalette } from '../command/CommandPalette.js';
+import type { CommandPaletteCommand } from '../command/command-palette-utils.js';
+import { useCommandPalette } from '../command/useCommandPalette.js';
 import { RunaSurface } from '../ui/RunaSurface.js';
 import { AppNav, type AuthenticatedPageId } from './AppNav.js';
 
@@ -27,11 +31,6 @@ const pageCopyById: Record<
 		subtitle: uiCopy.appShell.devicesSubtitle,
 		title: uiCopy.appShell.devicesTitle,
 	},
-	developer: {
-		eyebrow: uiCopy.appShell.developerEyebrow,
-		subtitle: uiCopy.appShell.developerSubtitle,
-		title: uiCopy.appShell.developerTitle,
-	},
 	history: {
 		eyebrow: uiCopy.appShell.historyEyebrow,
 		subtitle: uiCopy.appShell.historySubtitle,
@@ -41,20 +40,103 @@ const pageCopyById: Record<
 
 type AppShellProps = Readonly<{
 	activePage: AuthenticatedPageId;
-	authStatus: 'authenticated' | 'service';
 	children: ReactNode;
 }>;
 
-export function AppShell({ activePage, authStatus, children }: AppShellProps): ReactElement {
+export function createAppCommands(
+	navigate: (to: string) => void,
+): readonly CommandPaletteCommand[] {
+	return [
+		{
+			description: 'Ana sohbet alanına dön.',
+			id: 'go-chat',
+			keywords: ['ana ekran', 'mesaj', 'çalışma alanı'],
+			label: 'Sohbet’e git',
+			run: () => navigate('/chat'),
+		},
+		{
+			description: 'Yeni bir sohbet taslağı aç.',
+			id: 'start-new-chat',
+			keywords: ['başlat', 'yeni mesaj', 'temiz sohbet'],
+			label: 'Yeni sohbet başlat',
+			run: () => navigate('/chat?new=1'),
+		},
+		{
+			description: 'Kaydedilmiş sohbetleri ara ve aç.',
+			id: 'go-history',
+			keywords: ['kayıtlı sohbet', 'arama', 'önceki işler'],
+			label: 'Geçmiş’e git',
+			run: () => navigate('/history'),
+		},
+		{
+			description: 'Sohbet geçmişi yüzeyini aç.',
+			id: 'open-history',
+			keywords: ['sohbet geçmişi', 'kaldığım iş', 'arşiv'],
+			label: 'Sohbet geçmişini aç',
+			run: () => navigate('/history'),
+		},
+		{
+			description: 'Bağlı bilgisayarlarını görüntüle.',
+			id: 'go-devices',
+			keywords: ['bilgisayar', 'masaüstü', 'bağlantı'],
+			label: 'Cihazlar’a git',
+			run: () => navigate('/devices'),
+		},
+		{
+			description: 'Cihaz bağlantılarını kontrol et.',
+			id: 'view-device-connections',
+			keywords: ['masaüstü bağlantısı', 'açık bilgisayar', 'izinler'],
+			label: 'Cihaz bağlantılarını görüntüle',
+			run: () => navigate('/devices'),
+		},
+		{
+			description: 'Profil ve oturum bilgilerini gör.',
+			id: 'go-account',
+			keywords: ['profil', 'oturum', 'çıkış'],
+			label: 'Hesap’a git',
+			run: () => navigate('/account'),
+		},
+		{
+			description: 'Tema ve ses tercihlerini düzenle.',
+			id: 'open-preferences',
+			keywords: ['ayarlar', 'tema', 'ses'],
+			label: 'Tercihleri aç',
+			run: () => navigate('/account?tab=preferences'),
+		},
+	] as const;
+}
+
+function getCommandShortcutLabel(): string {
+	if (typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/u.test(navigator.platform)) {
+		return '⌘K';
+	}
+
+	return 'Ctrl K';
+}
+
+export function AppShell({ activePage, children }: AppShellProps): ReactElement {
+	const navigate = useNavigate();
+	const { closePalette, isOpen, openPalette } = useCommandPalette();
 	const pageCopy = pageCopyById[activePage];
-	const statusLabel =
-		authStatus === 'service'
-			? uiCopy.appShell.serviceSession
-			: uiCopy.appShell.authenticatedSession;
+	const commands = useMemo(() => createAppCommands(navigate), [navigate]);
+	const commandShortcutLabel = getCommandShortcutLabel();
+
+	const commandPalette = (
+		<CommandPalette commands={commands} isOpen={isOpen} onClose={closePalette} />
+	);
 
 	if (activePage === 'chat') {
 		return (
 			<div className="runa-page runa-page--chat-product runa-migrated-components-app-appshell-1">
+				<button
+					type="button"
+					className="runa-command-palette-trigger"
+					onClick={openPalette}
+					aria-label="Komut paletini aç"
+				>
+					<span>Komut ara</span>
+					<kbd>{commandShortcutLabel}</kbd>
+				</button>
 				<RunaSurface
 					as="main"
 					id="authenticated-app-content"
@@ -64,6 +146,7 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 					<AppNav activePage={activePage} />
 					{children}
 				</RunaSurface>
+				{commandPalette}
 			</div>
 		);
 	}
@@ -78,12 +161,15 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 							<h1 className="runa-migrated-components-app-appshell-6">{pageCopy.title}</h1>
 							<p className="runa-migrated-components-app-appshell-7">{pageCopy.subtitle}</p>
 						</div>
-						<RunaBadge
-							className="runa-pill runa-app-shell-status-pill"
-							tone={authStatus === 'service' ? 'warning' : 'neutral'}
+						<button
+							type="button"
+							className="runa-command-palette-trigger"
+							onClick={openPalette}
+							aria-label="Komut paletini aç"
 						>
-							{statusLabel}
-						</RunaBadge>
+							<span>Komut ara</span>
+							<kbd>{commandShortcutLabel}</kbd>
+						</button>
 					</div>
 
 					<div className="runa-app-shell-nav">
@@ -99,6 +185,7 @@ export function AppShell({ activePage, authStatus, children }: AppShellProps): R
 				>
 					{children}
 				</RunaSurface>
+				{commandPalette}
 			</div>
 		</div>
 	);

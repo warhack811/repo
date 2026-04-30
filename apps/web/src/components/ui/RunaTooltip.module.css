@@ -7,7 +7,7 @@
 	background: hsl(var(--color-surface-overlay));
 	border: 1px solid rgba(148, 163, 184, 0.2);
 	border-radius: var(--radius-soft);
-	box-shadow: var(--shadow-panel-soft);
+	box-shadow: none;
 	color: hsl(var(--color-text));
 	font-size: 12px;
 	inset: auto auto calc(100% + 8px) 50%;

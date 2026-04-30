@@ -2,7 +2,7 @@
 	backdrop-filter: blur(12px);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	display: grid;
 	gap: var(--space-4);
 	min-width: 0;
@@ -14,23 +14,22 @@
 }
 
 .default {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .hero {
-	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
-		var(--gradient-panel-strong);
+	background: hsl(var(--color-surface) / 0.72);
 	border-color: rgba(245, 158, 11, 0.24);
 }
 
 .strong {
-	background: var(--gradient-panel-strong);
+	background: hsl(var(--color-surface-strong) / 0.78);
 }
 
 .subtle {
-	background: var(--gradient-subcard);
+	background: hsl(var(--color-surface-overlay) / 0.5);
 	border-color: rgba(148, 163, 184, 0.12);
 	border-radius: var(--radius-soft);
-	box-shadow: var(--shadow-panel-soft);
+	box-shadow: none;
 	padding: var(--space-subcard);
 }

@@ -1,7 +1,7 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
-import type { FormEvent, ReactElement } from 'react';
-import { useId } from 'react';
-import { Link } from 'react-router-dom';
+import { Paperclip, SendHorizontal, SlidersHorizontal } from 'lucide-react';
+import type { FormEvent, KeyboardEvent, ReactElement, ReactNode } from 'react';
+import { useId, useRef } from 'react';
 import { uiCopy } from '../../localization/copy.js';
 import type { ModelAttachment } from '../../ws-types.js';
 import { RunaButton } from '../ui/RunaButton.js';
@@ -20,6 +20,7 @@ type ChatComposerSurfaceProps = Readonly<{
 	connectionStatus: string;
 	desktopDeviceError: string | null;
 	desktopDevices: readonly DesktopDevicePresenceSnapshot[];
+	emptySuggestions?: ReactNode;
 	isDesktopDevicesLoading: boolean;
 	isListening: boolean;
 	isRuntimeConfigReady: boolean;
@@ -35,7 +36,6 @@ type ChatComposerSurfaceProps = Readonly<{
 	}) => void;
 	onAttachmentsChange: (attachments: readonly ModelAttachment[]) => void;
 	onClearDesktopTarget: () => void;
-	onOpenDeveloperMode: () => void;
 	onPromptChange: (prompt: string) => void;
 	onReadLatestResponse: () => void;
 	onRetryDesktopDevices: () => void;
@@ -74,6 +74,7 @@ export function ChatComposerSurface({
 	connectionStatus,
 	desktopDeviceError,
 	desktopDevices,
+	emptySuggestions = null,
 	isDesktopDevicesLoading,
 	isListening,
 	isRuntimeConfigReady,
@@ -86,7 +87,6 @@ export function ChatComposerSurface({
 	onAttachmentUploadStateChange,
 	onAttachmentsChange,
 	onClearDesktopTarget,
-	onOpenDeveloperMode,
 	onPromptChange,
 	onReadLatestResponse,
 	onRetryDesktopDevices,
@@ -102,19 +102,34 @@ export function ChatComposerSurface({
 	voiceStatusMessage,
 }: ChatComposerSurfaceProps): ReactElement {
 	const promptTextareaId = useId();
+	const moreDetailsRef = useRef<HTMLDetailsElement | null>(null);
 	const isSubmitDisabled = shouldDisableSubmit({
 		connectionStatus,
 		isRuntimeConfigReady,
 		isSubmitting,
 		isUploadingAttachment,
 	});
+	const showEmptyIntro = emptySuggestions !== null;
+
+	function handleMoreToolsKeyDown(event: KeyboardEvent<HTMLDetailsElement>): void {
+		if (event.key !== 'Escape' || !moreDetailsRef.current?.open) {
+			return;
+		}
+
+		event.preventDefault();
+		moreDetailsRef.current.open = false;
+		moreDetailsRef.current.querySelector<HTMLElement>('summary')?.focus();
+	}
 
 	return (
 		<section
-			className="runa-card runa-card--strong runa-chat-surface runa-migrated-components-chat-chatcomposersurface-1"
-			aria-labelledby="chat-composer-heading"
+			className={`runa-chat-composer-surface runa-chat-surface runa-migrated-components-chat-chatcomposersurface-1${
+				showEmptyIntro ? ' runa-chat-composer-surface--empty' : ''
+			}`}
+			aria-label={showEmptyIntro ? undefined : 'Mesaj yaz'}
+			aria-labelledby={showEmptyIntro ? 'chat-composer-heading' : undefined}
 		>
-			<div className="runa-migrated-components-chat-chatcomposersurface-2">
+			<div className="runa-chat-composer-surface__intro runa-migrated-components-chat-chatcomposersurface-2">
 				<div className="runa-migrated-components-chat-chatcomposersurface-3">Sohbet</div>
 				<h2
 					id="chat-composer-heading"
@@ -123,15 +138,15 @@ export function ChatComposerSurface({
 					Neyi ilerletmek istiyorsun?
 				</h2>
 				<div className="runa-subtle-copy">
-					Kisa yazabilirsin. Runa gerekirse dosya, kaynak ve onay isteyen adimlari sohbetin icinde
-					sade sekilde toparlar.
+					Bugün ne yapmak istersin? Kısa yazabilirsin; kaynak, dosya ve onay gereken adımlar
+					birlikte toparlanır.
 				</div>
 			</div>
 
 			{showDeveloperControls && !apiKey.trim() && isRuntimeConfigReady ? (
 				<div className="runa-alert runa-alert--warning runa-migrated-components-chat-chatcomposersurface-5">
-					<span className="runa-migrated-components-chat-chatcomposersurface-6">Baglanti</span>
-					Gelistirici ayarlarindaki varsayilan baglanti kullanilacak.
+					<span className="runa-migrated-components-chat-chatcomposersurface-6">Bağlantı</span>
+					Varsayılan bağlantı kullanılacak.
 				</div>
 			) : null}
 
@@ -141,77 +156,39 @@ export function ChatComposerSurface({
 					className="runa-alert runa-alert--warning runa-migrated-components-chat-chatcomposersurface-7"
 				>
 					<div className="runa-migrated-components-chat-chatcomposersurface-8">
-						Runa su anda mesaj gondermeye hazir degil.
+						Runa şu anda mesaj göndermeye hazır değil.
 					</div>
-					<div className="runa-subtle-copy">
-						Baglanti hazir oldugunda mesajini buradan gonderebilirsin.
-					</div>
-					{showDeveloperControls ? (
-						<div className="runa-migrated-components-chat-chatcomposersurface-9">
-							<RunaButton
-								className="runa-button runa-button--primary runa-migrated-components-chat-chatcomposersurface-10"
-								onClick={onOpenDeveloperMode}
-								variant="primary"
-							>
-								Developer Mode'u etkinlestir
-							</RunaButton>
-							<Link
-								className="runa-button runa-button--secondary runa-migrated-components-chat-chatcomposersurface-11"
-								to="/developer"
-							>
-								{uiCopy.chat.openDeveloper}
-							</Link>
-						</div>
-					) : null}
+					<div className="runa-subtle-copy">Bağlantı hazır olduğunda yeniden deneyebilirsin.</div>
 				</output>
 			) : null}
 
-			<form onSubmit={onSubmit} className="runa-migrated-components-chat-chatcomposersurface-12">
+			<form
+				onSubmit={onSubmit}
+				className="runa-chat-composer-form runa-migrated-components-chat-chatcomposersurface-12"
+			>
 				<label
 					htmlFor={promptTextareaId}
-					className="runa-migrated-components-chat-chatcomposersurface-13"
+					className="runa-chat-composer-input runa-migrated-components-chat-chatcomposersurface-13"
 				>
-					<span className="runa-migrated-components-chat-chatcomposersurface-14">
-						{uiCopy.chat.send}
+					<span className="runa-chat-visually-hidden runa-migrated-components-chat-chatcomposersurface-14">
+						Mesaj
 					</span>
 					<RunaTextarea
 						className="runa-input runa-input--textarea"
 						id={promptTextareaId}
 						onChange={(event) => onPromptChange(event.target.value)}
 						placeholder={uiCopy.chat.composerPlaceholder}
-						rows={5}
+						rows={showEmptyIntro ? 4 : 2}
 						value={prompt}
 					/>
 				</label>
 
-				<DesktopTargetSelector
-					devices={desktopDevices}
-					errorMessage={desktopDeviceError}
-					isLoading={isDesktopDevicesLoading}
-					onClear={onClearDesktopTarget}
-					onRetry={onRetryDesktopDevices}
-					onSelect={onSelectDesktopTarget}
-					selectedConnectionId={selectedDesktopTargetConnectionId}
-				/>
-
-				<VoiceComposerControls
-					canReadLatestResponse={canReadLatestResponse}
-					isListening={isListening}
-					isSpeaking={isSpeaking}
-					isSpeechPlaybackSupported={isSpeechPlaybackSupported}
-					isVoiceSupported={isVoiceSupported}
-					onReadLatestResponse={onReadLatestResponse}
-					onStopSpeaking={onStopSpeaking}
-					onToggleListening={onToggleListening}
-					voiceStatusMessage={voiceStatusMessage}
-				/>
-
-				<div className="runa-migrated-components-chat-chatcomposersurface-15">
-					<div className="runa-migrated-components-chat-chatcomposersurface-16">
-						<div className="runa-migrated-components-chat-chatcomposersurface-17">Dosyalar</div>
+				<div className="runa-chat-composer-actions runa-migrated-components-chat-chatcomposersurface-15">
+					<div className="runa-chat-composer-actions__left runa-migrated-components-chat-chatcomposersurface-16">
 						<FileUploadButton
 							accessToken={accessToken}
 							disabled={!isRuntimeConfigReady || isSubmitting}
+							icon={<Paperclip aria-hidden="true" size={18} />}
 							onAttachmentUploaded={(attachment) => {
 								onAttachmentsChange([...attachments, attachment]);
 								onAttachmentUploadStateChange({ error: null, isUploading: false });
@@ -219,10 +196,51 @@ export function ChatComposerSurface({
 							onUploadStateChange={onAttachmentUploadStateChange}
 						/>
 					</div>
-					<div className="runa-subtle-copy">
-						Gorsel, metin veya desteklenen dokumanlari ekleyebilirsin. Runa bunlari yalniz bu
-						sohbetin baglaminda kullanir.
+					<div className="runa-chat-composer-actions__right">
+						<details
+							className="runa-chat-composer-more"
+							onKeyDown={handleMoreToolsKeyDown}
+							ref={moreDetailsRef}
+						>
+							<summary aria-label="Diğer sohbet araçları" title="Diğer sohbet araçları">
+								<SlidersHorizontal aria-hidden="true" size={18} />
+							</summary>
+							<div className="runa-chat-composer-more__content">
+								<DesktopTargetSelector
+									devices={desktopDevices}
+									errorMessage={desktopDeviceError}
+									isLoading={isDesktopDevicesLoading}
+									onClear={onClearDesktopTarget}
+									onRetry={onRetryDesktopDevices}
+									onSelect={onSelectDesktopTarget}
+									selectedConnectionId={selectedDesktopTargetConnectionId}
+								/>
+								<VoiceComposerControls
+									canReadLatestResponse={canReadLatestResponse}
+									isListening={isListening}
+									isSpeaking={isSpeaking}
+									isSpeechPlaybackSupported={isSpeechPlaybackSupported}
+									isVoiceSupported={isVoiceSupported}
+									onReadLatestResponse={onReadLatestResponse}
+									onStopSpeaking={onStopSpeaking}
+									onToggleListening={onToggleListening}
+									voiceStatusMessage={voiceStatusMessage}
+								/>
+							</div>
+						</details>
+						<RunaButton
+							aria-label={submitButtonLabel}
+							className="runa-button runa-button--primary runa-chat-send-button runa-migrated-components-chat-chatcomposersurface-30"
+							disabled={isSubmitDisabled}
+							type="submit"
+							variant="primary"
+						>
+							<SendHorizontal aria-hidden="true" size={18} />
+						</RunaButton>
 					</div>
+				</div>
+
+				<div className="runa-chat-composer-attachments">
 					{attachments.length > 0 ? (
 						<div className="runa-migrated-components-chat-chatcomposersurface-18">
 							{attachments.map((attachment) => (
@@ -251,12 +269,12 @@ export function ChatComposerSurface({
 											}
 											variant="secondary"
 										>
-											Kaldir
+											Kaldır
 										</RunaButton>
 									</div>
 									{attachment.kind === 'image' ? (
 										<img
-											alt={attachment.filename ?? 'Uploaded attachment preview'}
+											alt={attachment.filename ?? 'Ek dosya önizlemesi'}
 											src={attachment.data_url}
 											className="runa-migrated-components-chat-chatcomposersurface-24"
 										/>
@@ -266,7 +284,7 @@ export function ChatComposerSurface({
 										</div>
 									) : (
 										<div className="runa-migrated-components-chat-chatcomposersurface-26">
-											{attachment.text_preview ?? 'Dokuman eklendi'}
+											{attachment.text_preview ?? 'Doküman eklendi'}
 										</div>
 									)}
 								</RunaCard>
@@ -276,7 +294,7 @@ export function ChatComposerSurface({
 					{attachmentUploadError ? (
 						<div className="runa-alert runa-alert--warning">{attachmentUploadError}</div>
 					) : isUploadingAttachment ? (
-						<div className="runa-subtle-copy">Secilen dosya yukleniyor...</div>
+						<div className="runa-subtle-copy">Seçilen dosya yükleniyor...</div>
 					) : null}
 				</div>
 
@@ -285,23 +303,15 @@ export function ChatComposerSurface({
 						role="alert"
 						className="runa-alert runa-alert--danger runa-migrated-components-chat-chatcomposersurface-27"
 					>
-						<strong>Runa bu istegi baslatamadi. </strong>
+						<strong>Runa bu isteği başlatamadı. </strong>
 						{lastError}
 					</div>
 				) : null}
-
-				<div className="runa-migrated-components-chat-chatcomposersurface-28">
-					<div className="runa-migrated-components-chat-chatcomposersurface-29">{statusLabel}</div>
-					<RunaButton
-						className="runa-button runa-button--primary runa-migrated-components-chat-chatcomposersurface-30"
-						disabled={isSubmitDisabled}
-						type="submit"
-						variant="primary"
-					>
-						{submitButtonLabel}
-					</RunaButton>
+				<div className="runa-chat-composer-status runa-migrated-components-chat-chatcomposersurface-29">
+					{statusLabel}
 				</div>
 			</form>
+			{emptySuggestions}
 		</section>
 	);
 }

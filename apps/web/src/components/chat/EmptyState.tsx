@@ -1,4 +1,4 @@
-import { BookOpen, Code2, FileText, History, MonitorUp, Search } from 'lucide-react';
+import { BookOpen, Code2, FileText, Search } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type EmptyStateProps = Readonly<{
@@ -7,59 +7,37 @@ type EmptyStateProps = Readonly<{
 
 const suggestions = [
 	{
-		description: 'Bir degisikligi planla, riskleri ayir ve uygulanabilir patch yolunu netlestir.',
+		description: 'Değişikliği planla, riski ayır ve güvenle uygula.',
 		icon: Code2,
-		label: 'Kod yaz veya gozden gecir',
+		label: 'Kod yaz veya gözden geçir',
 		prompt:
-			'Bu kod isini profesyonelce ele al: once ilgili dosyalari incele, riskleri ayir, sonra gerekli degisikligi yap ve test kanitlarini raporla. Konu: ',
+			'Bu kod işini profesyonelce ele al: önce ilgili dosyaları incele, riskleri ayır, sonra gerekli değişikliği yap ve test kanıtlarını raporla. Konu: ',
 	},
 	{
-		description: 'Guvenilir kaynaklari ayir, celiskileri belirt ve karar notu hazirla.',
+		description: 'Güvenilir kaynakları ayır, çelişkileri belirt ve karar notu hazırla.',
 		icon: Search,
-		label: 'Arastir ve ozetle',
+		label: 'Araştır ve özetle',
 		prompt:
-			'Bu konuyu kaynaklariyla arastir, en onemli noktalarini ayir ve kisa bir karar notu hazirla: ',
+			'Bu konuyu kaynaklarıyla araştır, en önemli noktalarını ayır ve kısa bir karar notu hazırla: ',
 	},
 	{
-		description: 'Taslak, teknik not veya teslim edilebilir dokumani birlikte sekillendir.',
+		description: 'Taslak, teknik not veya teslim edilebilir dokümanı birlikte şekillendir.',
 		icon: FileText,
-		label: 'Dokuman hazirla',
-		prompt: 'Bu dokumani hedef kitleye gore net, profesyonel ve uygulanabilir hale getir: ',
+		label: 'Doküman hazırla',
+		prompt: 'Bu dokümanı hedef kitleye göre net, profesyonel ve uygulanabilir hale getir: ',
 	},
 	{
-		description:
-			'Bagli cihaz varsa kontrollu masaustu adimi planla; yoksa baglama yolunu netlestir.',
-		icon: MonitorUp,
-		label: 'Masaustumde gorev baslat',
-		prompt:
-			'Masaustu companion ile yapilacak isi onayli ve guvenli adimlara bol; cihaz bagli degilse once nasil baglanacagini netlestir. Is: ',
-	},
-	{
-		description: 'Dosya, ekran goruntusu veya fikirdeki eksik ve sonraki adimi cikar.',
+		description: 'Dosya, ekran görüntüsü veya fikirdeki eksik adımı bul.',
 		icon: BookOpen,
-		label: 'Bir dosyayi analiz et',
+		label: 'Bir dosyayı analiz et',
 		prompt:
-			'Su dosya veya fikri inceleyip eksikleri, riskleri ve uygulanabilir sonraki adimi netlestir: ',
-	},
-	{
-		description: 'Gecmisi toparla, karari ayir ve kaldigin yerden devam et.',
-		icon: History,
-		label: 'Onceki konusmadan devam et',
-		prompt:
-			'Bu projede mevcut baglama gore kaldigimiz yeri ozetle, acik karar noktalarini ayir ve sonraki en mantikli adimi oner.',
+			'Şu dosya veya fikri inceleyip eksikleri, riskleri ve uygulanabilir sonraki adımı netleştir: ',
 	},
 ] as const;
 
 export function EmptyState({ onSubmitSuggestion }: EmptyStateProps): ReactElement {
 	return (
-		<aside className="runa-chat-empty-state">
-			<div className="runa-chat-empty-state__copy">
-				<p className="runa-chat-empty-state__hint">Bugun ne yapmak istersin?</p>
-				<p className="runa-subtle-copy">
-					Runa kisa bir niyeti alir, gerekirse kaynak, dosya ve onay isteyen adimlari sohbetin
-					icinde toparlar.
-				</p>
-			</div>
+		<aside className="runa-chat-empty-state" aria-label="Başlangıç önerileri">
 			<div className="runa-chat-suggestion-grid">
 				{suggestions.map((suggestion) => {
 					const Icon = suggestion.icon;
@@ -67,14 +45,12 @@ export function EmptyState({ onSubmitSuggestion }: EmptyStateProps): ReactElemen
 						<button
 							key={suggestion.label}
 							type="button"
+							aria-label={`${suggestion.label}: ${suggestion.description}`}
 							className="runa-chat-suggestion"
 							onClick={() => onSubmitSuggestion(suggestion.prompt)}
 						>
 							<Icon aria-hidden="true" size={18} />
-							<span>
-								<strong>{suggestion.label}</strong>
-								<span>{suggestion.description}</span>
-							</span>
+							<span>{suggestion.label}</span>
 						</button>
 					);
 				})}

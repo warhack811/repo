@@ -5,10 +5,10 @@
 }
 
 .section {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	display: grid;
 	gap: var(--space-4);
 	min-width: 0;
@@ -16,8 +16,7 @@
 }
 
 .header {
-	background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 28%),
-		var(--gradient-panel-strong);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .sectionHeader {
@@ -29,7 +28,7 @@
 .eyebrow {
 	color: hsl(var(--color-text-soft));
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 	letter-spacing: 0;
 	text-transform: uppercase;
 }
@@ -47,11 +46,11 @@
 }
 
 .sectionTitleLarge {
-	font-size: 24px;
+	font-size: 20px;
 }
 
 .sectionTitleSmall {
-	font-size: 18px;
+	font-size: 16px;
 }
 
 .mutedText,

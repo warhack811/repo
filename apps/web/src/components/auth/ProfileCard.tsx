@@ -1,19 +1,27 @@
 import type { ReactElement } from 'react';
 
-import type { AuthContext, AuthIdentity } from '@runa/types';
+import type { AuthContext } from '@runa/types';
 import { uiCopy } from '../../localization/copy.js';
 
+function isPlaceholderEmail(email: string | null | undefined): boolean {
+	return email?.trim().toLowerCase() === 'dev@runa.local';
+}
+
 function getProfileTitle(authContext: AuthContext): string {
-	if (authContext.user?.display_name) {
+	if (authContext.user?.display_name && !isPlaceholderEmail(authContext.user.display_name)) {
 		return authContext.user.display_name;
 	}
 
-	if (authContext.user?.email) {
+	if (authContext.user?.email && !isPlaceholderEmail(authContext.user.email)) {
 		return authContext.user.email;
 	}
 
 	switch (authContext.principal.kind) {
 		case 'authenticated':
+			if (isPlaceholderEmail(authContext.principal.email)) {
+				return 'Yerel oturum';
+			}
+
 			return authContext.principal.email ?? authContext.principal.user_id;
 		case 'service':
 			return authContext.principal.service_name;
@@ -22,39 +30,20 @@ function getProfileTitle(authContext: AuthContext): string {
 	}
 }
 
-function getProfileSubtitle(authContext: AuthContext): string {
-	if (authContext.user) {
-		return authContext.user.user_id;
-	}
-
-	switch (authContext.principal.kind) {
-		case 'authenticated':
-			return authContext.principal.user_id;
-		case 'service':
-			return 'Servis kullanıcısı';
-		case 'anonymous':
-			return 'Anonim tarayıcı bağlamı';
-	}
-}
-
 function getProfileEmail(authContext: AuthContext): string {
-	if (authContext.user?.email) {
+	if (authContext.user?.email && !isPlaceholderEmail(authContext.user.email)) {
 		return authContext.user.email;
 	}
 
 	if (authContext.principal.kind === 'authenticated') {
-		return authContext.principal.email ?? 'Bu oturum için e-posta açıklanmadı';
+		if (isPlaceholderEmail(authContext.principal.email)) {
+			return 'Yerel oturum';
+		}
+
+		return authContext.principal.email ?? 'E-posta paylaşılmadı';
 	}
 
-	return 'Bu oturum için e-posta açıklanmadı';
-}
-
-function getIdentityLabel(identity: AuthIdentity): string {
-	if (identity.identity_provider === 'oauth' && identity.oauth_provider) {
-		return `${identity.identity_provider}:${identity.oauth_provider}`;
-	}
-
-	return identity.identity_provider;
+	return 'E-posta paylaşılmadı';
 }
 
 function getProfileMethod(authContext: AuthContext): string {
@@ -67,8 +56,18 @@ function getProfileMethod(authContext: AuthContext): string {
 	return provider;
 }
 
+function getSessionSummary(authContext: AuthContext): string {
+	switch (authContext.principal.kind) {
+		case 'authenticated':
+			return 'Oturum açık';
+		case 'service':
+			return 'Servis oturumu';
+		case 'anonymous':
+			return 'Anonim oturum';
+	}
+}
+
 export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext }>): ReactElement {
-	const identities = authContext.user?.identities ?? [];
 	const emailVerified =
 		authContext.user?.email_verified ?? authContext.claims?.email_verified ?? false;
 
@@ -84,65 +83,30 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 				<p className="runa-migrated-components-auth-profilecard-5">{uiCopy.account.description}</p>
 			</div>
 
-			<div className="runa-migrated-components-auth-profilecard-6">
-				<div className="runa-metric runa-migrated-components-auth-profilecard-7">
-					<div lang="tr" className="runa-migrated-components-auth-profilecard-8">
-						hesap özeti
-					</div>
-					<div className="runa-migrated-components-auth-profilecard-9">
-						{getProfileSubtitle(authContext)}
-					</div>
-					<div className="runa-migrated-components-auth-profilecard-10">
-						{authContext.principal.kind === 'authenticated'
-							? 'Kimliği doğrulandı'
-							: authContext.principal.kind === 'service'
-								? 'Servis oturumu'
-								: 'Anonim bağlam'}
-					</div>
-				</div>
-				<div className="runa-metric runa-migrated-components-auth-profilecard-11">
-					<div lang="tr" className="runa-migrated-components-auth-profilecard-12">
+			<dl className="runa-migrated-components-auth-profilecard-6">
+				<div className="runa-migrated-components-auth-profilecard-7">
+					<dt lang="tr" className="runa-migrated-components-auth-profilecard-8">
 						e-posta
-					</div>
-					<div className="runa-migrated-components-auth-profilecard-13">
+					</dt>
+					<dd className="runa-migrated-components-auth-profilecard-9">
 						{getProfileEmail(authContext)}
-					</div>
-					<div className="runa-migrated-components-auth-profilecard-14">
-						Doğrulandı: {emailVerified ? 'evet' : 'hayır'}
+					</dd>
+					<div className="runa-migrated-components-auth-profilecard-10">
+						{emailVerified ? 'E-posta doğrulandı' : 'E-posta henüz doğrulanmadı'}
 					</div>
 				</div>
-				<div className="runa-metric runa-migrated-components-auth-profilecard-15">
-					<div lang="tr" className="runa-migrated-components-auth-profilecard-16">
-						giriş yöntemi
-					</div>
-					<div className="runa-migrated-components-auth-profilecard-17">
+				<div className="runa-migrated-components-auth-profilecard-11">
+					<dt lang="tr" className="runa-migrated-components-auth-profilecard-12">
+						oturum
+					</dt>
+					<dd className="runa-migrated-components-auth-profilecard-13">
+						{getSessionSummary(authContext)}
+					</dd>
+					<div className="runa-migrated-components-auth-profilecard-14">
 						{getProfileMethod(authContext)}
 					</div>
-					<div className="runa-migrated-components-auth-profilecard-18">Durum: aktif</div>
 				</div>
-			</div>
-
-			<div className="runa-migrated-components-auth-profilecard-19">
-				<div lang="tr" className="runa-migrated-components-auth-profilecard-20">
-					bağlı kimlikler
-				</div>
-				{identities.length > 0 ? (
-					<div className="runa-migrated-components-auth-profilecard-21">
-						{identities.map((identity) => (
-							<span
-								key={identity.identity_id}
-								className="runa-migrated-components-auth-profilecard-22"
-							>
-								{getIdentityLabel(identity)}
-							</span>
-						))}
-					</div>
-				) : (
-					<p className="runa-migrated-components-auth-profilecard-23">
-						Mevcut auth bağlamında bağlı kimlik listesi gösterilmedi.
-					</p>
-				)}
-			</div>
+			</dl>
 		</article>
 	);
 }

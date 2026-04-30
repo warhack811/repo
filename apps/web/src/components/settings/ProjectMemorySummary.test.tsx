@@ -7,9 +7,9 @@ describe('ProjectMemorySummary', () => {
 	it('states when live project memory is not connected', () => {
 		const markup = renderToStaticMarkup(<ProjectMemorySummary status="unavailable" />);
 
-		expect(markup).toContain('Proje hafizasi');
-		expect(markup).toContain('Bagli degil');
-		expect(markup).toContain('henuz baglanmadi');
+		expect(markup).toContain('Proje hafızası');
+		expect(markup).toContain('Bağlı değil');
+		expect(markup).toContain('şu anda bağlı değil');
 	});
 
 	it('renders provided summary without inventing source counts', () => {

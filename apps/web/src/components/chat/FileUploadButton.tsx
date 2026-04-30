@@ -1,5 +1,5 @@
 import type { UploadAttachmentResponse } from '@runa/types';
-import type { ChangeEvent, ReactElement } from 'react';
+import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import { useId, useRef, useState } from 'react';
 
 import type { ModelAttachment } from '../../ws-types.js';
@@ -70,22 +70,22 @@ export function validateAttachmentFileForUpload(file: UploadPreflightFile): stri
 	const contentType = file.type.trim().toLowerCase();
 
 	if (extension !== null && DANGEROUS_ATTACHMENT_EXTENSIONS.has(extension)) {
-		return 'Bu dosya turu guvenlik nedeniyle yuklenemez.';
+		return 'Bu dosya türü güvenlik nedeniyle yüklenemez.';
 	}
 
 	if (contentType.startsWith('image/')) {
-		return file.size > MAX_UPLOAD_IMAGE_BYTES ? 'Gorsel ekleri 1.5 MB ile sinirlidir.' : null;
+		return file.size > MAX_UPLOAD_IMAGE_BYTES ? 'Görsel ekleri 1.5 MB ile sınırlıdır.' : null;
 	}
 
 	if (contentType.startsWith('text/') || contentType === 'application/json') {
-		return file.size > MAX_UPLOAD_TEXT_BYTES ? 'Metin ekleri 200 KB ile sinirlidir.' : null;
+		return file.size > MAX_UPLOAD_TEXT_BYTES ? 'Metin ekleri 200 KB ile sınırlıdır.' : null;
 	}
 
 	if (isDocumentAttachmentFile(contentType, extension)) {
-		return file.size > MAX_UPLOAD_DOCUMENT_BYTES ? 'Dokuman ekleri 5 MB ile sinirlidir.' : null;
+		return file.size > MAX_UPLOAD_DOCUMENT_BYTES ? 'Doküman ekleri 5 MB ile sınırlıdır.' : null;
 	}
 
-	return 'Yalniz image/*, text/*, application/json ve desteklenen dokumanlar yuklenebilir.';
+	return 'Yalnız görsel, metin, JSON ve desteklenen dokümanlar yüklenebilir.';
 }
 
 function createRequestHeaders(accessToken?: string | null): Headers {
@@ -134,6 +134,7 @@ function toBase64(buffer: ArrayBuffer): string {
 type FileUploadButtonProps = Readonly<{
 	accessToken?: string | null;
 	disabled?: boolean;
+	icon?: ReactNode;
 	onAttachmentUploaded: (attachment: ModelAttachment) => void;
 	onUploadStateChange?: (input: {
 		readonly error: string | null;
@@ -144,6 +145,7 @@ type FileUploadButtonProps = Readonly<{
 export function FileUploadButton({
 	accessToken,
 	disabled = false,
+	icon = null,
 	onAttachmentUploaded,
 	onUploadStateChange,
 }: FileUploadButtonProps): ReactElement {
@@ -197,12 +199,12 @@ export function FileUploadButton({
 						'message' in payload &&
 						typeof payload.message === 'string'
 						? payload.message
-						: 'Upload basarisiz oldu.',
+						: 'Dosya yüklenemedi.',
 				);
 			}
 
 			if (!isAttachmentResponse(payload)) {
-				throw new Error('Desteklenmeyen upload yaniti.');
+				throw new Error('Dosya yükleme yanıtı desteklenmiyor.');
 			}
 
 			onAttachmentUploaded(payload.attachment);
@@ -213,7 +215,7 @@ export function FileUploadButton({
 		} catch (error: unknown) {
 			onUploadStateChange?.({
 				error:
-					error instanceof Error ? error.message : 'Upload sirasinda beklenmeyen bir hata olustu.',
+					error instanceof Error ? error.message : 'Dosya yüklenirken beklenmeyen bir hata oluştu.',
 				isUploading: false,
 			});
 		} finally {
@@ -238,8 +240,15 @@ export function FileUploadButton({
 				className="runa-migrated-components-chat-fileuploadbutton-1"
 				type="file"
 			/>
-			<label htmlFor={inputId} className="runa-migrated-components-chat-fileuploadbutton-2">
-				{isUploading ? 'Yukleniyor...' : 'Dosya ekle'}
+			<label
+				aria-disabled={disabled || isUploading}
+				htmlFor={inputId}
+				className="runa-migrated-components-chat-fileuploadbutton-2"
+			>
+				{icon}
+				<span className="runa-chat-visually-hidden">
+					{isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
+				</span>
 			</label>
 		</>
 	);

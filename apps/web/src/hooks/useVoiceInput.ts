@@ -106,7 +106,7 @@ function getVoiceInputErrorMessage(
 		case 'aborted':
 			return 'Ses dinleme durduruldu.';
 		default:
-			return 'Ses girişi başlatılamadı. Tarayıcının Web Speech API desteğini kontrol et.';
+			return 'Ses girişi başlatılamadı. Tarayıcının ses desteğini kontrol et.';
 	}
 }
 

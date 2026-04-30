@@ -60,7 +60,7 @@ export function BlockRenderer({
 		case 'text':
 			return <TextBlock block={block} />;
 		case 'status':
-			return <StatusBlock block={block} />;
+			return isDeveloperMode ? <StatusBlock block={block} /> : null;
 		case 'event_list':
 			return isDeveloperMode ? <EventListBlock block={block} /> : null;
 		case 'code_block':
@@ -87,14 +87,14 @@ export function BlockRenderer({
 		case 'plan':
 			return <PlanBlock block={block} />;
 		case 'run_timeline_block':
-			return (
+			return isDeveloperMode ? (
 				<RunTimelineBlock
 					block={block}
 					getInspectionActionState={getInspectionActionState}
 					onRequestInspection={onRequestInspection}
 					presentationCorrelationLabel={presentationCorrelationLabel}
 				/>
-			);
+			) : null;
 		case 'search_result_block':
 			return (
 				<SearchResultBlock
@@ -117,17 +117,23 @@ export function BlockRenderer({
 				/>
 			) : null;
 		case 'workspace_inspection_block':
-			return (
+			return isDeveloperMode ? (
 				<WorkspaceInspectionBlock
 					block={block}
 					getInspectionActionState={getInspectionActionState}
 					onRequestInspection={onRequestInspection}
 				/>
-			);
+			) : null;
 		case 'approval_block':
-			return <ApprovalBlock block={block} onResolveApproval={onResolveApproval} />;
+			return (
+				<ApprovalBlock
+					block={block}
+					isDeveloperMode={isDeveloperMode}
+					onResolveApproval={onResolveApproval}
+				/>
+			);
 		case 'tool_result':
-			return <ToolResultBlock block={block} />;
+			return <ToolResultBlock block={block} isDeveloperMode={isDeveloperMode} />;
 		default:
 			return renderImpossibleBlock(block);
 	}

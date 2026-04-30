@@ -62,19 +62,19 @@ export function ThinkingBlock({
 	const title = isActive ? (
 		<span className={styles['title']}>
 			<ThinkingDots />
-			Runa calisiyor - Dusunuyor...
+			Runa çalışıyor - düşünüyor...
 		</span>
 	) : (
-		<span className={styles['title']}>Dusunme sureci</span>
+		<span className={styles['title']}>Düşünme süreci</span>
 	);
 
 	return (
-		<section aria-label="Runa work summary" className={styles['thinking']}>
+		<section aria-label="Çalışma özeti" className={styles['thinking']}>
 			<div className={styles['header']}>
 				{title}
 				{duration !== undefined ? <code className={styles['duration']}>{duration}ms</code> : null}
 			</div>
-			<RunaDisclosure defaultOpen={isActive} title={isActive ? 'Canli adimlar' : 'Detayi goster'}>
+			<RunaDisclosure defaultOpen={isActive} title={isActive ? 'Canlı adımlar' : 'Detayı göster'}>
 				<div className={styles['steps']}>{steps.map((step) => renderStep(step))}</div>
 			</RunaDisclosure>
 		</section>

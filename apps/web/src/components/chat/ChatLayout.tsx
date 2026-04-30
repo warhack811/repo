@@ -47,8 +47,8 @@ export function ChatLayout({
 		>
 			<div className="runa-chat-layout__sidebar">{sidebar}</div>
 			<div className="runa-chat-layout__main">
-				<div className="runa-chat-layout__composer">{composer}</div>
 				<div className="runa-chat-layout__work">{messages}</div>
+				<div className="runa-chat-layout__composer">{composer}</div>
 			</div>
 		</div>
 	);

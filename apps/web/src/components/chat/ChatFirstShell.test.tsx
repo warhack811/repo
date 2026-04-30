@@ -14,7 +14,7 @@ describe('chat-first shell pieces', () => {
 					connectionStatus="open"
 					desktopDevices={[]}
 					onToggleSidebar={() => undefined}
-					statusLabel="Canli"
+					statusLabel="Canlı"
 				/>
 			</MemoryRouter>,
 		);
@@ -29,13 +29,16 @@ describe('chat-first shell pieces', () => {
 	it('renders honest first-impression suggestions', () => {
 		const markup = renderToStaticMarkup(<EmptyState onSubmitSuggestion={() => undefined} />);
 
-		expect(markup).toContain('Bugun ne yapmak istersin?');
-		expect(markup).toContain('Arastir ve ozetle');
-		expect(markup).toContain('onay isteyen');
+		expect(markup).toContain('Kod yaz veya gözden geçir');
+		expect(markup).toContain('Araştır ve özetle');
+		expect(markup).toContain('Doküman hazırla');
+		expect(markup).toContain('Bir dosyayı analiz et');
 		expect(markup).not.toContain('operator');
+		expect(markup).not.toContain('Masaüstü hedefi');
+		expect(markup).not.toContain('burada görünür');
 	});
 
-	it('keeps the composer before the work surface and treats history as a drawer', () => {
+	it('keeps the work surface before the composer and treats history as a drawer', () => {
 		const markup = renderToStaticMarkup(
 			<ChatLayout
 				composer={<div data-testid="composer">Composer</div>}
@@ -47,8 +50,8 @@ describe('chat-first shell pieces', () => {
 			/>,
 		);
 
-		expect(markup.indexOf('data-testid="composer"')).toBeLessThan(
-			markup.indexOf('data-testid="work"'),
+		expect(markup.indexOf('data-testid="work"')).toBeLessThan(
+			markup.indexOf('data-testid="composer"'),
 		);
 		expect(markup).toContain('runa-chat-layout__sidebar');
 		expect(markup).not.toContain('runa-chat-layout--sidebar-open');
