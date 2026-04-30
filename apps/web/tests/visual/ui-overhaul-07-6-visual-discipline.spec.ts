@@ -113,25 +113,27 @@ async function mockSurfaceData(page: Page): Promise<void> {
 }
 
 async function assertFlatButtonBackgrounds(page: Page, label: string): Promise<void> {
-	const offenders = await page.locator('button, a.runa-button, .runa-ui-button').evaluateAll((nodes) =>
-		nodes
-			.filter((node) => {
-				const element = node as HTMLElement;
-				const style = window.getComputedStyle(element);
+	const offenders = await page
+		.locator('button, a.runa-button, .runa-ui-button')
+		.evaluateAll((nodes) =>
+			nodes
+				.filter((node) => {
+					const element = node as HTMLElement;
+					const style = window.getComputedStyle(element);
 
-				return (
-					element.offsetParent !== null &&
-					style.backgroundImage !== 'none' &&
-					style.backgroundImage.trim() !== ''
-				);
-			})
-			.map((node) => {
-				const element = node as HTMLElement;
-				const style = window.getComputedStyle(element);
+					return (
+						element.offsetParent !== null &&
+						style.backgroundImage !== 'none' &&
+						style.backgroundImage.trim() !== ''
+					);
+				})
+				.map((node) => {
+					const element = node as HTMLElement;
+					const style = window.getComputedStyle(element);
 
-				return `${element.tagName.toLowerCase()}.${element.className}: ${style.backgroundImage}`;
-			}),
-	);
+					return `${element.tagName.toLowerCase()}.${element.className}: ${style.backgroundImage}`;
+				}),
+		);
 
 	expect(offenders, `${label} uses flat button backgrounds`).toEqual([]);
 }

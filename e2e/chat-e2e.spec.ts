@@ -38,7 +38,7 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 		`/auth/dev/bootstrap?redirect_to=${encodeURIComponent(new URL('/chat', baseUrl).toString())}`,
 	);
 	await page.waitForURL('**/chat');
-	await expect(page.getByText('Bugun ne yapmak istersin?')).toBeVisible();
+	await expect(page.getByText(/Bug.n ne yapmak istersin/i)).toBeVisible();
 	await expect(page.locator('textarea')).toBeVisible();
 	await expect
 		.poll(async () =>
@@ -76,12 +76,12 @@ test('chat submit reaches approval and completes after approve', async ({ page }
 		.fill('Please request approval and write the proof file once approval is granted.');
 	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
 
-	const approveButton = page.getByRole('button', { name: /approve|kabul et/i });
+	const approveButton = page.getByRole('button', { name: /approve|onayla|kabul et/i });
 	await expect(approveButton).toBeVisible({ timeout: 20_000 });
 	await approveButton.click();
 
-	await expect(page.getByText('Kabul edildi', { exact: true })).toBeVisible({ timeout: 20_000 });
-	await expect(page.getByText('file.write completed successfully.')).toBeVisible({
+	await expect(page.getByText(/Onayland|Kabul edildi/i).last()).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/.lem tamamland|Sonu. sohbet ak..ına eklendi/i).last()).toBeVisible({
 		timeout: 20_000,
 	});
 	await expect

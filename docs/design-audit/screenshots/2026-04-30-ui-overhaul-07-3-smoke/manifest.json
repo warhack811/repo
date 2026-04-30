@@ -1,119 +1,119 @@
 {
-  "checks": [
-    {
-      "label": "desktop-1440-01-approval-pending.png carries trust-first heading",
-      "ok": true
-    },
-    {
-      "label": "desktop-1440-01-approval-pending.png does not invent a file path",
-      "ok": true
-    },
-    {
-      "label": "desktop-1440-01-approval-pending.png horizontal overflow",
-      "ok": true,
-      "value": 1440
-    },
-    {
-      "label": "desktop-1920-02-approval-pending.png carries trust-first heading",
-      "ok": true
-    },
-    {
-      "label": "desktop-1920-02-approval-pending.png does not invent a file path",
-      "ok": true
-    },
-    {
-      "label": "desktop-1920-02-approval-pending.png horizontal overflow",
-      "ok": true,
-      "value": 1920
-    },
-    {
-      "label": "mobile-390-03-approval-pending.png carries trust-first heading",
-      "ok": true
-    },
-    {
-      "label": "mobile-390-03-approval-pending.png does not invent a file path",
-      "ok": true
-    },
-    {
-      "label": "mobile-390-03-approval-pending.png approval buttons clear composer",
-      "ok": true
-    },
-    {
-      "label": "mobile-390-03-approval-pending.png approval buttons clear bottom nav",
-      "ok": true
-    },
-    {
-      "label": "mobile-390-03-approval-pending.png horizontal overflow",
-      "ok": true,
-      "value": 390
-    },
-    {
-      "label": "mobile-320-04-approval-pending.png carries trust-first heading",
-      "ok": true
-    },
-    {
-      "label": "mobile-320-04-approval-pending.png does not invent a file path",
-      "ok": true
-    },
-    {
-      "label": "mobile-320-04-approval-pending.png approval buttons clear composer",
-      "ok": true
-    },
-    {
-      "label": "mobile-320-04-approval-pending.png approval buttons clear bottom nav",
-      "ok": true
-    },
-    {
-      "label": "mobile-320-04-approval-pending.png horizontal overflow",
-      "ok": true,
-      "value": 320
-    },
-    {
-      "label": "desktop approved state removes repeat approve action",
-      "ok": true
-    },
-    {
-      "label": "desktop completed flow shows approved tool result",
-      "ok": true
-    },
-    {
-      "label": "desktop completed flow horizontal overflow",
-      "ok": true,
-      "value": 1440
-    },
-    {
-      "label": "mobile approved state horizontal overflow",
-      "ok": true,
-      "value": 390
-    },
-    {
-      "label": "mobile rejected state horizontal overflow",
-      "ok": true,
-      "value": 390
-    },
-    {
-      "label": "desktop empty regression horizontal overflow",
-      "ok": true,
-      "value": 1440
-    },
-    {
-      "label": "mobile empty regression horizontal overflow",
-      "ok": true,
-      "value": 390
-    }
-  ],
-  "failed_checks": [],
-  "generated_at": "2026-04-29T23:09:58.750Z",
-  "shots": [
-    "desktop-1440-01-approval-pending.png",
-    "desktop-1920-02-approval-pending.png",
-    "mobile-390-03-approval-pending.png",
-    "mobile-320-04-approval-pending.png",
-    "desktop-1440-05-approval-approved.png",
-    "desktop-1440-08-continued-completed.png",
-    "mobile-390-06-approval-approved.png",
-    "mobile-390-07-approval-rejected.png",
-    "desktop-1440-09-chat-empty.png",
-    "mobile-390-10-chat-empty.png"
-  ]
+	"checks": [
+		{
+			"label": "desktop-1440-01-approval-pending.png carries trust-first heading",
+			"ok": true
+		},
+		{
+			"label": "desktop-1440-01-approval-pending.png does not invent a file path",
+			"ok": true
+		},
+		{
+			"label": "desktop-1440-01-approval-pending.png horizontal overflow",
+			"ok": true,
+			"value": 1440
+		},
+		{
+			"label": "desktop-1920-02-approval-pending.png carries trust-first heading",
+			"ok": true
+		},
+		{
+			"label": "desktop-1920-02-approval-pending.png does not invent a file path",
+			"ok": true
+		},
+		{
+			"label": "desktop-1920-02-approval-pending.png horizontal overflow",
+			"ok": true,
+			"value": 1920
+		},
+		{
+			"label": "mobile-390-03-approval-pending.png carries trust-first heading",
+			"ok": true
+		},
+		{
+			"label": "mobile-390-03-approval-pending.png does not invent a file path",
+			"ok": true
+		},
+		{
+			"label": "mobile-390-03-approval-pending.png approval buttons clear composer",
+			"ok": true
+		},
+		{
+			"label": "mobile-390-03-approval-pending.png approval buttons clear bottom nav",
+			"ok": true
+		},
+		{
+			"label": "mobile-390-03-approval-pending.png horizontal overflow",
+			"ok": true,
+			"value": 390
+		},
+		{
+			"label": "mobile-320-04-approval-pending.png carries trust-first heading",
+			"ok": true
+		},
+		{
+			"label": "mobile-320-04-approval-pending.png does not invent a file path",
+			"ok": true
+		},
+		{
+			"label": "mobile-320-04-approval-pending.png approval buttons clear composer",
+			"ok": true
+		},
+		{
+			"label": "mobile-320-04-approval-pending.png approval buttons clear bottom nav",
+			"ok": true
+		},
+		{
+			"label": "mobile-320-04-approval-pending.png horizontal overflow",
+			"ok": true,
+			"value": 320
+		},
+		{
+			"label": "desktop approved state removes repeat approve action",
+			"ok": true
+		},
+		{
+			"label": "desktop completed flow shows approved tool result",
+			"ok": true
+		},
+		{
+			"label": "desktop completed flow horizontal overflow",
+			"ok": true,
+			"value": 1440
+		},
+		{
+			"label": "mobile approved state horizontal overflow",
+			"ok": true,
+			"value": 390
+		},
+		{
+			"label": "mobile rejected state horizontal overflow",
+			"ok": true,
+			"value": 390
+		},
+		{
+			"label": "desktop empty regression horizontal overflow",
+			"ok": true,
+			"value": 1440
+		},
+		{
+			"label": "mobile empty regression horizontal overflow",
+			"ok": true,
+			"value": 390
+		}
+	],
+	"failed_checks": [],
+	"generated_at": "2026-04-30T16:14:36.689Z",
+	"shots": [
+		"desktop-1440-01-approval-pending.png",
+		"desktop-1920-02-approval-pending.png",
+		"mobile-390-03-approval-pending.png",
+		"mobile-320-04-approval-pending.png",
+		"desktop-1440-05-approval-approved.png",
+		"desktop-1440-08-continued-completed.png",
+		"mobile-390-06-approval-approved.png",
+		"mobile-390-07-approval-rejected.png",
+		"desktop-1440-09-chat-empty.png",
+		"mobile-390-10-chat-empty.png"
+	]
 }

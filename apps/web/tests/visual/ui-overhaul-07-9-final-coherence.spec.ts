@@ -772,10 +772,10 @@ test('approval trust boundary remains clear on desktop and mobile', async ({ pag
 
 	await page.setViewportSize(desktop);
 	await page.getByRole('button', { name: /approve|onayla|kabul et/i }).click();
-	await expect(page.getByText('Onaylandı', { exact: true }).last()).toBeVisible({
+	await expect(page.getByText(/Onayland|Kabul edildi/i).last()).toBeVisible({
 		timeout: 20_000,
 	});
-	await expect(page.getByText('İşlem tamamlandı').last()).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/.lem tamamland/i).last()).toBeVisible({ timeout: 20_000 });
 	await assertNoForbiddenSurfaceCopy(page, 'desktop approved completed');
 	await assertNoHorizontalOverflow(page, desktop.width, 'desktop approved completed');
 	await capture(page, {

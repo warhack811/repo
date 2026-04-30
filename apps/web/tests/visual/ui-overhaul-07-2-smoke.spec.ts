@@ -163,7 +163,7 @@ test('active run and mobile approval stay above the composer', async ({ page }) 
 		.locator('textarea')
 		.fill('Please request approval and write the proof file once approval is granted.');
 	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
-	await expect(page.getByRole('button', { name: /approve|kabul et/i })).toBeVisible({
+	await expect(page.getByRole('button', { name: /approve|onayla|kabul et/i })).toBeVisible({
 		timeout: 20_000,
 	});
 	await capture(page, 'desktop-1440-06-active-run-approval-pending.png');
@@ -176,7 +176,7 @@ test('active run and mobile approval stay above the composer', async ({ page }) 
 		.fill('Please request approval and write the proof file once approval is granted.');
 	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
 
-	const approveButton = page.getByRole('button', { name: /approve|kabul et/i });
+	const approveButton = page.getByRole('button', { name: /approve|onayla|kabul et/i });
 	await expect(approveButton).toBeVisible({ timeout: 20_000 });
 	await approveButton.scrollIntoViewIfNeeded();
 	await capture(page, 'mobile-390-07-active-run-approval-pending.png');
@@ -192,7 +192,7 @@ test('active run and mobile approval stay above the composer', async ({ page }) 
 	);
 
 	await approveButton.click();
-	await expect(page.getByText('Kabul edildi', { exact: true })).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/Onayland|Kabul edildi/i).last()).toBeVisible({ timeout: 20_000 });
 	recordCheck('mobile approval real pointer click completed', true);
 	await assertNoHorizontalOverflow(page, 390, 'mobile active approval');
 });

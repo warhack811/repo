@@ -11,8 +11,7 @@ const smokeDirectory = join(
 	'screenshots',
 	'2026-04-30-ui-overhaul-07-3-smoke',
 );
-const approvalPrompt =
-	'Please request approval and write the proof file once approval is granted.';
+const approvalPrompt = 'Please request approval and write the proof file once approval is granted.';
 const shots: string[] = [];
 const checks: Array<{
 	readonly label: string;
@@ -79,33 +78,32 @@ async function assertNoHorizontalOverflow(
 async function submitApprovalRequest(page: Page): Promise<void> {
 	await page.locator('textarea').fill(approvalPrompt);
 	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
-	await expect(page.getByText('Runa sunu yapmak istiyor')).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/Runa .unu yapmak istiyor/i)).toBeVisible({ timeout: 20_000 });
 }
 
 async function getApprovalCard(page: Page) {
-	return page.locator('article').filter({ hasText: 'Runa sunu yapmak istiyor' }).last();
+	return page
+		.locator('article')
+		.filter({ hasText: /Runa .unu yapmak istiyor/i })
+		.last();
 }
 
 async function assertTrustFirstPending(page: Page, label: string): Promise<void> {
 	const card = await getApprovalCard(page);
 	await expect(card).toBeVisible();
-	await expect(card.getByText('Runa sunu yapmak istiyor')).toBeVisible();
-	await expect(card.getByText('Dosyaya yazma istegi')).toBeVisible();
-	await expect(card.getByText('Bu onayda net hedef bilgisi gonderilmedi.')).toBeVisible();
-	await expect(card.getByText('Bu islem bir dosyanin icerigini degistirebilir.')).toBeVisible();
+	await expect(card.getByText(/Runa .unu yapmak istiyor/i)).toBeVisible();
+	await expect(card.getByText(/Dosyaya yazma iste/i)).toBeVisible();
+	await expect(card.getByText(/Bu onayda net hedef bilgisi/i)).toBeVisible();
+	await expect(card.getByText(/Bu i.lem bir dosyan.n i.eri.ini de.i.tirebilir/i)).toBeVisible();
 	await expect(card.getByRole('button', { name: /approve|onayla|kabul et/i })).toBeVisible();
 	await expect(card.getByRole('button', { name: /reject|reddet/i })).toBeVisible();
 
 	const cardText = await card.innerText();
-	recordCheck(`${label} carries trust-first heading`, cardText.includes('Runa sunu yapmak istiyor'));
+	recordCheck(`${label} carries trust-first heading`, /Runa .unu yapmak istiyor/i.test(cardText));
 	recordCheck(`${label} does not invent a file path`, !cardText.includes('approval-proof.txt'));
 
-	const technicalDetails = card.getByRole('button', { name: /teknik detaylar/i });
-	await expect(technicalDetails).toHaveAttribute('aria-expanded', 'false');
-	await technicalDetails.click();
-	await expect(card.locator('code').filter({ hasText: 'file.write' }).first()).toBeVisible();
-	await technicalDetails.click();
-	await expect(technicalDetails).toHaveAttribute('aria-expanded', 'false');
+	await expect(card.getByRole('button', { name: /ayr.nt.lar|teknik detaylar/i })).toHaveCount(0);
+	await expect(card.locator('code').filter({ hasText: 'file.write' })).toHaveCount(0);
 }
 
 async function assertMobileApprovalButtonsClear(page: Page, label: string): Promise<void> {
@@ -121,7 +119,8 @@ async function assertMobileApprovalButtonsClear(page: Page, label: string): Prom
 		composerBox &&
 			approveBox &&
 			rejectBox &&
-			Math.max(approveBox.y + approveBox.height, rejectBox.y + rejectBox.height) <= composerBox.y - 2,
+			Math.max(approveBox.y + approveBox.height, rejectBox.y + rejectBox.height) <=
+				composerBox.y - 2,
 	);
 	const buttonsClearNav = Boolean(
 		navBox &&
@@ -200,16 +199,23 @@ test('approval pending, approved, and continued screenshots', async ({ page }) =
 	const pendingCard = await getApprovalCard(page);
 	const approveButton = pendingCard.getByRole('button', { name: /approve|onayla|kabul et/i });
 	await approveButton.click();
-	await expect(page.getByText('Kabul edildi', { exact: true }).last()).toBeVisible({
+	await expect(page.getByText(/Onayland|Kabul edildi/i).last()).toBeVisible({
 		timeout: 20_000,
 	});
-	await expect(page.getByText('Izin verildi. Runa bu adimdan sonra akisa devam ediyor.')).toBeVisible();
-	const approvedCard = page.locator('article').filter({ hasText: 'Kabul edildi' }).last();
-	await expect(approvedCard.getByRole('button', { name: /approve|onayla|kabul et/i })).toHaveCount(0);
+	await expect(page.getByText(/.zin verildi/i)).toBeVisible();
+	const approvedCard = page
+		.locator('article')
+		.filter({ hasText: /Onayland|Kabul edildi/i })
+		.last();
+	await expect(approvedCard.getByRole('button', { name: /approve|onayla|kabul et/i })).toHaveCount(
+		0,
+	);
 	recordCheck('desktop approved state removes repeat approve action', true);
 	await capture(page, 'desktop-1440-05-approval-approved.png');
 
-	await expect(page.getByText('file.write completed successfully.')).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/.lem tamamland|Sonu. sohbet ak..ına eklendi/i).last()).toBeVisible({
+		timeout: 20_000,
+	});
 	recordCheck('desktop completed flow shows approved tool result', true);
 	await capture(page, 'desktop-1440-08-continued-completed.png');
 	await assertNoHorizontalOverflow(page, 1440, 'desktop completed flow');
@@ -226,7 +232,7 @@ test('rejected state and empty chat regression screenshots', async ({ page }) =>
 	await submitApprovalRequest(page);
 	await page.getByRole('button', { name: /reject|reddet/i }).click();
 	await expect(page.getByText('Reddedildi', { exact: true })).toBeVisible({ timeout: 20_000 });
-	await expect(page.getByText('Bu adim reddedildi. Runa bu islemi calistirmadan durdu.')).toBeVisible();
+	await expect(page.getByText(/Bu ad.m reddedildi|.lem .al..t.r.lmad/i)).toBeVisible();
 	await capture(page, 'mobile-390-07-approval-rejected.png');
 	await assertNoHorizontalOverflow(page, 390, 'mobile rejected state');
 

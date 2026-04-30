@@ -58,8 +58,10 @@ test('clean sessions cannot enter developer routes or self-enable QA preview', a
 test('explicit developer mode keeps internal tooling reachable', async ({ page }) => {
 	await bootstrapAuthenticatedRoute(page, '/developer', true);
 	await page.waitForURL('**/developer');
-	await expect(page.getByRole('heading', { name: 'Developer Mode' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: /Runtime ayarlar/i })).toBeVisible();
+	await expect(page.getByRole('heading', { name: /Developer Mode|Geli.tirici/i })).toBeVisible();
+	await expect(
+		page.getByRole('heading', { name: /Runtime ayarlar|.al..ma hatt. ayarlar/i }),
+	).toBeVisible();
 
 	await bootstrapAuthenticatedRoute(page, '/developer/capability-preview', true);
 	await page.waitForURL('**/developer/capability-preview');
