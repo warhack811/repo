@@ -22,6 +22,16 @@
 - UI audit screenshot evidence klasorleri `docs/design-audit/screenshots/` altinda kalici kanit olarak takip altina alindi.
 - Kapsam disi birakilanlar: `apps/web/vite.config.ts`, eski `apps/web/tests/visual/__screenshots__` baseline drift'i, `apps/server/approval-e2e-temp.txt` silinmesi ve `test.txt` silinmesi bu doc reorg commit'ine alinmadi.
 
+### Cloud Production User Journey Proof Check - 30 Nisan 2026
+
+- Kapsam: UI-OVERHAUL-07 kapanisi sonrasi production-readiness tarafina gecmek icin mevcut cloud/live proof kapilari yeniden kosuldu. Yeni runtime kodu yazilmadi.
+- Shell env gercegi: `GROQ_API_KEY`, `DATABASE_TARGET`, `DATABASE_URL`, `LOCAL_DATABASE_URL`, `SUPABASE_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RUNA_DEV_AUTH_ENABLED`, `RUNA_DEV_AUTH_SECRET` current shell icinde `missing` idi. File-backed env kontrolunde `.env` icinde Supabase/cloud DB anahtarlari, `.env.local` icinde local DB anahtarlari, `.env.compose` icinde compose/dev auth anahtarlari goruldu; secret degerleri loglanmadi.
+- Repo/server sagligi: `pnpm --filter @runa/server typecheck` PASS, `pnpm --filter @runa/server lint` PASS, `pnpm --filter @runa/server test` PASS (`129` dosya / `866` test).
+- Demo rehearsal: `pnpm --dir apps/server run test:groq-demo-rehearsal` PASS. `FORMAL_REPEATABILITY_SUMMARY result=PASS`, `passed_runs=5`; `CORE_COVERAGE_SUMMARY threshold_passed=true`, file coverage `%85.09`, LOC-weighted coverage `%86.78`; `GROQ_DEMO_REHEARSAL_SUMMARY result=PASS`.
+- Primary provider gate: `pnpm --dir apps/server run test:groq-live-smoke` current shell'de `GROQ_LIVE_SMOKE_SUMMARY result=BLOCKED`, `blocker_kind=credential_missing`, `authoritative_env=GROQ_API_KEY`. Bu nedenle Groq live provider claim'i bugun acilmadi.
+- Cloud persistence proof: `DATABASE_TARGET=cloud pnpm --filter @runa/server run test:persistence-release-proof` kismen gecti ama genel sonuc `BLOCKED`. Cloud DB CRUD `PASS`, first-run conversation proof `PASS`, `database_url_source=SUPABASE_DATABASE_URL`, `target=cloud`; fakat approval persistence/reconnect helper `database_target_not_local` nedeniyle `BLOCKED` dondu. Bu, cloud DB temel user journey yazma/okuma hattinin calistigini, fakat release-grade approval persistence proof'unun cloud target icin henuz tamamlanmadigini gosterir.
+- Sonuc: production cloud user journey icin temel cloud DB + first-run conversation proof yesil, formal demo rehearsal yesil; tam production/live release claim'i ise iki nedenle acik degil: authoritative `GROQ_API_KEY` shell/env yok ve approval persistence proof cloud target'ta bloklu.
+
 ### Track C / UI Overhaul 07.4 - Operator/Developer Hard Isolation - 30 Nisan 2026
 
 - `docs/UI-OVERHAUL-07-4-OPERATOR-DEVELOPER-HARD-ISOLATION-PROMPT.md` kapsamindaki hard isolation uygulandi. Normal app shell artik `/developer*` path'lerini active page olarak `developer` basligiyla render etmiyor; clean session `/developer` ve `/developer/capability-preview` istekleri route gate uzerinden `/chat` yuzeyine donuyor.
