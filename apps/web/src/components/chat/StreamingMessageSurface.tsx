@@ -23,7 +23,7 @@ export function StreamingMessageSurface({
 
 	return (
 		<div className="runa-migrated-components-chat-streamingmessagesurface-1" aria-live="polite">
-			<div className="runa-migrated-components-chat-streamingmessagesurface-2">Canli yanit</div>
+			<div className="runa-migrated-components-chat-streamingmessagesurface-2">Canlı yanıt</div>
 			<MarkdownRenderer
 				className="runa-streaming-response"
 				content={currentStreamingText}

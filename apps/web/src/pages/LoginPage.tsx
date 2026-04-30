@@ -36,7 +36,6 @@ function getSubmitCopy(mode: AuthMode, isPending: boolean): string {
 }
 
 export function LoginPage({
-	authContext,
 	authError,
 	authNotice,
 	authStatus,
@@ -73,8 +72,7 @@ export function LoginPage({
 	}
 
 	const isSignup = authMode === 'signup';
-	const statusCopy =
-		authStatus === 'bootstrapping' ? uiCopy.auth.statusBootstrapping : uiCopy.auth.statusAnonymous;
+	const showAuthStatus = isAuthPending || authStatus === 'bootstrapping';
 
 	return (
 		<div className="runa-page runa-login-page">
@@ -82,14 +80,15 @@ export function LoginPage({
 				<section className="runa-login-hero" aria-labelledby="login-heading">
 					<img className="runa-login-logo" src={runaLogo} alt="Runa" width="180" height="48" />
 					<div className="runa-login-copy">
-						<div className="runa-eyebrow">RUNA</div>
 						<h1 id="login-heading">{uiCopy.auth.title}</h1>
 						<p>{uiCopy.auth.subtitle}</p>
 					</div>
-					<div className="runa-login-status" aria-live="polite">
-						{isAuthPending ? <RunaSpinner label={uiCopy.auth.connecting} size="sm" /> : null}
-						<span>{authContext ? 'Oturum hazir' : statusCopy}</span>
-					</div>
+					{showAuthStatus ? (
+						<div className="runa-login-status" aria-live="polite">
+							{isAuthPending ? <RunaSpinner label={uiCopy.auth.connecting} size="sm" /> : null}
+							<span>{uiCopy.auth.connecting}</span>
+						</div>
+					) : null}
 				</section>
 
 				<section className="runa-login-panel" aria-labelledby="login-form-heading">

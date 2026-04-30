@@ -20,7 +20,7 @@ function getPresenceLabel(input: {
 	const firstDevice = input.desktopDevices[0];
 
 	if (firstDevice) {
-		return firstDevice.machine_label?.trim() || 'Masaustu bagli';
+		return firstDevice.machine_label?.trim() || 'Masaüstü bağlı';
 	}
 
 	return input.statusLabel;
@@ -34,21 +34,22 @@ export function ChatHeader({
 	statusLabel,
 }: ChatHeaderProps): ReactElement {
 	const presenceLabel = getPresenceLabel({ desktopDevices, statusLabel });
+	const conversationLabel = activeConversationTitle?.trim() ? 'Sohbet devam ediyor' : 'Yeni sohbet';
 
 	return (
-		<header className="runa-chat-header" aria-label="Runa chat header">
+		<header className="runa-chat-header" aria-label="Sohbet başlığı">
 			<div className="runa-chat-header__left">
 				<button
 					type="button"
 					className="runa-chat-icon-button"
-					aria-label="Sohbet gecmisini ac"
+					aria-label="Sohbet geçmişini aç"
 					onClick={onToggleSidebar}
 				>
 					<Menu aria-hidden="true" size={20} />
 				</button>
 				<div className="runa-chat-header__brand">
 					<strong>Runa</strong>
-					<span>{activeConversationTitle?.trim() || 'Yeni sohbet'}</span>
+					<span>{conversationLabel}</span>
 				</div>
 			</div>
 

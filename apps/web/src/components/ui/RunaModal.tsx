@@ -1,6 +1,7 @@
 import {
 	type PointerEvent,
 	type ReactElement,
+	type KeyboardEvent as ReactKeyboardEvent,
 	type ReactNode,
 	useEffect,
 	useId,
@@ -21,6 +22,15 @@ export type RunaModalProps = Readonly<{
 	className?: string;
 	size?: RunaModalSize;
 }>;
+
+const focusableSelector = [
+	'a[href]',
+	'button:not([disabled])',
+	'input:not([disabled])',
+	'select:not([disabled])',
+	'textarea:not([disabled])',
+	'[tabindex]:not([tabindex="-1"])',
+].join(',');
 
 export function RunaModal({
 	children,
@@ -76,12 +86,53 @@ export function RunaModal({
 		}
 	}
 
-	return createPortal(
+	function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLDialogElement>): void {
+		if (event.key !== 'Tab') {
+			return;
+		}
+
+		const panel = panelRef.current;
+
+		if (!panel) {
+			return;
+		}
+
+		const focusableElements = [...panel.querySelectorAll<HTMLElement>(focusableSelector)].filter(
+			(element) => element.offsetParent !== null || element === document.activeElement,
+		);
+
+		if (focusableElements.length === 0) {
+			event.preventDefault();
+			panel.focus();
+			return;
+		}
+
+		const firstElement = focusableElements[0];
+		const lastElement = focusableElements.at(-1);
+
+		if (!firstElement || !lastElement) {
+			return;
+		}
+
+		if (event.shiftKey && document.activeElement === firstElement) {
+			event.preventDefault();
+			lastElement.focus();
+			return;
+		}
+
+		if (!event.shiftKey && document.activeElement === lastElement) {
+			event.preventDefault();
+			firstElement.focus();
+		}
+	}
+
+	const modalElement = (
 		<div className={styles['backdrop']} onMouseDown={onClose}>
 			<dialog
 				aria-labelledby={titleId}
 				aria-modal="true"
 				className={cx(styles['panel'], styles[size], className)}
+				onKeyDown={handleDialogKeyDown}
 				onMouseDown={(event) => event.stopPropagation()}
 				open
 				ref={panelRef}
@@ -98,7 +149,12 @@ export function RunaModal({
 				</h2>
 				{children}
 			</dialog>
-		</div>,
-		document.body,
+		</div>
 	);
+
+	if (typeof document === 'undefined') {
+		return modalElement;
+	}
+
+	return createPortal(modalElement, document.body);
 }

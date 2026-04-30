@@ -119,18 +119,18 @@ export function PresentationRunSurfaceCard({
 				<div className="runa-migrated-components-chat-presentationrunsurfacecard-8">
 					<div className="runa-migrated-components-chat-presentationrunsurfacecard-9">
 						<div className="runa-migrated-components-chat-presentationrunsurfacecard-10">
-							mevcut calisma
+							mevcut çalışma
 						</div>
 						<div className="runa-migrated-components-chat-presentationrunsurfacecard-11">
 							<strong className="runa-migrated-components-chat-presentationrunsurfacecard-12">
-								Canli calisma yuzeyi
+								Canlı çalışma
 							</strong>
 							<code className="runa-migrated-components-chat-presentationrunsurfacecard-13">
-								ana akis
+								ana akış
 							</code>
 						</div>
 						<div className="runa-migrated-components-chat-presentationrunsurfacecard-14">
-							Runa'nin gorunur sonucu ve gereken onaylar sohbetten kopmadan burada kalir.
+							Sonuçlar ve gereken onaylar sohbetten kopmadan ilerler.
 						</div>
 						{visibleCorrelationLabel ? (
 							<code className="runa-migrated-components-chat-presentationrunsurfacecard-15">
@@ -156,11 +156,11 @@ export function PresentationRunSurfaceCard({
 				<div className="runa-migrated-components-chat-presentationrunsurfacecard-18">
 					<div className="runa-migrated-components-chat-presentationrunsurfacecard-19">
 						<div className="runa-migrated-components-chat-presentationrunsurfacecard-20">
-							gecmis calisma
+							geçmiş çalışma
 						</div>
 						<div className="runa-migrated-components-chat-presentationrunsurfacecard-21">
 							<strong className="runa-migrated-components-chat-presentationrunsurfacecard-22">
-								Onceki calisma ozeti
+								Önceki çalışma özeti
 							</strong>
 							{visibleCorrelationLabel ? (
 								<code className="runa-migrated-components-chat-presentationrunsurfacecard-23">
@@ -169,7 +169,7 @@ export function PresentationRunSurfaceCard({
 							) : null}
 						</div>
 						<div className="runa-migrated-components-chat-presentationrunsurfacecard-24">
-							Canli akis onde kalir. Eski ozetleri incelemek istediginde buradan acabilirsin.
+							Canlı akış önde kalır. Eski özetleri gerektiğinde açabilirsin.
 						</div>
 					</div>
 					{metaChips}

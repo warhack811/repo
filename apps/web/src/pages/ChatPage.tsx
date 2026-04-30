@@ -26,6 +26,7 @@ import { useDesktopDevices } from '../hooks/useDesktopDevices.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
 import { useTextToSpeechIntegration } from '../hooks/useTextToSpeechIntegration.js';
 import { deriveCurrentRunProgressSurface } from '../lib/chat-runtime/current-run-progress.js';
+import type { PresentationRunSurface } from '../lib/chat-runtime/types.js';
 import { uiCopy } from '../localization/copy.js';
 import {
 	selectConnectionState,
@@ -34,6 +35,7 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
+import type { RenderBlock } from '../ws-types.js';
 import '../styles/routes/chat-migration.css';
 
 type ChatPageProps = Readonly<{
@@ -42,12 +44,60 @@ type ChatPageProps = Readonly<{
 	runtime: UseChatRuntimeResult;
 }>;
 
+function filterSupersededApprovalBlocks(blocks: readonly RenderBlock[]): readonly RenderBlock[] {
+	const resolvedApprovalIds = new Set<string>();
+
+	for (const block of blocks) {
+		if (block.type === 'approval_block' && block.payload.status !== 'pending') {
+			resolvedApprovalIds.add(block.payload.approval_id);
+		}
+	}
+
+	if (resolvedApprovalIds.size === 0) {
+		return blocks;
+	}
+
+	return blocks.filter(
+		(block) =>
+			!(
+				block.type === 'approval_block' &&
+				block.payload.status === 'pending' &&
+				resolvedApprovalIds.has(block.payload.approval_id)
+			),
+	);
+}
+
+function normalizePresentationSurface(
+	surface: PresentationRunSurface | null,
+): PresentationRunSurface | null {
+	if (!surface) {
+		return null;
+	}
+
+	const blocks = filterSupersededApprovalBlocks(surface.blocks);
+
+	return blocks === surface.blocks
+		? surface
+		: {
+				...surface,
+				blocks,
+			};
+}
+
+function hasResolvedApprovalBlock(surface: PresentationRunSurface | null): boolean {
+	return Boolean(
+		surface?.blocks.some(
+			(block) => block.type === 'approval_block' && block.payload.status !== 'pending',
+		),
+	);
+}
+
 export function ChatPage({
 	conversations,
 	embedded = false,
 	runtime,
 }: ChatPageProps): ReactElement {
-	const { isDeveloperMode, setDeveloperMode } = useDeveloperMode();
+	const { isDeveloperMode } = useDeveloperMode();
 	const runtimeConfig = useChatStoreSelector(runtime.store, selectRuntimeConfigState);
 	const connectionState = useChatStoreSelector(runtime.store, selectConnectionState);
 	const presentationState = useChatStoreSelector(runtime.store, selectPresentationState);
@@ -94,6 +144,13 @@ export function ChatPage({
 	const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
 	const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false);
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+	const visibleCurrentPresentationSurface = useMemo(
+		() => normalizePresentationSurface(currentPresentationSurface),
+		[currentPresentationSurface],
+	);
+	const currentRunFeedbackForProgress = hasResolvedApprovalBlock(visibleCurrentPresentationSurface)
+		? null
+		: currentRunFeedback;
 
 	const latestAssistantMessage = useMemo(
 		() =>
@@ -129,21 +186,21 @@ export function ChatPage({
 	});
 
 	const shouldShowRunFeedbackBanner = useMemo(() => {
-		if (!currentRunFeedback) {
+		if (!currentRunFeedbackForProgress) {
 			return false;
 		}
 
-		if (!currentPresentationSurface) {
+		if (!visibleCurrentPresentationSurface) {
 			return true;
 		}
 
 		return (
-			currentRunFeedback.run_id !== currentPresentationSurface.run_id ||
-			currentRunFeedback.tone === 'error' ||
-			currentRunFeedback.tone === 'warning' ||
-			currentRunFeedback.pending_detail_count > 0
+			currentRunFeedbackForProgress.run_id !== visibleCurrentPresentationSurface.run_id ||
+			currentRunFeedbackForProgress.tone === 'error' ||
+			currentRunFeedbackForProgress.tone === 'warning' ||
+			currentRunFeedbackForProgress.pending_detail_count > 0
 		);
-	}, [currentPresentationSurface, currentRunFeedback]);
+	}, [visibleCurrentPresentationSurface, currentRunFeedbackForProgress]);
 
 	const { statusLabel, submitButtonLabel } = useChatRuntimeView({
 		connectionStatus,
@@ -152,35 +209,39 @@ export function ChatPage({
 	});
 
 	const currentRunFeedbackBanner =
-		shouldShowRunFeedbackBanner && currentRunFeedback
-			? renderRunFeedbackBanner(currentRunFeedback)
+		shouldShowRunFeedbackBanner && currentRunFeedbackForProgress
+			? renderRunFeedbackBanner(currentRunFeedbackForProgress)
 			: null;
 
 	const currentRunSummary = useMemo(() => {
-		const activeRunId = currentRunFeedback?.run_id ?? currentPresentationSurface?.run_id;
+		const activeRunId = currentRunFeedback?.run_id ?? visibleCurrentPresentationSurface?.run_id;
 		return activeRunId ? runTransportSummaries.get(activeRunId) : undefined;
-	}, [currentPresentationSurface, currentRunFeedback, runTransportSummaries]);
+	}, [visibleCurrentPresentationSurface, currentRunFeedback, runTransportSummaries]);
 
 	const currentRunProgress = useMemo(
 		() =>
 			deriveCurrentRunProgressSurface({
-				current_presentation_surface: currentPresentationSurface,
-				current_run_feedback: currentRunFeedback,
+				current_presentation_surface: visibleCurrentPresentationSurface,
+				current_run_feedback: currentRunFeedbackForProgress,
 				run_summary: currentRunSummary,
 			}),
-		[currentPresentationSurface, currentRunFeedback, currentRunSummary],
+		[visibleCurrentPresentationSurface, currentRunFeedbackForProgress, currentRunSummary],
 	);
 
 	const currentRunProgressPanel = currentRunProgress ? (
-		<RunProgressPanel feedbackBanner={currentRunFeedbackBanner} progress={currentRunProgress} />
+		<RunProgressPanel
+			feedbackBanner={currentRunFeedbackBanner}
+			isDeveloperMode={isDeveloperMode}
+			progress={currentRunProgress}
+		/>
 	) : null;
-	const currentRunId = currentRunFeedback?.run_id ?? currentPresentationSurface?.run_id;
+	const currentRunId = currentRunFeedback?.run_id ?? visibleCurrentPresentationSurface?.run_id;
 
 	const emptyRunTimelineContent = (
 		<EmptyState onSubmitSuggestion={(suggestionPrompt) => setPrompt(suggestionPrompt)} />
 	);
 
-	const currentPresentationContent = currentPresentationSurface ? (
+	const currentPresentationContent = visibleCurrentPresentationSurface ? (
 		<PresentationRunSurfaceCard
 			expanded
 			inspectionAnchorIdsByDetailId={inspectionAnchorIdsByDetailId}
@@ -190,7 +251,7 @@ export function ChatPage({
 			onResolveApproval={resolveApproval}
 			pendingInspectionRequestKeys={pendingInspectionRequestKeys}
 			runTransportSummaries={runTransportSummaries}
-			surface={currentPresentationSurface}
+			surface={visibleCurrentPresentationSurface}
 			getInspectionActionState={getInspectionActionState}
 		/>
 	) : null;
@@ -209,6 +270,12 @@ export function ChatPage({
 			getInspectionActionState={getInspectionActionState}
 		/>
 	);
+	const hasVisibleRunSurface =
+		currentRunProgressPanel !== null ||
+		currentPresentationContent !== null ||
+		currentStreamingText.trim().length > 0;
+	const shouldShowEmptyComposerSuggestions =
+		!hasVisibleRunSurface && activeConversationMessages.length === 0 && !isConversationLoading;
 
 	return (
 		<ChatShell embedded={embedded}>
@@ -231,6 +298,7 @@ export function ChatPage({
 						connectionStatus={connectionStatus}
 						desktopDeviceError={desktopDeviceError}
 						desktopDevices={desktopDevices}
+						emptySuggestions={shouldShowEmptyComposerSuggestions ? emptyRunTimelineContent : null}
 						isDesktopDevicesLoading={isDesktopDevicesLoading}
 						isListening={voiceInput.isListening}
 						isRuntimeConfigReady={isRuntimeConfigReady}
@@ -246,7 +314,6 @@ export function ChatPage({
 						}}
 						onAttachmentsChange={setAttachments}
 						onClearDesktopTarget={() => setDesktopTargetConnectionId(null)}
-						onOpenDeveloperMode={() => setDeveloperMode(true)}
 						onPromptChange={setPrompt}
 						onReadLatestResponse={speakLatestResponse}
 						onRetryDesktopDevices={reloadDesktopDevices}
@@ -272,7 +339,7 @@ export function ChatPage({
 						currentRunProgressPanel={currentRunProgressPanel}
 						currentStreamingRunId={currentStreamingRunId}
 						currentStreamingText={currentStreamingText}
-						emptyStateContent={emptyRunTimelineContent}
+						emptyStateContent={null}
 						isHistoryLoading={isConversationLoading}
 					/>
 				}

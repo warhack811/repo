@@ -64,8 +64,8 @@ function groupConversations(
 	}
 
 	const groups: ConversationGroup[] = [
-		{ items: today, label: 'Bugun' },
-		{ items: previousSevenDays, label: 'Son 7 gun' },
+		{ items: today, label: 'Bugün' },
+		{ items: previousSevenDays, label: 'Son 7 gün' },
 		{ items: older, label: 'Daha eski' },
 	];
 
@@ -86,12 +86,9 @@ function matchesSearch(conversation: ConversationSummary, searchQuery: string): 
 
 function getFriendlyErrorMessage(message: string): string {
 	const trimmedMessage = message.trim();
+	void trimmedMessage;
 
-	if (trimmedMessage.startsWith('{') || trimmedMessage.includes('Internal Server Error')) {
-		return 'Gecmis calismalar su anda yuklenemedi. Biraz sonra yeniden deneyebilirsin.';
-	}
-
-	return trimmedMessage;
+	return 'Geçmiş çalışmalar şu anda yüklenemedi. Biraz sonra yeniden deneyebilirsin.';
 }
 
 export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
@@ -123,26 +120,22 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 		<>
 			<section className="runa-migrated-pages-historypage-1" aria-labelledby="history-heading">
 				<div className="runa-migrated-pages-historypage-2">
-					<div className="runa-migrated-pages-historypage-3">Gecmis</div>
+					<div className="runa-migrated-pages-historypage-3">Geçmiş</div>
 					<h2 id="history-heading" className="runa-migrated-pages-historypage-4">
-						Kayitli calismalar
+						Sohbet geçmişi
 					</h2>
 					<p className="runa-migrated-pages-historypage-5">
-						Runa ile yaptigin sohbetler ve paylasilan calismalar burada kalir. Yeni bir is baslatmak
-						icin ana sohbet yuzeyine donebilirsin.
+						Sohbetleri arayabilir, kaldığın işe geri dönebilirsin.
 					</p>
 				</div>
 
 				<div className="runa-migrated-pages-historypage-6">
-					<span className="runa-migrated-pages-historypage-7">
-						{conversations.conversations.length} sohbet
-					</span>
 					<button
 						type="button"
 						onClick={startNewConversation}
 						className="runa-button runa-button--secondary runa-migrated-pages-historypage-8"
 					>
-						Yeni sohbet baslat
+						Yeni sohbet başlat
 					</button>
 				</div>
 			</section>
@@ -154,18 +147,18 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 						<input
 							type="search"
 							className="runa-input"
-							placeholder="Baslik veya onizleme ara"
+							placeholder="Başlık veya önizleme ara"
 							value={searchQuery}
 							onChange={(event) => setSearchQuery(event.target.value)}
 						/>
 					</label>
-					<div className="runa-migrated-pages-historypage-13">
-						{conversations.isConversationLoading ? 'Yukleniyor' : 'Hazir'}
-					</div>
+					{conversations.isConversationLoading ? (
+						<div className="runa-migrated-pages-historypage-13">Yükleniyor</div>
+					) : null}
 				</div>
 
 				<h2 id="history-list-heading" className="runa-migrated-pages-historypage-14">
-					Sohbet gecmisi
+					Sohbet geçmişi
 				</h2>
 
 				{conversations.conversationError ? (
@@ -176,9 +169,9 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 
 				{!conversations.isConversationLoading && conversations.conversations.length === 0 ? (
 					<div className="runa-empty-state">
-						<strong>Henuz kayitli sohbet yok.</strong>
+						<strong>Henüz kayıtlı sohbet yok.</strong>
 						<div className="runa-migrated-pages-historypage-15">
-							Ilk calismayi baslattiginda gecmis burada aranabilir hale gelecek.
+							İlk sohbetinden sonra geçmiş listen hazır olur.
 						</div>
 					</div>
 				) : null}
@@ -186,7 +179,7 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 				{!conversations.isConversationLoading &&
 				conversations.conversations.length > 0 &&
 				filteredConversations.length === 0 ? (
-					<div className="runa-empty-state">Bu aramayla eslesen calisma bulunamadi.</div>
+					<div className="runa-empty-state">Bu aramayla eşleşen çalışma bulunamadı.</div>
 				) : null}
 
 				<div className="runa-migrated-pages-historypage-16">
@@ -207,9 +200,9 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 										>
 											<div className="runa-conversation-item__top">
 												<strong>{conversation.title}</strong>
-												<span className="runa-conversation-role">
-													{isActive ? 'Acik sohbet' : conversation.access_role}
-												</span>
+												{isActive ? (
+													<span className="runa-conversation-role">Açık sohbet</span>
+												) : null}
 											</div>
 											<div className="runa-conversation-preview">
 												{conversation.last_message_preview}

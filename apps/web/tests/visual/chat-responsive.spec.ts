@@ -38,8 +38,8 @@ for (const viewport of viewports) {
 		expect(bodyWidth).toBeLessThanOrEqual(viewport.width + 2);
 
 		if (viewport.width < 768) {
-			expect(composerPosition.position).toBe('sticky');
-			expect(composerPosition.bottom).not.toBe('auto');
+			expect(composerPosition.position).toBe('relative');
+			expect(['auto', '0px']).toContain(composerPosition.bottom);
 		}
 
 		await page.keyboard.press('Escape');

@@ -39,9 +39,9 @@ function roleLabel(role: ConversationAccessRole): string {
 		case 'owner':
 			return 'Sahip';
 		case 'editor':
-			return 'Duzenleyici';
+			return 'Düzenleyici';
 		case 'viewer':
-			return 'Izleyici';
+			return 'İzleyici';
 	}
 }
 
@@ -102,9 +102,9 @@ function groupConversations(
 	}
 
 	const groups: ConversationGroup[] = [
-		{ items: today, label: 'Bugun' },
-		{ items: yesterday, label: 'Dun' },
-		{ items: previousSevenDays, label: 'Son 7 gun' },
+		{ items: today, label: 'Bugün' },
+		{ items: yesterday, label: 'Dün' },
+		{ items: previousSevenDays, label: 'Son 7 gün' },
 		{ items: older, label: 'Daha eski' },
 	];
 
@@ -127,7 +127,7 @@ function getFriendlyErrorMessage(message: string): string {
 	const trimmedMessage = message.trim();
 
 	if (trimmedMessage.startsWith('{') || trimmedMessage.includes('Internal Server Error')) {
-		return 'Sohbet gecmisi su anda yuklenemedi. Biraz sonra yeniden deneyebilirsin.';
+		return 'Sohbet geçmişi şu anda yüklenemedi. Biraz sonra yeniden deneyebilirsin.';
 	}
 
 	return trimmedMessage;
@@ -137,7 +137,7 @@ function SkeletonRows(): ReactElement {
 	return (
 		<output
 			aria-busy="true"
-			aria-label="Sohbet listesi yukleniyor"
+			aria-label="Sohbet listesi yükleniyor"
 			className="runa-migrated-components-chat-conversationsidebar-1"
 		>
 			{['one', 'two', 'three'].map((key) => (
@@ -209,7 +209,7 @@ export function ConversationSidebar({
 		const normalizedMemberUserId = memberUserId.trim();
 
 		if (!normalizedMemberUserId) {
-			setMemberActionError('Paylasmadan once uye kullanici id gerekli.');
+			setMemberActionError('Paylaşmak için üye bilgisi gerekli.');
 			return;
 		}
 
@@ -220,7 +220,7 @@ export function ConversationSidebar({
 			await onShareMember(normalizedMemberUserId, memberRole);
 			setMemberUserId('');
 		} catch (error) {
-			setMemberActionError(error instanceof Error ? error.message : 'Sohbet paylasilamadi.');
+			setMemberActionError(error instanceof Error ? error.message : 'Sohbet paylaşılamadı.');
 		} finally {
 			setIsSavingMember(false);
 		}
@@ -233,7 +233,7 @@ export function ConversationSidebar({
 		try {
 			await onRemoveMember(memberUserIdValue);
 		} catch (error) {
-			setMemberActionError(error instanceof Error ? error.message : 'Sohbet uyesi kaldirilamadi.');
+			setMemberActionError(error instanceof Error ? error.message : 'Sohbet üyesi kaldırılamadı.');
 		} finally {
 			setIsSavingMember(false);
 		}
@@ -255,7 +255,7 @@ export function ConversationSidebar({
 				<button
 					type="button"
 					className="runa-sidebar-backdrop"
-					aria-label="Sohbet gecmisini kapat"
+					aria-label="Sohbet geçmişini kapat"
 					onClick={onClose}
 				/>
 			) : null}
@@ -263,7 +263,7 @@ export function ConversationSidebar({
 				className={`runa-card runa-card--subtle runa-conversation-sidebar${
 					isOpen ? ' runa-conversation-sidebar--open' : ''
 				}`}
-				aria-label="Sohbet gecmisi"
+				aria-label="Sohbet geçmişi"
 			>
 				<div className="runa-conversation-sidebar__header">
 					<div className="runa-migrated-components-chat-conversationsidebar-2">
@@ -284,7 +284,7 @@ export function ConversationSidebar({
 					<input
 						type="search"
 						className="runa-input"
-						placeholder="Baslik veya onizleme ara"
+						placeholder="Başlık veya önizleme ara"
 						value={searchQuery}
 						onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
 					/>
@@ -301,9 +301,9 @@ export function ConversationSidebar({
 
 					{!isLoading && conversations.length === 0 ? (
 						<div className="runa-empty-state">
-							<strong>Henuz sohbet yok.</strong>
+							<strong>Henüz sohbet yok.</strong>
 							<div className="runa-migrated-components-chat-conversationsidebar-9">
-								Ilk mesaji gonderdiginde kayitli sohbetlerin burada gorunecek.
+								İlk mesajından sonra sohbetlerin listelenir.
 							</div>
 							<button
 								type="button"
@@ -316,7 +316,7 @@ export function ConversationSidebar({
 					) : null}
 
 					{!isLoading && conversations.length > 0 && filteredConversations.length === 0 ? (
-						<div className="runa-empty-state">Bu aramayla eslesen sohbet yok.</div>
+						<div className="runa-empty-state">Bu aramayla eşleşen sohbet yok.</div>
 					) : null}
 
 					{groupedConversations.map((group) => (
@@ -357,7 +357,7 @@ export function ConversationSidebar({
 
 				{activeConversationSummary ? (
 					<details className="runa-conversation-members">
-						<summary>Uyeler - {roleLabel(activeConversationSummary.access_role)}</summary>
+						<summary>Üyeler - {roleLabel(activeConversationSummary.access_role)}</summary>
 
 						<div className="runa-migrated-components-chat-conversationsidebar-12">
 							{memberError ? (
@@ -380,7 +380,7 @@ export function ConversationSidebar({
 										onChange={(event: ChangeEvent<HTMLInputElement>) =>
 											setMemberUserId(event.target.value)
 										}
-										placeholder="uye kullanici id"
+										placeholder="üye bilgisi"
 										className="runa-input"
 									/>
 									<select
@@ -390,8 +390,8 @@ export function ConversationSidebar({
 										}
 										className="runa-input"
 									>
-										<option value="viewer">Izleyici</option>
-										<option value="editor">Duzenleyici</option>
+										<option value="viewer">İzleyici</option>
+										<option value="editor">Düzenleyici</option>
 									</select>
 									<button
 										type="button"
@@ -401,12 +401,12 @@ export function ConversationSidebar({
 										disabled={isSavingMember}
 										className="runa-button runa-button--secondary runa-migrated-components-chat-conversationsidebar-14"
 									>
-										{isSavingMember ? 'Uye kaydediliyor...' : 'Uye ekle veya guncelle'}
+										{isSavingMember ? 'Üye kaydediliyor...' : 'Üye ekle veya güncelle'}
 									</button>
 								</div>
 							) : (
 								<div className="runa-subtle-copy">
-									Bu sohbet seninle paylasilmis. Mevcut rolun{' '}
+									Bu sohbet seninle paylaşılmış. Mevcut rolün{' '}
 									{roleLabel(activeConversationSummary.access_role)}.
 								</div>
 							)}
@@ -415,7 +415,7 @@ export function ConversationSidebar({
 								{isMemberLoading ? (
 									<MemberSkeleton />
 								) : activeConversationMembers.length === 0 ? (
-									<div className="runa-subtle-copy">Henuz ek uye yok.</div>
+									<div className="runa-subtle-copy">Henüz ek üye yok.</div>
 								) : (
 									activeConversationMembers.map((member) => (
 										<div key={member.member_user_id} className="runa-conversation-member">
@@ -432,7 +432,7 @@ export function ConversationSidebar({
 													disabled={isSavingMember}
 													className="runa-button runa-button--danger"
 												>
-													Kaldir
+													Kaldır
 												</button>
 											) : null}
 										</div>

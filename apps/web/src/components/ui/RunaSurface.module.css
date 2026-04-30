@@ -24,18 +24,17 @@
 }
 
 .panel {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 }
 
 .hero {
-	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
-		var(--gradient-panel-strong);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid rgba(245, 158, 11, 0.24);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 }

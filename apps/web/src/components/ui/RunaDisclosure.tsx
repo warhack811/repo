@@ -29,7 +29,7 @@ export function RunaDisclosure({
 				type="button"
 			>
 				<span>{title}</span>
-				<span aria-hidden="true">{isOpen ? 'Hide' : 'Show'}</span>
+				<span aria-hidden="true">{isOpen ? 'Gizle' : 'Göster'}</span>
 			</button>
 			{isOpen ? (
 				<div className={styles['content']} id={contentId}>

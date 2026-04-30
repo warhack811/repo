@@ -26,23 +26,19 @@ export function PersistedTranscript({
 }: PersistedTranscriptProps): ReactElement {
 	if (activeConversationMessages.length === 0) {
 		return activeConversationId ? (
-			<div className="runa-subtle-copy">
-				Bu sohbet icin henuz kayitli mesaj yok. Ilk yanit tamamlandiginda burada gorunecek.
-			</div>
+			<div className="runa-subtle-copy">Bu sohbet için henüz kayıtlı mesaj yok.</div>
 		) : (
-			<div className="runa-subtle-copy">
-				Yeni bir sohbet hazir. Ilk mesajini gonderdiginde Runa bu akisi senin icin kaydeder.
-			</div>
+			<div className="runa-subtle-copy">Yeni bir sohbet hazır.</div>
 		);
 	}
 
 	return (
 		<div className="runa-migrated-components-chat-persistedtranscript-1" aria-live="polite">
-			<div className="runa-migrated-components-chat-persistedtranscript-2">Kayitli mesajlar</div>
+			<div className="runa-migrated-components-chat-persistedtranscript-2">Kayıtlı mesajlar</div>
 			{activeConversationMessages.map((message) => (
 				<div
 					key={message.message_id}
-					className="runa-migrated-components-chat-persistedtranscript-3"
+					className={`runa-transcript-message runa-transcript-message--${message.role} runa-migrated-components-chat-persistedtranscript-3`}
 				>
 					<div className="runa-migrated-components-chat-persistedtranscript-4">
 						<strong className="runa-migrated-components-chat-persistedtranscript-5">

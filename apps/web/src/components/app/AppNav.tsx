@@ -4,7 +4,7 @@ import { NavLink } from 'react-router-dom';
 
 import { uiCopy } from '../../localization/copy.js';
 
-export type AuthenticatedPageId = 'account' | 'chat' | 'developer' | 'devices' | 'history';
+export type AuthenticatedPageId = 'account' | 'chat' | 'devices' | 'history';
 
 interface AppNavItem {
 	readonly description: string;

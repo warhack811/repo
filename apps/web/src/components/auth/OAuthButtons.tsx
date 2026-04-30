@@ -24,7 +24,7 @@ type OAuthButtonsProps = Readonly<{
 
 export function OAuthButtons({ isDisabled, onStartOAuth }: OAuthButtonsProps): ReactElement {
 	return (
-		<div className="runa-card runa-card--subtle runa-card--soft-grid runa-migrated-components-auth-oauthbuttons-1">
+		<div className="runa-migrated-components-auth-oauthbuttons-1">
 			<div className="runa-migrated-components-auth-oauthbuttons-2">
 				{providers.map((provider) => (
 					<button

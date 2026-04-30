@@ -19,16 +19,18 @@ describe('DevicePresencePanel', () => {
 	it('renders an honest empty state without fake devices', () => {
 		const markup = renderToStaticMarkup(<DevicePresencePanel devices={[]} />);
 
-		expect(markup).toContain('Bagli cihaz yok');
+		expect(markup).toContain('Bağlı cihaz yok');
 		expect(markup).not.toContain('desktop.screenshot');
 	});
 
-	it('renders real device presence and hides raw connection detail behind details', () => {
+	it('renders real device presence without raw connection or tool names', () => {
 		const markup = renderToStaticMarkup(<DevicePresencePanel devices={[device]} />);
 
 		expect(markup).toContain('Workstation');
-		expect(markup).toContain('desktop.screenshot');
-		expect(markup).toContain('<details');
-		expect(markup).toContain('connection_123');
+		expect(markup).toContain('Ekranı görme');
+		expect(markup).toContain('Bağlı');
+		expect(markup).not.toContain('desktop.screenshot');
+		expect(markup).not.toContain('<details');
+		expect(markup).not.toContain('connection_123');
 	});
 });

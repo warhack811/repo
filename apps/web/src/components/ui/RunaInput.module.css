@@ -6,16 +6,16 @@
 
 .label {
 	color: hsl(var(--color-text));
-	font-size: 13px;
-	font-weight: 700;
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .control {
 	align-items: center;
-	background: var(--gradient-input);
+	background: hsl(var(--color-surface-overlay) / 0.72);
 	border: 1px solid rgba(148, 163, 184, 0.2);
 	border-radius: var(--radius-soft);
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 	display: flex;
 	gap: var(--space-2);
 	min-width: 0;
@@ -25,7 +25,7 @@
 
 .control:focus-within {
 	border-color: rgba(245, 158, 11, 0.5);
-	box-shadow: var(--shadow-glow);
+	box-shadow: none;
 }
 
 .input {

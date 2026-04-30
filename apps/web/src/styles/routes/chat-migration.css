@@ -8,7 +8,7 @@
 
 .runa-migrated-components-approval-approvalpanel-2 {
 	padding: 12px 16px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.28);
 	background: rgba(10, 16, 28, 0.84);
 	font-weight: 600;
@@ -35,7 +35,7 @@
 
 .runa-migrated-components-approval-approvalpanel-4 {
 	padding: 12px 16px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.28);
 	background: rgba(10, 16, 28, 0.84);
 	font-weight: 600;
@@ -61,19 +61,14 @@
 }
 
 .runa-migrated-components-approval-approvalsummarycard-1 {
-	border-radius: 22px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.2);
-	background: linear-gradient(
-		180deg,
-		rgba(34, 23, 8, 0.84) 0%,
-		rgba(12, 18, 31, 0.9) 56%,
-		rgba(6, 11, 21, 0.92) 100%
-	);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 20px;
 	display: grid;
 	gap: 16px;
 	min-width: 0px;
-	box-shadow: 0 24px 54px rgba(2, 6, 23, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	box-shadow: none;
 	backdrop-filter: blur(18px);
 	transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms
 		ease;
@@ -95,22 +90,22 @@
 }
 
 .runa-migrated-components-approval-approvalsummarycard-4 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
 }
 
 .runa-migrated-components-approval-approvalsummarycard-5 {
-	font-size: 18px;
+	font-size: 16px;
 	color: hsl(var(--color-text));
 }
 
 .runa-migrated-components-approval-approvalsummarycard-6 {
 	padding: 5px 11px;
 	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -126,7 +121,7 @@
 }
 
 .runa-migrated-components-approval-approvalsummarycard-9 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -146,14 +141,14 @@
 
 .runa-migrated-components-approval-approvalsummarycard-11 {
 	padding: 14px 16px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	line-height: 1.6;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	box-shadow: none;
 }
 
 .runa-migrated-components-approval-approvalsummarycard-12 {
 	padding: 14px 16px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 14, 24, 0.72);
 	display: grid;
@@ -175,7 +170,7 @@
 }
 
 .runa-migrated-components-approval-approvalsummarycard-15 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -186,7 +181,7 @@
 }
 
 .runa-migrated-components-approval-approvalsummarycard-17 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -198,7 +193,7 @@
 }
 
 .runa-migrated-components-approval-approvalsummarycard-19 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -210,7 +205,7 @@
 }
 
 .runa-migrated-components-approval-approvalsummarycard-21 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -226,17 +221,17 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	background: transparent;
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-2 {
 	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(8, 13, 24, 0.88) 0%, rgba(4, 9, 19, 0.8) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-3 {
@@ -258,10 +253,10 @@
 .runa-migrated-components-chat-blocks-blockrenderer-6 {
 	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(8, 13, 24, 0.88) 0%, rgba(4, 9, 19, 0.8) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-7 {
@@ -275,7 +270,7 @@
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-9 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -294,7 +289,7 @@
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-12 {
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-13 {
@@ -327,7 +322,7 @@
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-18 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -346,10 +341,10 @@
 .runa-migrated-components-chat-blocks-blockrenderer-21 {
 	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(8, 13, 24, 0.88) 0%, rgba(4, 9, 19, 0.8) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-22 {
@@ -365,10 +360,10 @@
 .runa-migrated-components-chat-blocks-blockrenderer-24 {
 	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(8, 13, 24, 0.88) 0%, rgba(4, 9, 19, 0.8) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-25 {
@@ -382,7 +377,7 @@
 }
 
 .runa-migrated-components-chat-blocks-blockrenderer-27 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -393,8 +388,8 @@
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
-	background: linear-gradient(180deg, rgba(7, 16, 32, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	box-shadow: none;
+	background: hsl(var(--color-surface) / 0.72);
 	border-color: rgba(56, 189, 248, 0.28);
 }
 
@@ -414,7 +409,7 @@
 }
 
 .runa-migrated-components-chat-blocks-codeblockcard-4 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -435,15 +430,15 @@
 
 .runa-migrated-components-chat-blocks-codeblockcard-7 {
 	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	padding: 4px 10px;
 	text-transform: uppercase;
 }
 
 .runa-migrated-components-chat-blocks-codeblockcard-8 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -473,7 +468,7 @@
 }
 
 .runa-migrated-components-chat-blocks-codeblockcard-12 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -489,12 +484,12 @@
 .runa-migrated-components-chat-blocks-codeblockcard-14 {
 	margin-top: 10px;
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(3, 7, 18, 0.96) 0%, rgba(6, 11, 24, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	max-width: 100%;
 	overflow-x: auto;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-blocks-codeblockcard-15 {
@@ -508,10 +503,10 @@
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(59, 130, 246, 0.35);
 	border-left: 3px solid rgba(96, 165, 250, 0.46);
-	background: linear-gradient(180deg, rgba(8, 19, 34, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	margin-left: clamp(0px, 3vw, 16px);
 }
 
@@ -530,7 +525,7 @@
 }
 
 .runa-migrated-components-chat-chat-presentation-4 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -573,7 +568,7 @@
 }
 
 .runa-migrated-components-chat-chat-presentation-11 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -589,7 +584,7 @@
 	font-size: 12px;
 	border-radius: var(--radius-pill);
 	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	font-weight: 600;
 	cursor: pointer;
@@ -604,14 +599,14 @@
 
 .runa-migrated-components-chat-chat-presentation-16 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 	overflow-wrap: anywhere;
 }
 
 .runa-migrated-components-chat-chat-presentation-17 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -625,7 +620,7 @@
 }
 
 .runa-migrated-components-chat-chatcomposersurface-1 {
-	box-shadow: 0 24px 60px rgba(2, 6, 23, 0.38);
+	box-shadow: none;
 	display: grid;
 }
 
@@ -634,7 +629,7 @@
 }
 
 .runa-migrated-components-chat-chatcomposersurface-3 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -648,7 +643,7 @@
 .runa-migrated-components-chat-chatcomposersurface-5 {
 	align-items: center;
 	display: flex;
-	font-size: 13px;
+	font-size: 14px;
 }
 
 .runa-migrated-components-chat-chatcomposersurface-6 {
@@ -660,7 +655,7 @@
 }
 
 .runa-migrated-components-chat-chatcomposersurface-8 {
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-migrated-components-chat-chatcomposersurface-9 {
@@ -711,7 +706,7 @@
 }
 
 .runa-migrated-components-chat-chatcomposersurface-17 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -722,7 +717,7 @@
 }
 
 .runa-migrated-components-chat-chatcomposersurface-19 {
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	background: rgba(9, 14, 25, 0.68);
 	display: grid;
 	padding: 12px 14px;
@@ -749,14 +744,14 @@
 
 .runa-migrated-components-chat-chatcomposersurface-25 {
 	color: #cbd5e1;
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.5;
 	white-space: pre-wrap;
 }
 
 .runa-migrated-components-chat-chatcomposersurface-26 {
 	color: #cbd5e1;
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.5;
 	white-space: pre-wrap;
 }
@@ -774,7 +769,7 @@
 
 .runa-migrated-components-chat-chatcomposersurface-29 {
 	color: #94a3b8;
-	font-size: 13px;
+	font-size: 14px;
 }
 
 .runa-migrated-components-chat-chatcomposersurface-30 {
@@ -792,11 +787,10 @@
 }
 
 .runa-migrated-components-chat-chatworkspaceheader-1 {
-	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
-		var(--gradient-panel-strong);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid rgba(245, 158, 11, 0.24);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 }
 
@@ -814,7 +808,7 @@
 
 .runa-migrated-components-chat-chatworkspaceheader-4 {
 	margin: 10px 0 6px;
-	font-size: var(--text-4xl);
+	font-size: 28px;
 }
 
 .runa-migrated-components-chat-chatworkspaceheader-5 {
@@ -828,7 +822,7 @@
 }
 
 .runa-migrated-components-chat-conversationsidebar-3 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -845,7 +839,7 @@
 }
 
 .runa-migrated-components-chat-conversationsidebar-7 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -882,7 +876,7 @@
 }
 
 .runa-migrated-components-chat-currentrunsurface-3 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -906,7 +900,7 @@
 	justify-content: center;
 	gap: 8px;
 	padding: 10px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.22);
 	background: rgba(10, 15, 27, 0.86);
 	color: #e5e7eb;
@@ -920,7 +914,7 @@
 }
 
 .runa-migrated-components-chat-persistedtranscript-2 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -945,7 +939,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-4 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -953,7 +947,7 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-5 {
 	color: #f8fafc;
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-10 {
@@ -969,7 +963,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-12 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -978,10 +972,10 @@
 .runa-migrated-components-chat-presentationblockrenderer-15 {
 	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	background: linear-gradient(180deg, rgba(10, 16, 28, 0.94) 0%, rgba(4, 9, 19, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-16 {
@@ -998,7 +992,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-18 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1031,7 +1025,7 @@
 .runa-migrated-components-chat-presentationblockrenderer-21 {
 	margin-top: 10px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(11, 18, 32, 0.78);
 	color: hsl(var(--color-text-muted));
@@ -1042,7 +1036,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-22 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1060,14 +1054,14 @@
 	font-size: 12px;
 	border-radius: var(--radius-pill);
 	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	font-weight: 600;
 	cursor: pointer;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-25 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #bfdbfe;
@@ -1078,9 +1072,9 @@
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(56, 189, 248, 0.28);
-	background: linear-gradient(180deg, rgba(7, 16, 32, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-27 {
@@ -1098,7 +1092,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-29 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1119,14 +1113,14 @@
 .runa-migrated-components-chat-presentationblockrenderer-32 {
 	padding: 4px 10px;
 	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-33 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1143,7 +1137,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-36 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1159,12 +1153,12 @@
 .runa-migrated-components-chat-presentationblockrenderer-38 {
 	margin-top: 10px;
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(3, 7, 18, 0.96) 0%, rgba(6, 11, 24, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	max-width: 100%;
 	overflow-x: auto;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-39 {
@@ -1178,9 +1172,9 @@
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(96, 165, 250, 0.28);
-	background: linear-gradient(180deg, rgba(8, 18, 36, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-41 {
@@ -1198,7 +1192,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-43 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1222,8 +1216,8 @@
 	border-radius: 999px;
 	border: 1px solid rgba(251, 191, 36, 0.35);
 	color: #fcd34d;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -1239,7 +1233,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-49 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1256,7 +1250,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-52 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1286,7 +1280,7 @@
 	font-size: 12px;
 	border-radius: var(--radius-pill);
 	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	font-weight: 600;
 	cursor: pointer;
@@ -1297,12 +1291,12 @@
 .runa-migrated-components-chat-presentationblockrenderer-56 {
 	margin-top: 10px;
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(3, 7, 18, 0.96) 0%, rgba(6, 11, 24, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	max-width: 100%;
 	overflow-x: auto;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-57 {
@@ -1323,8 +1317,8 @@
 	border-radius: 999px;
 	border: 1px solid rgba(251, 191, 36, 0.35);
 	color: #fcd34d;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -1334,9 +1328,9 @@
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(250, 204, 21, 0.28);
-	background: linear-gradient(180deg, rgba(32, 24, 8, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-61 {
@@ -1353,7 +1347,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-63 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1374,7 +1368,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-65 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1387,7 +1381,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-67 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1406,14 +1400,14 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-70 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 	overflow-wrap: anywhere;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-71 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1427,14 +1421,14 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-73 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 	overflow-wrap: anywhere;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-74 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1454,7 +1448,7 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-77 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 }
@@ -1465,7 +1459,7 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-79 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 }
@@ -1499,12 +1493,12 @@
 .runa-migrated-components-chat-presentationblockrenderer-83 {
 	margin-top: 10px;
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(3, 7, 18, 0.96) 0%, rgba(6, 11, 24, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	max-width: 100%;
 	overflow-x: auto;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-84 {
@@ -1515,11 +1509,11 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-85 {
 	padding: 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(45, 212, 191, 0.22);
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(45, 212, 191, 0.3);
-	background: linear-gradient(180deg, rgba(6, 24, 30, 0.94) 0%, rgba(2, 6, 23, 0.9) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-86 {
@@ -1537,7 +1531,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-88 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1573,8 +1567,8 @@
 	border-radius: 999px;
 	border: 1px solid rgba(45, 212, 191, 0.3);
 	color: #99f6e4;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -1593,7 +1587,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-95 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1614,7 +1608,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-97 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1633,14 +1627,14 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-100 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 	overflow-wrap: anywhere;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-101 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1654,14 +1648,14 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-103 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 	overflow-wrap: anywhere;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-104 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1675,14 +1669,14 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-106 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 	overflow-wrap: anywhere;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-107 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1696,14 +1690,14 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-109 {
 	padding: 14px;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 13, 24, 0.82);
 	overflow-wrap: anywhere;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-110 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1723,10 +1717,10 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-113 {
 	padding: 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(45, 212, 191, 0.22);
-	background: linear-gradient(180deg, rgba(7, 24, 31, 0.92) 0%, rgba(3, 10, 19, 0.88) 100%);
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	background: hsl(var(--color-surface) / 0.72);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-114 {
@@ -1735,10 +1729,10 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-115 {
 	padding: 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(45, 212, 191, 0.22);
-	background: linear-gradient(180deg, rgba(7, 24, 31, 0.92) 0%, rgba(3, 10, 19, 0.88) 100%);
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	background: hsl(var(--color-surface) / 0.72);
+	box-shadow: none;
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-116 {
@@ -1756,7 +1750,7 @@
 
 .runa-migrated-components-chat-presentationblockrenderer-118 {
 	color: #f8fafc;
-	font-weight: 700;
+	font-weight: 600;
 	text-decoration: none;
 	line-height: 1.5;
 	word-break: break-word;
@@ -1814,9 +1808,9 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(96, 165, 250, 0.3);
-	background: linear-gradient(180deg, rgba(10, 20, 38, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-128 {
@@ -1834,7 +1828,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-130 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1872,7 +1866,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-136 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1902,7 +1896,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-140 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1930,7 +1924,7 @@
 .runa-migrated-components-chat-presentationblockrenderer-143 {
 	margin-top: 10px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(11, 18, 32, 0.78);
 	color: hsl(var(--color-text-muted));
@@ -1941,7 +1935,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-144 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1951,7 +1945,7 @@
 .runa-migrated-components-chat-presentationblockrenderer-145 {
 	margin-top: 10px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(11, 18, 32, 0.78);
 	color: hsl(var(--color-text-muted));
@@ -1962,7 +1956,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-146 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -1979,9 +1973,9 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(96, 165, 250, 0.28);
-	background: linear-gradient(180deg, rgba(9, 17, 31, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-149 {
@@ -1999,7 +1993,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-151 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2018,7 +2012,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-154 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2032,7 +2026,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-156 {
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	padding: 12px;
 	background: rgba(15, 23, 42, 0.54);
 }
@@ -2053,8 +2047,8 @@
 .runa-migrated-components-chat-presentationblockrenderer-159 {
 	padding: 3px 8px;
 	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -2101,9 +2095,9 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(125, 211, 252, 0.28);
-	background: linear-gradient(180deg, rgba(8, 19, 34, 0.94) 0%, rgba(2, 6, 23, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-165 {
@@ -2121,7 +2115,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-167 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2143,8 +2137,8 @@
 .runa-migrated-components-chat-presentationblockrenderer-170 {
 	padding: 4px 10px;
 	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -2158,7 +2152,7 @@
 .runa-migrated-components-chat-presentationblockrenderer-172 {
 	margin-top: 10px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(11, 18, 32, 0.78);
 	color: hsl(var(--color-text-muted));
@@ -2169,7 +2163,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-173 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2179,7 +2173,7 @@
 .runa-migrated-components-chat-presentationblockrenderer-174 {
 	margin-top: 10px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(11, 18, 32, 0.78);
 	color: hsl(var(--color-text-muted));
@@ -2190,7 +2184,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-175 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2200,7 +2194,7 @@
 .runa-migrated-components-chat-presentationblockrenderer-176 {
 	margin-top: 10px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(11, 18, 32, 0.78);
 	color: hsl(var(--color-text-muted));
@@ -2211,7 +2205,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-177 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2226,7 +2220,7 @@
 .runa-migrated-components-chat-presentationblockrenderer-179 {
 	margin-top: 10px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
 	line-height: 1.5;
@@ -2237,7 +2231,7 @@
 }
 
 .runa-migrated-components-chat-presentationblockrenderer-180 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	margin-bottom: 6px;
@@ -2305,7 +2299,7 @@
 }
 
 .runa-migrated-components-chat-presentationrunsurfacecard-10 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #93c5fd;
@@ -2364,7 +2358,7 @@
 }
 
 .runa-migrated-components-chat-presentationrunsurfacecard-20 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2378,7 +2372,7 @@
 }
 
 .runa-migrated-components-chat-presentationrunsurfacecard-22 {
-	font-size: 15px;
+	font-size: 16px;
 	color: hsl(var(--color-text));
 }
 
@@ -2400,9 +2394,9 @@
 }
 
 .runa-migrated-components-chat-runprogresspanel-1 {
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(96, 165, 250, 0.22);
-	background: linear-gradient(180deg, rgba(10, 20, 38, 0.94) 0%, rgba(3, 8, 24, 0.9) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: clamp(16px, 3vw, 20px);
 	display: grid;
 	gap: 16px;
@@ -2414,7 +2408,7 @@
 }
 
 .runa-migrated-components-chat-runprogresspanel-3 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #93c5fd;
@@ -2451,7 +2445,7 @@
 }
 
 .runa-migrated-components-chat-runprogresspanel-9 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #93c5fd;
@@ -2463,7 +2457,7 @@
 }
 
 .runa-migrated-components-chat-runprogresspanel-11 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #93c5fd;
@@ -2475,7 +2469,7 @@
 }
 
 .runa-migrated-components-chat-runprogresspanel-13 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #93c5fd;
@@ -2488,7 +2482,7 @@
 	border-radius: 999px;
 	background: rgba(15, 23, 42, 0.82);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	font-size: 11px;
+	font-size: 12px;
 	width: fit-content;
 	color: #f8fafc;
 }
@@ -2507,7 +2501,7 @@
 }
 
 .runa-migrated-components-chat-runprogresspanel-17 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #93c5fd;
@@ -2520,7 +2514,7 @@
 
 .runa-migrated-components-chat-runprogresspanel-19 {
 	color: #fcd34d;
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.6;
 }
 
@@ -2538,27 +2532,27 @@
 	gap: 4px;
 	min-width: fit-content;
 	padding: 10px 12px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	background: rgba(15, 23, 42, 0.7);
 	border: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .runa-migrated-components-chat-runstatuschips-3 {
-	font-size: 10px;
+	font-size: 12px;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
 }
 
 .runa-migrated-components-chat-runstatuschips-4 {
-	font-size: 13px;
-	font-weight: 700;
+	font-size: 14px;
+	font-weight: 600;
 	line-height: 1.2;
 }
 
 .runa-migrated-components-chat-screenshotcard-1 {
 	background: rgba(15, 23, 42, 0.62);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	display: grid;
 	gap: 10px;
 	overflow: hidden;
@@ -2574,7 +2568,7 @@
 .runa-migrated-components-chat-screenshotcard-3 {
 	aspect-ratio: 16 / 10;
 	background: rgba(3, 7, 18, 0.7);
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	cursor: zoom-in;
 	display: block;
 	object-fit: cover;
@@ -2584,14 +2578,14 @@
 .runa-migrated-components-chat-screenshotcard-4 {
 	color: #cbd5e1;
 	display: grid;
-	font-size: 13px;
+	font-size: 14px;
 	gap: 4px;
 }
 
 .runa-migrated-components-chat-screenshotcard-5 {
 	background: #020617;
 	border: 1px solid rgba(148, 163, 184, 0.24);
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	color: #f8fafc;
 	max-width: min(960px, calc(100vw - 32px));
 	padding: 12px;
@@ -2609,15 +2603,15 @@
 }
 
 .runa-migrated-components-chat-streamingmessagesurface-1 {
-	background: linear-gradient(180deg, rgba(54, 32, 7, 0.28) 0%, rgba(15, 23, 42, 0.3) 100%);
-	border-radius: 20px;
-	box-shadow: 0 18px 36px rgba(15, 23, 42, 0.22);
+	background: hsl(var(--color-surface) / 0.72);
+	border-radius: var(--radius-panel);
+	box-shadow: none;
 	display: grid;
 	padding: 16px 18px;
 }
 
 .runa-migrated-components-chat-streamingmessagesurface-2 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2626,7 +2620,7 @@
 .runa-migrated-components-chat-thinkingblock-1 {
 	background: rgba(15, 23, 42, 0.56);
 	border: 1px solid rgba(96, 165, 250, 0.2);
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	display: grid;
 	gap: 12px;
 	padding: 14px;
@@ -2648,7 +2642,7 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: 999px;
 	color: #cbd5e1;
-	font-size: 11px;
+	font-size: 12px;
 	padding: 3px 8px;
 	width: fit-content;
 }
@@ -2660,7 +2654,7 @@
 
 .runa-migrated-components-chat-thinkingblock-6 {
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	display: grid;
 	gap: 6px;
 	padding: 10px;
@@ -2684,7 +2678,7 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: 999px;
 	color: #cbd5e1;
-	font-size: 11px;
+	font-size: 12px;
 	padding: 3px 8px;
 	width: fit-content;
 }
@@ -2705,7 +2699,7 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: 999px;
 	color: #cbd5e1;
-	font-size: 11px;
+	font-size: 12px;
 	padding: 3px 8px;
 	width: fit-content;
 }
@@ -2715,7 +2709,7 @@
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: 999px;
 	color: #cbd5e1;
-	font-size: 11px;
+	font-size: 12px;
 	padding: 3px 8px;
 	width: fit-content;
 }
@@ -2740,13 +2734,411 @@
 }
 
 .runa-migrated-components-chat-toolactivityindicator-3 {
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-migrated-components-chat-toolactivityindicator-4 {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* UI-OVERHAUL-07.2: chat-first composer reset lives in the chat route chunk. */
+.runa-chat-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.runa-shell-frame--chat {
+	max-width: min(100%, 1120px);
+	width: min(100%, 1120px);
+}
+
+.runa-chat-layout {
+	margin-top: clamp(8px, 2vh, 18px);
+}
+
+.runa-chat-layout__main {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	gap: clamp(14px, 2.4vh, 22px);
+	min-height: clamp(520px, calc(100dvh - 216px), 820px);
+	max-width: 860px;
+	width: min(100%, 860px);
+}
+
+.runa-chat-layout__work {
+	display: grid;
+	gap: 14px;
+	align-content: start;
+	z-index: 1;
+}
+
+.runa-chat-layout__work:empty {
+	display: none;
+}
+
+.runa-chat-layout__composer {
+	position: sticky;
+	bottom: clamp(14px, 2.5vh, 22px);
+	z-index: 20;
+}
+
+.runa-chat-layout__work:not(:empty) + .runa-chat-layout__composer {
+	position: relative;
+	bottom: auto;
+	margin-bottom: 0;
+	transform: none;
+}
+
+.runa-chat-composer-surface {
+	display: grid;
+	gap: 12px;
+	padding: clamp(14px, 2vw, 18px);
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	border-radius: var(--radius-panel);
+	background: rgba(7, 12, 22, 0.92);
+	box-shadow: none;
+	backdrop-filter: blur(16px);
+}
+
+.runa-chat-composer-surface--empty {
+	gap: 16px;
+	padding: clamp(18px, 2.4vw, 22px);
+}
+
+.runa-chat-composer-surface:not(.runa-chat-composer-surface--empty)
+	.runa-chat-composer-surface__intro {
+	display: none;
+}
+
+.runa-chat-composer-surface__intro {
+	max-width: 680px;
+}
+
+.runa-chat-composer-form {
+	display: grid;
+	gap: 10px;
+}
+
+.runa-chat-composer-input {
+	display: grid;
+	min-width: 0;
+}
+
+.runa-chat-composer-input .runa-input--textarea {
+	min-height: 78px;
+	max-height: min(34vh, 240px);
+	padding: 14px 16px;
+	font-size: 16px;
+	line-height: 1.55;
+	background: rgba(3, 7, 18, 0.82);
+}
+
+.runa-chat-composer-surface--empty .runa-chat-composer-input .runa-input--textarea {
+	min-height: clamp(112px, 16vh, 148px);
+}
+
+.runa-chat-composer-actions,
+.runa-chat-composer-actions__left,
+.runa-chat-composer-actions__right {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.runa-chat-composer-actions {
+	justify-content: space-between;
+}
+
+.runa-chat-composer-actions__right {
+	justify-content: flex-end;
+}
+
+.runa-migrated-components-chat-fileuploadbutton-2,
+.runa-chat-composer-more > summary,
+.runa-chat-send-button {
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0;
+	border-radius: 999px;
+}
+
+.runa-migrated-components-chat-fileuploadbutton-2,
+.runa-chat-composer-more > summary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(148, 163, 184, 0.22);
+	background: rgba(10, 15, 27, 0.86);
+	color: hsl(var(--color-text));
+	cursor: pointer;
+	box-shadow: none;
+	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.runa-migrated-components-chat-fileuploadbutton-2:hover,
+.runa-chat-composer-more > summary:hover {
+	border-color: rgba(245, 158, 11, 0.34);
+	background: rgba(15, 23, 42, 0.92);
+	transform: translateY(-1px);
+}
+
+.runa-chat-send-button {
+	box-shadow: none;
+}
+
+.runa-chat-composer-more {
+	position: relative;
+}
+
+.runa-chat-composer-more > summary {
+	list-style: none;
+}
+
+.runa-chat-composer-more > summary::-webkit-details-marker {
+	display: none;
+}
+
+.runa-chat-composer-more__content {
+	position: absolute;
+	right: 0;
+	bottom: 52px;
+	display: grid;
+	gap: 12px;
+	width: min(340px, calc(100vw - 40px));
+	padding: 12px;
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	border-radius: var(--radius-panel);
+	background: rgba(6, 11, 21, 0.98);
+	box-shadow: none;
+	z-index: 30;
+}
+
+.runa-chat-composer-more:not([open]) .runa-chat-composer-more__content {
+	display: none;
+}
+
+.runa-chat-composer-attachments {
+	display: grid;
+	gap: 10px;
+	min-width: 0;
+}
+
+.runa-chat-composer-status {
+	color: hsl(var(--color-text-soft));
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.runa-chat-composer-surface--empty .runa-chat-composer-status {
+	display: none;
+}
+
+.runa-chat-empty-state {
+	padding: 0;
+}
+
+.runa-chat-suggestion-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.runa-chat-suggestion {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 40px;
+	padding: 9px 12px;
+	border-radius: 999px;
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: rgba(15, 23, 42, 0.42);
+	color: hsl(var(--color-text-muted));
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.runa-chat-suggestion svg {
+	color: #fbbf24;
+	flex: 0 0 auto;
+}
+
+.runa-chat-suggestion:hover {
+	background: rgba(15, 23, 42, 0.62);
+	border-color: rgba(245, 158, 11, 0.34);
+	color: hsl(var(--color-text));
+	transform: translateY(-1px);
+}
+
+.runa-current-run-surface--empty {
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
+	padding: 0;
+}
+
+.runa-current-run-surface--empty .runa-migrated-components-chat-currentrunsurface-2 {
+	display: none;
+}
+
+.runa-transcript-message {
+	display: grid;
+	gap: 8px;
+	max-width: min(760px, 100%);
+}
+
+.runa-transcript-message--user {
+	justify-self: end;
+	max-width: min(78%, 620px);
+	padding: 12px 14px;
+	border-radius: 18px 18px 6px 18px;
+	background: rgba(245, 158, 11, 0.12);
+	border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.runa-transcript-message--assistant {
+	justify-self: start;
+	padding-left: 12px;
+	border-left: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.runa-transcript-message--system {
+	justify-self: center;
+	max-width: min(720px, 100%);
+	color: hsl(var(--color-text-soft));
+}
+
+@media (max-width: 720px) {
+	.runa-chat-layout__main {
+		gap: 12px;
+		min-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 188px);
+		max-width: 100%;
+		padding-bottom: 20px;
+		width: 100%;
+	}
+
+	.runa-chat-layout__composer {
+		bottom: calc(var(--safe-area-bottom) + 116px);
+		margin-bottom: 20px;
+		transform: translateY(-24px);
+	}
+
+	.runa-page--chat-product,
+	.runa-page--app-shell {
+		padding-bottom: calc(144px + var(--safe-area-bottom));
+	}
+
+	.runa-chat-composer-surface {
+		border-radius: var(--radius-panel);
+		padding: 12px;
+	}
+
+	.runa-chat-composer-surface--empty {
+		gap: 12px;
+		padding: 14px;
+	}
+
+	.runa-chat-composer-surface--empty .runa-migrated-components-chat-chatcomposersurface-4 {
+		font-size: 20px;
+		line-height: 1.2;
+	}
+
+	.runa-chat-composer-input .runa-input--textarea {
+		min-height: 68px;
+	}
+
+	.runa-chat-composer-surface--empty .runa-chat-composer-input .runa-input--textarea {
+		min-height: 96px;
+	}
+
+	.runa-chat-suggestion-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+
+	.runa-chat-suggestion {
+		width: 100%;
+		justify-content: flex-start;
+	}
+}
+
+@media (max-width: 360px) {
+	.runa-chat-composer-actions {
+		align-items: stretch;
+	}
+
+	.runa-chat-composer-actions__left,
+	.runa-chat-composer-actions__right {
+		flex: 0 0 auto;
+	}
+
+	.runa-chat-composer-more__content {
+		right: -54px;
+		width: min(296px, calc(100vw - 24px));
+	}
+
+	.runa-chat-composer-surface--empty {
+		gap: 8px;
+		padding: 10px;
+	}
+
+	.runa-chat-composer-surface--empty .runa-migrated-components-chat-chatcomposersurface-3 {
+		display: none;
+	}
+
+	.runa-chat-composer-surface--empty .runa-migrated-components-chat-chatcomposersurface-4 {
+		font-size: 16px;
+	}
+
+	.runa-chat-composer-surface--empty .runa-subtle-copy {
+		font-size: 14px;
+		line-height: 1.45;
+		max-height: 40px;
+		overflow: hidden;
+	}
+
+	.runa-chat-composer-surface--empty .runa-chat-composer-input .runa-input--textarea {
+		min-height: 44px;
+		padding: 9px 12px;
+		line-height: 1.35;
+	}
+
+	.runa-chat-composer-surface--empty .runa-chat-suggestion-grid {
+		display: flex;
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		padding-bottom: 2px;
+	}
+
+	.runa-chat-composer-surface--empty .runa-chat-suggestion {
+		flex: 0 0 auto;
+		gap: 6px;
+		min-height: 38px;
+		max-width: 190px;
+		padding: 7px 8px;
+		font-size: 12px;
+		line-height: 1.2;
+		white-space: nowrap;
+	}
+
+	.runa-chat-composer-surface--empty .runa-chat-suggestion svg {
+		width: 15px;
+		height: 15px;
+	}
 }
 
 .runa-migrated-components-chat-voicecomposercontrols-1 {
@@ -2767,7 +3159,7 @@
 	justify-content: center;
 	gap: 8px;
 	padding: 10px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.22);
 	background: rgba(10, 15, 27, 0.86);
 	color: #e5e7eb;
@@ -2782,7 +3174,7 @@
 	justify-content: center;
 	gap: 8px;
 	padding: 10px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.22);
 	background: rgba(10, 15, 27, 0.86);
 	color: #e5e7eb;
@@ -2792,13 +3184,158 @@
 }
 
 .runa-migrated-components-chat-voicecomposercontrols-5 {
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.5;
 	color: #94a3b8;
 }
 
+/* UI-OVERHAUL-07.8: keyboard and mobile composer polish. */
+.runa-migrated-components-chat-fileuploadbutton-1 {
+	border: 0;
+	clip: rect(0 0 0 0);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	white-space: nowrap;
+	width: 1px;
+}
+
+.runa-migrated-components-chat-fileuploadbutton-1:focus-visible
+	+ .runa-migrated-components-chat-fileuploadbutton-2 {
+	outline: 2px solid rgba(245, 158, 11, 0.9);
+	outline-offset: 3px;
+}
+
+.runa-migrated-components-chat-fileuploadbutton-1:disabled
+	+ .runa-migrated-components-chat-fileuploadbutton-2,
+.runa-migrated-components-chat-fileuploadbutton-2[aria-disabled="true"] {
+	cursor: not-allowed;
+	opacity: 0.58;
+}
+
+.runa-chat-composer-more[open] > summary {
+	background: hsl(var(--color-accent) / 0.14);
+	border-color: hsl(var(--color-accent) / 0.32);
+}
+
+.runa-chat-composer-actions {
+	container-type: inline-size;
+}
+
+.runa-chat-composer-attachments,
+.runa-chat-composer-attachments *,
+.runa-chat-composer-status,
+.runa-migrated-components-chat-voicecomposercontrols-5 {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.runa-chat-icon-button:hover,
+	.runa-app-nav__item:hover,
+	.runa-conversation-item:hover,
+	.runa-chat-suggestion:hover,
+	.runa-migrated-components-chat-fileuploadbutton-2:hover,
+	.runa-chat-composer-more > summary:hover {
+		border-color: rgba(245, 158, 11, 0.34);
+	}
+}
+
+@media (max-width: 720px) {
+	.runa-chat-layout__main {
+		min-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 128px);
+		padding-bottom: calc(180px + var(--safe-area-bottom));
+		scroll-padding-bottom: calc(220px + var(--safe-area-bottom));
+	}
+
+	.runa-chat-layout__work {
+		padding-bottom: calc(120px + var(--safe-area-bottom));
+	}
+
+	.runa-chat-layout__composer {
+		bottom: calc(72px + var(--safe-area-bottom));
+		margin-bottom: 0;
+		transform: none;
+	}
+
+	.runa-chat-layout__work:not(:empty) + .runa-chat-layout__composer {
+		position: relative;
+		bottom: auto;
+	}
+
+	.runa-page--chat-product {
+		padding-bottom: calc(92px + var(--safe-area-bottom));
+	}
+
+	.runa-chat-composer-input .runa-input--textarea {
+		max-height: min(28dvh, 168px);
+	}
+
+	.runa-chat-composer-actions {
+		align-items: center;
+		flex-wrap: nowrap;
+		gap: 8px;
+	}
+
+	.runa-chat-composer-actions__left,
+	.runa-chat-composer-actions__right {
+		flex: 0 0 auto;
+		gap: 8px;
+	}
+
+	.runa-chat-composer-more__content {
+		bottom: 50px;
+		max-height: min(58dvh, 420px);
+		overflow: auto;
+		width: min(340px, calc(100vw - 24px));
+	}
+}
+
+@media (max-width: 390px) {
+	.runa-chat-composer-surface {
+		gap: 10px;
+		padding: 10px;
+	}
+
+	.runa-migrated-components-chat-fileuploadbutton-2,
+	.runa-chat-composer-more > summary,
+	.runa-chat-send-button {
+		height: 40px;
+		min-height: 40px;
+		min-width: 40px;
+		width: 40px;
+	}
+
+	.runa-chat-composer-input .runa-input--textarea {
+		min-height: 56px;
+		padding: 10px 12px;
+	}
+
+	.runa-chat-composer-more__content {
+		right: -48px;
+		width: min(304px, calc(100vw - 20px));
+	}
+}
+
+@media (max-width: 330px) {
+	.runa-chat-composer-actions {
+		gap: 6px;
+	}
+
+	.runa-chat-composer-actions__right {
+		gap: 6px;
+	}
+
+	.runa-chat-composer-more__content {
+		right: -46px;
+		width: min(296px, calc(100vw - 16px));
+	}
+}
+
 .runa-migrated-components-developer-chatdeveloperhint-1 {
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(245, 158, 11, 0.24);
 	background: rgba(38, 26, 8, 0.44);
 	padding: 14px 16px;
@@ -2809,14 +3346,14 @@
 
 .runa-migrated-components-developer-chatdeveloperhint-2 {
 	color: #fde68a;
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-migrated-components-developer-runtimelinepanel-1 {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	backdrop-filter: blur(12px);
 	padding: clamp(18px, 3vw, 22px);
 }
@@ -2844,7 +3381,7 @@
 	background: rgba(15, 23, 42, 0.5);
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 	padding: 6px 10px;
 }
 
@@ -2883,7 +3420,7 @@
 }
 
 .runa-migrated-components-developer-runtimelinepanel-10 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #93c5fd;
@@ -2951,7 +3488,7 @@
 }
 
 .runa-migrated-components-developer-runtimelinepanel-19 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -2966,11 +3503,11 @@
 	padding: 10px 14px;
 	border-radius: var(--radius-pill);
 	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	font-weight: 600;
 	cursor: pointer;
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 }
 
 .runa-migrated-components-developer-runtimelinepanel-22 {

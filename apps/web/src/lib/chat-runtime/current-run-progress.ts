@@ -412,7 +412,7 @@ function getFallbackDetail(
 	}
 
 	if (runSummary?.has_accepted) {
-		return 'Sunucu isteği kabul etti. Canlı runtime hareketi bekleniyor.';
+		return 'İstek kabul edildi. Çalışma kaldığı yerden devam ediyor.';
 	}
 
 	return 'Mevcut çalışma burada birinci planda kalır.';

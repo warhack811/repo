@@ -11,7 +11,7 @@
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-3 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -32,7 +32,7 @@
 	display: grid;
 	gap: 10px;
 	padding: 14px 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	background: rgba(9, 14, 25, 0.68);
 	min-width: 0px;
@@ -40,7 +40,7 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-7 {
 	color: #f8fafc;
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-8 {
@@ -53,7 +53,7 @@
 	display: grid;
 	gap: 10px;
 	padding: 14px 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	background: rgba(9, 14, 25, 0.68);
 	min-width: 0px;
@@ -61,7 +61,7 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-10 {
 	color: #f8fafc;
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-11 {
@@ -74,7 +74,7 @@
 	display: grid;
 	gap: 10px;
 	padding: 14px 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	background: rgba(9, 14, 25, 0.68);
 	min-width: 0px;
@@ -88,7 +88,7 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-14 {
 	color: #f8fafc;
-	font-weight: 700;
+	font-weight: 600;
 	overflow-wrap: anywhere;
 }
 
@@ -104,7 +104,7 @@
 	color: #bbf7d0;
 	background: rgba(20, 83, 45, 0.18);
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 	padding: 6px 10px;
 	text-transform: uppercase;
 }

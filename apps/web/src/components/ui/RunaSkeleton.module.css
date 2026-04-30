@@ -1,11 +1,6 @@
 .skeleton {
 	animation: runa-shimmer 1.3s linear infinite;
-	background: linear-gradient(
-		90deg,
-		rgba(148, 163, 184, 0.1),
-		rgba(148, 163, 184, 0.22),
-		rgba(148, 163, 184, 0.1)
-	);
+	background: hsl(var(--color-surface) / 0.72);
 	background-size: 200% 100%;
 	display: block;
 }

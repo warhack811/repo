@@ -27,17 +27,25 @@ export function CurrentRunSurface({
 	currentStreamingText,
 	emptyStateContent,
 	isHistoryLoading = false,
-}: CurrentRunSurfaceProps): ReactElement {
+}: CurrentRunSurfaceProps): ReactElement | null {
 	const isBusy =
 		currentStreamingText.trim().length > 0 ||
 		currentRunProgressPanel !== null ||
 		currentPresentationContent !== null;
 	const hasTranscript = activeConversationMessages.length > 0;
 	const showSubtitle = isBusy;
+	const shouldShowEmptyState =
+		!isBusy && !hasTranscript && !isHistoryLoading && emptyStateContent !== null;
+
+	if (!isBusy && !hasTranscript && !isHistoryLoading && emptyStateContent === null) {
+		return null;
+	}
 
 	return (
 		<section
-			className="runa-card runa-card--chat runa-chat-surface runa-migrated-components-chat-currentrunsurface-1"
+			className={`runa-card runa-card--chat runa-chat-surface runa-migrated-components-chat-currentrunsurface-1${
+				shouldShowEmptyState ? ' runa-current-run-surface--empty' : ''
+			}`}
 			aria-labelledby="chat-conversation-surface-heading"
 			aria-busy={isBusy}
 		>
@@ -47,11 +55,11 @@ export function CurrentRunSurface({
 					id="chat-conversation-surface-heading"
 					className="runa-migrated-components-chat-currentrunsurface-4"
 				>
-					Calisma akisi
+					Sohbet akışı
 				</h2>
 				{showSubtitle ? (
 					<div className="runa-subtle-copy runa-migrated-components-chat-currentrunsurface-5">
-						yanitlar, onaylar ve sonuclar burada gorunur
+						Runa cevabı ve onay isteyen adımlar sırayla ilerler.
 					</div>
 				) : null}
 			</div>
@@ -68,11 +76,11 @@ export function CurrentRunSurface({
 					<RunaSkeleton variant="text" />
 				</output>
 			) : (
-				(currentPresentationContent ?? (isBusy ? null : emptyStateContent))
+				(currentPresentationContent ?? (shouldShowEmptyState ? emptyStateContent : null))
 			)}
 			{hasTranscript ? (
 				<details className="runa-transcript-details">
-					<summary>Kayitli sohbeti goster</summary>
+					<summary>Kayıtlı sohbeti göster</summary>
 					<PersistedTranscript
 						activeConversationId={activeConversationId}
 						activeConversationMessages={activeConversationMessages}

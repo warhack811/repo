@@ -3,8 +3,8 @@
 .runa-migrated-components-developer-operatorcontrolspanel-1 {
 	background: rgba(10, 15, 28, 0.72);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 18px;
-	box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22);
+	border-radius: var(--radius-panel);
+	box-shadow: none;
 	padding: clamp(16px, 3vw, 20px);
 	backdrop-filter: blur(12px);
 	display: grid;
@@ -17,7 +17,7 @@
 }
 
 .runa-migrated-components-developer-operatorcontrolspanel-3 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #94a3b8;
@@ -35,13 +35,13 @@
 
 .runa-migrated-components-developer-operatorcontrolspanel-6 {
 	padding: 14px 16px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	display: grid;
 	gap: 6px;
 }
 
 .runa-migrated-components-developer-operatorcontrolspanel-7 {
-	font-size: 15px;
+	font-size: 16px;
 }
 
 .runa-migrated-components-developer-operatorcontrolspanel-8 {
@@ -62,7 +62,7 @@
 .runa-migrated-components-developer-operatorcontrolspanel-11 {
 	width: 100%;
 	padding: 10px 12px;
-	border-radius: 10px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.3);
 	background: rgba(15, 23, 42, 0.8);
 	color: #f8fafc;
@@ -79,7 +79,7 @@
 .runa-migrated-components-developer-operatorcontrolspanel-13 {
 	width: 100%;
 	padding: 10px 12px;
-	border-radius: 10px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.3);
 	background: rgba(15, 23, 42, 0.8);
 	color: #f8fafc;
@@ -96,7 +96,7 @@
 .runa-migrated-components-developer-operatorcontrolspanel-15 {
 	width: 100%;
 	padding: 10px 12px;
-	border-radius: 10px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.3);
 	background: rgba(15, 23, 42, 0.8);
 	color: #f8fafc;
@@ -116,18 +116,17 @@
 
 .runa-migrated-components-developer-operatorcontrolspanel-17 {
 	color: #94a3b8;
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.6;
 }
 
 .runa-migrated-components-developer-transportmessagespanel-1 {
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	backdrop-filter: blur(12px);
 	padding: clamp(18px, 3vw, 22px);
-	background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 32%),
-		linear-gradient(180deg, rgba(8, 12, 24, 0.76) 0%, rgba(4, 9, 19, 0.72) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-migrated-components-developer-transportmessagespanel-2 {
@@ -145,7 +144,7 @@
 }
 
 .runa-migrated-components-developer-transportmessagespanel-4 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -165,18 +164,18 @@
 
 .runa-migrated-components-developer-transportmessagespanel-7 {
 	color: #94a3b8;
-	font-size: 13px;
+	font-size: 14px;
 }
 
 .runa-migrated-components-developer-transportmessagespanel-8 {
 	padding: 10px 14px;
 	border-radius: var(--radius-pill);
 	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	font-weight: 600;
 	cursor: pointer;
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 }
 
 .runa-migrated-components-developer-transportmessagespanel-9 {
@@ -212,10 +211,10 @@
 .runa-migrated-components-developer-transportmessagespanel-13 {
 	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: linear-gradient(180deg, rgba(8, 13, 24, 0.88) 0%, rgba(4, 9, 19, 0.8) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 16px;
 	min-width: 0;
-	box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26);
+	box-shadow: none;
 	border-color: rgba(148, 163, 184, 0.14);
 }
 
@@ -235,9 +234,9 @@
 
 .runa-migrated-components-developer-transportmessagespanel-16 {
 	margin: 0px;
-	background: linear-gradient(180deg, rgba(6, 11, 21, 0.9) 0%, rgba(2, 6, 23, 0.84) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	padding: 12px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	overflow-x: auto;
 	font-size: 12px;
@@ -253,10 +252,10 @@
 }
 
 .runa-migrated-pages-developerpage-1 {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 	backdrop-filter: blur(12px);
 	position: relative;
@@ -270,7 +269,7 @@
 }
 
 .runa-migrated-pages-developerpage-3 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -278,7 +277,7 @@
 
 .runa-migrated-pages-developerpage-4 {
 	margin: 0px;
-	font-size: 24px;
+	font-size: 20px;
 }
 
 .runa-migrated-pages-developerpage-5 {
@@ -296,7 +295,7 @@
 .runa-migrated-pages-developerpage-7 {
 	padding: 14px 16px;
 	border-radius: var(--radius-soft);
-	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	display: grid;
 	gap: 8px;
@@ -305,22 +304,22 @@
 }
 
 .runa-migrated-pages-developerpage-8 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
 }
 
 .runa-migrated-pages-developerpage-9 {
-	font-size: 18px;
-	font-weight: 700;
+	font-size: 16px;
+	font-weight: 600;
 	color: #f8fafc;
 }
 
 .runa-migrated-pages-developerpage-10 {
 	padding: 14px 16px;
 	border-radius: var(--radius-soft);
-	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	display: grid;
 	gap: 8px;
@@ -329,22 +328,22 @@
 }
 
 .runa-migrated-pages-developerpage-11 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
 }
 
 .runa-migrated-pages-developerpage-12 {
-	font-size: 18px;
-	font-weight: 700;
+	font-size: 16px;
+	font-weight: 600;
 	color: #f8fafc;
 }
 
 .runa-migrated-pages-developerpage-13 {
 	padding: 14px 16px;
 	border-radius: var(--radius-soft);
-	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	display: grid;
 	gap: 8px;
@@ -353,23 +352,23 @@
 }
 
 .runa-migrated-pages-developerpage-14 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
 }
 
 .runa-migrated-pages-developerpage-15 {
-	font-size: 18px;
-	font-weight: 700;
+	font-size: 16px;
+	font-weight: 600;
 	color: #f8fafc;
 }
 
 .runa-migrated-pages-developerpage-16 {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 	backdrop-filter: blur(12px);
 	position: relative;
@@ -382,7 +381,7 @@
 }
 
 .runa-migrated-pages-developerpage-18 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -400,10 +399,10 @@
 }
 
 .runa-migrated-pages-developerpage-21 {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 	backdrop-filter: blur(12px);
 	position: relative;
@@ -417,7 +416,7 @@
 }
 
 .runa-migrated-pages-developerpage-23 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -439,11 +438,11 @@
 	padding: 10px 14px;
 	border-radius: var(--radius-pill);
 	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	font-weight: 600;
 	cursor: pointer;
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 	width: 100%;
 }
 
@@ -451,18 +450,18 @@
 	padding: 10px 14px;
 	border-radius: var(--radius-pill);
 	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	font-weight: 600;
 	cursor: pointer;
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 	width: 100%;
 }
 
 .runa-migrated-pages-developerpage-28 {
 	margin-top: 16px;
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	background: rgba(127, 29, 29, 0.28);
 	border: 1px solid rgba(248, 113, 113, 0.36);
 	color: #fecaca;
@@ -476,10 +475,10 @@
 }
 
 .runa-migrated-pages-developerpage-30 {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 	backdrop-filter: blur(12px);
 	position: relative;
@@ -492,7 +491,7 @@
 }
 
 .runa-migrated-pages-developerpage-32 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -501,20 +500,20 @@
 .runa-migrated-pages-developerpage-33 {
 	display: block;
 	padding: 10px 12px;
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	background: rgba(2, 6, 23, 0.68);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	color: #bfdbfe;
-	font-size: 13px;
+	font-size: 14px;
 	overflow-x: auto;
 	max-height: 240px;
 }
 
 .runa-migrated-pages-developerpage-34 {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 	backdrop-filter: blur(12px);
 	position: relative;
@@ -527,7 +526,7 @@
 }
 
 .runa-migrated-pages-developerpage-36 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -536,20 +535,20 @@
 .runa-migrated-pages-developerpage-37 {
 	display: block;
 	padding: 10px 12px;
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	background: rgba(2, 6, 23, 0.68);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	color: #bfdbfe;
-	font-size: 13px;
+	font-size: 14px;
 	overflow-x: auto;
 	max-height: 240px;
 }
 
 .runa-migrated-pages-developerpage-38 {
-	background: var(--gradient-panel);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 	backdrop-filter: blur(12px);
 	position: relative;
@@ -562,7 +561,7 @@
 }
 
 .runa-migrated-pages-developerpage-40 {
-	font-size: 11px;
+	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: hsl(var(--color-text-soft));
@@ -571,11 +570,11 @@
 .runa-migrated-pages-developerpage-41 {
 	display: block;
 	padding: 10px 12px;
-	border-radius: 12px;
+	border-radius: var(--radius-soft);
 	background: rgba(2, 6, 23, 0.68);
 	border: 1px solid rgba(148, 163, 184, 0.16);
 	color: #bfdbfe;
-	font-size: 13px;
+	font-size: 14px;
 	overflow-x: auto;
 	max-height: 240px;
 }

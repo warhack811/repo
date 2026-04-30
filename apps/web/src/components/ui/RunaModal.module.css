@@ -12,10 +12,10 @@
 
 .panel {
 	animation: runa-scale-in var(--duration-slow) var(--ease-standard);
-	background: var(--gradient-panel-strong);
+	background: hsl(var(--color-surface-strong) / 0.78);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	color: hsl(var(--color-text));
 	display: grid;
 	gap: var(--space-4);

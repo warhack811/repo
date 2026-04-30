@@ -17,7 +17,7 @@
 	align-items: center;
 	text-align: left;
 	padding: 6px 10px;
-	border-radius: 10px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.12);
 	background: rgba(9, 14, 25, 0.4);
 	color: hsl(var(--color-text));
@@ -46,12 +46,12 @@
 }
 
 .runa-migrated-components-app-appnav-6 {
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 600;
 }
 
 .runa-migrated-components-app-appnav-7 {
-	font-size: 10px;
+	font-size: 12px;
 	line-height: 1.3;
 	color: hsl(var(--color-text-dim));
 	overflow-wrap: anywhere;
@@ -94,11 +94,10 @@
 	backdrop-filter: blur(12px);
 	position: relative;
 	overflow: hidden;
-	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
-		var(--gradient-panel-strong);
+	background: hsl(var(--color-surface) / 0.72);
 	border: 1px solid rgba(245, 158, 11, 0.24);
 	border-radius: var(--radius-panel);
-	box-shadow: var(--shadow-panel);
+	box-shadow: none;
 	padding: var(--space-panel);
 	display: grid;
 	gap: 18px;
@@ -106,7 +105,7 @@
 
 .runa-migrated-components-app-appshell-6 {
 	margin: 0px;
-	font-size: var(--text-4xl);
+	font-size: 28px;
 }
 
 .runa-migrated-components-app-appshell-7 {
@@ -120,13 +119,254 @@
 	min-width: 0px;
 }
 
+@media (max-width: 640px) {
+	.runa-migrated-components-app-appnav-2 {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+
+	.runa-migrated-components-app-appnav-3 {
+		justify-content: center;
+		gap: 5px;
+		min-height: 48px;
+		padding: 6px 4px;
+		text-align: center;
+	}
+
+	.runa-migrated-components-app-appnav-4 {
+		width: 22px;
+		height: 22px;
+		border-radius: 8px;
+	}
+
+	.runa-migrated-components-app-appnav-5 {
+		display: block;
+	}
+
+	.runa-migrated-components-app-appnav-6 {
+		display: block;
+		font-size: 12px;
+		line-height: 1.2;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.runa-migrated-components-app-appnav-7 {
+		display: none;
+	}
+
+	.runa-migrated-components-app-appshell-3 {
+		padding: calc(10px + var(--safe-area-top)) calc(10px + var(--safe-area-right))
+			calc(12px + var(--safe-area-bottom)) calc(10px + var(--safe-area-left));
+	}
+
+	.runa-migrated-components-app-appshell-5 {
+		gap: 10px;
+		padding: 12px;
+	}
+
+	.runa-migrated-components-app-appshell-6 {
+		font-size: 20px;
+		line-height: 1.12;
+	}
+
+	.runa-migrated-components-app-appshell-7 {
+		font-size: 14px;
+		line-height: 1.4;
+	}
+
+	.runa-migrated-components-app-appshell-8 {
+		gap: 12px;
+	}
+}
+
 .runa-migrated-components-ui-runabadge-1 {
 	align-items: center;
 	display: inline-flex;
-	font-weight: 700;
+	font-weight: 600;
 	line-height: 1.4;
 	max-width: 100%;
 	overflow-wrap: anywhere;
 	padding: 8px 12px;
 	text-transform: uppercase;
+}
+
+.runa-sr-only {
+	border: 0;
+	clip: rect(0 0 0 0);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	white-space: nowrap;
+	width: 1px;
+}
+
+.runa-command-palette-trigger {
+	align-items: center;
+	align-self: flex-start;
+	background: hsl(var(--color-surface) / 0.58);
+	border: 1px solid hsl(var(--color-border-soft) / 0.62);
+	border-radius: var(--radius-pill);
+	color: hsl(var(--color-text-muted));
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 12px;
+	font-weight: 600;
+	gap: 10px;
+	min-height: 40px;
+	padding: 8px 10px 8px 12px;
+	transition: background var(--duration-normal) var(--ease-standard), border-color
+		var(--duration-normal) var(--ease-standard), color var(--duration-normal) var(--ease-standard),
+		transform var(--duration-normal) var(--ease-standard);
+}
+
+.runa-page--chat-product > .runa-command-palette-trigger {
+	position: fixed;
+	right: calc(14px + var(--safe-area-right));
+	top: calc(14px + var(--safe-area-top));
+	z-index: 70;
+}
+
+.runa-command-palette-trigger kbd,
+.runa-command-palette__key {
+	border: 1px solid hsl(var(--color-border-soft) / 0.72);
+	border-radius: 8px;
+	color: hsl(var(--color-text-soft));
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 1;
+	padding: 4px 6px;
+}
+
+.runa-command-palette {
+	gap: 10px;
+	max-height: min(620px, calc(100dvh - 32px));
+	padding: 10px;
+}
+
+.runa-command-palette__search {
+	align-items: center;
+	background: hsl(var(--color-surface-overlay) / 0.72);
+	border: 1px solid hsl(var(--color-border-soft) / 0.62);
+	border-radius: var(--radius-soft);
+	display: flex;
+	gap: 10px;
+	min-width: 0;
+	padding: 10px 12px;
+}
+
+.runa-command-palette__search svg {
+	color: hsl(var(--color-text-soft));
+	flex: 0 0 auto;
+}
+
+.runa-command-palette__input {
+	background: transparent;
+	border: 0;
+	color: hsl(var(--color-text));
+	flex: 1 1 auto;
+	font-size: 16px;
+	min-width: 0;
+	outline: 0;
+	padding: 0;
+}
+
+.runa-command-palette__input::placeholder {
+	color: hsl(var(--color-text-soft));
+}
+
+.runa-command-palette__body,
+.runa-command-palette__list {
+	display: grid;
+	gap: 6px;
+	min-width: 0;
+}
+
+.runa-command-palette__body {
+	max-height: min(460px, calc(100dvh - 156px));
+	overflow: auto;
+	padding-right: 2px;
+}
+
+.runa-command-palette__item {
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: var(--radius-soft);
+	color: hsl(var(--color-text-muted));
+	cursor: pointer;
+	display: grid;
+	gap: 4px;
+	min-height: 58px;
+	min-width: 0;
+	padding: 10px 12px;
+	text-align: left;
+	transition: background var(--duration-fast) var(--ease-standard), border-color
+		var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+.runa-command-palette__item--selected {
+	background: hsl(var(--color-accent) / 0.14);
+	border-color: hsl(var(--color-accent) / 0.32);
+	color: hsl(var(--color-text));
+}
+
+.runa-command-palette__item-label {
+	color: hsl(var(--color-text));
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.runa-command-palette__item-description,
+.runa-command-palette__empty {
+	color: hsl(var(--color-text-soft));
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.runa-command-palette__empty {
+	border: 1px dashed hsl(var(--color-border-soft) / 0.72);
+	border-radius: var(--radius-soft);
+	padding: 16px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.runa-command-palette-trigger:hover {
+		background: hsl(var(--color-surface-strong) / 0.72);
+		border-color: hsl(var(--color-accent) / 0.32);
+		color: hsl(var(--color-text));
+		transform: translateY(-1px);
+	}
+
+	.runa-command-palette__item:hover {
+		background: hsl(var(--color-surface) / 0.58);
+		border-color: hsl(var(--color-border-soft) / 0.78);
+		color: hsl(var(--color-text));
+	}
+}
+
+.runa-command-palette-trigger:active,
+.runa-command-palette__item:active {
+	transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+	.runa-page--chat-product > .runa-command-palette-trigger {
+		right: calc(10px + var(--safe-area-right));
+		top: calc(8px + var(--safe-area-top));
+	}
+
+	.runa-command-palette-trigger span {
+		display: none;
+	}
+
+	.runa-command-palette {
+		border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+		max-height: calc(100dvh - var(--safe-area-top) - 12px);
+	}
+
+	.runa-command-palette__body {
+		max-height: min(420px, calc(100dvh - var(--safe-area-top) - 156px));
+	}
 }

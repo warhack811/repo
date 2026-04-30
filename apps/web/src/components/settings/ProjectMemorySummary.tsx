@@ -16,18 +16,18 @@ function getStatusCopy(status: ProjectMemorySummaryProps['status']): {
 	switch (status) {
 		case 'available':
 			return {
-				body: 'Bu calisma alani icin kayitli proje hafizasi hazir.',
-				label: 'Hazir',
+				body: 'Bu çalışma alanı için kayıtlı proje hafızası hazır.',
+				label: 'Hazır',
 			};
 		case 'empty':
 			return {
-				body: 'Bu calisma alanina henuz proje hafizasi eklenmedi.',
-				label: 'Bos',
+				body: 'Bu çalışma alanına henüz proje hafızası eklenmedi.',
+				label: 'Boş',
 			};
 		case 'unavailable':
 			return {
-				body: 'Bu alan hazir, fakat canli proje hafizasi kaynagi bu fazda henuz baglanmadi.',
-				label: 'Bagli degil',
+				body: 'Proje hafızası şu anda bağlı değil.',
+				label: 'Bağlı değil',
 			};
 	}
 }
@@ -47,13 +47,13 @@ export function ProjectMemorySummary({
 		>
 			<div className="runa-migrated-components-settings-projectmemorysummary-2">
 				<div className="runa-migrated-components-settings-projectmemorysummary-3">
-					Gizlilik ve hafiza
+					Gizlilik ve hafıza
 				</div>
 				<h2
 					id="project-memory-heading"
 					className="runa-migrated-components-settings-projectmemorysummary-4"
 				>
-					Proje hafizasi
+					Proje hafızası
 				</h2>
 				<p className="runa-migrated-components-settings-projectmemorysummary-5">
 					{isLoading ? (
@@ -75,8 +75,8 @@ export function ProjectMemorySummary({
 			</div>
 
 			<div className="runa-alert runa-alert--info">
-				Hafiza gorunurlugu burada yalniz bilgilendirme icin yer alir; gercek kaynak ve politika
-				kontrolleri baglanana kadar veri uydurulmaz.
+				Hafıza görünürlüğü yalnız bilgilendirme içindir; kaynak ve politika kontrolleri bağlanana
+				kadar veri uydurulmaz.
 			</div>
 		</section>
 	);

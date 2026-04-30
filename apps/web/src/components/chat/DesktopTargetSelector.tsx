@@ -40,7 +40,7 @@ export function DesktopTargetSelector({
 	onSelect,
 	selectedConnectionId = null,
 }: DesktopTargetSelectorProps): ReactElement | null {
-	if (devices.length === 0 && !isLoading && errorMessage === null) {
+	if (devices.length === 0 && selectedConnectionId === null) {
 		return null;
 	}
 
@@ -61,10 +61,10 @@ export function DesktopTargetSelector({
 						className="runa-migrated-components-chat-desktoptargetselector-6"
 					>
 						<span className="runa-migrated-components-chat-desktoptargetselector-7">
-							Masaustu secilmedi
+							Masaüstü seçilmedi
 						</span>
 						<span className="runa-migrated-components-chat-desktoptargetselector-8">
-							Sonraki istek normal sohbet akisinda kalsin.
+							Sonraki istek normal sohbet akışında ilerlesin.
 						</span>
 					</button>
 					{devices.map((device) => {
@@ -96,7 +96,7 @@ export function DesktopTargetSelector({
 			{errorMessage ? (
 				<div className="runa-migrated-components-chat-desktoptargetselector-13">
 					<div className="runa-migrated-components-chat-desktoptargetselector-14">
-						Masaustu listesi simdilik yenilenemedi. Sohbet burada calismaya devam ediyor.
+						Masaüstü listesi şimdilik yenilenemedi. Sohbet etkilenmeden devam eder.
 					</div>
 					{typeof onRetry === 'function' ? (
 						<button

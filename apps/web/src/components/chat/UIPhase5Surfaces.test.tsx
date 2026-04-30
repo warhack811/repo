@@ -39,7 +39,7 @@ describe('UI Phase 5 surfaces', () => {
 			/>,
 		);
 
-		expect(markup).toContain('Canli yanit');
+		expect(markup).toContain('Canlı yanıt');
 		expect(markup).toContain('const value = 1;');
 		expect(markup).toContain('aria-live="polite"');
 	});
@@ -70,7 +70,7 @@ describe('UI Phase 5 surfaces', () => {
 			/>,
 		);
 
-		expect(thinkingMarkup).toContain('Runa calisiyor');
+		expect(thinkingMarkup).toContain('Runa çalışıyor');
 		expect(thinkingMarkup).not.toContain('chain-of-thought');
 		expect(activityMarkup).toContain('completed');
 	});

@@ -81,8 +81,8 @@
 	padding: var(--space-panel);
 	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.2);
-	background: var(--gradient-panel);
-	box-shadow: var(--shadow-panel);
+	background: hsl(var(--color-surface) / 0.72);
+	box-shadow: none;
 	backdrop-filter: blur(12px);
 	transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms
 		ease, background 220ms ease;
@@ -91,33 +91,31 @@
 
 .runa-card--hero {
 	border-color: rgba(245, 158, 11, 0.24);
-	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
-		linear-gradient(180deg, rgba(20, 26, 40, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 [data-theme="light"] .runa-card--hero {
-	background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 28%),
-		linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.88) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-card--strong {
-	background: var(--gradient-panel-strong);
+	background: hsl(var(--color-surface-strong) / 0.78);
 }
 
 .runa-card--chat {
-	background: linear-gradient(180deg, rgba(12, 18, 31, 0.88) 0%, rgba(7, 11, 20, 0.74) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 [data-theme="light"] .runa-card--chat {
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.85) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-card--subtle {
 	padding: var(--space-subcard);
 	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	background: var(--gradient-subcard);
-	box-shadow: var(--shadow-panel-soft);
+	background: hsl(var(--color-surface-overlay) / 0.5);
+	box-shadow: none;
 }
 
 .runa-card--soft-grid {
@@ -166,12 +164,12 @@
 	min-width: 0;
 	box-sizing: border-box;
 	padding: 10px 12px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px solid rgba(148, 163, 184, 0.24);
-	background: var(--gradient-input);
+	background: hsl(var(--color-surface-overlay) / 0.72);
 	color: hsl(var(--color-text));
 	font-size: 14px;
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 	transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease, transform 180ms
 		ease;
 }
@@ -192,7 +190,7 @@
 	padding: 14px 16px;
 	min-height: 140px;
 	resize: vertical;
-	font-size: 15px;
+	font-size: 16px;
 	line-height: 1.6;
 }
 
@@ -204,8 +202,8 @@
 	justify-content: center;
 	gap: 10px;
 	padding: 12px 16px;
-	border-radius: 14px;
-	font-weight: 700;
+	border-radius: var(--radius-soft);
+	font-weight: 600;
 	cursor: pointer;
 	text-decoration: none;
 	transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease, border-color 180ms
@@ -227,16 +225,16 @@
 
 .runa-button--primary {
 	border: none;
-	background: var(--gradient-primary-button);
+	background: hsl(var(--color-accent));
 	color: hsl(var(--color-accent-foreground));
-	box-shadow: 0 18px 32px rgba(234, 88, 12, 0.22);
+	box-shadow: none;
 }
 
 .runa-button--secondary {
 	border: 1px solid rgba(148, 163, 184, 0.28);
-	background: var(--gradient-secondary-button);
+	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
-	box-shadow: var(--shadow-inset);
+	box-shadow: none;
 }
 
 [data-theme="light"] .runa-button--secondary {
@@ -245,9 +243,9 @@
 
 .runa-button--secondary-active {
 	border-color: rgba(245, 158, 11, 0.34);
-	background: var(--gradient-secondary-button-active);
+	background: hsl(var(--color-accent) / 0.16);
 	color: hsl(var(--color-text));
-	box-shadow: var(--shadow-glow);
+	box-shadow: none;
 }
 
 .runa-button--danger {
@@ -272,7 +270,7 @@
 	background: rgba(36, 24, 8, 0.7);
 	color: #fde68a;
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	max-width: 100%;
@@ -288,7 +286,7 @@
 
 .runa-alert {
 	padding: 12px 14px;
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	line-height: 1.5;
 	animation: runa-slide-up 180ms ease both;
 }
@@ -337,7 +335,7 @@
 
 .runa-developer-details summary {
 	cursor: pointer;
-	font-weight: 700;
+	font-weight: 600;
 	color: hsl(var(--color-text));
 }
 
@@ -353,15 +351,15 @@
 	display: grid;
 	gap: 8px;
 	padding: 14px 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	background: linear-gradient(180deg, rgba(6, 11, 21, 0.76) 0%, rgba(2, 6, 23, 0.64) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
 [data-theme="light"] .runa-metric {
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 /* ---- Text utilities ---- */
@@ -376,7 +374,7 @@
 }
 
 .runa-empty-state {
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	border: 1px dashed rgba(148, 163, 184, 0.24);
 	padding: 20px;
 	color: hsl(var(--color-text-soft));
@@ -389,38 +387,11 @@
 	overflow: hidden;
 }
 
-.runa-ambient-panel::before {
-	content: "";
-	position: absolute;
-	inset: -35% auto auto -10%;
-	width: 240px;
-	height: 240px;
-	border-radius: 999px;
-	background: radial-gradient(circle, rgba(245, 158, 11, 0.18), transparent 70%);
-	filter: blur(8px);
-	pointer-events: none;
-}
-
-[data-theme="light"] .runa-ambient-panel::before {
-	opacity: 0.5;
-}
-
 /* ---- Chat surface decoration ---- */
 
 .runa-chat-surface {
 	position: relative;
 	overflow: hidden;
-}
-
-.runa-chat-surface::after {
-	content: "";
-	position: absolute;
-	inset: auto -60px -90px auto;
-	width: 240px;
-	height: 240px;
-	border-radius: 999px;
-	background: radial-gradient(circle, rgba(148, 163, 184, 0.12), transparent 70%);
-	pointer-events: none;
 }
 
 /* ---- Chat page layout ---- */
@@ -442,8 +413,8 @@
 	background: rgba(6, 11, 21, 0.82);
 	backdrop-filter: blur(16px);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 20px;
-	box-shadow: 0 14px 34px rgba(2, 6, 23, 0.26);
+	border-radius: var(--radius-panel);
+	box-shadow: none;
 	display: flex;
 	gap: 14px;
 	justify-content: space-between;
@@ -456,7 +427,7 @@
 [data-theme="light"] .runa-chat-header {
 	background: rgba(255, 255, 255, 0.88);
 	border-color: rgba(148, 163, 184, 0.24);
-	box-shadow: 0 14px 34px rgba(2, 6, 23, 0.08);
+	box-shadow: none;
 }
 
 .runa-chat-header__left,
@@ -485,7 +456,7 @@
 
 .runa-chat-header__brand span {
 	color: hsl(var(--color-text-muted));
-	font-size: 13px;
+	font-size: 14px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -497,7 +468,7 @@
 	align-items: center;
 	background: rgba(15, 23, 42, 0.66);
 	border: 1px solid rgba(148, 163, 184, 0.18);
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text));
 	cursor: pointer;
 	display: inline-flex;
@@ -530,7 +501,7 @@
 	border-radius: 999px;
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 	max-width: min(240px, 34vw);
 	overflow: hidden;
 	padding: 8px 10px;
@@ -579,7 +550,7 @@
 
 .runa-chat-empty-state {
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 20px;
+	border-radius: var(--radius-panel);
 	background: rgba(4, 9, 19, 0.42);
 	display: grid;
 	gap: 18px;
@@ -597,7 +568,7 @@
 }
 
 .runa-chat-empty-state__copy h2 {
-	font-size: var(--text-3xl);
+	font-size: 28px;
 	line-height: 1.12;
 }
 
@@ -618,10 +589,10 @@
 .runa-chat-suggestion {
 	background: rgba(15, 23, 42, 0.64);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	color: hsl(var(--color-text));
 	cursor: pointer;
-	font-weight: 700;
+	font-weight: 600;
 	line-height: 1.35;
 	min-height: 54px;
 	padding: 14px 15px;
@@ -668,7 +639,7 @@
 	font-weight: 600;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	box-shadow: none;
 }
 
 [data-theme="light"] .runa-developer-toggle {
@@ -693,7 +664,7 @@
 	height: 18px;
 	border-radius: 50%;
 	background: white;
-	box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28);
+	box-shadow: none;
 	transition: transform 180ms ease;
 }
 
@@ -701,7 +672,7 @@
 	border-color: rgba(245, 158, 11, 0.45);
 	background: rgba(38, 26, 8, 0.78);
 	color: #fde68a;
-	box-shadow: var(--shadow-glow);
+	box-shadow: none;
 }
 
 [data-theme="light"] .runa-developer-toggle--active {
@@ -710,7 +681,7 @@
 }
 
 .runa-developer-toggle--active .runa-developer-toggle__switch {
-	background: linear-gradient(135deg, #f59e0b, #ea580c);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-developer-toggle--active .runa-developer-toggle__switch::after {
@@ -747,7 +718,7 @@
 
 .runa-markdown__heading {
 	color: hsl(var(--color-text));
-	font-size: var(--text-lg);
+	font-size: 20px;
 }
 
 .runa-markdown__list {
@@ -764,7 +735,7 @@
 .runa-markdown__table-wrap {
 	width: 100%;
 	overflow-x: auto;
-	border-radius: 16px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(148, 163, 184, 0.18);
 	background: rgba(8, 14, 24, 0.56);
 }
@@ -812,7 +783,7 @@
 	border: 1px solid rgba(148, 163, 184, 0.22);
 	background: rgba(15, 23, 42, 0.76);
 	color: #fde68a;
-	font-size: 0.92em;
+	font-size: 12px;
 }
 
 [data-theme="light"] .runa-markdown__inline-code {
@@ -824,16 +795,16 @@
 	display: grid;
 	gap: 10px;
 	padding: 14px 16px;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	border: 1px solid rgba(56, 189, 248, 0.2);
-	background: linear-gradient(180deg, rgba(8, 14, 24, 0.92) 0%, rgba(4, 9, 19, 0.88) 100%);
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	background: hsl(var(--color-surface) / 0.72);
+	box-shadow: none;
 	overflow-x: auto;
 	white-space: pre-wrap;
 }
 
 [data-theme="light"] .runa-markdown__code-block {
-	background: linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.92) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	border-color: rgba(56, 189, 248, 0.24);
 }
 
@@ -847,8 +818,8 @@
 
 .runa-markdown__code-label {
 	color: #7dd3fc;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -893,7 +864,7 @@
 	margin-left: 0.18rem;
 	vertical-align: -0.12em;
 	border-radius: 999px;
-	background: linear-gradient(180deg, rgba(251, 191, 36, 0.95), rgba(234, 88, 12, 0.95));
+	background: hsl(var(--color-surface) / 0.72);
 	animation: runa-stream-caret 1s steps(1, end) infinite;
 }
 
@@ -962,8 +933,8 @@
 
 .runa-conversation-group__label {
 	color: hsl(var(--color-text-soft));
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
@@ -971,7 +942,7 @@
 .runa-conversation-item {
 	background: rgba(7, 11, 20, 0.56);
 	border: 1px solid rgba(148, 163, 184, 0.14);
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	color: hsl(var(--color-text));
 	cursor: pointer;
 	display: grid;
@@ -992,12 +963,12 @@
 }
 
 .runa-conversation-item--active {
-	background: linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0%, rgba(30, 41, 59, 0.68) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 	border-color: rgba(245, 158, 11, 0.4);
 }
 
 [data-theme="light"] .runa-conversation-item--active {
-	background: linear-gradient(180deg, rgba(254, 243, 199, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
+	background: hsl(var(--color-surface) / 0.72);
 }
 
 .runa-conversation-item__top {
@@ -1017,7 +988,7 @@
 
 .runa-conversation-preview {
 	color: hsl(var(--color-text-muted));
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.5;
 }
 
@@ -1031,8 +1002,8 @@
 	border-radius: 999px;
 	color: #bfdbfe;
 	flex: 0 0 auto;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: 12px;
+	font-weight: 600;
 	padding: 3px 8px;
 }
 
@@ -1048,14 +1019,14 @@
 
 .runa-conversation-members summary {
 	cursor: pointer;
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .runa-conversation-member {
 	align-items: center;
 	background: rgba(15, 23, 42, 0.56);
 	border: 1px solid rgba(148, 163, 184, 0.12);
-	border-radius: 14px;
+	border-radius: var(--radius-soft);
 	display: flex;
 	gap: 12px;
 	justify-content: space-between;
@@ -1071,14 +1042,9 @@
 
 .runa-conversation-skeleton {
 	animation: runa-skeleton-pulse 1.3s ease-in-out infinite;
-	background: linear-gradient(
-		90deg,
-		rgba(148, 163, 184, 0.08),
-		rgba(148, 163, 184, 0.2),
-		rgba(148, 163, 184, 0.08)
-	);
+	background: hsl(var(--color-surface) / 0.72);
 	background-size: 240% 100%;
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	height: 86px;
 }
 
@@ -1088,7 +1054,7 @@
 	align-items: center;
 	background: rgba(9, 14, 25, 0.68);
 	border: 1px solid rgba(148, 163, 184, 0.16);
-	border-radius: 18px;
+	border-radius: var(--radius-panel);
 	display: flex;
 	gap: 16px;
 	justify-content: space-between;
@@ -1158,7 +1124,7 @@
 	}
 
 	.runa-card {
-		border-radius: 20px;
+		border-radius: var(--radius-panel);
 	}
 
 	.runa-app-shell-header {
@@ -1182,7 +1148,7 @@
 
 	.runa-chat-header {
 		align-items: stretch;
-		border-radius: 18px;
+		border-radius: var(--radius-panel);
 		flex-direction: column;
 	}
 
@@ -1247,7 +1213,7 @@
 	}
 
 	.runa-card {
-		border-radius: 18px;
+		border-radius: var(--radius-panel);
 	}
 
 	.runa-app-shell-header {

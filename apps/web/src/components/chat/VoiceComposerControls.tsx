@@ -49,15 +49,15 @@ export function VoiceComposerControls({
 					disabled={!canReadLatestResponse || !isSpeechPlaybackSupported}
 					className="runa-button runa-button--secondary runa-migrated-components-chat-voicecomposercontrols-4"
 				>
-					{isSpeaking ? 'Okumayi durdur' : 'Son yaniti oku'}
+					{isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
 				</button>
 			</div>
 
 			<div className="runa-migrated-components-chat-voicecomposercontrols-5" aria-live="polite">
 				{voiceStatusMessage ??
 					(isVoiceSupported
-						? 'Mikrofonu acip kisa bir not soyleyebilir veya son yaniti sesli okutabilirsin.'
-						: 'Bu tarayici Web Speech API sunmuyor. Sohbet yazili modda aynen calismaya devam eder.')}
+						? 'Mikrofonu açıp kısa bir not söyleyebilir veya son yanıtı sesli okutabilirsin.'
+						: 'Bu tarayıcı sesli girişi desteklemiyor. Sohbet yazılı olarak devam eder.')}
 			</div>
 		</div>
 	);

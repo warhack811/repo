@@ -120,11 +120,11 @@ export function buildRunFeedbackState(
 
 	if (input.is_submitting) {
 		return {
-			chip_label: 'sending',
-			detail: 'Runa yeni istegi canli runtime hattina iletiyor.',
+			chip_label: 'gönderiliyor',
+			detail: 'İstek canlı çalışma hattına iletiliyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Istek gonderiliyor',
+			title: 'İstek gönderiliyor',
 			tone: 'info',
 			trace_id: input.run_summary?.trace_id,
 		};
@@ -132,22 +132,22 @@ export function buildRunFeedbackState(
 
 	if (!input.run_summary) {
 		return {
-			chip_label: 'accepted',
-			detail: 'Calisma kabul edildi; ilk gorunur yuzey hazirlaniyor.',
+			chip_label: 'hazırlanıyor',
+			detail: 'Çalışma kabul edildi; ilk yanıt hazırlanıyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma hazirlaniyor',
+			title: 'Çalışma hazırlanıyor',
 			tone: 'info',
 		};
 	}
 
 	if (input.run_summary.final_state === 'FAILED') {
 		return {
-			chip_label: 'failed',
-			detail: 'Bu calisma tamamlanamadi. En son gorunur kartlar korunuyor.',
+			chip_label: 'durdu',
+			detail: 'Bu çalışma tamamlanamadı. Son görünür sonuçlar korunur.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma durdu',
+			title: 'Çalışma durdu',
 			tone: 'error',
 			trace_id: input.run_summary.trace_id,
 		};
@@ -155,26 +155,26 @@ export function buildRunFeedbackState(
 
 	if (input.run_summary.final_state === 'COMPLETED') {
 		return {
-			chip_label: 'completed',
+			chip_label: 'tamamlandı',
 			detail: input.has_visible_surface
-				? 'Calisma tamamlandi. Son kartlar ve detaylar burada sabit kaldi.'
-				: 'Calisma tamamlandi.',
+				? 'Çalışma tamamlandı. Son sonuçlar hazır.'
+				: 'Çalışma tamamlandı.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Calisma tamamlandi',
+			title: 'Çalışma tamamlandı',
 			tone: 'success',
 			trace_id: input.run_summary.trace_id,
 		};
 	}
 
 	return {
-		chip_label: input.include_presentation_blocks ? 'live' : 'thinking',
+		chip_label: input.include_presentation_blocks ? 'canlı' : 'düşünüyor',
 		detail: input.has_visible_surface
-			? 'Runa mevcut kartlari guncellerken akisi ayni yerde tutuyor.'
-			: 'Runa dusunuyor ve ilk yuzeyi hazirliyor.',
+			? 'Sonuçlar güncellenirken akış korunuyor.'
+			: 'İlk yanıt hazırlanıyor.',
 		pending_detail_count: input.pending_detail_count,
 		run_id: runId,
-		title: 'Calisma suruyor',
+		title: 'Çalışma sürüyor',
 		tone: 'info',
 		trace_id: input.run_summary.trace_id,
 	};
@@ -188,22 +188,22 @@ export function getRunSurfaceStatusChip(
 	}
 
 	if (runSummary.final_state === 'FAILED') {
-		return { label: 'FAILED', tone: 'error' };
+		return { label: 'Durdu', tone: 'error' };
 	}
 
 	if (runSummary.final_state === 'COMPLETED') {
-		return { label: 'COMPLETED', tone: 'success' };
+		return { label: 'Tamamlandı', tone: 'success' };
 	}
 
 	if (runSummary.latest_runtime_state === 'WAITING_APPROVAL') {
-		return { label: 'WAITING APPROVAL', tone: 'warning' };
+		return { label: 'Onay bekliyor', tone: 'warning' };
 	}
 
 	if (runSummary.last_runtime_event_type === 'model.completed') {
-		return { label: 'MODEL COMPLETED', tone: 'info' };
+		return { label: 'Yanıt hazır', tone: 'info' };
 	}
 
-	return runSummary.has_presentation_blocks ? { label: 'LIVE', tone: 'info' } : null;
+	return runSummary.has_presentation_blocks ? { label: 'Canlı', tone: 'info' } : null;
 }
 
 export function isRunFinishedMessage(
