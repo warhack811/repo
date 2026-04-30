@@ -1,0 +1,18 @@
+{
+  "rawMarkdownVisible": false,
+  "textSample": "TEST 2\n\nassistant-ui thread shell\n\nassistant-ui smoke\n\n# Custom backend cevabı\n\n**AI SDK v6 transport** Vite middleware üstündeki `/api/chat` endpointine bağlandı.\n\n| Sağlayıcı | Latency | Score |\n|---|---|---|\n| Brave | 669ms | 14.89 |\n| Tavily | 998ms | 13.67 |\n\n```typescript\nconst x: number = 42;\nfunction greet(name: string) { return `Hello, ${name}`; }\n```\n\nInline: $E = mc^2$ olarak ifade edilir.\n\n$$\n\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}\n$$\n\n```mermaid\ngraph TD\nA[Search] --> B[Normalize]\nB --> C[Dedup]\nC --> D[Evidence]\n```\n\n<script>alert(1)</script>\n<img src=x onerror=alert(1)>\n\nSend",
+  "events": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "totals": {
+    "jsGzip": 4841566,
+    "cssGzip": 8851,
+    "assetCount": 687
+  },
+  "chunks": {
+    "mainIndexGzip": 619598,
+    "mermaidNamedGzip": 427975,
+    "katexGzip": 76243,
+    "shikiLanguageThemeGzip": 3717750,
+    "cssGzip": 8851
+  },
+  "largest": [
+    {
+      "name": "index-CUwzmpVY.js",
+      "raw": 2192877,
+      "gzip": 619598
+    },
+    {
+      "name": "wasm-DsvvwBWh.js",
+      "raw": 622325,
+      "gzip": 230281
+    },
+    {
+      "name": "wasm-g64TIOl0.js",
+      "raw": 622325,
+      "gzip": 230281
+    },
+    {
+      "name": "emacs-lisp-Cr61IKeh.js",
+      "raw": 779873,
+      "gzip": 196040
+    },
+    {
+      "name": "emacs-lisp-BqdimkUU.js",
+      "raw": 779847,
+      "gzip": 196023
+    },
+    {
+      "name": "cytoscape.esm-BG6denMW.js",
+      "raw": 434295,
+      "gzip": 136624
+    },
+    {
+      "name": "chunk-K5T4RW27-C-yFMjqI.js",
+      "raw": 474366,
+      "gzip": 101553
+    },
+    {
+      "name": "wolfram-B1FZMVpP.js",
+      "raw": 262384,
+      "gzip": 77130
+    },
+    {
+      "name": "wolfram-CDfXlYNm.js",
+      "raw": 262384,
+      "gzip": 77130
+    },
+    {
+      "name": "katex-bhLIJZGA.js",
+      "raw": 257047,
+      "gzip": 76243
+    },
+    {
+      "name": "cpp-Cf9HhJhN.js",
+      "raw": 626126,
+      "gzip": 44840
+    },
+    {
+      "name": "cpp-CPXXM2Zt.js",
+      "raw": 626126,
+      "gzip": 44838
+    },
+    {
+      "name": "architectureDiagram-Q4EWVU46-DCnVXZmF.js",
+      "raw": 146632,
+      "gzip": 39934
+    },
+    {
+      "name": "objective-cpp-Bpt7G3rp.js",
+      "raw": 171965,
+      "gzip": 30614
+    },
+    {
+      "name": "objective-cpp-D0nqzpMQ.js",
+      "raw": 171965,
+      "gzip": 30614
+    },
+    {
+      "name": "sequenceDiagram-FGHM5R23-BYYBpWR3.js",
+      "raw": 115381,
+      "gzip": 30246
+    },
+    {
+      "name": "php-ww2WiEWQ.js",
+      "raw": 111314,
+      "gzip": 28519
+    },
+    {
+      "name": "php-DEAB9BlF.js",
+      "raw": 111053,
+      "gzip": 28513
+    },
+    {
+      "name": "blade-BEHJPIyA.js",
+      "raw": 104976,
+      "gzip": 28188
+    },
+    {
+      "name": "blade-KG6BMavt.js",
+      "raw": 104976,
+      "gzip": 28188
+    }
+  ],
+  "lighthouse": {
+    "performance": 0.43,
+    "accessibility": 0.88,
+    "bestPractices": 1,
+    "seo": 0.82,
+    "fcpMs": 28977.795025000003,
+    "lcpMs": 55855.59005000001,
+    "ttiMs": 55855.59005000001,
+    "totalBlockingTimeMs": 467.99999999999636
+  }
+}

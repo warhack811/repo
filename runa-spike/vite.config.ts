@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { visualizer } from 'rollup-plugin-visualizer'
 import tailwindcss from '@tailwindcss/vite'
 import {
   UI_MESSAGE_STREAM_HEADERS,
@@ -186,6 +187,21 @@ export default defineConfig({
       },
     },
   ],
+  build: {
+    rollupOptions: {
+      plugins:
+        process.env.npm_lifecycle_event === 'analyze'
+          ? [
+              visualizer({
+                filename: 'dist/bundle-visualizer.html',
+                gzipSize: true,
+                brotliSize: true,
+                template: 'treemap',
+              }),
+            ]
+          : [],
+    },
+  },
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,
