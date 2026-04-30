@@ -1,6 +1,6 @@
 # Runa Architectural Constitution
-Versiyon: 1.0  
-Tarih: 09 Nisan 2026  
+Versiyon: 1.0
+Tarih: 09 Nisan 2026
 Durum: Kilitlendi (tüm maddeler)
 
 
@@ -377,7 +377,7 @@ Kısa mimari özeti
 Runa’da modele giden bağlam, tek parça prompt değil; çok katmanlı, bütçeli, cache-aware ve sağlayıcıdan bağımsız bir compiled context artifact olacaktır. Bu artifact, Context Composer tarafından üretilecek; her katmanın önceliği, cache karakteri, sıkıştırma stratejisi ve sağlayıcı uyarlaması açık biçimde yönetilecektir.
 
 Madde 2’nin resmi kararı:
-Runa context mimarisi = multi-layered context composer + provider-aware cache regions + adaptive hierarchical budgeting + hybrid incremental compilation 
+Runa context mimarisi = multi-layered context composer + provider-aware cache regions + adaptive hierarchical budgeting + hybrid incremental compilation
 
 
 

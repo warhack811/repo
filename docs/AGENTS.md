@@ -9,11 +9,11 @@ Runa, projeyi taniyan ve hatirlayan bir AI calisma ortagidir.
 Her seferinde sifirdan baslamaz.
 
 - Tam vizyon: `vision.md`
-- Mimari anayasa: `karar.md`
+- Mimari anayasa: `architecture/constitution.md`
 - Uygulama plani: `implementation-blueprint.md`
-- Stratejik yon: `docs/post-mvp-strategy.md`
-- Teknik mimari rehber: `docs/technical-architecture.md`
-- Guvenlik modeli: `docs/security-model.md`
+- Stratejik yon: `post-mvp-strategy.md`
+- Teknik mimari rehber: `technical-architecture.md`
+- Guvenlik modeli: `security-model.md`
 - Operasyonel ilerleme kaydi: `PROGRESS.md`
 
 ## Tech Stack

@@ -115,7 +115,7 @@ Ilk bakis sirasi:
 3. Gerekirse `pnpm.cmd --dir apps/server run test:formal-repeatability`
 4. Gerekirse `pnpm.cmd --dir apps/server run test:core-coverage`
 5. `docs/release-demo-checklist.md`
-6. `PROGRESS.md`
+6. `docs/PROGRESS.md`
 
 Kod/evidence referansi icin ilk yerler:
 
@@ -129,7 +129,7 @@ Kod/evidence referansi icin ilk yerler:
 Yorum kurali:
 
 - claim / provider / blocker sorusunda yeni yorum icat etme
-- once checklist ve `PROGRESS.md` uzerindeki son resmi kayda bak
+- once checklist ve `docs/PROGRESS.md` uzerindeki son resmi kayda bak
 
 ## 6. Evidence Ref
 
@@ -138,7 +138,7 @@ Yorum kurali:
 - formal repeatability: [apps/server/scripts/formal-demo-repeatability.mjs](/d:/ai/Runa/apps/server/scripts/formal-demo-repeatability.mjs:1)
 - core coverage: [apps/server/scripts/capture-core-coverage.mjs](/d:/ai/Runa/apps/server/scripts/capture-core-coverage.mjs:1)
 - release/demo gate yorumu: [docs/release-demo-checklist.md](/d:/ai/Runa/docs/release-demo-checklist.md:1)
-- resmi sprint kaydi: [PROGRESS.md](/d:/ai/Runa/PROGRESS.md:1)
+- resmi sprint kaydi: [docs/PROGRESS.md](/d:/ai/Runa/docs/PROGRESS.md:1)
 
 ## 7. One-Line Handoff
 

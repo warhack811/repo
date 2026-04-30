@@ -1,0 +1,203 @@
+{
+	"generatedAt": "2026-04-29T19:25:00.978Z",
+	"baseUrl": "http://127.0.0.1:4173",
+	"note": "Current Runa web surfaces captured from local Vite + e2e auth/provider harness for competitive visual audit. Approval completion used DOM click after screenshot because composer overlay intercepted pointer events in automation.",
+	"screenshots": [
+		{
+			"file": "desktop-1440-01-login.png",
+			"viewport": "desktop-1440",
+			"surface": "login",
+			"route": "/",
+			"state": "anonymous"
+		},
+		{
+			"file": "desktop-1440-02-onboarding.png",
+			"viewport": "desktop-1440",
+			"surface": "onboarding",
+			"route": "/chat",
+			"state": "first-run"
+		},
+		{
+			"file": "desktop-1440-03-chat-empty.png",
+			"viewport": "desktop-1440",
+			"surface": "chat",
+			"route": "/chat",
+			"state": "empty-authenticated"
+		},
+		{
+			"file": "desktop-1440-04-chat-approval-pending.png",
+			"viewport": "desktop-1440",
+			"surface": "chat",
+			"route": "/chat",
+			"state": "approval-pending"
+		},
+		{
+			"file": "desktop-1440-05-chat-approval-completed.png",
+			"viewport": "desktop-1440",
+			"surface": "chat",
+			"route": "/chat",
+			"state": "approval-completed"
+		},
+		{
+			"file": "desktop-1440-06-history.png",
+			"viewport": "desktop-1440",
+			"surface": "history",
+			"route": "/history",
+			"state": "with-one-conversation"
+		},
+		{
+			"file": "desktop-1440-07-devices.png",
+			"viewport": "desktop-1440",
+			"surface": "devices",
+			"route": "/devices",
+			"state": "e2e-harness-no-desktop-agent"
+		},
+		{
+			"file": "desktop-1440-08-account.png",
+			"viewport": "desktop-1440",
+			"surface": "settings",
+			"route": "/account",
+			"state": "account-tab"
+		},
+		{
+			"file": "desktop-1440-09-settings-preferences.png",
+			"viewport": "desktop-1440",
+			"surface": "settings",
+			"route": "/account",
+			"state": "preferences-tab"
+		},
+		{
+			"file": "desktop-1440-10-settings-devices-tab.png",
+			"viewport": "desktop-1440",
+			"surface": "settings",
+			"route": "/account",
+			"state": "devices-tab"
+		},
+		{
+			"file": "desktop-1440-11-settings-project-memory.png",
+			"viewport": "desktop-1440",
+			"surface": "settings",
+			"route": "/account",
+			"state": "project-memory-tab"
+		},
+		{
+			"file": "desktop-1440-12-settings-developer-tab.png",
+			"viewport": "desktop-1440",
+			"surface": "settings",
+			"route": "/account",
+			"state": "developer-tab"
+		},
+		{
+			"file": "desktop-1440-13-developer.png",
+			"viewport": "desktop-1440",
+			"surface": "developer",
+			"route": "/developer",
+			"state": "runtime-config"
+		},
+		{
+			"file": "desktop-1440-14-capability-preview.png",
+			"viewport": "desktop-1440",
+			"surface": "capability-preview",
+			"route": "/developer/capability-preview",
+			"state": "internal-preview"
+		},
+		{
+			"file": "mobile-390-01-login.png",
+			"viewport": "mobile-390",
+			"surface": "login",
+			"route": "/",
+			"state": "anonymous"
+		},
+		{
+			"file": "mobile-390-02-onboarding.png",
+			"viewport": "mobile-390",
+			"surface": "onboarding",
+			"route": "/chat",
+			"state": "first-run"
+		},
+		{
+			"file": "mobile-390-03-chat-empty.png",
+			"viewport": "mobile-390",
+			"surface": "chat",
+			"route": "/chat",
+			"state": "empty-authenticated"
+		},
+		{
+			"file": "mobile-390-04-chat-approval-pending.png",
+			"viewport": "mobile-390",
+			"surface": "chat",
+			"route": "/chat",
+			"state": "approval-pending"
+		},
+		{
+			"file": "mobile-390-05-chat-approval-completed.png",
+			"viewport": "mobile-390",
+			"surface": "chat",
+			"route": "/chat",
+			"state": "approval-completed"
+		},
+		{
+			"file": "mobile-390-06-history.png",
+			"viewport": "mobile-390",
+			"surface": "history",
+			"route": "/history",
+			"state": "with-one-conversation"
+		},
+		{
+			"file": "mobile-390-07-devices.png",
+			"viewport": "mobile-390",
+			"surface": "devices",
+			"route": "/devices",
+			"state": "e2e-harness-no-desktop-agent"
+		},
+		{
+			"file": "mobile-390-08-account.png",
+			"viewport": "mobile-390",
+			"surface": "settings",
+			"route": "/account",
+			"state": "account-tab"
+		},
+		{
+			"file": "mobile-390-09-settings-preferences.png",
+			"viewport": "mobile-390",
+			"surface": "settings",
+			"route": "/account",
+			"state": "preferences-tab"
+		},
+		{
+			"file": "mobile-390-10-settings-devices-tab.png",
+			"viewport": "mobile-390",
+			"surface": "settings",
+			"route": "/account",
+			"state": "devices-tab"
+		},
+		{
+			"file": "mobile-390-11-settings-project-memory.png",
+			"viewport": "mobile-390",
+			"surface": "settings",
+			"route": "/account",
+			"state": "project-memory-tab"
+		},
+		{
+			"file": "mobile-390-12-settings-developer-tab.png",
+			"viewport": "mobile-390",
+			"surface": "settings",
+			"route": "/account",
+			"state": "developer-tab"
+		},
+		{
+			"file": "mobile-390-13-developer.png",
+			"viewport": "mobile-390",
+			"surface": "developer",
+			"route": "/developer",
+			"state": "runtime-config"
+		},
+		{
+			"file": "mobile-390-14-capability-preview.png",
+			"viewport": "mobile-390",
+			"surface": "capability-preview",
+			"route": "/developer/capability-preview",
+			"state": "internal-preview"
+		}
+	]
+}

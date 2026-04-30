@@ -58,6 +58,8 @@ dom.txt
 server_logs.txt
 
 # Local scratch/proof files
+.tmp/
+.codex-tmp/
 scratch_*
 scratch*.json
 test_loop.mjs

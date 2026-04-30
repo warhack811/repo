@@ -13,6 +13,15 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
 
+### Docs Reorg - Root Docs to `docs/` Migration - 30 Nisan 2026
+
+- UI-OVERHAUL-07 final polish commit'i sonrasi kalan dirty root-doc reorganization ayri branch/commit kapsaminda toplandi.
+- Kok onboarding ve roadmap belgeleri `docs/` altina tasindi: `AGENTS.md`, `implementation-blueprint.md`, `COWORK-GAP-ANALYSIS.md`, `karar.md`, `TASK-01...12` ve `UI-PHASE-1...7`.
+- Yeni hedefler: `docs/AGENTS.md`, `docs/implementation-blueprint.md`, `docs/architecture/constitution.md`, `docs/tasks/`, `docs/phases/`.
+- Eski `.env-ornek` / `.env.server.example` yerine tek `env.example` yuzeyi birakildi ve README ilk okuma notlari yeni `docs/` path'leriyle hizalandi.
+- UI audit screenshot evidence klasorleri `docs/design-audit/screenshots/` altinda kalici kanit olarak takip altina alindi.
+- Kapsam disi birakilanlar: `apps/web/vite.config.ts`, eski `apps/web/tests/visual/__screenshots__` baseline drift'i, `apps/server/approval-e2e-temp.txt` silinmesi ve `test.txt` silinmesi bu doc reorg commit'ine alinmadi.
+
 ### Track C / UI Overhaul 07.4 - Operator/Developer Hard Isolation - 30 Nisan 2026
 
 - `docs/UI-OVERHAUL-07-4-OPERATOR-DEVELOPER-HARD-ISOLATION-PROMPT.md` kapsamindaki hard isolation uygulandi. Normal app shell artik `/developer*` path'lerini active page olarak `developer` basligiyla render etmiyor; clean session `/developer` ve `/developer/capability-preview` istekleri route gate uzerinden `/chat` yuzeyine donuyor.

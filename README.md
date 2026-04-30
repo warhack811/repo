@@ -24,9 +24,9 @@ Durust not:
 
 Yeni bir oturumda okuma sirasi:
 
-1. `AGENTS.md`
-2. `PROGRESS.md`
-3. `implementation-blueprint.md`
+1. `docs/AGENTS.md`
+2. `docs/PROGRESS.md`
+3. `docs/implementation-blueprint.md`
 4. `docs/post-mvp-strategy.md`
 5. `docs/technical-architecture.md`
 6. `docs/security-model.md`
@@ -141,7 +141,7 @@ Notlar:
 - Supabase auth/storage icin gerekli `SUPABASE_*` env'leri `.env` veya shell/IDE env'inde kalabilir; local DB secimi bunlari devre disi birakmaz
 - `pnpm dev` icindeki `@runa/server` bootstrap'i repo kokundeki `.env` dosyasini once additive olarak, `.env.local` dosyasini ise yalniz file-backed anahtarlari override edecek sekilde yukler
 - Shell veya IDE tarafindan zaten verilmis env degerleri override edilmez
-- Repo kokundeki `.env-ornek` benzeri dosyalar source-of-truth degildir
+- Repo kokundeki `.env.example` benzeri dosyalar source-of-truth degildir
 
 ### 3. Gelistirme modunda calistir
 
@@ -193,8 +193,8 @@ pnpm.cmd --dir apps/server run test:groq-live-smoke
 
 ## Onboarding Notlari
 
-- Her goreve `AGENTS.md` + `PROGRESS.md` ile baslayin
-- `implementation-blueprint.md` plan otoritesidir; `PROGRESS.md` gerceklesmis is otoritesidir
+- Her goreve `docs/AGENTS.md` + `docs/PROGRESS.md` ile baslayin
+- `docs/implementation-blueprint.md` plan otoritesidir; `docs/PROGRESS.md` gerceklesmis is otoritesidir
 - UI/web/desktop-agent gorevlerinde `docs/post-mvp-strategy.md` icindeki manifesto ve `docs/AI-DEVELOPMENT-GUIDE.md` guardrail'lari da okunmalidir
 - Kod degistirirken once `packages/types`, sonra server, sonra web sirasi korunur
 - Yeni capability acmak yerine mevcut seams uzerinden additive ilerleyin

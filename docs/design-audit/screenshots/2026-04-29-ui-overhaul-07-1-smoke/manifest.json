@@ -1,0 +1,235 @@
+{
+	"generated_at": "2026-04-29T20:30:55.857Z",
+	"source": "http://127.0.0.1:4173",
+	"shots": [
+		"desktop-1440-01-login.png",
+		"desktop-1440-02-chat-empty.png",
+		"desktop-1440-03-history.png",
+		"desktop-1440-04-account.png",
+		"desktop-1440-05-devices.png",
+		"mobile-390-01-login.png",
+		"mobile-390-02-chat-empty.png",
+		"mobile-390-03-history.png",
+		"mobile-390-04-account.png",
+		"mobile-390-05-devices.png",
+		"mobile-390-06-approval-pending.png"
+	],
+	"checks": [
+		{
+			"label": "desktop-1440 login",
+			"term": "Dnor",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 login",
+			"term": "OAuth ba?lang??",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 login",
+			"term": "OAuth baslangic",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 chat empty",
+			"term": "Maasl? hedefi",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 chat empty",
+			"term": "Masa?st? hedefi",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 chat empty",
+			"term": "Masaustu hedefi",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 chat empty",
+			"term": "Please request approval",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 chat empty",
+			"term": "Developer Mode",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 history",
+			"term": "Desteklenmeyen conversation list yaniti.",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 history",
+			"term": "Desteklenmeyen conversation list yan?t?.",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 account",
+			"term": "Developer",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 account",
+			"term": "Project Memory",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 account",
+			"term": "Devices",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 account",
+			"term": "Bu fazda",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 account",
+			"term": "?kinci katman",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 account",
+			"term": "Ikinci katman",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 account",
+			"term": "G?NL?K DO?RULANMI? OTURUM",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 devices",
+			"term": "sahte cihaz",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 devices",
+			"term": "hazirlik mesaji",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 devices",
+			"term": "Urun alani",
+			"present": false
+		},
+		{
+			"label": "desktop-1440 devices",
+			"term": "Canli durum",
+			"present": false
+		},
+		{
+			"label": "mobile-390 login",
+			"term": "Dnor",
+			"present": false
+		},
+		{
+			"label": "mobile-390 login",
+			"term": "OAuth ba?lang??",
+			"present": false
+		},
+		{
+			"label": "mobile-390 login",
+			"term": "OAuth baslangic",
+			"present": false
+		},
+		{
+			"label": "mobile-390 chat empty",
+			"term": "Maasl? hedefi",
+			"present": false
+		},
+		{
+			"label": "mobile-390 chat empty",
+			"term": "Masa?st? hedefi",
+			"present": false
+		},
+		{
+			"label": "mobile-390 chat empty",
+			"term": "Masaustu hedefi",
+			"present": false
+		},
+		{
+			"label": "mobile-390 chat empty",
+			"term": "Please request approval",
+			"present": false
+		},
+		{
+			"label": "mobile-390 chat empty",
+			"term": "Developer Mode",
+			"present": false
+		},
+		{
+			"label": "mobile-390 history",
+			"term": "Desteklenmeyen conversation list yaniti.",
+			"present": false
+		},
+		{
+			"label": "mobile-390 history",
+			"term": "Desteklenmeyen conversation list yan?t?.",
+			"present": false
+		},
+		{
+			"label": "mobile-390 account",
+			"term": "Developer",
+			"present": false
+		},
+		{
+			"label": "mobile-390 account",
+			"term": "Project Memory",
+			"present": false
+		},
+		{
+			"label": "mobile-390 account",
+			"term": "Devices",
+			"present": false
+		},
+		{
+			"label": "mobile-390 account",
+			"term": "Bu fazda",
+			"present": false
+		},
+		{
+			"label": "mobile-390 account",
+			"term": "?kinci katman",
+			"present": false
+		},
+		{
+			"label": "mobile-390 account",
+			"term": "Ikinci katman",
+			"present": false
+		},
+		{
+			"label": "mobile-390 account",
+			"term": "G?NL?K DO?RULANMI? OTURUM",
+			"present": false
+		},
+		{
+			"label": "mobile-390 devices",
+			"term": "sahte cihaz",
+			"present": false
+		},
+		{
+			"label": "mobile-390 devices",
+			"term": "hazirlik mesaji",
+			"present": false
+		},
+		{
+			"label": "mobile-390 devices",
+			"term": "Urun alani",
+			"present": false
+		},
+		{
+			"label": "mobile-390 devices",
+			"term": "Canli durum",
+			"present": false
+		},
+		{
+			"label": "mobile approval click",
+			"term": "real click completed",
+			"present": false
+		}
+	],
+	"failed_checks": []
+}
