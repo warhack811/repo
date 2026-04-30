@@ -1,0 +1,18 @@
+{
+  "statusText": "TEST 1\n\nAI SDK v6 custom backend transport\nstreaming\nUSER\n\nnetwork cut smoke\n\nASSISTANT\n\nThinking...\n\nMock backend önce UIMessage parçalarını ve tool durumunu hazırlıyor.\n\nMock evidence search\nCompleted\nPARAMETERS\n{\n  \"query\": \"runa ui\",\n  \"limit\": 4\n}\nRESULT\n{\n  \"type\": \"source-url\",\n  \"sourceId\": \"source-github\",\n  \"url\": \"https://github.com/vercel/ai\",\n  \"title\": \"Vercel AI SDK\"\n}\nCustom backend cevabı\n\nAI SDK v6 transport Vite middleware üstündeki /api/chat endpointine bağlandı.\n\nSağlayıcı\tLatency\tScore\nBrave\t669ms\t14.89\nTavily\t998ms\t13.67\ntypescript\nconst x: number = 42;\nfunction greet(name: string) { return `Hello, ${name}`; }\n\nInline: $E = mc^2$ olarak ifade edilir.\n\n∫\n0\n∞\n𝑒\n−\n𝑥\n2\n𝑑\n𝑥\n=\n𝜋\n2\n∫0∞​e−x2dx=2π\n​​\nmermaid\nScenario\nmixed markdown + raw HTML\ntool call + partial JSON\nnetwork cut\nTürkçe + emoji + RTL\nSend\nRetry\nStop\n[\n  {\n    \"id\": \"TMt1w3DpyQQnqUjG\",\n    \"role\": \"user\",\n    \"parts\": [\n      {\n        \"type\": \"text\"\n      }\n    ]\n  },\n  {\n    \"id\": \"mock-1777592622797\",\n    \"role\": \"assistant\",\n    \"parts\": [\n      {\n        \"type\": \"reasoning\",\n        \"state\": \"done\"\n      },\n      {\n        \"type\": \"tool-evidence.search\",\n        \"state\": \"output-available\"\n      },\n      {\n        \"type\": \"source-url\"\n      },\n      {\n        \"type\": \"text\",\n        \"state\": \"streaming\"\n      }\n    ]\n  }\n]",
+  "hasPartial": false,
+  "events": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    }
+  ]
+}
