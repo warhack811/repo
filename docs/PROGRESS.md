@@ -32,6 +32,21 @@
 - Cloud persistence proof: `DATABASE_TARGET=cloud pnpm --filter @runa/server run test:persistence-release-proof` kismen gecti ama genel sonuc `BLOCKED`. Cloud DB CRUD `PASS`, first-run conversation proof `PASS`, `database_url_source=SUPABASE_DATABASE_URL`, `target=cloud`; fakat approval persistence/reconnect helper `database_target_not_local` nedeniyle `BLOCKED` dondu. Bu, cloud DB temel user journey yazma/okuma hattinin calistigini, fakat release-grade approval persistence proof'unun cloud target icin henuz tamamlanmadigini gosterir.
 - Sonuc: production cloud user journey icin temel cloud DB + first-run conversation proof yesil, formal demo rehearsal yesil; tam production/live release claim'i ise iki nedenle acik degil: authoritative `GROQ_API_KEY` shell/env yok ve approval persistence proof cloud target'ta bloklu.
 
+### Cloud Production User Journey Proof Closure - 30 Nisan 2026
+
+- Kapsam: onceki cloud proof check'te kalan iki production blocker kapatildi: approval persistence/reconnect helper'in cloud target blokaji ve Groq live smoke icin tek komut credential authority akisi. UI, desktop, auth, websocket protocol ve runtime contract'lari yeniden tasarlanmadi.
+- Approval persistence: `apps/server/scripts/approval-persistence-live-smoke.mjs` icindeki local-only target guard kaldirildi. Smoke artik random run/session id'leri ve mevcut cleanup adimlariyla hem local hem cloud database target uzerinde calisabiliyor; summary `database_target_supported=true` alanini raporluyor.
+- Provider env authority: `apps/server/scripts/groq-live-smoke.mjs` yalniz `GROQ_API_KEY` ve opsiyonel `GROQ_MODEL` icin explicit local smoke env-file kaynagi okuyabilir hale geldi. Shell env halen birinci otorite; file-backed kullanim summary'de `source=".env"` veya `.env.local` olarak gorunuyor. DB env'leri Groq smoke subprocess'ine tasinmadi.
+- Dirty worktree hijyeni: bu gorevle ilgisiz eski visual baseline drift'leri, gecici txt silmeleri ve unrelated `apps/web/vite.config.ts` diff'i geri alindi. Kalan diff yalniz cloud/live proof script'leri ve bu progress kaydi.
+- GitHub PR/auth durumu: `gh auth status` halen `warhack811` icin invalid token raporluyor. Kod/push isi bundan bagimsiz ilerleyebilir; GitHub UI veya tazelenmis `gh auth login` gerektiren PR olusturma adimi operasyonel blocker olarak ayrildi.
+- Dogrulama yesil:
+  - `DATABASE_TARGET=cloud pnpm.cmd --filter @runa/server run test:persistence-release-proof` PASS. `PERSISTENCE_RELEASE_PROOF_SUMMARY result=PASS`, `failure_stage=null`, cloud DB CRUD PASS, first-run conversation PASS, approval persistence PASS, auto-continue restart `run.finished(COMPLETED)`.
+  - `pnpm.cmd --dir apps/server run test:groq-live-smoke` PASS. `GROQ_LIVE_SMOKE_SUMMARY result=PASS`, `api_key_authority.source=".env"`, assistant/tool-schema/browser-shape stages PASS.
+  - `pnpm.cmd --dir apps/server run test:groq-demo-rehearsal` PASS. Formal repeatability `passed_runs=5`; core coverage threshold PASS.
+  - `pnpm.cmd --filter @runa/server typecheck` PASS.
+  - `pnpm.cmd --filter @runa/server lint` PASS.
+  - `pnpm.cmd --filter @runa/server test` PASS (`129` dosya / `866` test).
+
 ### Track C / UI Overhaul 07.4 - Operator/Developer Hard Isolation - 30 Nisan 2026
 
 - `docs/UI-OVERHAUL-07-4-OPERATOR-DEVELOPER-HARD-ISOLATION-PROMPT.md` kapsamindaki hard isolation uygulandi. Normal app shell artik `/developer*` path'lerini active page olarak `developer` basligiyla render etmiyor; clean session `/developer` ve `/developer/capability-preview` istekleri route gate uzerinden `/chat` yuzeyine donuyor.

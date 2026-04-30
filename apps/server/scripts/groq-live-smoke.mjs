@@ -7,6 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(serverRoot, '..', '..');
 const distRoot = path.resolve(serverRoot, 'dist');
+const localSmokeEnvFiles = [
+	{ label: '.env', path: path.resolve(repoRoot, '.env') },
+	{ label: '.env.local', path: path.resolve(repoRoot, '.env.local') },
+];
 
 const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 const GROQ_API_KEY_ENV = 'GROQ_API_KEY';
@@ -77,6 +81,70 @@ function readEnv(name) {
 	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 }
 
+function normalizeEnvValue(rawValue) {
+	const trimmedValue = rawValue.trim();
+
+	if (
+		(trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
+		(trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))
+	) {
+		return trimmedValue.slice(1, -1);
+	}
+
+	return trimmedValue;
+}
+
+function readEnvFileValue(filePath, name) {
+	if (!fs.existsSync(filePath)) {
+		return undefined;
+	}
+
+	const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/u);
+
+	for (const line of lines) {
+		const trimmedLine = line.trim();
+
+		if (trimmedLine.length === 0 || trimmedLine.startsWith('#') || trimmedLine.startsWith('//')) {
+			continue;
+		}
+
+		const separatorIndex = trimmedLine.indexOf('=');
+
+		if (separatorIndex <= 0) {
+			continue;
+		}
+
+		const key = trimmedLine.slice(0, separatorIndex).trim();
+
+		if (key !== name) {
+			continue;
+		}
+
+		const rawValue = trimmedLine.slice(separatorIndex + 1);
+		const value = normalizeEnvValue(rawValue);
+
+		return value.length > 0 ? value : undefined;
+	}
+
+	return undefined;
+}
+
+function resolveLocalSmokeEnvFileValue(name) {
+	for (const envFile of localSmokeEnvFiles) {
+		const value = readEnvFileValue(envFile.path, name);
+
+		if (value) {
+			return {
+				envName: name,
+				source: envFile.label,
+				value,
+			};
+		}
+	}
+
+	return undefined;
+}
+
 function resolveApiKeySource() {
 	const groqApiKey = readEnv(GROQ_API_KEY_ENV);
 
@@ -84,10 +152,21 @@ function resolveApiKeySource() {
 		return {
 			apiKey: groqApiKey,
 			envName: GROQ_API_KEY_ENV,
+			source: 'process.env',
 		};
 	}
 
-	return undefined;
+	const fileBackedApiKey = resolveLocalSmokeEnvFileValue(GROQ_API_KEY_ENV);
+
+	if (!fileBackedApiKey) {
+		return undefined;
+	}
+
+	return {
+		apiKey: fileBackedApiKey.value,
+		envName: fileBackedApiKey.envName,
+		source: fileBackedApiKey.source,
+	};
 }
 
 function resolveModelSource() {
@@ -97,12 +176,24 @@ function resolveModelSource() {
 		return {
 			envName: GROQ_MODEL_ENV,
 			model: groqModel,
+			source: 'process.env',
+		};
+	}
+
+	const fileBackedModel = resolveLocalSmokeEnvFileValue(GROQ_MODEL_ENV);
+
+	if (fileBackedModel) {
+		return {
+			envName: fileBackedModel.envName,
+			model: fileBackedModel.value,
+			source: fileBackedModel.source,
 		};
 	}
 
 	return {
 		envName: undefined,
 		model: DEFAULT_MODEL,
+		source: 'default',
 	};
 }
 
@@ -123,6 +214,7 @@ function buildAuthoritySummary(input) {
 			authoritative_env: GROQ_API_KEY_ENV,
 			legacy_non_authoritative_envs: LEGACY_NON_AUTHORITATIVE_GROQ_ENVS,
 			resolved_from: input.apiKeySource?.envName,
+			source: input.apiKeySource?.source ?? null,
 		},
 		env_example_authoritative: false,
 		model_authority: {
@@ -130,6 +222,7 @@ function buildAuthoritySummary(input) {
 			authoritative_env: GROQ_MODEL_ENV,
 			default_model: DEFAULT_MODEL,
 			resolved_from: input.modelSource.envName ?? 'default',
+			source: input.modelSource.source,
 		},
 	};
 }
