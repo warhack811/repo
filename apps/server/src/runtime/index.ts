@@ -15,6 +15,7 @@ export * from './persistent-checkpoint-manager.js';
 export * from './agent-loop-checkpointing.js';
 export * from './resume-agent-loop.js';
 export * from './token-limit-recovery.js';
+export * from './tool-call-repair-recovery.js';
 export * from './adapt-model-response-to-turn-outcome.js';
 export * from './bind-available-tools.js';
 export * from './run-model-turn.js';
