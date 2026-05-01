@@ -23,16 +23,29 @@ describe('message rendering fixtures', () => {
 		expect(container.querySelector('table')).toBeTruthy();
 	});
 
-	it('renders known and unknown code fences without crashing', async () => {
-		render(
-			<>
-				<StreamdownMessage>{codeTypescriptFixture}</StreamdownMessage>
-				<StreamdownMessage>{codeUnknownLanguageFixture}</StreamdownMessage>
-			</>,
-		);
+	it('renders known and unknown code fences with Shiki and copy affordance', async () => {
+		const multiLanguageFixture = [
+			codeTypescriptFixture,
+			'```javascript\nconst value = 1;\n```',
+			'```python\nprint("runa")\n```',
+			'```json\n{"ok": true}\n```',
+			'```bash\necho "runa"\n```',
+			codeUnknownLanguageFixture,
+		].join('\n\n');
+		const { container } = render(<StreamdownMessage>{multiLanguageFixture}</StreamdownMessage>);
 
 		expect(screen.getByText(/const x: number = 42/)).toBeTruthy();
 		expect(screen.getByText(/const x = 1/)).toBeTruthy();
+		expect(container.querySelector('[data-language="typescript"]')).toBeTruthy();
+		expect(container.querySelector('[data-language="javascript"]')).toBeTruthy();
+		expect(container.querySelector('[data-language="python"]')).toBeTruthy();
+		expect(container.querySelector('[data-language="json"]')).toBeTruthy();
+		expect(container.querySelector('[data-language="bash"]')).toBeTruthy();
+		expect(container.querySelector('[data-language="runa-unknown"]')).toBeTruthy();
+		expect(screen.getAllByRole('button', { name: /Kopyala/i }).length).toBe(6);
+		await waitFor(() => {
+			expect(container.querySelectorAll('.shiki').length).toBeGreaterThanOrEqual(5);
+		});
 	});
 
 	it('renders KaTeX math nodes', async () => {

@@ -1,0 +1,20 @@
+{
+  "result": {
+    "codeBlocks": 1,
+    "shiki": 1,
+    "copyButtons": 1,
+    "languages": [
+      "typescript"
+    ],
+    "hasHighlightFailure": false
+  },
+  "consoleMessages": [
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+    "warning: WebSocket connection to 'ws://localhost:5173/ws?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZW1haWwiOiJkZXZAcnVuYS5sb2NhbCIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE3Nzc2NTg2MDEsImlhdCI6MTc3NzYyOTgwMSwiaXNzIjoicnVuYS1kZXYtbG9jYWwiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsInNjb3BlIjp7fSwic2Vzc2lvbl9pZCI6ImxvY2FsLWRldi1zZXNzaW9uOjE3Nzc2Mjk4MDEiLCJzdWIiOiJsb2NhbC1kZXYtdXNlciJ9.vdRP6724acnCS-hmUDve8RahDQH7VWuY-eCLnauOw7o' failed: WebSocket is closed before the connection is established."
+  ]
+}

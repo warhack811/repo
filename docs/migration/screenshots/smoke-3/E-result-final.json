@@ -1,0 +1,21 @@
+{
+  "result": {
+    "hasUsedSources": true,
+    "hasWebSearchResultsEnglish": false,
+    "hasShowingEnglish": false,
+    "hasSourcesUsedEnglish": false,
+    "hasWebAramaTurkish": true,
+    "hasShowingTurkish": true,
+    "hasSourceHeading": true,
+    "text": "Komut ara\nCtrl K\nSohbet\nSohbet ve onaylar.\nGeçmiş\nKayıtlı sohbetler.\nCihazlar\nBağlı bilgisayarlar.\nHesap\nProfil ve tercihler.\nRuna\nSohbet devam ediyor\nHazır\nRUNA\nSohbetler\nYeni sohbet\nARA\nBUGÜN\nSmoke E: web.search arac?n? kullanarak OpenAI 2026 g?ncel hab...\nSahip\nSmoke E: web.search arac?n? kullanarak OpenAI 2026 g?ncel haberleri i?in 5 web sonucu getir. Cevaptan ?nce kaynak panelini g?ster; sadece k?sa T?rk?e ?zet yaz.\n1 May 2026 13:06\nÜyeler - Sahip\nHesap ve ayarlar\nSohbet\nSen\n01.05.2026 13:06:19\n\nSmoke E: web.search arac?n? kullanarak OpenAI 2026 g?ncel haberleri i?in 5 web sonucu getir. Cevaptan ?nce kaynak panelini g?ster; sadece k?sa T?rk?e ?zet yaz.\n\nOnay bekleniyor\n\nÇalışma onay beklediği için duraklatıldı.\n\ncompleted\nweb.search\nİşlem tamamlandı\nTamamlandı\nKAYNAKLAR\nWeb arama sonuçları\n1 arama\n5 sonuç\nBazı sonuçlar kısaltıldı\n\n5 web sonucu gösteriliyor\n\n5 kaynak kullanıldı\n\nChatGPT çöktü mü? OpenAI kesinti raporları (28 Nisan 2026)\nvendor\nchip.com.tr\n\nChatGPT çöktü mü? (28 Nisan 2026) OpenAI'nin son 24 saatlik kesinti grafiği, belirli saatlerde artan erişim sorunlarına işaret ediyor.\n\nhttps://www.chip.com.tr/galeri/chatgpt-coktu-mu-openai-kesinti-raporlari-28-nisan-2026_178116.html\n\nElon Musk, OpenAI davasında Sam Altman’a karşı ifade verdi: Bir hayır kurumunu çalmak kabul edilemez\nvendor\ntr.euronews.com\n\nMusk'ın avukatı Steven Molo, Altman ve Brockman'ın, Microsoft'un da yardımıyla, yapay zekanın güvenli ve açık geliştirilmesini amaçlayan bir vakfın...\n\nhttps://tr.euronews.com/next/2026/04/29/musktan-altmana-openai-davasi-hayir-kurumu-calinmaz-dedi\n\nAmazon, AWS üzerinde OpenAI ürünlerini sunacak\nvendor\nbloomberght.com\n\nOpenAI ve en büyük bulut ortağı Microsoft arasındaki ilişkilerin bozulması OpenAI'ı, Amazon Web Services ve Oracle'a yönlendirdi. OpenAI ve Microsoft...\n\nhttps://www.bloomberght.com/amazon-aws-uzerinde-openai-urunlerini-sunacak-3776145\n\nOpenAI’dan yeni model: GPT-5.5\nvendor\nparibu.com\n\nBloombergHT'de yayınlanan Akıllı Para programına konuk olan Paribu Ventures Yöneticisi Erman Taylan, yapay zeka gündemindeki son gelişmeleri değerlendirdi.\n\nhttps://www.paribu.com/blog/haberler/openaidan-yeni-model-gpt-5-5/\n\nElon Musk'tan OpenAI kurucularına dava: İnsanlığa fayda sağlama misyonuna ihanet ettiler\nvendor\nsabah.com.tr\n\nTesla, SpaceX ve X gibi şirketlerin sahibi Elon Musk, yapay zeka sohbet robotu ChatGPT'nin geliştiricisi OpenAI şirketinin kurucuları Sam Altman ve Greg...\n\nhttps://www.sabah.com.tr/gundem/2026/04/29/elon-musktan-openai-kurucularina-dava-insanliga-fayda-saglama-misyonuna-ihanet-ettiler\n\nGÜVEN KARARI\nRuna şunu yapmak istiyor\nOnay bekliyor\nEYLEM\nAraç çalıştırma isteği\nHEDEF\nagent.auto_continue\nDIKKAT\nBu adım izin gerektiriyor; ayrıntıları kontrol edebilirsin.\nDevam etmek için kararın bekleniyor.\nOnaylarsan adım çalışır ve sonuç güncellenir.\nOnayla\nReddet\nMesaj\nDosya ekle\nHazır"
+  },
+  "consoleMessages": [
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+    "warning: WebSocket connection to 'ws://localhost:5173/ws?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZW1haWwiOiJkZXZAcnVuYS5sb2NhbCIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE3Nzc2NTg3NzksImlhdCI6MTc3NzYyOTk3OSwiaXNzIjoicnVuYS1kZXYtbG9jYWwiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsInNjb3BlIjp7fSwic2Vzc2lvbl9pZCI6ImxvY2FsLWRldi1zZXNzaW9uOjE3Nzc2Mjk5NzkiLCJzdWIiOiJsb2NhbC1kZXYtdXNlciJ9.3CVgA-GmWs6_vdJVg7_kRBmNOBVt-iMEb757_kLd734' failed: WebSocket is closed before the connection is established."
+  ]
+}
