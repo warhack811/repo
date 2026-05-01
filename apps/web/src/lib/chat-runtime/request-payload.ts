@@ -2,6 +2,8 @@ import type { ModelAttachment, ModelMessage } from '@runa/types';
 import { uiCopy } from '../../localization/copy.js';
 import type { GatewayProvider, RunRequestPayload } from '../../ws-types.js';
 
+export const DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 2048;
+
 export interface CreateRunRequestPayloadInput {
 	readonly apiKey: string;
 	readonly attachments?: readonly ModelAttachment[];
@@ -41,7 +43,7 @@ export function createRunRequestPayload(input: CreateRunRequestPayloadInput): Ru
 			apiKey: apiKeyValue,
 		},
 		request: {
-			max_output_tokens: 256,
+			max_output_tokens: DEFAULT_CHAT_MAX_OUTPUT_TOKENS,
 			messages:
 				providedMessages && providedMessages.length > 0
 					? providedMessages

@@ -35,6 +35,7 @@ interface RunModelTurnFailure {
 		| 'INVALID_CURRENT_STATE'
 		| 'MODEL_GENERATE_FAILED'
 		| 'MODEL_RESPONSE_ADAPTATION_FAILED'
+		| 'MODEL_RESPONSE_TRUNCATED'
 		| 'RUN_STATE_PERSISTENCE_FAILED'
 		| 'TURN_CONTINUATION_FAILED';
 	readonly message: string;
@@ -468,6 +469,29 @@ export async function runModelTurn(input: RunModelTurnInput): Promise<RunModelTu
 		return createFailureResult(persistenceFailure ?? failure, {
 			model_response: modelResponse,
 			resolved_model_request: resolvedModelRequest,
+		});
+	}
+
+	if (
+		adaptedOutcomeResult.outcome.kind === 'assistant_response' &&
+		modelResponse.finish_reason === 'max_tokens'
+	) {
+		const failure = createFailure(
+			'MODEL_RESPONSE_TRUNCATED',
+			'Model response reached the max_output_tokens limit before a natural stop; partial assistant text was not marked complete.',
+		);
+
+		const persistenceFailure = await persistRunStateIfConfigured(
+			input,
+			'FAILED',
+			failure.code,
+			new Date().toISOString(),
+		);
+
+		return createFailureResult(persistenceFailure ?? failure, {
+			model_response: modelResponse,
+			model_turn_outcome: adaptedOutcomeResult.outcome,
+			resolved_model_request: finalModelRequest,
 		});
 	}
 

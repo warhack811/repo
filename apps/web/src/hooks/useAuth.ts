@@ -14,6 +14,7 @@ import {
 	clearStoredBearerToken,
 	consumeOAuthRedirectResult,
 	fetchAuthContext,
+	formatAuthErrorMessage,
 	isLocalDevAuthUiEnabled,
 	loginWithPassword,
 	logout,
@@ -72,7 +73,9 @@ export interface UseAuthResult {
 }
 
 function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : 'Bilinmeyen auth istegi hatasi.';
+	return error instanceof Error
+		? formatAuthErrorMessage(error.message)
+		: 'Bilinmeyen auth istegi hatasi.';
 }
 
 function resolveSessionStorage(): Storage | null {
@@ -351,8 +354,8 @@ function isAuthenticatedActionResponse(
 async function readResponseErrorMessage(response: Response): Promise<string> {
 	const responseText = await response.text();
 	return responseText.trim().length > 0
-		? responseText
-		: `Auth istegi ${response.status} durumu ile basarisiz oldu.`;
+		? formatAuthErrorMessage(responseText, response.status)
+		: formatAuthErrorMessage('', response.status);
 }
 
 async function postAuthenticatedAction(

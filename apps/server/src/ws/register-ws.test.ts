@@ -4608,6 +4608,7 @@ describe('register-ws', () => {
 
 			attachRuntimeWebSocketHandler(socket);
 
+			let requestCount = 0;
 			vi.stubGlobal(
 				'fetch',
 				vi.fn(async (input: string | URL | Request) => {
@@ -4636,35 +4637,66 @@ describe('register-ws', () => {
 						);
 					}
 
+					requestCount++;
+
+					if (requestCount === 1) {
+						return new Response(
+							JSON.stringify({
+								choices: [
+									{
+										finish_reason: 'tool_calls',
+										message: {
+											role: 'assistant',
+											tool_calls: [
+												{
+													function: {
+														arguments: {
+															freshness_required: true,
+															query,
+														},
+														name: 'web.search',
+													},
+													id: 'call_ws_live_web_search_conflict_1',
+													type: 'function',
+												},
+											],
+										},
+									},
+								],
+								id: 'chatcmpl_ws_live_web_search_conflict',
+								model: 'llama-3.3-70b-versatile',
+								usage: {
+									completion_tokens: 12,
+									prompt_tokens: 8,
+									total_tokens: 20,
+								},
+							}),
+							{
+								headers: {
+									'content-type': 'application/json',
+								},
+								status: 200,
+							},
+						);
+					}
+
 					return new Response(
 						JSON.stringify({
 							choices: [
 								{
-									finish_reason: 'tool_calls',
+									finish_reason: 'stop',
 									message: {
+										content: 'I have checked both local and public sources.',
 										role: 'assistant',
-										tool_calls: [
-											{
-												function: {
-													arguments: {
-														freshness_required: true,
-														query,
-													},
-													name: 'web.search',
-												},
-												id: 'call_ws_live_web_search_conflict_1',
-												type: 'function',
-											},
-										],
 									},
 								},
 							],
-							id: 'chatcmpl_ws_live_web_search_conflict',
+							id: 'chatcmpl_ws_live_web_search_conflict_2',
 							model: 'llama-3.3-70b-versatile',
 							usage: {
-								completion_tokens: 12,
-								prompt_tokens: 8,
-								total_tokens: 20,
+								completion_tokens: 10,
+								prompt_tokens: 40,
+								total_tokens: 50,
 							},
 						}),
 						{
@@ -4773,7 +4805,7 @@ describe('register-ws', () => {
 					presentationMessage.payload.blocks[traceDebugBlockIndex].payload.debug_notes,
 				).toEqual(
 					expect.arrayContaining([
-						'Workspace context prepared before codebase search and public web search.',
+						'Workspace context prepared.',
 					]),
 				);
 			}
