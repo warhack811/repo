@@ -22,16 +22,15 @@ Durust not:
 
 ## Otorite Belgeler
 
-Yeni bir oturumda okuma sirasi:
+Yeni bir oturumda once context rotasini oku:
 
-1. `docs/AGENTS.md`
-2. `docs/PROGRESS.md`
-3. `docs/implementation-blueprint.md`
-4. `docs/post-mvp-strategy.md`
-5. `docs/technical-architecture.md`
-6. `docs/security-model.md`
+1. `docs/INDEX.md`
+2. `docs/LLM-CONTEXT.md`
+3. `docs/AGENTS.md`
+4. `docs/TASK-TEMPLATE.md`
+5. `docs/PROGRESS.md` icindeki guncel ozet ve ilgili son kayitlar
 
-`karar.md` ve `vision.md` daha ust seviye anayasa / vizyon belgeleridir; gerektiginde derine inilir.
+Goreve gore ek belgeler `docs/INDEX.md` ve `docs/LLM-CONTEXT.md` icindeki tabloya gore secilir. `docs/implementation-blueprint.md`, `docs/post-mvp-strategy.md`, `docs/technical-architecture.md`, `docs/security-model.md`, `karar.md` ve `vision.md` uzun referans belgeleridir; default context degil, task-relevant otoritedir.
 
 ## Bugun Repo Neyi Sunuyor?
 
