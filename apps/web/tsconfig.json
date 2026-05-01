@@ -1,11 +1,16 @@
 {
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
+		"baseUrl": ".",
+		"ignoreDeprecations": "6.0",
 		"jsx": "react-jsx",
 		"lib": ["DOM", "DOM.Iterable", "ES2022"],
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"outDir": "dist",
+		"paths": {
+			"@/*": ["src/*"]
+		},
 		"rootDir": "src",
 		"types": ["vite/client"]
 	},
