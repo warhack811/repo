@@ -308,7 +308,7 @@ function TransportChat() {
                         />
                       )}
                       <ToolContent>
-                        {toolPart.input !== undefined && <ToolInput input={toolPart.input} />}
+                        <ToolInput input={toolPart.input} state={toolPart.state} />
                         <ToolOutput
                           errorText={toolPart.errorText}
                           output={toolPart.output}
@@ -551,7 +551,7 @@ function EvidencePanel() {
       <Tool defaultOpen>
         <ToolHeader state="output-available" title="web.search" type="tool-web_search" />
         <ToolContent>
-          <ToolInput input={{ query: evidencePack.query, limit: 5 }} />
+          <ToolInput input={{ query: evidencePack.query, limit: 5 }} state="output-available" />
           <ToolOutput errorText={undefined} output={evidencePack} />
         </ToolContent>
       </Tool>

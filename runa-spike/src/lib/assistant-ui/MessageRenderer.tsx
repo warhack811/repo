@@ -72,7 +72,7 @@ function ToolCallPart(props: ToolCallMessagePartProps<unknown, unknown>) {
         type={toolType}
       />
       <ToolContent>
-        <ToolInput input={props.args} />
+        <ToolInput input={props.args} state={toToolState(props.status.type)} />
         <ToolOutput errorText={errorText} output={props.result} />
       </ToolContent>
     </Tool>

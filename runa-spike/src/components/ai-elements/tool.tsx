@@ -113,16 +113,33 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
 );
 
 export type ToolInputProps = ComponentProps<"div"> & {
-  input: ToolPart["input"];
+  input?: ToolPart["input"];
+  state?: ToolPart["state"];
 };
 
-export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
+const SkeletonInput = () => (
+  <div className="space-y-2 p-3">
+    <div className="h-3 w-20 rounded bg-muted-foreground/20" />
+    <div className="h-3 w-36 rounded bg-muted-foreground/10" />
+  </div>
+);
+
+export const ToolInput = ({
+  className,
+  input,
+  state,
+  ...props
+}: ToolInputProps) => (
   <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
     <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
       Parameters
     </h4>
     <div className="rounded-md bg-muted/50">
-      <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+      {state === "input-streaming" || input === undefined ? (
+        <SkeletonInput />
+      ) : (
+        <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+      )}
     </div>
   </div>
 );
