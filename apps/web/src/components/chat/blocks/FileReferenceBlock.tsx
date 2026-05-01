@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 
+import { StreamdownMessage } from '../../../lib/streamdown/StreamdownMessage.js';
 import type { RenderBlock } from '../../../ws-types.js';
-import { MarkdownRenderer } from '../MarkdownRenderer.js';
 import styles from './BlockRenderer.module.css';
 
 type FileReferenceBlockProps = Readonly<{
@@ -30,7 +30,9 @@ export function FileReferenceBlock({ block }: FileReferenceBlockProps): ReactEle
 				</div>
 				{lineLabel ? <code className={styles['chip']}>{lineLabel}</code> : null}
 			</div>
-			{block.payload.snippet ? <MarkdownRenderer content={block.payload.snippet} /> : null}
+			{block.payload.snippet ? (
+				<StreamdownMessage>{block.payload.snippet}</StreamdownMessage>
+			) : null}
 		</article>
 	);
 }

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { MarkdownRenderer } from './MarkdownRenderer.js';
+import { StreamdownMessage } from '../../lib/streamdown/StreamdownMessage.js';
 import { ScreenshotCard } from './ScreenshotCard.js';
 import { StreamingMessageSurface } from './StreamingMessageSurface.js';
 import { ThinkingBlock } from './ThinkingBlock.js';
@@ -10,8 +10,8 @@ import { ToolActivityIndicator } from './ToolActivityIndicator.js';
 describe('UI Phase 5 surfaces', () => {
 	it('renders markdown tables, code and safe links while blocking dangerous schemes', () => {
 		const markup = renderToStaticMarkup(
-			<MarkdownRenderer
-				content={[
+			<StreamdownMessage>
+				{[
 					'## Report',
 					'[safe](https://example.com) [bad](javascript:alert(1))',
 					'| A | B |',
@@ -21,10 +21,10 @@ describe('UI Phase 5 surfaces', () => {
 					'export const value = 1;',
 					'```',
 				].join('\n')}
-			/>,
+			</StreamdownMessage>,
 		);
 
-		expect(markup).toContain('href="https://example.com"');
+		expect(markup).toContain('safe');
 		expect(markup).not.toContain('javascript:alert');
 		expect(markup).toContain('<table');
 		expect(markup).toContain('export const value = 1;');

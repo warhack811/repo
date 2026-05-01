@@ -26,6 +26,11 @@ import type {
 	RunTransportSummary,
 } from '../lib/chat-runtime/types.js';
 import {
+	type TransportErrorCode,
+	classifyWebSocketClose,
+	getTransportError,
+} from '../lib/transport/error-catalog.js';
+import {
 	createApprovalResolveMessage,
 	createClientId,
 	createInspectionRequestMessage,
@@ -85,6 +90,7 @@ export interface UseChatRuntimeResult {
 	readonly runTransportSummaries: ReadonlyMap<string, RunTransportSummary>;
 	readonly store: ChatStore;
 	readonly staleInspectionRequestKeys: readonly string[];
+	readonly transportErrorCode: TransportErrorCode | null;
 	setApiKey: (value: string) => void;
 	setAttachments: (value: readonly ModelAttachment[]) => void;
 	setDesktopTargetConnectionId: (value: string | null) => void;
@@ -96,6 +102,7 @@ export interface UseChatRuntimeResult {
 	submitRunRequest: (event: FormEvent<HTMLFormElement>) => void;
 	requestInspection: (runId: string, targetKind: InspectionTargetKind, targetId?: string) => void;
 	resolveApproval: (approvalId: string, decision: ApprovalResolveDecision) => void;
+	retryTransport: () => void;
 }
 
 export interface UseChatRuntimeOptions {
@@ -294,6 +301,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				connectionStatus: 'connecting',
 				isSubmitting: false,
 				lastError: null,
+				transportErrorCode: null,
 			},
 			presentation: {
 				currentStreamingRunId: null,
@@ -320,6 +328,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	}
 	const reconnectTimerRef = useRef<number | null>(null);
 	const socketRef = useRef<WebSocket | null>(null);
+	const reconnectNowRef = useRef<() => void>(() => undefined);
 	const expectedPresentationRunIdRef = useRef<string | null>(null);
 	const expandedPastRunIdsRef = useRef<Set<string>>(new Set());
 	const inspectionAnchorIdsByDetailIdRef = useRef<Map<string, string | undefined>>(new Map());
@@ -344,7 +353,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const presentationState = useChatStoreSelector(chatStore, selectPresentationState);
 	const transportState = useChatStoreSelector(chatStore, selectTransportState);
 	const { apiKey, includePresentationBlocks, model, provider } = runtimeConfig;
-	const { connectionStatus, isSubmitting, lastError } = connectionState;
+	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
 	const {
 		currentStreamingRunId,
 		currentStreamingText,
@@ -532,17 +541,22 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			}));
 		}
 
-		function scheduleReconnect(message?: string): void {
+		function scheduleReconnect(
+			message?: string,
+			transportErrorCode: TransportErrorCode = 'ws-disconnect',
+		): void {
 			if (isDisposed) {
 				return;
 			}
 
 			clearReconnectTimer();
 			reconnectAttemptCount += 1;
+			const transportError = getTransportError(transportErrorCode);
 			chatStore.setConnectionState((currentConnectionState) => ({
 				...currentConnectionState,
 				connectionStatus: 'connecting',
-				lastError: message ?? uiCopy.runtime.wsClosedRetrying,
+				lastError: message ?? transportError.label,
+				transportErrorCode,
 			}));
 			reconnectTimerRef.current = window.setTimeout(
 				() => {
@@ -550,6 +564,20 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				},
 				Math.min(1000 * reconnectAttemptCount, 4000),
 			);
+		}
+
+		function commitTransportError(transportErrorCode: TransportErrorCode): void {
+			if (isDisposed) {
+				return;
+			}
+
+			const transportError = getTransportError(transportErrorCode);
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				connectionStatus: 'error',
+				lastError: transportError.label,
+				transportErrorCode,
+			}));
 		}
 
 		function connectSocket(): void {
@@ -576,6 +604,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 					...currentConnectionState,
 					connectionStatus: 'open',
 					lastError: null,
+					transportErrorCode: null,
 				}));
 			});
 
@@ -595,15 +624,19 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 						connectionStatus: 'error',
 						lastError:
 							closeReason.length > 0 ? closeReason : 'Authenticated WebSocket connection required.',
+						transportErrorCode: 'server-error',
 					}));
 					return;
 				}
 
-				scheduleReconnect(
-					closeReason.length > 0
-						? `${closeReason} Retrying live connection...`
-						: uiCopy.runtime.wsClosedRetrying,
-				);
+				const closeTransportErrorCode =
+					classifyWebSocketClose({
+						code: event.code,
+						reason: closeReason,
+						wasClean: event.wasClean,
+					}) ?? 'ws-disconnect';
+				const transportError = getTransportError(closeTransportErrorCode);
+				scheduleReconnect(transportError.label, closeTransportErrorCode);
 			});
 
 			socket.addEventListener('error', () => {
@@ -611,11 +644,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 					return;
 				}
 
-				chatStore.setConnectionState((currentConnectionState) => ({
-					...currentConnectionState,
-					connectionStatus: 'error',
-					lastError: uiCopy.runtime.wsFailedRetrying,
-				}));
+				const socketErrorCode: TransportErrorCode =
+					typeof navigator !== 'undefined' && navigator.onLine === false
+						? 'network-cut'
+						: 'ws-disconnect';
+				commitTransportError(socketErrorCode);
 			});
 
 			socket.addEventListener('message', (event) => {
@@ -736,6 +769,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 							chatStore.setConnectionState((currentConnectionState) => ({
 								...currentConnectionState,
 								lastError: parsedMessage.payload.error_message,
+								transportErrorCode:
+									parsedMessage.payload.error_code ?? currentConnectionState.transportErrorCode,
 							}));
 						}
 
@@ -814,13 +849,53 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			});
 		}
 
+		reconnectNowRef.current = () => {
+			if (isDisposed) {
+				return;
+			}
+
+			clearReconnectTimer();
+			const socketToClose = activeSocket;
+			activeSocket = null;
+			socketRef.current = null;
+			socketToClose?.close();
+			connectSocket();
+		};
+
+		function handleBrowserOffline(): void {
+			clearReconnectTimer();
+			commitTransportError('network-cut');
+		}
+
+		function handleBrowserOnline(): void {
+			if (isDisposed) {
+				return;
+			}
+
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				connectionStatus:
+					currentConnectionState.connectionStatus === 'open'
+						? currentConnectionState.connectionStatus
+						: 'connecting',
+				lastError: null,
+				transportErrorCode: null,
+			}));
+			reconnectNowRef.current();
+		}
+
+		window.addEventListener('offline', handleBrowserOffline);
+		window.addEventListener('online', handleBrowserOnline);
 		connectSocket();
 
 		return () => {
 			isDisposed = true;
+			window.removeEventListener('offline', handleBrowserOffline);
+			window.removeEventListener('online', handleBrowserOnline);
 			clearReconnectTimer();
 			activeSocket?.close();
 			socketRef.current = null;
+			reconnectNowRef.current = () => undefined;
 		};
 	}, [accessToken, chatStore]);
 
@@ -894,6 +969,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 					...currentConnectionState,
 					isSubmitting: true,
 					lastError: null,
+					transportErrorCode: null,
 				}));
 				chatStore.setTransportState((currentTransportState) => ({
 					...currentTransportState,
@@ -915,6 +991,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 					...currentConnectionState,
 					isSubmitting: false,
 					lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownSubmit,
+					transportErrorCode:
+						connectionStatus === 'open' ? null : currentConnectionState.transportErrorCode,
 				}));
 			}
 		},
@@ -943,6 +1021,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				chatStore.setConnectionState((currentConnectionState) => ({
 					...currentConnectionState,
 					lastError: null,
+					transportErrorCode: null,
 				}));
 				socketRef.current.send(
 					JSON.stringify(
@@ -1012,6 +1091,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				chatStore.setConnectionState((currentConnectionState) => ({
 					...currentConnectionState,
 					lastError: null,
+					transportErrorCode: null,
 				}));
 				const nextStaleRequestKeys = new Set(staleInspectionRequestKeysRef.current);
 				const nextPendingRequestKeys = new Set(pendingInspectionRequestKeysRef.current);
@@ -1084,6 +1164,19 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		],
 	);
 
+	const retryTransport = useCallback((): void => {
+		chatStore.setConnectionState((currentConnectionState) => ({
+			...currentConnectionState,
+			connectionStatus:
+				currentConnectionState.connectionStatus === 'open'
+					? currentConnectionState.connectionStatus
+					: 'connecting',
+			lastError: null,
+			transportErrorCode: null,
+		}));
+		reconnectNowRef.current();
+	}, [chatStore]);
+
 	return useMemo(
 		() => ({
 			accessToken,
@@ -1111,6 +1204,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			provider,
 			requestInspection,
 			resolveApproval,
+			retryTransport,
 			runTransportSummaries,
 			store: chatStore,
 			setApiKey,
@@ -1123,6 +1217,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			setProvider,
 			staleInspectionRequestKeys,
 			submitRunRequest,
+			transportErrorCode,
 		}),
 		[
 			accessToken,
@@ -1148,6 +1243,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			provider,
 			requestInspection,
 			resolveApproval,
+			retryTransport,
 			runTransportSummaries,
 			chatStore,
 			setApiKey,
@@ -1157,6 +1253,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			setProvider,
 			staleInspectionRequestKeys,
 			submitRunRequest,
+			transportErrorCode,
 		],
 	);
 }

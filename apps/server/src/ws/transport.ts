@@ -11,6 +11,7 @@ import type {
 	UsageLimitRejection,
 } from '@runa/types';
 
+import { getTransportErrorCode } from '../transport/error-codes.js';
 import type {
 	ConnectionReadyServerMessage,
 	PresentationBlocksServerMessage,
@@ -69,6 +70,7 @@ export function decodeSocketMessage(message: unknown): string {
 }
 
 export function getErrorDetails(error: unknown): {
+	readonly error_code?: import('@runa/types').TransportErrorCode;
 	readonly error_message: string;
 	readonly error_name: string;
 	readonly reject_reason?: UsageLimitRejection;
@@ -82,6 +84,7 @@ export function getErrorDetails(error: unknown): {
 				: undefined;
 
 		return {
+			error_code: getTransportErrorCode(error),
 			error_message: error.message,
 			error_name: error.name,
 			reject_reason: rejectReason,
@@ -89,6 +92,7 @@ export function getErrorDetails(error: unknown): {
 	}
 
 	return {
+		error_code: undefined,
 		error_message: 'Unknown WebSocket handler error.',
 		error_name: 'UnknownError',
 	};
@@ -157,6 +161,7 @@ export function createRejectedMessage(
 
 	return {
 		payload: {
+			error_code: details.error_code,
 			error_message: details.error_message,
 			error_name: details.error_name,
 			reject_reason: details.reject_reason,

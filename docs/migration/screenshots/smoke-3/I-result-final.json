@@ -1,0 +1,13 @@
+{
+  "result": {
+    "onLine": false,
+    "hasKoptu": true,
+    "hasRetry": true,
+    "hasConnectionClosed": false,
+    "text": "Komut ara\nCtrl K\nSohbet\nSohbet ve onaylar.\nGeçmiş\nKayıtlı sohbetler.\nCihazlar\nBağlı bilgisayarlar.\nHesap\nProfil ve tercihler.\nRuna\nSohbet devam ediyor\nBağlantı kapalı\nRUNA\nSohbetler\nYeni sohbet\nARA\nBUGÜN\nSmoke I final: 50 maddelik uzun T?rk?e liste yaz.\nSahip\nSmoke I final: 50 maddelik uzun T?rk?e liste yaz.\n1 May 2026 13:06\nÜyeler - Sahip\nHesap ve ayarlar\nSohbet\nSen\n01.05.2026 13:06:53\n\nSmoke I final: 50 maddelik uzun T?rk?e liste yaz.\n\nİlk özet kartları hazırlanıyor\n\nRuntime başladı. İlk görünür yüzey hazır olduğunda burada belirecek.\n\nBağlantı koptu — Tekrar dene\nTekrar dene\nMesaj\nDosya ekle\nRuna bu isteği başlatamadı. Bağlantı koptu — Tekrar dene\nBağlantı kapalı"
+  },
+  "retry": {
+    "onLine": true,
+    "hasRetry": false
+  }
+}

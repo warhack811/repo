@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from 'react-dom/server';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
@@ -84,16 +84,16 @@ describe('command palette', () => {
 	});
 
 	it('renders an accessible command search surface when open', () => {
-		const markup = renderToStaticMarkup(
+		render(
 			<MemoryRouter>
 				<CommandPalette commands={createTestCommands()} isOpen onClose={() => undefined} />
 			</MemoryRouter>,
 		);
+		const markup = document.body.textContent ?? '';
 
-		expect(markup).toContain('type="search"');
-		expect(markup).toContain('Komut ara');
-		expect(markup).toContain('aria-label="Komutlar"');
+		expect(screen.getByRole('searchbox', { name: 'Komut ara' })).toBeTruthy();
+		expect(screen.getByLabelText('Komutlar')).toBeTruthy();
 		expect(markup).toContain('Sohbet’e git');
-		expect(markup).not.toContain('Developer');
+		expect(document.body.textContent).not.toContain('Developer');
 	});
 });

@@ -1,5 +1,9 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 import { type LogErrorOptions, type Plugin, defineConfig } from 'vite';
+
+const shouldAnalyzeBundle = process.env['ANALYZE'] === 'true';
 
 interface NodeError extends Error {
 	readonly code?: string;
@@ -12,8 +16,10 @@ function isExpectedWsProxyShutdownNoise(message: string, options?: LogErrorOptio
 	const isExpectedSocketShutdown =
 		errorCode === 'ECONNABORTED' ||
 		errorCode === 'ECONNRESET' ||
+		errorCode === 'ECONNREFUSED' ||
 		message.includes('ECONNABORTED') ||
-		message.includes('ECONNRESET');
+		message.includes('ECONNRESET') ||
+		message.includes('ECONNREFUSED');
 
 	return isWsProxyLog && isExpectedSocketShutdown;
 }
@@ -37,7 +43,26 @@ function suppressExpectedWsProxyShutdownNoise(): Plugin {
 
 // Dev proxy assumes the Fastify server runs on http://127.0.0.1:3000.
 export default defineConfig({
-	plugins: [react(), suppressExpectedWsProxyShutdownNoise()],
+	plugins: [
+		react(),
+		tailwindcss(),
+		suppressExpectedWsProxyShutdownNoise(),
+		...(shouldAnalyzeBundle
+			? [
+					visualizer({
+						filename: 'dist/bundle-visualizer.html',
+						gzipSize: true,
+						brotliSize: true,
+						template: 'treemap',
+					}),
+				]
+			: []),
+	],
+	resolve: {
+		alias: {
+			'@': new URL('./src', import.meta.url).pathname,
+		},
+	},
 	server: {
 		port: 5173,
 		proxy: {

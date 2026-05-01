@@ -1,3 +1,4 @@
+import { ThreadPrimitive } from '@assistant-ui/react';
 import type { ReactElement, ReactNode } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
@@ -33,7 +34,6 @@ export function CurrentRunSurface({
 		currentRunProgressPanel !== null ||
 		currentPresentationContent !== null;
 	const hasTranscript = activeConversationMessages.length > 0;
-	const showSubtitle = isBusy;
 	const shouldShowEmptyState =
 		!isBusy && !hasTranscript && !isHistoryLoading && emptyStateContent !== null;
 
@@ -42,51 +42,44 @@ export function CurrentRunSurface({
 	}
 
 	return (
-		<section
-			className={`runa-card runa-card--chat runa-chat-surface runa-migrated-components-chat-currentrunsurface-1${
+		<ThreadPrimitive.Root
+			className={`runa-current-run-surface runa-chat-transcript runa-migrated-components-chat-currentrunsurface-1${
 				shouldShowEmptyState ? ' runa-current-run-surface--empty' : ''
 			}`}
 			aria-labelledby="chat-conversation-surface-heading"
 			aria-busy={isBusy}
 		>
-			<div className="runa-migrated-components-chat-currentrunsurface-2">
-				<div className="runa-migrated-components-chat-currentrunsurface-3">Sohbet</div>
+			<div className="runa-chat-visually-hidden runa-migrated-components-chat-currentrunsurface-2">
 				<h2
 					id="chat-conversation-surface-heading"
 					className="runa-migrated-components-chat-currentrunsurface-4"
 				>
-					Sohbet akışı
+					Sohbet
 				</h2>
-				{showSubtitle ? (
-					<div className="runa-subtle-copy runa-migrated-components-chat-currentrunsurface-5">
-						Runa cevabı ve onay isteyen adımlar sırayla ilerler.
-					</div>
-				) : null}
 			</div>
-			{currentRunProgressPanel}
-			<StreamingMessageSurface
-				currentRunId={currentRunId}
-				currentStreamingRunId={currentStreamingRunId}
-				currentStreamingText={currentStreamingText}
-			/>
-			{isHistoryLoading && !isBusy && !hasTranscript ? (
-				<output aria-busy="true" className="runa-message-history-skeleton">
-					<RunaSkeleton variant="text" />
-					<RunaSkeleton variant="rect" />
-					<RunaSkeleton variant="text" />
-				</output>
-			) : (
-				(currentPresentationContent ?? (shouldShowEmptyState ? emptyStateContent : null))
-			)}
-			{hasTranscript ? (
-				<details className="runa-transcript-details">
-					<summary>Kayıtlı sohbeti göster</summary>
+			<ThreadPrimitive.Viewport autoScroll className="runa-current-run-surface__viewport">
+				{hasTranscript ? (
 					<PersistedTranscript
 						activeConversationId={activeConversationId}
 						activeConversationMessages={activeConversationMessages}
 					/>
-				</details>
-			) : null}
-		</section>
+				) : null}
+				{currentRunProgressPanel}
+				<StreamingMessageSurface
+					currentRunId={currentRunId}
+					currentStreamingRunId={currentStreamingRunId}
+					currentStreamingText={currentStreamingText}
+				/>
+				{isHistoryLoading && !isBusy && !hasTranscript ? (
+					<output aria-busy="true" className="runa-message-history-skeleton">
+						<RunaSkeleton variant="text" />
+						<RunaSkeleton variant="rect" />
+						<RunaSkeleton variant="text" />
+					</output>
+				) : (
+					(currentPresentationContent ?? (shouldShowEmptyState ? emptyStateContent : null))
+				)}
+			</ThreadPrimitive.Viewport>
+		</ThreadPrimitive.Root>
 	);
 }

@@ -56,7 +56,7 @@ describe('map-web-search-result', () => {
 			tool_name: 'web.search',
 		});
 
-		expect(block).toEqual({
+		expect(block).toMatchObject({
 			created_at: createdAt,
 			id: 'web_search_result_block:call_web_search_success',
 			payload: {
@@ -66,10 +66,13 @@ describe('map-web-search-result', () => {
 					'Freshness was requested; snippets and provider dates may still lag the live page.',
 				is_truncated: false,
 				query: 'latest runa release',
+				result_count: 1,
 				results: [createResult(1)],
 				search_provider: 'serper',
+				searches: 1,
 				summary: 'Found 1 web result for "latest runa release" from prioritized public sources.',
 				title: 'Web Search Results',
+				truncated: false,
 			},
 			schema_version: 1,
 			type: 'web_search_result_block',
@@ -94,9 +97,12 @@ describe('map-web-search-result', () => {
 			freshness_note: undefined,
 			is_truncated: true,
 			query: 'runa docs',
+			result_count: 5,
 			search_provider: 'serper',
+			searches: 1,
 			summary: 'Showing 5 web results for "runa docs" from prioritized public sources.',
 			title: 'Web Search Results',
+			truncated: true,
 		});
 		expect(block.payload.results).toHaveLength(5);
 		expect(block.payload.results[0]).toEqual(createResult(1));

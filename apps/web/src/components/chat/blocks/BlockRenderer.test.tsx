@@ -275,8 +275,24 @@ describe('BlockRenderer', () => {
 			throw new Error('Expected code and diff fixture blocks.');
 		}
 
-		expect(renderToStaticMarkup(<BlockRenderer block={codeBlock} />)).toContain('Copy');
+		expect(renderToStaticMarkup(<BlockRenderer block={codeBlock} />)).toContain('Kopyala');
 		expect(renderToStaticMarkup(<BlockRenderer block={diffBlock} />)).toContain('View diff');
+	});
+
+	it('localizes web search source panel copy', () => {
+		const webSearchBlock = sampleBlocks.find((block) => block.type === 'web_search_result_block');
+
+		if (!webSearchBlock) {
+			throw new Error('Expected web search fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={webSearchBlock} />);
+
+		expect(markup).toContain('Web arama sonuçları');
+		expect(markup).toContain('1 web sonucu gösteriliyor');
+		expect(markup).toContain('1 kaynak kullanıldı');
+		expect(markup).not.toContain(['Web', 'Search', 'Results'].join(' '));
+		expect(markup).not.toContain(['Show', 'ing 1 web results'].join(''));
 	});
 
 	it('keeps approval decisions user-facing while preserving technical details', () => {

@@ -4317,9 +4317,24 @@ describe('register-ws', () => {
 					const url =
 						typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
-					if (url.includes('serper.example/search')) {
+					if (url.includes('serper.example/search') || url.includes('serper.example/news')) {
 						return new Response(
 							JSON.stringify({
+								news: [
+									{
+										date: '2 days ago',
+										link: 'https://docs.example.com/releases',
+										position: 1,
+										snippet: 'Official release notes.',
+										title: 'Release Notes',
+									},
+									{
+										link: 'https://github.com/runa/repo/releases',
+										position: 2,
+										snippet: 'Repository releases.',
+										title: 'GitHub Releases',
+									},
+								],
 								organic: [
 									{
 										date: '2 days ago',
@@ -4462,27 +4477,32 @@ describe('register-ws', () => {
 
 			expect(toolResult.output).toMatchObject({
 				freshness_note:
-					'Freshness was requested; snippets and provider dates may still lag the live page.',
+					'News intent detected; recency ranking penalizes missing or stale provider dates.',
 				is_truncated: false,
 				search_provider: 'serper',
 			});
-			expect(toolResult.output.results).toEqual([
+			expect(toolResult.output.evidence).toMatchObject({
+				query,
+				results: 2,
+				searches: 1,
+				truncated: false,
+			});
+			expect(toolResult.output.results).toMatchObject([
 				{
-					authority_note: 'Docs-like or official project source.',
-					freshness_hint: 'Provider date: 2 days ago',
+					canonical_url: 'https://docs.example.com/releases',
+					freshness_hint: expect.any(String),
 					snippet: 'Official release notes.',
 					source: 'docs.example.com',
 					title: 'Release Notes',
-					trust_tier: 'official',
+					trust_tier: 'vendor',
 					url: 'https://docs.example.com/releases',
 				},
 				{
-					authority_note: 'Reputable technical source; still secondary to official docs.',
 					freshness_hint: undefined,
 					snippet: 'Repository releases.',
 					source: 'github.com',
 					title: 'GitHub Releases',
-					trust_tier: 'reputable',
+					trust_tier: 'vendor',
 					url: 'https://github.com/runa/repo/releases',
 				},
 			]);
@@ -4520,33 +4540,42 @@ describe('register-ws', () => {
 				expect(presentationMessage.payload.blocks[4]).toMatchObject({
 					payload: {
 						authority_note:
-							'Authority-first ordering prioritizes official, vendor, and reputable sources; high-signal answer surfaces retain provenance and lower-trust general web results are filtered only when clearly noisy.',
+							'EvidenceCompiler normalized, deduplicated, trust-scored, and recency-ranked public sources before returning them to the model.',
 						freshness_note:
-							'Freshness was requested; snippets and provider dates may still lag the live page.',
+							'News intent detected; recency ranking penalizes missing or stale provider dates.',
+						evidence: {
+							query,
+							results: 2,
+							searches: 1,
+							truncated: false,
+						},
 						is_truncated: false,
 						query,
 						results: [
 							{
-								authority_note: 'Docs-like or official project source.',
-								freshness_hint: 'Provider date: 2 days ago',
+								canonical_url: 'https://docs.example.com/releases',
+								freshness_hint: expect.any(String),
 								snippet: 'Official release notes.',
 								source: 'docs.example.com',
 								title: 'Release Notes',
-								trust_tier: 'official',
+								trust_tier: 'vendor',
 								url: 'https://docs.example.com/releases',
 							},
 							{
-								authority_note: 'Reputable technical source; still secondary to official docs.',
+								authority_note: 'Trust score: 0.55',
 								snippet: 'Repository releases.',
 								source: 'github.com',
 								title: 'GitHub Releases',
-								trust_tier: 'reputable',
+								trust_tier: 'vendor',
 								url: 'https://github.com/runa/repo/releases',
 							},
 						],
+						searches: 1,
 						search_provider: 'serper',
+						sources: expect.any(Array),
 						summary: `Found 2 web results for "${query}" from prioritized public sources.`,
 						title: 'Web Search Results',
+						truncated: false,
 					},
 					type: 'web_search_result_block',
 				});

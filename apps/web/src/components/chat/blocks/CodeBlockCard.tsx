@@ -14,11 +14,11 @@ type CopyState = 'copied' | 'failed' | 'idle';
 function getCopyButtonLabel(copyState: CopyState): string {
 	switch (copyState) {
 		case 'copied':
-			return 'Copied';
+			return 'Kopyalandı';
 		case 'failed':
-			return 'Copy failed';
+			return 'Kopyalama başarısız';
 		case 'idle':
-			return 'Copy';
+			return 'Kopyala';
 	}
 }
 

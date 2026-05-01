@@ -111,6 +111,17 @@ export function PresentationRunSurfaceCard({
 		) : null;
 
 	if (isCurrent) {
+		if (!isDeveloperMode) {
+			return (
+				<div
+					key={surface.run_id}
+					className="runa-presentation-run-surface runa-presentation-run-surface--current runa-migrated-components-chat-presentationrunsurfacecard-7"
+				>
+					{blockList}
+				</div>
+			);
+		}
+
 		return (
 			<div
 				key={surface.run_id}

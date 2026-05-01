@@ -13,6 +13,22 @@
 - **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
 - **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
 
+### Backend EvidenceCompiler + SearchProvider Foundation - 1 Mayis 2026
+
+- Kapsam: frontend production-lock sonrasi backend `EvidencePack` ve transport error sozlesmesini besleyecek provider-agnostic arama/evidence katmani kuruldu. Frontend dosyalarina dokunulmadi.
+- `SearchProvider` arayuzu ve Serper adapter eklendi; Serper HTTP/rate-limit/timeout/network hatalari frontend catalog uyumlu transport kodlarina map ediliyor.
+- `EvidenceCompiler` pipeline eklendi: URL canonicalization, tracker param temizligi, provider date parse, canonical/text dedup, statik source trust score, recency ranking ve compact model context.
+- `web.search` mevcut registry/dispatch hattinda kalacak sekilde EvidenceCompiler'a baglandi. `web_search_result_block` backward-compatible kaldi ve additive `evidence`, `sources`, `searches`, `result_count`, `truncated`, `unreliable` alanlariyla genisletildi.
+- Intent classifier Turkce/Ingizlice news/research/general keyword setleriyle eklendi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS
+  - Targeted Vitest PASS: Serper provider, intent classifier, EvidenceCompiler, web.search, web-search presentation mapper
+  - WS targeted PASS: `src/ws/register-ws.test.ts -t "resolves web.search"`
+  - `pnpm.cmd --filter @runa/server test` PASS (`132` dosya / `899` test)
+- Live Serper smoke: shell `SERPER_API_KEY` missing, `.env` fallback present; `.env` fallback ile 10 sorgu PASS, toplam latency `8305ms`, tum tekil sorgular `<2s`.
+- Kalan sinirlar: browser-level frontend Sources panel smoke kosulmadi; HTML meta-date/full-content extraction config-gated follow-up olarak birakildi; statik trust config henuz dar ve neutral score fazlasi var.
+
 ### Docs Reorg - Root Docs to `docs/` Migration - 30 Nisan 2026
 
 - UI-OVERHAUL-07 final polish commit'i sonrasi kalan dirty root-doc reorganization ayri branch/commit kapsaminda toplandi.

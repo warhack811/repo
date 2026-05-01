@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
-import { MarkdownRenderer } from './MarkdownRenderer.js';
+import { StreamdownMessage } from '../../lib/streamdown/StreamdownMessage.js';
 
 type PersistedTranscriptProps = Readonly<{
 	activeConversationId: string | null;
@@ -34,7 +34,6 @@ export function PersistedTranscript({
 
 	return (
 		<div className="runa-migrated-components-chat-persistedtranscript-1" aria-live="polite">
-			<div className="runa-migrated-components-chat-persistedtranscript-2">Kayıtlı mesajlar</div>
 			{activeConversationMessages.map((message) => (
 				<div
 					key={message.message_id}
@@ -44,9 +43,9 @@ export function PersistedTranscript({
 						<strong className="runa-migrated-components-chat-persistedtranscript-5">
 							{getRoleLabel(message.role)}
 						</strong>
-						<span>{new Date(message.created_at).toLocaleString()}</span>
+						<span>{new Date(message.created_at).toLocaleString('tr-TR')}</span>
 					</div>
-					<MarkdownRenderer content={message.content} />
+					<StreamdownMessage>{message.content}</StreamdownMessage>
 				</div>
 			))}
 		</div>
