@@ -1,4 +1,5 @@
 import type { RuntimeEvent } from './events.js';
+import type { EvidencePack, EvidenceSource } from './evidence.js';
 import type {
 	ApprovalActionKind,
 	ApprovalDecisionKind,
@@ -132,10 +133,15 @@ export type WebSearchTrustTier = 'general' | 'official' | 'reputable' | 'vendor'
 
 export interface WebSearchResultBlockItem {
 	readonly authority_note?: string;
+	readonly canonical_url?: string;
+	readonly domain?: string;
+	readonly favicon?: string;
 	readonly freshness_hint?: string;
+	readonly published_at?: string | null;
 	readonly snippet: string;
 	readonly source: string;
 	readonly title: string;
+	readonly trust_score?: number;
 	readonly trust_tier: WebSearchTrustTier;
 	readonly url: string;
 }
@@ -143,14 +149,20 @@ export interface WebSearchResultBlockItem {
 export interface WebSearchResultBlockPayload {
 	readonly authority_note?: string;
 	readonly conflict_note?: string;
+	readonly evidence?: EvidencePack;
 	readonly freshness_note?: string;
 	readonly is_truncated: boolean;
 	readonly query: string;
+	readonly result_count?: number;
 	readonly results: readonly WebSearchResultBlockItem[];
 	readonly search_provider: string;
+	readonly searches?: number;
 	readonly source_priority_note?: string;
+	readonly sources?: readonly EvidenceSource[];
 	readonly summary: string;
 	readonly title: string;
+	readonly truncated?: boolean;
+	readonly unreliable?: boolean;
 }
 
 export type InspectionTargetKind =

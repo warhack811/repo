@@ -1,0 +1,26 @@
+export const sourceTrustConfig = {
+	allowlist: [
+		'wikipedia.org',
+		'gov.tr',
+		'edu.tr',
+		'aa.com.tr',
+		'bbc.com',
+		'reuters.com',
+		'apnews.com',
+		'nytimes.com',
+		'theguardian.com',
+		'who.int',
+		'nih.gov',
+		'nature.com',
+		'developer.mozilla.org',
+		'docs.github.com',
+		'nodejs.org',
+		'typescriptlang.org',
+	],
+	denylist: [
+		'besttopreviews.example',
+		'contentfarm.example',
+		'scraped-news.example',
+		'lowqualityanswers.example',
+	],
+} as const;
