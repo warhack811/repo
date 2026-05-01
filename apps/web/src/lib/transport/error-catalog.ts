@@ -57,17 +57,58 @@ export function getTransportError(code: TransportErrorCode): TransportError {
 	return transportErrorCatalog[code];
 }
 
+export function getTransportErrorState(code: TransportErrorCode): TransportErrorState {
+	const state = getTransportError(code);
+	return { ...state, kind: state.code };
+}
+
+export function createTransportError(code: TransportErrorCode): Error {
+	return new Error(getTransportError(code).label);
+}
+
+export type WebSocketCloseSnapshot = Readonly<{
+	code: number;
+	reason: string;
+	wasClean: boolean;
+}>;
+
+function isBrowserOffline(): boolean {
+	return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+export function classifyWebSocketClose(
+	closeEvent: WebSocketCloseSnapshot,
+): TransportErrorCode | null {
+	if (closeEvent.wasClean || closeEvent.code === 1000 || closeEvent.code === 1001) {
+		return null;
+	}
+
+	if (isBrowserOffline()) {
+		return 'network-cut';
+	}
+
+	const reason = closeEvent.reason.toLowerCase();
+
+	if (reason.includes('timeout') || reason.includes('timed out')) {
+		return 'timeout';
+	}
+
+	if (closeEvent.code === 1011 || closeEvent.code >= 4000) {
+		return 'server-error';
+	}
+
+	return 'ws-disconnect';
+}
+
 export function classifyTransportError(error: Error): TransportErrorState {
 	const message = error.message.toLowerCase();
 
 	if (message.includes('429') || message.includes('rate')) {
-		const state = getTransportError('rate-limit');
-		return { ...state, kind: state.code };
+		return getTransportErrorState('rate-limit');
 	}
 
 	if (message.includes('timeout') || message.includes('timed out')) {
-		const state = getTransportError('timeout');
-		return { ...state, kind: state.code };
+		return getTransportErrorState('timeout');
 	}
 
 	if (
@@ -75,20 +116,16 @@ export function classifyTransportError(error: Error): TransportErrorState {
 		message.includes('socket') ||
 		message.includes('connection closed')
 	) {
-		const state = getTransportError('ws-disconnect');
-		return { ...state, kind: state.code };
+		return getTransportErrorState('ws-disconnect');
 	}
 
 	if (message.includes('500') || message.includes('server')) {
-		const state = getTransportError('server-error');
-		return { ...state, kind: state.code };
+		return getTransportErrorState('server-error');
 	}
 
 	if (message.includes('network') || message.includes('fetch') || message.includes('terminated')) {
-		const state = getTransportError('network-cut');
-		return { ...state, kind: state.code };
+		return getTransportErrorState('network-cut');
 	}
 
-	const state = getTransportError('unknown');
-	return { ...state, kind: state.code };
+	return getTransportErrorState('unknown');
 }

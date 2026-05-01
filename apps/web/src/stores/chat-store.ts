@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import type { PresentationRunSurface, RunTransportSummary } from '../lib/chat-runtime/types.js';
+import type { TransportErrorCode } from '../lib/transport/error-catalog.js';
 import type {
 	ConnectionStatus,
 	GatewayProvider,
@@ -18,6 +19,7 @@ export type ConnectionStoreState = Readonly<{
 	connectionStatus: ConnectionStatus;
 	isSubmitting: boolean;
 	lastError: string | null;
+	transportErrorCode: TransportErrorCode | null;
 }>;
 
 export type PresentationStoreState = Readonly<{

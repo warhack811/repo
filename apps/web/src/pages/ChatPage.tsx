@@ -12,6 +12,7 @@ import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
+import { TransportErrorBanner } from '../lib/transport/errors.js';
 
 const RunTimelinePanel = lazy(() =>
 	import('../components/developer/RunTimelinePanel.js').then((module) => ({
@@ -113,7 +114,7 @@ export function ChatPage({
 		presentationRunSurfaces,
 		staleInspectionRequestKeys,
 	} = presentationState;
-	const { connectionStatus, isSubmitting, lastError } = connectionState;
+	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
 	const { apiKey, model } = runtimeConfig;
 	const isRuntimeConfigReady = model.trim().length > 0;
 	const {
@@ -236,6 +237,9 @@ export function ChatPage({
 		/>
 	) : null;
 	const currentRunId = currentRunFeedback?.run_id ?? visibleCurrentPresentationSurface?.run_id;
+	const transportErrorBanner = transportErrorCode ? (
+		<TransportErrorBanner code={transportErrorCode} onRetry={runtime.retryTransport} />
+	) : null;
 
 	const emptyRunTimelineContent = (
 		<EmptyState onSubmitSuggestion={(suggestionPrompt) => setPrompt(suggestionPrompt)} />
@@ -289,45 +293,48 @@ export function ChatPage({
 
 			<ChatLayout
 				composer={
-					<ChatComposerSurface
-						accessToken={accessToken}
-						apiKey={apiKey}
-						attachmentUploadError={attachmentUploadError}
-						attachments={attachments}
-						canReadLatestResponse={latestReadableResponse.length > 0}
-						connectionStatus={connectionStatus}
-						desktopDeviceError={desktopDeviceError}
-						desktopDevices={desktopDevices}
-						emptySuggestions={shouldShowEmptyComposerSuggestions ? emptyRunTimelineContent : null}
-						isDesktopDevicesLoading={isDesktopDevicesLoading}
-						isListening={voiceInput.isListening}
-						isRuntimeConfigReady={isRuntimeConfigReady}
-						isSpeaking={isSpeaking}
-						isSpeechPlaybackSupported={isTextToSpeechSupported}
-						isSubmitting={isSubmitting}
-						isUploadingAttachment={isUploadingAttachment}
-						isVoiceSupported={voiceInput.isSupported}
-						lastError={lastError}
-						onAttachmentUploadStateChange={({ error, isUploading }) => {
-							setAttachmentUploadError(error);
-							setIsUploadingAttachment(isUploading);
-						}}
-						onAttachmentsChange={setAttachments}
-						onClearDesktopTarget={() => setDesktopTargetConnectionId(null)}
-						onPromptChange={setPrompt}
-						onReadLatestResponse={speakLatestResponse}
-						onRetryDesktopDevices={reloadDesktopDevices}
-						onSelectDesktopTarget={setDesktopTargetConnectionId}
-						onStopSpeaking={cancelTextToSpeech}
-						onSubmit={submitRunRequest}
-						onToggleListening={voiceInput.toggleListening}
-						prompt={prompt}
-						selectedDesktopTargetConnectionId={runtimeDesktopTargetConnectionId}
-						showDeveloperControls={isDeveloperMode}
-						statusLabel={statusLabel}
-						submitButtonLabel={submitButtonLabel}
-						voiceStatusMessage={voiceStatusMessage}
-					/>
+					<>
+						{transportErrorBanner}
+						<ChatComposerSurface
+							accessToken={accessToken}
+							apiKey={apiKey}
+							attachmentUploadError={attachmentUploadError}
+							attachments={attachments}
+							canReadLatestResponse={latestReadableResponse.length > 0}
+							connectionStatus={connectionStatus}
+							desktopDeviceError={desktopDeviceError}
+							desktopDevices={desktopDevices}
+							emptySuggestions={shouldShowEmptyComposerSuggestions ? emptyRunTimelineContent : null}
+							isDesktopDevicesLoading={isDesktopDevicesLoading}
+							isListening={voiceInput.isListening}
+							isRuntimeConfigReady={isRuntimeConfigReady}
+							isSpeaking={isSpeaking}
+							isSpeechPlaybackSupported={isTextToSpeechSupported}
+							isSubmitting={isSubmitting}
+							isUploadingAttachment={isUploadingAttachment}
+							isVoiceSupported={voiceInput.isSupported}
+							lastError={lastError}
+							onAttachmentUploadStateChange={({ error, isUploading }) => {
+								setAttachmentUploadError(error);
+								setIsUploadingAttachment(isUploading);
+							}}
+							onAttachmentsChange={setAttachments}
+							onClearDesktopTarget={() => setDesktopTargetConnectionId(null)}
+							onPromptChange={setPrompt}
+							onReadLatestResponse={speakLatestResponse}
+							onRetryDesktopDevices={reloadDesktopDevices}
+							onSelectDesktopTarget={setDesktopTargetConnectionId}
+							onStopSpeaking={cancelTextToSpeech}
+							onSubmit={submitRunRequest}
+							onToggleListening={voiceInput.toggleListening}
+							prompt={prompt}
+							selectedDesktopTargetConnectionId={runtimeDesktopTargetConnectionId}
+							showDeveloperControls={isDeveloperMode}
+							statusLabel={statusLabel}
+							submitButtonLabel={submitButtonLabel}
+							voiceStatusMessage={voiceStatusMessage}
+						/>
+					</>
 				}
 				isSidebarOpen={isConversationSidebarOpen}
 				messages={
