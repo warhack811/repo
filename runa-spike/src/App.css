@@ -4,6 +4,11 @@ main {
   color: #ece7dd;
 }
 
+.app-shell {
+  display: grid;
+  align-items: start;
+}
+
 .app-loading {
   display: grid;
   place-items: center;
@@ -41,7 +46,8 @@ main {
 }
 
 .result-card,
-.status-pill {
+.status-pill,
+.load-lab {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -53,6 +59,11 @@ main {
   color: #cbf3e6;
   font-size: 13px;
   white-space: nowrap;
+}
+
+.load-lab {
+  cursor: pointer;
+  font: inherit;
 }
 
 .layout {
