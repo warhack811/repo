@@ -1,6 +1,6 @@
 # UI-OVERHAUL-07.5 - Secondary Surfaces Reframe Uygulama Promptu
 
-Bu prompt, `docs/UI-OVERHAUL-07.md` icindeki gercek `7.5 - Secondary Surfaces Reframe` gorevini uygulamak icindir. Amac; History, Devices ve Account/Settings yuzeylerini debug/admin hissinden cikarip sade, guven veren, consumer-grade urun yuzeyleri haline getirmektir.
+Bu prompt, `docs/archive/ui-overhaul/UI-OVERHAUL-07.md` icindeki gercek `7.5 - Secondary Surfaces Reframe` gorevini uygulamak icindir. Amac; History, Devices ve Account/Settings yuzeylerini debug/admin hissinden cikarip sade, guven veren, consumer-grade urun yuzeyleri haline getirmektir.
 
 Tahmin yapma. Once repo icindeki gercek dosyalari oku, mevcut davranisi dogrula, sonra degisiklik yap. Kapsam disi bir davranisa ihtiyac duyarsan uygulamadan once bunu acikca not et.
 
@@ -8,7 +8,7 @@ Tahmin yapma. Once repo icindeki gercek dosyalari oku, mevcut davranisi dogrula,
 
 Source of truth:
 
-- `docs/UI-OVERHAUL-07.md`
+- `docs/archive/ui-overhaul/UI-OVERHAUL-07.md`
 - Ilgili bolum: `7.5 - Secondary Surfaces Reframe`
 
 7.5 kapsaminda istenenler:

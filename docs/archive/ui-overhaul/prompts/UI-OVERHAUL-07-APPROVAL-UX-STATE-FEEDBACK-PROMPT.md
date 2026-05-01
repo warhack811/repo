@@ -2,13 +2,13 @@
 
 ## Source Of Truth
 
-- Primary plan: `docs/UI-OVERHAUL-07.md`
+- Primary plan: `docs/archive/ui-overhaul/UI-OVERHAUL-07.md`
 - Progress evidence: `docs/PROGRESS.md`, section `Track C / UI Overhaul 07.3 - Approval UX & State Feedback - 30 Nisan 2026`
 - Current implementation: `apps/web/src/components/chat/blocks/ApprovalBlock.tsx`
 - Current styles: `apps/web/src/components/chat/blocks/BlockRenderer.module.css`
 - Current tests: `apps/web/src/components/chat/blocks/BlockRenderer.test.tsx`, `apps/web/tests/visual/ui-overhaul-07-3-smoke.spec.ts`
 
-Important naming note: in `docs/UI-OVERHAUL-07.md`, `Approval UX & State Feedback` is section `7.3`. Section `7.4` is `Operator/Developer Hard Isolation`. If a request says `07.4 - Approval UX & State Feedback`, keep the title scope as approval UX and do not silently implement operator/developer isolation.
+Important naming note: in `docs/archive/ui-overhaul/UI-OVERHAUL-07.md`, `Approval UX & State Feedback` is section `7.3`. Section `7.4` is `Operator/Developer Hard Isolation`. If a request says `07.4 - Approval UX & State Feedback`, keep the title scope as approval UX and do not silently implement operator/developer isolation.
 
 ## Goal
 

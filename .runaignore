@@ -1,0 +1,21 @@
+# Runa workspace context exclusions
+#
+# Keep large evidence artifacts and local agent worktrees out of default
+# workspace context/search. Markdown archives remain readable on demand.
+
+docs/design-audit/screenshots/**
+docs/migration/screenshots/**
+playwright-report/**
+test-results/**
+
+.claude/**
+.claire/**
+.kilo/**
+.codex-screenshots/**
+.codex-tmp/**
+
+apps/web/dist/**
+apps/desktop-agent/dist-electron/**
+apps/desktop-agent/electron/main.js
+apps/desktop-agent/electron/preload.js
+apps/desktop-agent/electron/renderer/App.js

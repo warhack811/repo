@@ -1,6 +1,6 @@
 # UI-OVERHAUL-07.9 - Final Coherence Audit & Design Language Lock Uygulama Promptu
 
-Bu prompt, `docs/UI-OVERHAUL-07.md` icindeki gercek `7.9 - Final Coherence Audit & Design Language Lock` gorevini uygulamak icindir. Amac yeni ozellik eklemek degil; UI-OVERHAUL-07 boyunca toparlanan chat-first, trust-first, dark consumer-grade Runa dilini kanitlamak, belgelemek ve sonraki UI isleri icin guardrail haline getirmektir.
+Bu prompt, `docs/archive/ui-overhaul/UI-OVERHAUL-07.md` icindeki gercek `7.9 - Final Coherence Audit & Design Language Lock` gorevini uygulamak icindir. Amac yeni ozellik eklemek degil; UI-OVERHAUL-07 boyunca toparlanan chat-first, trust-first, dark consumer-grade Runa dilini kanitlamak, belgelemek ve sonraki UI isleri icin guardrail haline getirmektir.
 
 Tahmin yapma. Once repo icindeki gercek yuzeyleri, mevcut testleri ve onceki UI-OVERHAUL-07 kayitlarini oku. Sonra final audit ve design-language lock isini dar, kanitli ve tekrar calistirilabilir sekilde uygula.
 
@@ -8,13 +8,13 @@ Tahmin yapma. Once repo icindeki gercek yuzeyleri, mevcut testleri ve onceki UI-
 
 Ana kaynaklar:
 
-- `docs/UI-OVERHAUL-07.md`
+- `docs/archive/ui-overhaul/UI-OVERHAUL-07.md`
 - Ilgili bolum: `7.9 - Final Coherence Audit & Design Language Lock`
 - `docs/PROGRESS.md`
 - Onceki UI-OVERHAUL-07 promptlari:
-  - `docs/UI-OVERHAUL-07-APPROVAL-UX-STATE-FEEDBACK-PROMPT.md`
-  - `docs/UI-OVERHAUL-07-4-OPERATOR-DEVELOPER-HARD-ISOLATION-PROMPT.md`
-  - `docs/UI-OVERHAUL-07-5-SECONDARY-SURFACES-REFRAME-PROMPT.md`
+  - `docs/archive/ui-overhaul/prompts/UI-OVERHAUL-07-APPROVAL-UX-STATE-FEEDBACK-PROMPT.md`
+  - `docs/archive/ui-overhaul/prompts/UI-OVERHAUL-07-4-OPERATOR-DEVELOPER-HARD-ISOLATION-PROMPT.md`
+  - `docs/archive/ui-overhaul/prompts/UI-OVERHAUL-07-5-SECONDARY-SURFACES-REFRAME-PROMPT.md`
 
 Onceki tamamlanan paketlerden korunmasi gerekenler:
 
@@ -88,7 +88,7 @@ Developer-only route, internal QA preview veya test source icinde bu terimler ka
 
 Plan ve progress:
 
-- `docs/UI-OVERHAUL-07.md`
+- `docs/archive/ui-overhaul/UI-OVERHAUL-07.md`
 - `docs/PROGRESS.md`
 
 Ana app yuzeyleri:
@@ -154,7 +154,7 @@ Mevcut guardrail/test patternleri:
 
 Kod degistirmeden once:
 
-- `docs/UI-OVERHAUL-07.md` icindeki 7.1-7.9 hedeflerini oku.
+- `docs/archive/ui-overhaul/UI-OVERHAUL-07.md` icindeki 7.1-7.9 hedeflerini oku.
 - `docs/PROGRESS.md` icindeki 7.1-7.8 kayitlarini tara.
 - Mevcut testlerin hangi yuzeyleri kilitledigini not et.
 - User-facing route'larda forbidden copy aramasi yap.

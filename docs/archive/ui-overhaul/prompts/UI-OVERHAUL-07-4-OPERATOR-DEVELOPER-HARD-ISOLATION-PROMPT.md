@@ -2,7 +2,7 @@
 
 ## Source Of Truth
 
-- Primary plan: `docs/UI-OVERHAUL-07.md`, section `7.4 - Operator/Developer Hard Isolation`
+- Primary plan: `docs/archive/ui-overhaul/UI-OVERHAUL-07.md`, section `7.4 - Operator/Developer Hard Isolation`
 - Previous completed scope: `docs/PROGRESS.md`, sections for `UI Overhaul 07.2`, `UI Overhaul 07.3`, and `07.3 Follow-up`
 - Current route shell: `apps/web/src/AuthenticatedApp.tsx`
 - Current app navigation: `apps/web/src/components/app/AppNav.tsx`
@@ -15,7 +15,7 @@
 
 ## Current Verified Facts
 
-- `docs/UI-OVERHAUL-07.md` defines real `7.4` as `Operator/Developer Hard Isolation`.
+- `docs/archive/ui-overhaul/UI-OVERHAUL-07.md` defines real `7.4` as `Operator/Developer Hard Isolation`.
 - `AppNav.tsx` currently exposes normal nav items for chat, history, devices, and account. It still keeps `developer` in the `AuthenticatedPageId` type.
 - `AuthenticatedApp.tsx` currently resolves `/developer*` to active page `developer` and gates `/developer` behind `useDeveloperMode`.
 - `useDeveloperMode.ts` stores the flag in browser localStorage key `runa_dev_mode`.
