@@ -31,6 +31,10 @@ import {
 	getTransportError,
 } from '../lib/transport/error-catalog.js';
 import {
+	reportTelemetryEvent,
+	reportTransportErrorMetric,
+} from '../lib/monitoring/telemetry.js';
+import {
 	createApprovalResolveMessage,
 	createClientId,
 	createInspectionRequestMessage,
@@ -342,6 +346,10 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const onRunAcceptedRef = useRef(onRunAccepted);
 	const onRunFinishedRef = useRef(onRunFinished);
 	const submittedPromptByRunIdRef = useRef<Map<string, string>>(new Map());
+	const firstTokenSeenRunIdsRef = useRef<Set<string>>(new Set());
+	const reportedSearchRunIdsRef = useRef<Set<string>>(new Set());
+	const reportedToolCallIdsRef = useRef<Set<string>>(new Set());
+	const runSubmittedAtRef = useRef<Map<string, number>>(new Map());
 	const [attachments, setAttachments] = useState<readonly ModelAttachment[]>([]);
 	const [selectedDesktopTargetConnectionId, setSelectedDesktopTargetConnectionId] = useState<
 		string | null
@@ -551,6 +559,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 
 			clearReconnectTimer();
 			reconnectAttemptCount += 1;
+			reportTransportErrorMetric(transportErrorCode);
 			const transportError = getTransportError(transportErrorCode);
 			chatStore.setConnectionState((currentConnectionState) => ({
 				...currentConnectionState,
@@ -571,6 +580,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				return;
 			}
 
+			reportTransportErrorMetric(transportErrorCode);
 			const transportError = getTransportError(transportErrorCode);
 			chatStore.setConnectionState((currentConnectionState) => ({
 				...currentConnectionState,
@@ -626,6 +636,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 							closeReason.length > 0 ? closeReason : 'Authenticated WebSocket connection required.',
 						transportErrorCode: 'server-error',
 					}));
+					reportTransportErrorMetric('server-error');
 					return;
 				}
 
@@ -672,6 +683,38 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 						});
 
 						if (parsedMessage.type === 'presentation.blocks') {
+							const runStartedAt = runSubmittedAtRef.current.get(parsedMessage.payload.run_id);
+
+							if (runStartedAt !== undefined) {
+								for (const block of parsedMessage.payload.blocks) {
+									if (block.type === 'tool_result') {
+										const callId = block.payload.call_id;
+
+										if (!reportedToolCallIdsRef.current.has(callId)) {
+											reportedToolCallIdsRef.current.add(callId);
+											reportTelemetryEvent('tool_call_duration', performance.now() - runStartedAt, {
+												run_id: parsedMessage.payload.run_id,
+												status: block.payload.status,
+												tool_name: block.payload.tool_name,
+											});
+										}
+									}
+
+									if (
+										(block.type === 'web_search_result_block' ||
+											(block.type === 'tool_result' && block.payload.tool_name === 'web.search')) &&
+										!reportedSearchRunIdsRef.current.has(parsedMessage.payload.run_id)
+									) {
+										reportedSearchRunIdsRef.current.add(parsedMessage.payload.run_id);
+										reportTelemetryEvent(
+											'search_evidence_latency',
+											performance.now() - runStartedAt,
+											{ run_id: parsedMessage.payload.run_id },
+										);
+									}
+								}
+							}
+
 							const nextPresentationState = derivePresentationBlocksUpdate(parsedMessage, {
 								expandedPastRunIds: expandedPastRunIdsRef.current,
 								expectedRunId: expectedPresentationRunIdRef.current,
@@ -733,6 +776,19 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								return;
 							}
 
+							if (!firstTokenSeenRunIdsRef.current.has(parsedMessage.payload.run_id)) {
+								const runStartedAt = runSubmittedAtRef.current.get(parsedMessage.payload.run_id);
+
+								if (runStartedAt !== undefined) {
+									firstTokenSeenRunIdsRef.current.add(parsedMessage.payload.run_id);
+									reportTelemetryEvent(
+										'time_to_first_token',
+										performance.now() - runStartedAt,
+										{ run_id: parsedMessage.payload.run_id },
+									);
+								}
+							}
+
 							chatStore.setPresentationState((currentPresentationState) => ({
 								...currentPresentationState,
 								currentStreamingRunId: parsedMessage.payload.run_id,
@@ -772,10 +828,24 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								transportErrorCode:
 									parsedMessage.payload.error_code ?? currentConnectionState.transportErrorCode,
 							}));
+							if (parsedMessage.payload.error_code) {
+								reportTransportErrorMetric(parsedMessage.payload.error_code);
+							}
 						}
 
 						if (parsedMessage.type === 'run.finished') {
 							submittedPromptByRunIdRef.current.delete(parsedMessage.payload.run_id);
+							const runStartedAt = runSubmittedAtRef.current.get(parsedMessage.payload.run_id);
+
+							if (runStartedAt !== undefined) {
+								reportTelemetryEvent('stream_latency', performance.now() - runStartedAt, {
+									final_state: parsedMessage.payload.final_state,
+									run_id: parsedMessage.payload.run_id,
+								});
+								runSubmittedAtRef.current.delete(parsedMessage.payload.run_id);
+								firstTokenSeenRunIdsRef.current.delete(parsedMessage.payload.run_id);
+								reportedSearchRunIdsRef.current.delete(parsedMessage.payload.run_id);
+							}
 							const conversationId = conversationIdByRunIdRef.current.get(
 								parsedMessage.payload.run_id,
 							);
@@ -835,6 +905,9 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 									prompt: submittedPrompt,
 									runId: parsedMessage.payload.run_id,
 								});
+							}
+							if (!runSubmittedAtRef.current.has(parsedMessage.payload.run_id)) {
+								runSubmittedAtRef.current.set(parsedMessage.payload.run_id, performance.now());
 							}
 						}
 					} catch (error: unknown) {
@@ -983,6 +1056,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				expectedPresentationRunIdRef.current = payload.run_id;
 				conversationIdByRunIdRef.current.set(payload.run_id, payload.conversation_id);
 				submittedPromptByRunIdRef.current.set(payload.run_id, prompt);
+				runSubmittedAtRef.current.set(payload.run_id, performance.now());
 				socketRef.current.send(JSON.stringify(createRunRequestMessage(payload)));
 				setAttachments([]);
 				setPrompt('');
