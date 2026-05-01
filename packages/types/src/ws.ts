@@ -4,6 +4,14 @@ import type { ModelAttachment, ModelRequest } from './gateway.js';
 import type { ApprovalDecisionKind, UsageLimitRejection } from './policy.js';
 import type { ToolArguments, ToolErrorCode } from './tools.js';
 
+export type TransportErrorCode =
+	| 'network-cut'
+	| 'rate-limit'
+	| 'server-error'
+	| 'timeout'
+	| 'unknown'
+	| 'ws-disconnect';
+
 export const gatewayProviders = [
 	'claude',
 	'deepseek',
@@ -194,6 +202,7 @@ export interface TextDeltaServerMessage {
 
 export interface RunRejectedServerMessage {
 	readonly payload: {
+		readonly error_code?: TransportErrorCode;
 		readonly error_message: string;
 		readonly error_name: string;
 		readonly reject_reason?: UsageLimitRejection;
