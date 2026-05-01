@@ -65,6 +65,22 @@ function shouldDisableSubmit(input: {
 	);
 }
 
+export function shouldSubmitComposerKey(input: {
+	readonly hasContent: boolean;
+	readonly isComposing: boolean;
+	readonly isSubmitDisabled: boolean;
+	readonly key: string;
+	readonly shiftKey: boolean;
+}): boolean {
+	return (
+		input.key === 'Enter' &&
+		!input.shiftKey &&
+		!input.isComposing &&
+		!input.isSubmitDisabled &&
+		input.hasContent
+	);
+}
+
 export function ChatComposerSurface({
 	accessToken,
 	apiKey,
@@ -119,6 +135,23 @@ export function ChatComposerSurface({
 		event.preventDefault();
 		moreDetailsRef.current.open = false;
 		moreDetailsRef.current.querySelector<HTMLElement>('summary')?.focus();
+	}
+
+	function handlePromptKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
+		if (
+			!shouldSubmitComposerKey({
+				hasContent: prompt.trim().length > 0 || attachments.length > 0,
+				isComposing: event.nativeEvent.isComposing,
+				isSubmitDisabled,
+				key: event.key,
+				shiftKey: event.shiftKey,
+			})
+		) {
+			return;
+		}
+
+		event.preventDefault();
+		event.currentTarget.form?.requestSubmit();
 	}
 
 	return (
@@ -177,6 +210,7 @@ export function ChatComposerSurface({
 						className="runa-input runa-input--textarea"
 						id={promptTextareaId}
 						onChange={(event) => onPromptChange(event.target.value)}
+						onKeyDown={handlePromptKeyDown}
 						placeholder={uiCopy.chat.composerPlaceholder}
 						rows={showEmptyIntro ? 4 : 2}
 						value={prompt}

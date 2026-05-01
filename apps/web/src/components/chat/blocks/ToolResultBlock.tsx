@@ -1,10 +1,13 @@
-import { ChevronDown } from 'lucide-react';
 import type { ReactElement } from 'react';
 
+import {
+	Tool,
+	ToolContent,
+	ToolHeader,
+	ToolInput,
+	ToolOutput,
+} from '../../../components/ai-elements/tool.js';
 import type { RenderBlock } from '../../../ws-types.js';
-import { RunaDisclosure } from '../../ui/RunaDisclosure.js';
-import { cx } from '../../ui/ui-utils.js';
-import styles from './BlockRenderer.module.css';
 
 type ToolResultBlockProps = Readonly<{
 	block: Extract<RenderBlock, { type: 'tool_result' }>;
@@ -34,64 +37,47 @@ export function ToolResultBlock({
 }: ToolResultBlockProps): ReactElement {
 	const isSuccess = block.payload.status === 'success';
 	const friendlyCopy = getFriendlyResultCopy(block);
+	const output = block.payload.result_preview ?? friendlyCopy.summary;
 
 	if (!isDeveloperMode) {
 		return (
-			<article
-				className={cx(styles['block'], isSuccess ? styles['blockSuccess'] : styles['blockDanger'])}
-			>
-				<div className={styles['resultHeader']}>
-					<div className={styles['headerStack']}>
-						<span className={styles['eyebrow']}>Sonuç</span>
-						<strong className={styles['title']}>{friendlyCopy.title}</strong>
-					</div>
-					<span className={styles['chip']}>{isSuccess ? 'Tamamlandı' : 'Kontrol gerekli'}</span>
-				</div>
-				<p className={styles['summary']}>{friendlyCopy.summary}</p>
-			</article>
+			<Tool className={isSuccess ? 'runa-tool-result--success' : 'runa-tool-result--error'}>
+				<ToolHeader
+					state={isSuccess ? 'output-available' : 'output-error'}
+					title={friendlyCopy.title}
+					type={`tool-${block.payload.tool_name}`}
+				/>
+				<ToolContent>
+					<ToolOutput
+						errorText={isSuccess ? undefined : (block.payload.error_code ?? friendlyCopy.summary)}
+						output={output}
+					/>
+				</ToolContent>
+			</Tool>
 		);
 	}
 
 	return (
-		<article
-			className={cx(styles['block'], isSuccess ? styles['blockSuccess'] : styles['blockDanger'])}
-		>
-			<div className={styles['resultHeader']}>
-				<div className={styles['headerStack']}>
-					<span className={styles['eyebrow']}>Tool result</span>
-					<strong className={styles['title']}>{block.payload.tool_name}</strong>
-				</div>
-				<div className={styles['chipRow']}>
-					<span className={styles['chip']}>{block.payload.status}</span>
-					<code className={styles['chip']}>{block.payload.call_id}</code>
-				</div>
-			</div>
-			<p className={styles['summary']}>{block.payload.summary}</p>
-			<RunaDisclosure
-				title={
-					<span className={styles['chipRow']}>
-						<ChevronDown size={16} />
-						Show tool payload
-					</span>
-				}
-			>
-				<div className={styles['grid']}>
-					{block.payload.error_code ? (
-						<div className={styles['metaBox']}>
-							<span className={styles['metaLabel']}>Error code</span>
-							<code>{block.payload.error_code}</code>
-						</div>
-					) : null}
-					{block.payload.result_preview ? (
-						<div className={styles['metaBox']}>
-							<span className={styles['metaLabel']}>
-								Preview / {block.payload.result_preview.kind}
-							</span>
-							<span>{block.payload.result_preview.summary_text}</span>
-						</div>
-					) : null}
-				</div>
-			</RunaDisclosure>
-		</article>
+		<Tool defaultOpen>
+			<ToolHeader
+				state={isSuccess ? 'output-available' : 'output-error'}
+				title={block.payload.tool_name}
+				type={`tool-${block.payload.tool_name}`}
+			/>
+			<ToolContent>
+				<ToolInput
+					input={{
+						call_id: block.payload.call_id,
+						status: block.payload.status,
+						tool_name: block.payload.tool_name,
+					}}
+					state="input-available"
+				/>
+				<ToolOutput
+					errorText={isSuccess ? undefined : (block.payload.error_code ?? friendlyCopy.summary)}
+					output={output}
+				/>
+			</ToolContent>
+		</Tool>
 	);
 }

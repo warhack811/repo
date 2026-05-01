@@ -112,6 +112,25 @@ export function RunProgressPanel({
 }: RunProgressPanelProps): ReactElement {
 	const accent = getPanelAccent(progress.status_tone);
 	const shouldShowDiagnostics = isDeveloperMode;
+	const toolActivityItems = createToolActivityItems(progress);
+
+	if (!isDeveloperMode) {
+		return (
+			<section
+				aria-labelledby="current-run-progress-heading"
+				className="runa-run-activity-line runa-migrated-components-chat-runprogresspanel-1"
+			>
+				<span className="runa-run-activity-line__pulse" aria-hidden="true" />
+				<div className="runa-run-activity-line__copy">
+					<h3 id="current-run-progress-heading">{progress.headline}</h3>
+					<p>{progress.detail}</p>
+					{toolActivityItems.length > 0 ? (
+						<ToolActivityIndicator items={toolActivityItems.slice(0, 3)} />
+					) : null}
+				</div>
+			</section>
+		);
+	}
 
 	return (
 		<section

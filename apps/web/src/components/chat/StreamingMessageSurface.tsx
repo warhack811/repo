@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { MarkdownRenderer } from './MarkdownRenderer.js';
+import { StreamdownMessage } from '../../lib/streamdown/StreamdownMessage.js';
 
 type StreamingMessageSurfaceProps = Readonly<{
 	currentRunId?: string;
@@ -22,13 +22,14 @@ export function StreamingMessageSurface({
 	}
 
 	return (
-		<div className="runa-migrated-components-chat-streamingmessagesurface-1" aria-live="polite">
-			<div className="runa-migrated-components-chat-streamingmessagesurface-2">Canlı yanıt</div>
-			<MarkdownRenderer
-				className="runa-streaming-response"
-				content={currentStreamingText}
-				isStreaming
-			/>
+		<div
+			className="runa-streaming-message runa-migrated-components-chat-streamingmessagesurface-1"
+			aria-live="polite"
+		>
+			<span className="runa-chat-visually-hidden">Canlı yanıt</span>
+			<StreamdownMessage className="runa-streaming-response" mode="streaming">
+				{currentStreamingText}
+			</StreamdownMessage>
 		</div>
 	);
 }

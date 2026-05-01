@@ -1,60 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 
-interface SpeechRecognitionAlternativeLike {
-	readonly transcript: string;
-}
+type VoiceInputErrorCode =
+	| SpeechRecognitionErrorEvent['error']
+	| 'language-not-supported'
+	| 'unknown';
 
-interface SpeechRecognitionResultLike {
-	readonly isFinal: boolean;
-	readonly length: number;
-	[index: number]: SpeechRecognitionAlternativeLike;
-}
-
-interface SpeechRecognitionResultListLike {
-	readonly length: number;
-	item(index: number): SpeechRecognitionResultLike | null;
-	[index: number]: SpeechRecognitionResultLike;
-}
-
-interface SpeechRecognitionEventLike extends Event {
-	readonly resultIndex: number;
-	readonly results: SpeechRecognitionResultListLike;
-}
-
-interface SpeechRecognitionErrorEventLike extends Event {
-	readonly error:
-		| 'aborted'
-		| 'audio-capture'
-		| 'language-not-supported'
-		| 'network'
-		| 'not-allowed'
-		| 'no-speech'
-		| 'service-not-allowed'
-		| 'unknown';
-}
-
-interface SpeechRecognitionLike extends EventTarget {
+interface BrowserSpeechRecognition extends EventTarget {
 	continuous: boolean;
 	interimResults: boolean;
 	lang: string;
 	maxAlternatives: number;
 	onend: ((event: Event) => void) | null;
-	onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-	onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+	onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+	onresult: ((event: SpeechRecognitionEvent) => void) | null;
+	abort(): void;
 	start(): void;
 	stop(): void;
-	abort(): void;
 }
 
-interface SpeechRecognitionConstructorLike {
-	new (): SpeechRecognitionLike;
-}
-
-declare global {
-	interface Window {
-		SpeechRecognition?: SpeechRecognitionConstructorLike;
-		webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
-	}
+interface BrowserSpeechRecognitionConstructor {
+	new (): BrowserSpeechRecognition;
 }
 
 export interface UseVoiceInputOptions {
@@ -72,25 +37,17 @@ export interface UseVoiceInputResult {
 	toggleListening: () => void;
 }
 
-function getSpeechRecognitionConstructor(): SpeechRecognitionConstructorLike | null {
+function getSpeechRecognitionConstructor(): BrowserSpeechRecognitionConstructor | null {
 	if (typeof window === 'undefined') {
 		return null;
 	}
 
-	return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
+	const SpeechRecognitionConstructor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+
+	return (SpeechRecognitionConstructor as BrowserSpeechRecognitionConstructor | undefined) ?? null;
 }
 
-function getVoiceInputErrorMessage(
-	error:
-		| 'aborted'
-		| 'audio-capture'
-		| 'language-not-supported'
-		| 'network'
-		| 'not-allowed'
-		| 'no-speech'
-		| 'service-not-allowed'
-		| 'unknown',
-): string {
+function getVoiceInputErrorMessage(error: VoiceInputErrorCode): string {
 	switch (error) {
 		case 'audio-capture':
 			return 'Mikrofon kullanılabilir değil. Cihaz bağlantısını ve tarayıcı izinlerini kontrol et.';
@@ -112,7 +69,7 @@ function getVoiceInputErrorMessage(
 
 export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInputResult {
 	const { onFinalTranscript } = options;
-	const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+	const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 	const onFinalTranscriptRef = useRef(onFinalTranscript);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [isListening, setIsListening] = useState(false);
