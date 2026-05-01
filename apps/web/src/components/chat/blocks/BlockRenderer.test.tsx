@@ -153,8 +153,40 @@ const sampleBlocks: readonly RenderBlock[] = [
 		created_at: createdAt,
 		id: 'web-search:block',
 		payload: {
+			evidence: {
+				query: 'Runa',
+				results: 3,
+				searches: 2,
+				sources: [
+					{
+						canonical_url: 'https://example.com/runa',
+						domain: 'example.com',
+						favicon: 'https://example.com/favicon.ico',
+						id: 'source_1',
+						published_at: '2026-04-20T00:00:00.000Z',
+						snippet: 'Canonical source snippet.',
+						title: 'Canonical source',
+						trust_score: 0.82,
+						url: 'https://example.com/runa?utm_source=newsletter',
+					},
+					{
+						canonical_url: 'https://docs.example.org/search',
+						domain: 'docs.example.org',
+						favicon: 'https://docs.example.org/favicon.ico',
+						id: 'source_2',
+						published_at: null,
+						snippet: 'Second canonical source snippet.',
+						title: 'Docs source',
+						trust_score: 0.71,
+						url: 'https://docs.example.org/search',
+					},
+				],
+				truncated: true,
+				unreliable: true,
+			},
 			is_truncated: false,
 			query: 'Runa',
+			result_count: 3,
 			results: [
 				{
 					snippet: 'Public source snippet.',
@@ -289,8 +321,12 @@ describe('BlockRenderer', () => {
 		const markup = renderToStaticMarkup(<BlockRenderer block={webSearchBlock} />);
 
 		expect(markup).toContain('Web arama sonuçları');
-		expect(markup).toContain('1 web sonucu gösteriliyor');
-		expect(markup).toContain('1 kaynak kullanıldı');
+		expect(markup).toContain('3 web sonucu gösteriliyor');
+		expect(markup).toContain('2 kaynak kullanıldı');
+		expect(markup).toContain('2 arama');
+		expect(markup).toContain('3 sonuç');
+		expect(markup).toContain('Bazı sonuçlar kısaltıldı');
+		expect(markup).toContain('Kaynak güveni sınırlı');
 		expect(markup).not.toContain(['Web', 'Search', 'Results'].join(' '));
 		expect(markup).not.toContain(['Show', 'ing 1 web results'].join(''));
 	});
