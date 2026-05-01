@@ -33,6 +33,7 @@ apps/desktop-agent/electron/renderer/App.js.map
 .idea/
 .claude/
 .claire/
+.kilo/
 .codex-screenshots/
 apps/web/.qa-screenshots/
 apps/web/.qa-screenshots-auth-chat/

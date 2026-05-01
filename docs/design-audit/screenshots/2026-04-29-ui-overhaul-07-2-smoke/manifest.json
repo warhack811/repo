@@ -112,7 +112,7 @@
 		{
 			"label": "mobile-390-03-chat-empty.png mobile composer stays above nav",
 			"ok": true,
-			"value": 67
+			"value": 64
 		},
 		{
 			"label": "mobile-390-03-chat-empty.png horizontal overflow",
@@ -155,7 +155,7 @@
 		{
 			"label": "mobile-414-04-chat-empty.png mobile composer stays above nav",
 			"ok": true,
-			"value": 66
+			"value": 63
 		},
 		{
 			"label": "mobile-414-04-chat-empty.png horizontal overflow",
@@ -198,7 +198,7 @@
 		{
 			"label": "mobile-320-05-chat-empty.png mobile composer stays above nav",
 			"ok": true,
-			"value": 23
+			"value": 20
 		},
 		{
 			"label": "mobile-320-05-chat-empty.png horizontal overflow",
@@ -213,7 +213,7 @@
 		{
 			"label": "mobile approval button is not covered by composer",
 			"ok": true,
-			"value": 407
+			"value": 375
 		},
 		{
 			"label": "mobile approval real pointer click completed",
@@ -226,7 +226,7 @@
 		}
 	],
 	"failed_checks": [],
-	"generated_at": "2026-04-30T18:12:26.502Z",
+	"generated_at": "2026-05-01T11:49:38.900Z",
 	"shots": [
 		"desktop-1440-01-chat-empty.png",
 		"desktop-1920-02-chat-empty.png",
