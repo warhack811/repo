@@ -37,6 +37,11 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Bundle budget
+        run: |
+          pnpm --filter @runa/web build
+          node scripts/check-bundle-budget.mjs apps/web/dist
+
   e2e:
     runs-on: ubuntu-latest
     needs: quality
