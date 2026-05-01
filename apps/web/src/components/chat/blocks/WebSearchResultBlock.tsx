@@ -34,7 +34,7 @@ export function WebSearchResultBlock({ block }: WebSearchResultBlockProps): Reac
 				<div className={styles['headerStack']}>
 					<span className={styles['eyebrow']}>{uiText.sources.title}</span>
 					<h3 className={styles['title']} id={getPresentationBlockTitleDomId(block.id)}>
-						{block.payload.title}
+						{uiText.sources.webSearchResults}
 					</h3>
 				</div>
 				<div className={styles['chipRow']}>
@@ -46,7 +46,7 @@ export function WebSearchResultBlock({ block }: WebSearchResultBlockProps): Reac
 				</div>
 			</div>
 			<p className={styles['summary']} id={getPresentationBlockSummaryDomId(block.id)}>
-				{block.payload.summary}
+				{uiText.sources.showingWebResults(keptResultCount)}
 			</p>
 			<Sources defaultOpen={false}>
 				<SourcesTrigger count={keptResultCount} />

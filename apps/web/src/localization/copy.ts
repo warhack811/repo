@@ -166,7 +166,7 @@ const copyByLocale = {
 			currentSurfaceContext: 'Context',
 			observedSteps: 'Recent steps',
 			runtimePhases: 'Work phases',
-			showingLatestSteps: 'Showing latest {count} steps',
+			showingLatestSteps: 'Son {count} adım gösteriliyor',
 			pastRuns: 'Recent work',
 			pastRunsCollapsed: 'Recent work stays available without crowding the main conversation.',
 			surfaceHeading: 'Current work surface',
