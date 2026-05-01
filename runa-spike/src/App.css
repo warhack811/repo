@@ -201,6 +201,40 @@ textarea,
   overflow: auto;
 }
 
+.runa-code-block {
+  overflow: hidden;
+  margin: 12px 0;
+  border: 1px solid rgba(236, 231, 221, 0.14);
+  border-radius: 8px;
+  background: #0a0c0f;
+}
+
+.runa-code-block figcaption {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(236, 231, 221, 0.1);
+  color: #9bcfbe;
+  font-size: 12px;
+}
+
+.runa-code-block pre {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: transparent !important;
+}
+
+.runa-code-block code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.runa-code-block .code-loading {
+  padding: 8px 12px 0;
+  color: #8d867c;
+  font-size: 12px;
+}
+
 .side-log pre,
 .part-dump {
   overflow: auto;

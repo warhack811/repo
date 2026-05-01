@@ -6,10 +6,6 @@ import {
 } from '@assistant-ui/react'
 import { useChatRuntime } from '@assistant-ui/react-ai-sdk'
 import { useChat } from '@ai-sdk/react'
-import { cjk } from '@streamdown/cjk'
-import { code } from '@streamdown/code'
-import { math } from '@streamdown/math'
-import { mermaid } from '@streamdown/mermaid'
 import type { DynamicToolUIPart, ToolUIPart } from 'ai'
 import { DefaultChatTransport } from 'ai'
 import {
@@ -26,7 +22,6 @@ import {
   Sun,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Streamdown } from 'streamdown'
 import {
   InlineCitation,
   InlineCitationCard,
@@ -62,6 +57,7 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool'
 import { Button } from '@/components/ui/button'
+import { StreamdownMessage } from '@/lib/streamdown/StreamdownMessage'
 import './App.css'
 
 type ToolPart = ToolUIPart | DynamicToolUIPart
@@ -83,8 +79,6 @@ type EvidencePack = {
     trust_score: number
   }>
 }
-
-const streamdownPlugins = { cjk, code, math, mermaid }
 
 const markdownFixtures = [
   {
@@ -273,14 +267,13 @@ function TransportChat() {
               {message.parts?.map((part, index) => {
                 if (part.type === 'text') {
                   return (
-                    <Streamdown
+                    <StreamdownMessage
                       className="markdown"
-                      key={`${message.id}-${index}`}
                       mode={status === 'streaming' ? 'streaming' : 'static'}
-                      plugins={streamdownPlugins}
+                      key={`${message.id}-${index}`}
                     >
                       {part.text}
-                    </Streamdown>
+                    </StreamdownMessage>
                   )
                 }
                 if (part.type === 'reasoning') {
@@ -460,14 +453,12 @@ function StreamdownMatrix() {
         ))}
       </div>
       <div className={dark ? 'render-box dark-render' : 'render-box light-render'}>
-        <Streamdown
+        <StreamdownMessage
           className="markdown"
           mode={streaming ? 'streaming' : 'static'}
-          plugins={streamdownPlugins}
-          shikiTheme={dark ? ['github-dark', 'github-light'] : ['github-light', 'github-dark']}
         >
           {progressive}
-        </Streamdown>
+        </StreamdownMessage>
       </div>
     </section>
   )
@@ -607,9 +598,9 @@ function PerfPanel() {
         {Array.from({ length: messages }, (_, index) => (
           <article className={`bubble ${index % 2 ? 'assistant' : 'user'}`} key={index}>
             <strong>{index % 2 ? 'assistant' : 'user'} #{index + 1}</strong>
-            <Streamdown className="markdown" plugins={streamdownPlugins}>
+            <StreamdownMessage className="markdown">
               {index === messages - 1 ? streamedLong : `Kısa mesaj ${index + 1} **bold** ve tablo izi.`}
-            </Streamdown>
+            </StreamdownMessage>
           </article>
         ))}
       </div>
