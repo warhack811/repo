@@ -1,3201 +1,3279 @@
 {
-	"checks": [
-		{
-			"label": "desktop login has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop login login single column",
-			"ok": true,
-			"value": 1
-		},
-		{
-			"label": "desktop login horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop chat empty hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "desktop chat empty horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "desktop chat empty focus-visible outline",
-			"ok": true,
-			"value": "solid"
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop chat active transcript hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop chat active transcript hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "/history has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop /history hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop /history hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "desktop /history horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "/devices has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop /devices hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "desktop /devices horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "/account has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop /account hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop /account hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "desktop /account horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "/account?tab=preferences has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop account preferences hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop account preferences hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop command palette hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop command palette hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop conversation sidebar hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "wide /chat hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides developer",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides operator",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides runtime",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides transport",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides debug",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides metadata",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides file.write",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides Run event",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides Status update",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "wide /chat hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "wide /chat horizontal overflow",
-			"ok": true,
-			"value": 1920
-		},
-		{
-			"label": "/history has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "wide /history hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides developer",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides operator",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides runtime",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides transport",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides debug",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides metadata",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides file.write",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides Run event",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides Status update",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "wide /history hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "wide /history horizontal overflow",
-			"ok": true,
-			"value": 1920
-		},
-		{
-			"label": "/devices has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "wide /devices hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides developer",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides operator",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides runtime",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides transport",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides debug",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides metadata",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides file.write",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides Run event",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides Status update",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "wide /devices hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "wide /devices horizontal overflow",
-			"ok": true,
-			"value": 1920
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "tablet /chat hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides developer",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides operator",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides runtime",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides transport",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides debug",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides metadata",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides file.write",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides Run event",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides Status update",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "tablet /chat horizontal overflow",
-			"ok": true,
-			"value": 768
-		},
-		{
-			"label": "/history has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "tablet /history hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides developer",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides operator",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides runtime",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides transport",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides debug",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides metadata",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides file.write",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides Run event",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides Status update",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "tablet /history hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "tablet /history horizontal overflow",
-			"ok": true,
-			"value": 768
-		},
-		{
-			"label": "/devices has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "tablet /devices hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides developer",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides operator",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides runtime",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides transport",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides debug",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides metadata",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides file.write",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides Run event",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides Status update",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "tablet /devices horizontal overflow",
-			"ok": true,
-			"value": 768
-		},
-		{
-			"label": "/account has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "tablet /account hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides developer",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides operator",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides runtime",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides transport",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides debug",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides metadata",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides file.write",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides Run event",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides Status update",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "tablet /account hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "tablet /account horizontal overflow",
-			"ok": true,
-			"value": 768
-		},
-		{
-			"label": "mobile login has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "mobile login login single column",
-			"ok": true,
-			"value": 1
-		},
-		{
-			"label": "mobile login horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "mobile chat empty mobile nav count",
-			"ok": true,
-			"value": 4
-		},
-		{
-			"label": "mobile chat empty mobile nav row",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty mobile nav min width",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides developer",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides operator",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides runtime",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides transport",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides debug",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides metadata",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides file.write",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Run event",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Status update",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "mobile chat empty horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "mobile composer focused horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "/history has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "mobile /history mobile nav count",
-			"ok": true,
-			"value": 4
-		},
-		{
-			"label": "mobile /history mobile nav row",
-			"ok": true
-		},
-		{
-			"label": "mobile /history mobile nav min width",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides developer",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides operator",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides runtime",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides transport",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides debug",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides metadata",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides file.write",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Run event",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Status update",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "mobile /history hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "mobile /history horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "/devices has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "mobile /devices mobile nav count",
-			"ok": true,
-			"value": 4
-		},
-		{
-			"label": "mobile /devices mobile nav row",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices mobile nav min width",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides developer",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides operator",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides runtime",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides transport",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides debug",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides metadata",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides file.write",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Run event",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Status update",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "mobile /devices horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "/account has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "mobile /account mobile nav count",
-			"ok": true,
-			"value": 4
-		},
-		{
-			"label": "mobile /account mobile nav row",
-			"ok": true
-		},
-		{
-			"label": "mobile /account mobile nav min width",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides developer",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides operator",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides runtime",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides transport",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides debug",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides metadata",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides file.write",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Run event",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Status update",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "mobile /account hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "mobile /account horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "mobile command palette hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides developer",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides operator",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides runtime",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides transport",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides debug",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides metadata",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides file.write",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides Run event",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides Status update",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "mobile command palette hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "narrow chat focused mobile nav count",
-			"ok": true,
-			"value": 4
-		},
-		{
-			"label": "narrow chat focused mobile nav row",
-			"ok": true
-		},
-		{
-			"label": "narrow chat focused mobile nav min width",
-			"ok": true
-		},
-		{
-			"label": "narrow chat focused horizontal overflow",
-			"ok": true,
-			"value": 320
-		},
-		{
-			"label": "/history has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "narrow history mobile nav count",
-			"ok": true,
-			"value": 4
-		},
-		{
-			"label": "narrow history mobile nav row",
-			"ok": true
-		},
-		{
-			"label": "narrow history mobile nav min width",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides developer",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides operator",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides runtime",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides transport",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides debug",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides metadata",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides file.write",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Run event",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Status update",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "narrow history hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "narrow history horizontal overflow",
-			"ok": true,
-			"value": 320
-		},
-		{
-			"label": "/chat has no framework error overlay",
-			"ok": true,
-			"value": false
-		},
-		{
-			"label": "desktop approval pending hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "desktop approval pending horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "wide approval pending hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides developer",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides operator",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides runtime",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides transport",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides debug",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides metadata",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides file.write",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides Run event",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides Status update",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "wide approval pending horizontal overflow",
-			"ok": true,
-			"value": 1920
-		},
-		{
-			"label": "mobile approval pending approval actions clear composer",
-			"ok": true,
-			"value": 349
-		},
-		{
-			"label": "mobile approval pending approval actions clear nav",
-			"ok": true,
-			"value": 380
-		},
-		{
-			"label": "mobile approval pending hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides developer",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides operator",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides runtime",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides transport",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides debug",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides metadata",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides file.write",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides Run event",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides Status update",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "mobile approval pending horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "narrow approval pending approval actions clear composer",
-			"ok": true,
-			"value": 397
-		},
-		{
-			"label": "narrow approval pending approval actions clear nav",
-			"ok": true,
-			"value": 92
-		},
-		{
-			"label": "narrow approval pending hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides developer",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides operator",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides runtime",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides transport",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides debug",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides metadata",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides file.write",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides Run event",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides Status update",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "narrow approval pending horizontal overflow",
-			"ok": true,
-			"value": 320
-		},
-		{
-			"label": "desktop approved completed hides Developer Mode",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides developer",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides operator",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides runtime",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides transport",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides  raw ",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides debug",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides troubleshooting",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides metadata",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides Web Speech API",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides Project Memory",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides Capability Preview",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides dev@runa.local",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides Connection ",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides desktop.screenshot",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides file.write",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides Run event",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides Status update",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides Tool result",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides burada kalir",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides burada gorunur",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides bu fazda",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed hides dogrulanmis evet",
-			"ok": true
-		},
-		{
-			"label": "desktop approved completed horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "final screenshot count >= 28",
-			"ok": true,
-			"value": 31
-		}
-	],
-	"failed_checks": [],
-	"generated_at": "2026-04-30T18:13:02.994Z",
-	"screenshot_count": 31,
-	"screenshots": [
-		{
-			"automated_checks": ["route fallback skeleton visible", "no error overlay"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-00-route-loading-skeleton.png",
-			"notes": "History route module intentionally held pending to capture Suspense fallback.",
-			"route": "/history",
-			"scenario": "route loading skeleton",
-			"viewport": {
-				"height": 900,
-				"label": "desktop",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": [
-				"page loads",
-				"single column login",
-				"no horizontal overflow",
-				"no error overlay"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-01-login.png",
-			"notes": "Unauthenticated product login surface.",
-			"route": "/login",
-			"scenario": "login",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": [
-				"empty chat visible",
-				"forbidden copy hidden",
-				"focus-visible",
-				"named icon controls"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-02-chat-empty.png",
-			"notes": "Chat-first empty state with composer suggestions.",
-			"route": "/chat",
-			"scenario": "chat empty",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["persisted transcript visible", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-03-chat-active-transcript.png",
-			"notes": "Conversation-backed transcript from mocked API data.",
-			"route": "/chat",
-			"scenario": "active transcript",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["route visible", "forbidden copy hidden", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-history.png",
-			"notes": "Desktop primary route final coherence.",
-			"route": "/history",
-			"scenario": "history",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["route visible", "forbidden copy hidden", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-devices.png",
-			"notes": "Desktop primary route final coherence.",
-			"route": "/devices",
-			"scenario": "devices",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["route visible", "forbidden copy hidden", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-account.png",
-			"notes": "Desktop primary route final coherence.",
-			"route": "/account",
-			"scenario": "account",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["preferences tab open", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-account-preferences.png",
-			"notes": "Account preferences deep link opened by route state.",
-			"route": "/account?tab=preferences",
-			"scenario": "account preferences",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["command palette open", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-command-palette-open.png",
-			"notes": "Power-user command palette opened with Ctrl+K.",
-			"route": "/chat",
-			"scenario": "command palette open",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["conversation sidebar open", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-conversation-sidebar-open.png",
-			"notes": "History drawer open from chat header.",
-			"route": "/chat",
-			"scenario": "conversation sidebar open",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["wide viewport route visible", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-chat.png",
-			"notes": "Wide desktop final coherence.",
-			"route": "/chat",
-			"scenario": "wide chat",
-			"viewport": {
-				"height": 1080,
-				"label": "desktop-1920",
-				"width": 1920
-			}
-		},
-		{
-			"automated_checks": ["wide viewport route visible", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-history.png",
-			"notes": "Wide desktop final coherence.",
-			"route": "/history",
-			"scenario": "wide history",
-			"viewport": {
-				"height": 1080,
-				"label": "desktop-1920",
-				"width": 1920
-			}
-		},
-		{
-			"automated_checks": ["wide viewport route visible", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-devices.png",
-			"notes": "Wide desktop final coherence.",
-			"route": "/devices",
-			"scenario": "wide devices",
-			"viewport": {
-				"height": 1080,
-				"label": "desktop-1920",
-				"width": 1920
-			}
-		},
-		{
-			"automated_checks": [
-				"tablet route visible",
-				"forbidden copy hidden",
-				"no horizontal overflow"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-chat.png",
-			"notes": "Tablet final coherence.",
-			"route": "/chat",
-			"scenario": "tablet chat",
-			"viewport": {
-				"height": 1024,
-				"label": "tablet-768",
-				"width": 768
-			}
-		},
-		{
-			"automated_checks": [
-				"tablet route visible",
-				"forbidden copy hidden",
-				"no horizontal overflow"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-history.png",
-			"notes": "Tablet final coherence.",
-			"route": "/history",
-			"scenario": "tablet history",
-			"viewport": {
-				"height": 1024,
-				"label": "tablet-768",
-				"width": 768
-			}
-		},
-		{
-			"automated_checks": [
-				"tablet route visible",
-				"forbidden copy hidden",
-				"no horizontal overflow"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-devices.png",
-			"notes": "Tablet final coherence.",
-			"route": "/devices",
-			"scenario": "tablet devices",
-			"viewport": {
-				"height": 1024,
-				"label": "tablet-768",
-				"width": 768
-			}
-		},
-		{
-			"automated_checks": [
-				"tablet route visible",
-				"forbidden copy hidden",
-				"no horizontal overflow"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-account.png",
-			"notes": "Tablet final coherence.",
-			"route": "/account",
-			"scenario": "tablet account",
-			"viewport": {
-				"height": 1024,
-				"label": "tablet-768",
-				"width": 768
-			}
-		},
-		{
-			"automated_checks": ["mobile login visible", "single column login", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-login.png",
-			"notes": "Mobile login surface.",
-			"route": "/login",
-			"scenario": "mobile login",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": ["mobile nav one row", "forbidden copy hidden", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-chat-empty.png",
-			"notes": "Mobile empty chat surface.",
-			"route": "/chat",
-			"scenario": "mobile chat empty",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": ["composer focused", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-chat-composer-focused.png",
-			"notes": "Composer focus state for mobile keyboard avoidance.",
-			"route": "/chat",
-			"scenario": "mobile composer focused",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": ["mobile nav one row", "forbidden copy hidden", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-history.png",
-			"notes": "Mobile secondary route final coherence.",
-			"route": "/history",
-			"scenario": "mobile history",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": ["mobile nav one row", "forbidden copy hidden", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-devices.png",
-			"notes": "Mobile secondary route final coherence.",
-			"route": "/devices",
-			"scenario": "mobile devices",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": ["mobile nav one row", "forbidden copy hidden", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-account.png",
-			"notes": "Mobile secondary route final coherence.",
-			"route": "/account",
-			"scenario": "mobile account",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": ["mobile command palette open", "forbidden copy hidden"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-command-palette-open.png",
-			"notes": "Mobile command palette sheet state.",
-			"route": "/chat",
-			"scenario": "mobile command palette open",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": [
-				"narrow mobile nav one row",
-				"composer focused",
-				"no horizontal overflow"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-320-chat-composer-focused.png",
-			"notes": "Narrow mobile composer focus guardrail.",
-			"route": "/chat",
-			"scenario": "narrow composer focused",
-			"viewport": {
-				"height": 568,
-				"label": "mobile-320",
-				"width": 320
-			}
-		},
-		{
-			"automated_checks": [
-				"narrow mobile nav one row",
-				"forbidden copy hidden",
-				"no horizontal overflow"
-			],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-320-history.png",
-			"notes": "Narrow mobile history guardrail.",
-			"route": "/history",
-			"scenario": "narrow history",
-			"viewport": {
-				"height": 568,
-				"label": "mobile-320",
-				"width": 320
-			}
-		},
-		{
-			"automated_checks": ["approval pending visible", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-chat-approval-pending.png",
-			"notes": "Trust-first approval card pending state.",
-			"route": "/chat",
-			"scenario": "approval pending",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		},
-		{
-			"automated_checks": ["wide approval visible", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-chat-approval-pending.png",
-			"notes": "Wide desktop approval guardrail.",
-			"route": "/chat",
-			"scenario": "wide approval pending",
-			"viewport": {
-				"height": 1080,
-				"label": "desktop-1920",
-				"width": 1920
-			}
-		},
-		{
-			"automated_checks": ["approval actions clear composer/nav", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-chat-approval-pending.png",
-			"notes": "Mobile approval pending state.",
-			"route": "/chat",
-			"scenario": "mobile approval pending",
-			"viewport": {
-				"height": 844,
-				"label": "mobile-390",
-				"width": 390
-			}
-		},
-		{
-			"automated_checks": ["narrow approval actions clear composer/nav", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-320-chat-approval-pending.png",
-			"notes": "Narrow mobile approval pending state.",
-			"route": "/chat",
-			"scenario": "narrow approval pending",
-			"viewport": {
-				"height": 568,
-				"label": "mobile-320",
-				"width": 320
-			}
-		},
-		{
-			"automated_checks": ["approval approved", "completion visible", "no horizontal overflow"],
-			"failed_checks": [],
-			"file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-chat-approval-approved-completed.png",
-			"notes": "Approved and completed approval flow.",
-			"route": "/chat",
-			"scenario": "approval approved completed",
-			"viewport": {
-				"height": 900,
-				"label": "desktop-1440",
-				"width": 1440
-			}
-		}
-	]
+  "checks": [
+    {
+      "label": "desktop login has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop login login single column",
+      "ok": true,
+      "value": 1
+    },
+    {
+      "label": "desktop login horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop chat empty hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "desktop chat empty horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "desktop chat empty focus-visible outline",
+      "ok": true,
+      "value": "solid"
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop chat active transcript hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop chat active transcript hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "/history has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop /history hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop /history hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "desktop /history horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "/devices has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop /devices hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "desktop /devices horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "/account has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop /account hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop /account hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "desktop /account horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "/account?tab=preferences has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop account preferences hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop account preferences hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop command palette hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop command palette hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop conversation sidebar hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "wide /chat hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides developer",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides operator",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides runtime",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides transport",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides debug",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides metadata",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides file.write",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides Run event",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides Status update",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "wide /chat hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "wide /chat horizontal overflow",
+      "ok": true,
+      "value": 1920
+    },
+    {
+      "label": "/history has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "wide /history hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides developer",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides operator",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides runtime",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides transport",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides debug",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides metadata",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides file.write",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides Run event",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides Status update",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "wide /history hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "wide /history horizontal overflow",
+      "ok": true,
+      "value": 1920
+    },
+    {
+      "label": "/devices has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "wide /devices hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides developer",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides operator",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides runtime",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides transport",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides debug",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides metadata",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides file.write",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides Run event",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides Status update",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "wide /devices hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "wide /devices horizontal overflow",
+      "ok": true,
+      "value": 1920
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "tablet /chat hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides developer",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides operator",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides runtime",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides transport",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides debug",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides metadata",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides file.write",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides Run event",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides Status update",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "tablet /chat horizontal overflow",
+      "ok": true,
+      "value": 768
+    },
+    {
+      "label": "/history has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "tablet /history hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides developer",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides operator",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides runtime",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides transport",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides debug",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides metadata",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides file.write",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides Run event",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides Status update",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "tablet /history hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "tablet /history horizontal overflow",
+      "ok": true,
+      "value": 768
+    },
+    {
+      "label": "/devices has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "tablet /devices hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides developer",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides operator",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides runtime",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides transport",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides debug",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides metadata",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides file.write",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides Run event",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides Status update",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "tablet /devices horizontal overflow",
+      "ok": true,
+      "value": 768
+    },
+    {
+      "label": "/account has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "tablet /account hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides developer",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides operator",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides runtime",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides transport",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides debug",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides metadata",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides file.write",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides Run event",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides Status update",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "tablet /account hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "tablet /account horizontal overflow",
+      "ok": true,
+      "value": 768
+    },
+    {
+      "label": "mobile login has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "mobile login login single column",
+      "ok": true,
+      "value": 1
+    },
+    {
+      "label": "mobile login horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "mobile chat empty mobile nav count",
+      "ok": true,
+      "value": 4
+    },
+    {
+      "label": "mobile chat empty mobile nav row",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty mobile nav min width",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides developer",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides operator",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides runtime",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides transport",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides debug",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides metadata",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides file.write",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Run event",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Status update",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "mobile chat empty horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "mobile composer focused horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "/history has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "mobile /history mobile nav count",
+      "ok": true,
+      "value": 4
+    },
+    {
+      "label": "mobile /history mobile nav row",
+      "ok": true
+    },
+    {
+      "label": "mobile /history mobile nav min width",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides developer",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides operator",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides runtime",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides transport",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides debug",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides metadata",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides file.write",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Run event",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Status update",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "mobile /history hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "mobile /history horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "/devices has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "mobile /devices mobile nav count",
+      "ok": true,
+      "value": 4
+    },
+    {
+      "label": "mobile /devices mobile nav row",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices mobile nav min width",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides developer",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides operator",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides runtime",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides transport",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides debug",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides metadata",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides file.write",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Run event",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Status update",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "mobile /devices horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "/account has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "mobile /account mobile nav count",
+      "ok": true,
+      "value": 4
+    },
+    {
+      "label": "mobile /account mobile nav row",
+      "ok": true
+    },
+    {
+      "label": "mobile /account mobile nav min width",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides developer",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides operator",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides runtime",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides transport",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides debug",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides metadata",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides file.write",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Run event",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Status update",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "mobile /account hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "mobile /account horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "mobile command palette hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides developer",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides operator",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides runtime",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides transport",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides debug",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides metadata",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides file.write",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides Run event",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides Status update",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "mobile command palette hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "narrow chat focused mobile nav count",
+      "ok": true,
+      "value": 4
+    },
+    {
+      "label": "narrow chat focused mobile nav row",
+      "ok": true
+    },
+    {
+      "label": "narrow chat focused mobile nav min width",
+      "ok": true
+    },
+    {
+      "label": "narrow chat focused horizontal overflow",
+      "ok": true,
+      "value": 320
+    },
+    {
+      "label": "/history has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "narrow history mobile nav count",
+      "ok": true,
+      "value": 4
+    },
+    {
+      "label": "narrow history mobile nav row",
+      "ok": true
+    },
+    {
+      "label": "narrow history mobile nav min width",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides developer",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides operator",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides runtime",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides transport",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides debug",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides metadata",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides file.write",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Run event",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Status update",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "narrow history hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "narrow history horizontal overflow",
+      "ok": true,
+      "value": 320
+    },
+    {
+      "label": "/chat has no framework error overlay",
+      "ok": true,
+      "value": false
+    },
+    {
+      "label": "desktop approval pending hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "desktop approval pending horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "wide approval pending hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides developer",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides operator",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides runtime",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides transport",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides debug",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides metadata",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides file.write",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides Run event",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides Status update",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "wide approval pending horizontal overflow",
+      "ok": true,
+      "value": 1920
+    },
+    {
+      "label": "mobile approval pending approval actions clear composer",
+      "ok": true,
+      "value": 375
+    },
+    {
+      "label": "mobile approval pending approval actions clear nav",
+      "ok": true,
+      "value": 59
+    },
+    {
+      "label": "mobile approval pending hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides developer",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides operator",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides runtime",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides transport",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides debug",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides metadata",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides file.write",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides Run event",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides Status update",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "mobile approval pending horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "narrow approval pending approval actions clear composer",
+      "ok": true,
+      "value": 554
+    },
+    {
+      "label": "narrow approval pending approval actions clear nav",
+      "ok": true,
+      "value": 22
+    },
+    {
+      "label": "narrow approval pending hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides developer",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides operator",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides runtime",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides transport",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides debug",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides metadata",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides file.write",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides Run event",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides Status update",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "narrow approval pending horizontal overflow",
+      "ok": true,
+      "value": 320
+    },
+    {
+      "label": "desktop approved completed hides Developer Mode",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides developer",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides operator",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides runtime",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides transport",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides  raw ",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides debug",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides troubleshooting",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides metadata",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides Web Speech API",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides Project Memory",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides Capability Preview",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides dev@runa.local",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides Connection ",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides desktop.screenshot",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides file.write",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides Run event",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides Status update",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides Tool result",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides burada kalir",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides burada gorunur",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides bu fazda",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed hides dogrulanmis evet",
+      "ok": true
+    },
+    {
+      "label": "desktop approved completed horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "final screenshot count >= 28",
+      "ok": true,
+      "value": 31
+    }
+  ],
+  "failed_checks": [],
+  "generated_at": "2026-05-01T11:49:48.398Z",
+  "screenshot_count": 31,
+  "screenshots": [
+    {
+      "automated_checks": [
+        "route fallback skeleton visible",
+        "no error overlay"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-00-route-loading-skeleton.png",
+      "notes": "History route module intentionally held pending to capture Suspense fallback.",
+      "route": "/history",
+      "scenario": "route loading skeleton",
+      "viewport": {
+        "height": 900,
+        "label": "desktop",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "page loads",
+        "single column login",
+        "no horizontal overflow",
+        "no error overlay"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-01-login.png",
+      "notes": "Unauthenticated product login surface.",
+      "route": "/login",
+      "scenario": "login",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "empty chat visible",
+        "forbidden copy hidden",
+        "focus-visible",
+        "named icon controls"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-02-chat-empty.png",
+      "notes": "Chat-first empty state with composer suggestions.",
+      "route": "/chat",
+      "scenario": "chat empty",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "persisted transcript visible",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-03-chat-active-transcript.png",
+      "notes": "Conversation-backed transcript from mocked API data.",
+      "route": "/chat",
+      "scenario": "active transcript",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "route visible",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-history.png",
+      "notes": "Desktop primary route final coherence.",
+      "route": "/history",
+      "scenario": "history",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "route visible",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-devices.png",
+      "notes": "Desktop primary route final coherence.",
+      "route": "/devices",
+      "scenario": "devices",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "route visible",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-account.png",
+      "notes": "Desktop primary route final coherence.",
+      "route": "/account",
+      "scenario": "account",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "preferences tab open",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-account-preferences.png",
+      "notes": "Account preferences deep link opened by route state.",
+      "route": "/account?tab=preferences",
+      "scenario": "account preferences",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "command palette open",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-command-palette-open.png",
+      "notes": "Power-user command palette opened with Ctrl+K.",
+      "route": "/chat",
+      "scenario": "command palette open",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "conversation sidebar open",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-conversation-sidebar-open.png",
+      "notes": "History drawer open from chat header.",
+      "route": "/chat",
+      "scenario": "conversation sidebar open",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "wide viewport route visible",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-chat.png",
+      "notes": "Wide desktop final coherence.",
+      "route": "/chat",
+      "scenario": "wide chat",
+      "viewport": {
+        "height": 1080,
+        "label": "desktop-1920",
+        "width": 1920
+      }
+    },
+    {
+      "automated_checks": [
+        "wide viewport route visible",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-history.png",
+      "notes": "Wide desktop final coherence.",
+      "route": "/history",
+      "scenario": "wide history",
+      "viewport": {
+        "height": 1080,
+        "label": "desktop-1920",
+        "width": 1920
+      }
+    },
+    {
+      "automated_checks": [
+        "wide viewport route visible",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-devices.png",
+      "notes": "Wide desktop final coherence.",
+      "route": "/devices",
+      "scenario": "wide devices",
+      "viewport": {
+        "height": 1080,
+        "label": "desktop-1920",
+        "width": 1920
+      }
+    },
+    {
+      "automated_checks": [
+        "tablet route visible",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-chat.png",
+      "notes": "Tablet final coherence.",
+      "route": "/chat",
+      "scenario": "tablet chat",
+      "viewport": {
+        "height": 1024,
+        "label": "tablet-768",
+        "width": 768
+      }
+    },
+    {
+      "automated_checks": [
+        "tablet route visible",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-history.png",
+      "notes": "Tablet final coherence.",
+      "route": "/history",
+      "scenario": "tablet history",
+      "viewport": {
+        "height": 1024,
+        "label": "tablet-768",
+        "width": 768
+      }
+    },
+    {
+      "automated_checks": [
+        "tablet route visible",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-devices.png",
+      "notes": "Tablet final coherence.",
+      "route": "/devices",
+      "scenario": "tablet devices",
+      "viewport": {
+        "height": 1024,
+        "label": "tablet-768",
+        "width": 768
+      }
+    },
+    {
+      "automated_checks": [
+        "tablet route visible",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/tablet-768-account.png",
+      "notes": "Tablet final coherence.",
+      "route": "/account",
+      "scenario": "tablet account",
+      "viewport": {
+        "height": 1024,
+        "label": "tablet-768",
+        "width": 768
+      }
+    },
+    {
+      "automated_checks": [
+        "mobile login visible",
+        "single column login",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-login.png",
+      "notes": "Mobile login surface.",
+      "route": "/login",
+      "scenario": "mobile login",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "mobile nav one row",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-chat-empty.png",
+      "notes": "Mobile empty chat surface.",
+      "route": "/chat",
+      "scenario": "mobile chat empty",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "composer focused",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-chat-composer-focused.png",
+      "notes": "Composer focus state for mobile keyboard avoidance.",
+      "route": "/chat",
+      "scenario": "mobile composer focused",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "mobile nav one row",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-history.png",
+      "notes": "Mobile secondary route final coherence.",
+      "route": "/history",
+      "scenario": "mobile history",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "mobile nav one row",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-devices.png",
+      "notes": "Mobile secondary route final coherence.",
+      "route": "/devices",
+      "scenario": "mobile devices",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "mobile nav one row",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-account.png",
+      "notes": "Mobile secondary route final coherence.",
+      "route": "/account",
+      "scenario": "mobile account",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "mobile command palette open",
+        "forbidden copy hidden"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-command-palette-open.png",
+      "notes": "Mobile command palette sheet state.",
+      "route": "/chat",
+      "scenario": "mobile command palette open",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "narrow mobile nav one row",
+        "composer focused",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-320-chat-composer-focused.png",
+      "notes": "Narrow mobile composer focus guardrail.",
+      "route": "/chat",
+      "scenario": "narrow composer focused",
+      "viewport": {
+        "height": 568,
+        "label": "mobile-320",
+        "width": 320
+      }
+    },
+    {
+      "automated_checks": [
+        "narrow mobile nav one row",
+        "forbidden copy hidden",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-320-history.png",
+      "notes": "Narrow mobile history guardrail.",
+      "route": "/history",
+      "scenario": "narrow history",
+      "viewport": {
+        "height": 568,
+        "label": "mobile-320",
+        "width": 320
+      }
+    },
+    {
+      "automated_checks": [
+        "approval pending visible",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-chat-approval-pending.png",
+      "notes": "Trust-first approval card pending state.",
+      "route": "/chat",
+      "scenario": "approval pending",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    },
+    {
+      "automated_checks": [
+        "wide approval visible",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1920-chat-approval-pending.png",
+      "notes": "Wide desktop approval guardrail.",
+      "route": "/chat",
+      "scenario": "wide approval pending",
+      "viewport": {
+        "height": 1080,
+        "label": "desktop-1920",
+        "width": 1920
+      }
+    },
+    {
+      "automated_checks": [
+        "approval actions clear composer/nav",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-390-chat-approval-pending.png",
+      "notes": "Mobile approval pending state.",
+      "route": "/chat",
+      "scenario": "mobile approval pending",
+      "viewport": {
+        "height": 844,
+        "label": "mobile-390",
+        "width": 390
+      }
+    },
+    {
+      "automated_checks": [
+        "narrow approval actions clear composer/nav",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/mobile-320-chat-approval-pending.png",
+      "notes": "Narrow mobile approval pending state.",
+      "route": "/chat",
+      "scenario": "narrow approval pending",
+      "viewport": {
+        "height": 568,
+        "label": "mobile-320",
+        "width": 320
+      }
+    },
+    {
+      "automated_checks": [
+        "approval approved",
+        "completion visible",
+        "no horizontal overflow"
+      ],
+      "failed_checks": [],
+      "file_path": "docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence/desktop-1440-chat-approval-approved-completed.png",
+      "notes": "Approved and completed approval flow.",
+      "route": "/chat",
+      "scenario": "approval approved completed",
+      "viewport": {
+        "height": 900,
+        "label": "desktop-1440",
+        "width": 1440
+      }
+    }
+  ]
 }

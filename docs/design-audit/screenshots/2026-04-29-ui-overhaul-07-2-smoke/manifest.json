@@ -1,239 +1,239 @@
 {
-	"checks": [
-		{
-			"label": "desktop-1440-01-chat-empty.png hides \"Masaustu hedefi\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png hides \"Developer Mode\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png hides \"Please request approval\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png hides \"burada gorunur\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png hides \"burada kalir\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png hides \"Calisma akisi\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png hides \"Mevcut calisma\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png composer action count",
-			"ok": true,
-			"value": 3
-		},
-		{
-			"label": "desktop-1440-01-chat-empty.png horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png hides \"Masaustu hedefi\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png hides \"Developer Mode\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png hides \"Please request approval\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png hides \"burada gorunur\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png hides \"burada kalir\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png hides \"Calisma akisi\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png hides \"Mevcut calisma\"",
-			"ok": true
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png composer action count",
-			"ok": true,
-			"value": 3
-		},
-		{
-			"label": "desktop-1920-02-chat-empty.png horizontal overflow",
-			"ok": true,
-			"value": 1920
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png hides \"Masaustu hedefi\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png hides \"Developer Mode\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png hides \"Please request approval\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png hides \"burada gorunur\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png hides \"burada kalir\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png hides \"Calisma akisi\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png hides \"Mevcut calisma\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png composer action count",
-			"ok": true,
-			"value": 3
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png mobile composer stays above nav",
-			"ok": true,
-			"value": 67
-		},
-		{
-			"label": "mobile-390-03-chat-empty.png horizontal overflow",
-			"ok": true,
-			"value": 390
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png hides \"Masaustu hedefi\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png hides \"Developer Mode\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png hides \"Please request approval\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png hides \"burada gorunur\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png hides \"burada kalir\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png hides \"Calisma akisi\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png hides \"Mevcut calisma\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png composer action count",
-			"ok": true,
-			"value": 3
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png mobile composer stays above nav",
-			"ok": true,
-			"value": 66
-		},
-		{
-			"label": "mobile-414-04-chat-empty.png horizontal overflow",
-			"ok": true,
-			"value": 414
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png hides \"Masaustu hedefi\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png hides \"Developer Mode\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png hides \"Please request approval\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png hides \"burada gorunur\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png hides \"burada kalir\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png hides \"Calisma akisi\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png hides \"Mevcut calisma\"",
-			"ok": true
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png composer action count",
-			"ok": true,
-			"value": 3
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png mobile composer stays above nav",
-			"ok": true,
-			"value": 23
-		},
-		{
-			"label": "mobile-320-05-chat-empty.png horizontal overflow",
-			"ok": true,
-			"value": 320
-		},
-		{
-			"label": "desktop active approval horizontal overflow",
-			"ok": true,
-			"value": 1440
-		},
-		{
-			"label": "mobile approval button is not covered by composer",
-			"ok": true,
-			"value": 407
-		},
-		{
-			"label": "mobile approval real pointer click completed",
-			"ok": true
-		},
-		{
-			"label": "mobile active approval horizontal overflow",
-			"ok": true,
-			"value": 390
-		}
-	],
-	"failed_checks": [],
-	"generated_at": "2026-04-30T18:12:26.502Z",
-	"shots": [
-		"desktop-1440-01-chat-empty.png",
-		"desktop-1920-02-chat-empty.png",
-		"mobile-390-03-chat-empty.png",
-		"mobile-414-04-chat-empty.png",
-		"mobile-320-05-chat-empty.png",
-		"desktop-1440-06-active-run-approval-pending.png",
-		"mobile-390-07-active-run-approval-pending.png"
-	]
+  "checks": [
+    {
+      "label": "desktop-1440-01-chat-empty.png hides \"Masaustu hedefi\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png hides \"Developer Mode\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png hides \"Please request approval\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png hides \"burada gorunur\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png hides \"burada kalir\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png hides \"Calisma akisi\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png hides \"Mevcut calisma\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png composer action count",
+      "ok": true,
+      "value": 3
+    },
+    {
+      "label": "desktop-1440-01-chat-empty.png horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png hides \"Masaustu hedefi\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png hides \"Developer Mode\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png hides \"Please request approval\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png hides \"burada gorunur\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png hides \"burada kalir\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png hides \"Calisma akisi\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png hides \"Mevcut calisma\"",
+      "ok": true
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png composer action count",
+      "ok": true,
+      "value": 3
+    },
+    {
+      "label": "desktop-1920-02-chat-empty.png horizontal overflow",
+      "ok": true,
+      "value": 1920
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png hides \"Masaustu hedefi\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png hides \"Developer Mode\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png hides \"Please request approval\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png hides \"burada gorunur\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png hides \"burada kalir\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png hides \"Calisma akisi\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png hides \"Mevcut calisma\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png composer action count",
+      "ok": true,
+      "value": 3
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png mobile composer stays above nav",
+      "ok": true,
+      "value": 64
+    },
+    {
+      "label": "mobile-390-03-chat-empty.png horizontal overflow",
+      "ok": true,
+      "value": 390
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png hides \"Masaustu hedefi\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png hides \"Developer Mode\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png hides \"Please request approval\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png hides \"burada gorunur\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png hides \"burada kalir\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png hides \"Calisma akisi\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png hides \"Mevcut calisma\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png composer action count",
+      "ok": true,
+      "value": 3
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png mobile composer stays above nav",
+      "ok": true,
+      "value": 63
+    },
+    {
+      "label": "mobile-414-04-chat-empty.png horizontal overflow",
+      "ok": true,
+      "value": 414
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png hides \"Masaustu hedefi\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png hides \"Developer Mode\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png hides \"Please request approval\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png hides \"burada gorunur\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png hides \"burada kalir\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png hides \"Calisma akisi\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png hides \"Mevcut calisma\"",
+      "ok": true
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png composer action count",
+      "ok": true,
+      "value": 3
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png mobile composer stays above nav",
+      "ok": true,
+      "value": 20
+    },
+    {
+      "label": "mobile-320-05-chat-empty.png horizontal overflow",
+      "ok": true,
+      "value": 320
+    },
+    {
+      "label": "desktop active approval horizontal overflow",
+      "ok": true,
+      "value": 1440
+    },
+    {
+      "label": "mobile approval button is not covered by composer",
+      "ok": true,
+      "value": 375
+    },
+    {
+      "label": "mobile approval real pointer click completed",
+      "ok": true
+    },
+    {
+      "label": "mobile active approval horizontal overflow",
+      "ok": true,
+      "value": 390
+    }
+  ],
+  "failed_checks": [],
+  "generated_at": "2026-05-01T11:49:38.900Z",
+  "shots": [
+    "desktop-1440-01-chat-empty.png",
+    "desktop-1920-02-chat-empty.png",
+    "mobile-390-03-chat-empty.png",
+    "mobile-414-04-chat-empty.png",
+    "mobile-320-05-chat-empty.png",
+    "desktop-1440-06-active-run-approval-pending.png",
+    "mobile-390-07-active-run-approval-pending.png"
+  ]
 }
