@@ -235,6 +235,31 @@ textarea,
   font-size: 12px;
 }
 
+.diagram-skeleton,
+.mermaid-diagram,
+.mermaid-fallback {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid rgba(236, 231, 221, 0.14);
+  border-radius: 8px;
+  background: #0a0c0f;
+}
+
+.diagram-skeleton {
+  color: #8d867c;
+}
+
+.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-fallback p {
+  margin-bottom: 10px;
+  color: #f0b79d;
+  font-size: 13px;
+}
+
 .side-log pre,
 .part-dump {
   overflow: auto;

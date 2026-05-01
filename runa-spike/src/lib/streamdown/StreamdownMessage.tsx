@@ -3,6 +3,7 @@ import { math } from '@streamdown/math'
 import type { ComponentProps } from 'react'
 import { Streamdown } from 'streamdown'
 import { CodeBlock } from './CodeBlock'
+import { MermaidBlock } from './MermaidBlock'
 
 type CodeProps = ComponentProps<'code'> & {
   inline?: boolean
@@ -20,6 +21,10 @@ const components = {
           {children}
         </code>
       )
+    }
+
+    if (/language-mermaid(?:\s|$)/.test(className)) {
+      return <MermaidBlock code={content} />
     }
 
     return <CodeBlock className={className} code={content} />
