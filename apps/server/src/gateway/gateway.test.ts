@@ -9,6 +9,7 @@ import { GeminiGateway } from './gemini-gateway.js';
 import { GroqGateway } from './groq-gateway.js';
 import { OpenAiGateway } from './openai-gateway.js';
 import { SambaNovaGateway } from './sambanova-gateway.js';
+import { parseToolCallCandidatePartsDetailed } from './tool-call-candidate.js';
 
 const groqRequest: ModelRequest = {
 	max_output_tokens: 64,
@@ -147,6 +148,14 @@ const callableToolsRequest: NonNullable<ModelRequest['available_tools']> = [
 				type: 'number',
 			},
 		},
+	},
+];
+
+const parameterlessToolRequest: NonNullable<ModelRequest['available_tools']> = [
+	{
+		description: 'Capture the current desktop screenshot.',
+		name: 'desktop.screenshot',
+		parameters: {},
 	},
 ];
 
@@ -393,6 +402,76 @@ beforeEach(() => {
 	gatewayTestEnvironment.RUNA_OPENAI_COMPAT_ALLOW_REMOTE = undefined;
 });
 
+describe('tool call candidate parser', () => {
+	it.each([
+		[
+			'accepts empty string input as an empty object',
+			{
+				call_id: 'call_empty_string',
+				tool_input: '   ',
+				tool_name: 'file.read',
+			},
+			{
+				candidate: {
+					call_id: 'call_empty_string',
+					tool_input: {},
+					tool_name: 'file.read',
+				},
+			},
+		],
+		[
+			'accepts missing input as an empty object',
+			{
+				call_id: 'call_missing_input',
+				tool_input: undefined,
+				tool_name: 'file.read',
+			},
+			{
+				candidate: {
+					call_id: 'call_missing_input',
+					tool_input: {},
+					tool_name: 'file.read',
+				},
+			},
+		],
+		[
+			'reports missing call ids',
+			{
+				call_id: '',
+				tool_input: '{}',
+				tool_name: 'file.read',
+			},
+			{
+				rejection_reason: 'missing_call_id',
+			},
+		],
+		[
+			'reports invalid tool names',
+			{
+				call_id: 'call_invalid_name',
+				tool_input: '{}',
+				tool_name: 'file_read',
+			},
+			{
+				rejection_reason: 'invalid_tool_name',
+			},
+		],
+		[
+			'reports unparseable tool inputs',
+			{
+				call_id: 'call_bad_input',
+				tool_input: '{',
+				tool_name: 'file.read',
+			},
+			{
+				rejection_reason: 'unparseable_tool_input',
+			},
+		],
+	])('%s', (_name, parts, expected) => {
+		expect(parseToolCallCandidatePartsDetailed(parts)).toEqual(expected);
+	});
+});
+
 describe('gateway factory', () => {
 	it('returns a lazy gateway wrapper for the groq provider', () => {
 		const gateway = createModelGateway({
@@ -608,6 +687,163 @@ describe('DeepSeekGateway', () => {
 				path: 'README.md',
 			},
 			tool_name: 'file.read',
+		});
+	});
+
+	it('accepts a streaming parameterless tool call when no arguments delta is sent', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_stream_tool","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_deepseek_screenshot","type":"function","function":{"name":"desktop-screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_stream_tool","model":"deepseek-v4-flash","choices":[{"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":3,"total_tokens":10}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = [];
+
+		for await (const chunk of gateway.stream({
+			...deepSeekRequest,
+			available_tools: parameterlessToolRequest,
+		})) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual(['desktop_screenshot']);
+		expect(chunks).toEqual([
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: '',
+						role: 'assistant',
+					},
+					model: 'deepseek-v4-flash',
+					provider: 'deepseek',
+					response_id: 'chatcmpl_deepseek_stream_tool',
+					tool_call_candidate: {
+						call_id: 'call_deepseek_screenshot',
+						tool_input: {},
+						tool_name: 'desktop.screenshot',
+					},
+					usage: {
+						input_tokens: 7,
+						output_tokens: 3,
+						total_tokens: 10,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('surfaces missing call id as a structured DeepSeek streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_stream_missing_call","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function","function":{"name":"desktop_screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_stream_missing_call","model":"deepseek-v4-flash","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const consumeStream = async () => {
+			const chunks = [];
+
+			for await (const chunk of gateway.stream({
+				...deepSeekRequest,
+				available_tools: parameterlessToolRequest,
+			})) {
+				chunks.push(chunk);
+			}
+
+			return chunks;
+		};
+
+		await expect(consumeStream()).rejects.toMatchObject({
+			details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop_screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			message:
+				'DeepSeek streaming response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured DeepSeek streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_stream_bad_json","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_bad_json","type":"function","function":{"name":"file_read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_stream_bad_json","model":"deepseek-v4-flash","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const consumeStream = async () => {
+			const chunks = [];
+
+			for await (const chunk of gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+			})) {
+				chunks.push(chunk);
+			}
+
+			return chunks;
+		};
+
+		await expect(consumeStream()).rejects.toMatchObject({
+			details: {
+				arguments_length: 7,
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file_read',
+				tool_name_resolved: 'file.read',
+			},
+			message:
+				'DeepSeek streaming response contained an invalid tool call candidate (unparseable_tool_input).',
+		});
+	});
+
+	it('accepts a non-streaming parameterless tool call with empty arguments', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop_screenshot',
+									},
+									id: 'call_deepseek_empty_args',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_deepseek_empty_args',
+				model: 'deepseek-v4-flash',
+			}),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		const response = await gateway.generate({
+			...deepSeekRequest,
+			available_tools: parameterlessToolRequest,
+		});
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_deepseek_empty_args',
+			tool_input: {},
+			tool_name: 'desktop.screenshot',
 		});
 	});
 
