@@ -59,6 +59,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { MessageRenderer } from '@/lib/assistant-ui/MessageRenderer'
 import { StreamdownMessage } from '@/lib/streamdown/StreamdownMessage'
+import { TransportErrorBanner } from '@/lib/transport/errors'
 import './App.css'
 
 type ToolPart = ToolUIPart | DynamicToolUIPart
@@ -213,11 +214,12 @@ function useProgressiveText(text: string, enabled: boolean, tokensPerSecond = 80
 function TransportChat() {
   const [scenario, setScenario] = useState('mixed')
   const [input, setInput] = useState('Runa stack spike için mixed streaming çalıştır.')
-  const { messages, sendMessage, status, stop, regenerate } = useChat({
+  const { clearError, error, messages, sendMessage, status, stop, regenerate } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
       prepareSendMessagesRequest: ({ id, messages: requestMessages, trigger }) => ({
         body: {
+          cutAfterMs: scenario === 'network-cut' ? 2000 : undefined,
           id,
           messages: requestMessages,
           scenario,
@@ -245,6 +247,7 @@ function TransportChat() {
   )
 
   const handleSubmit = () => {
+    clearError()
     sendMessage({ text: input || `Run scenario: ${scenario}` })
   }
 
@@ -325,6 +328,15 @@ function TransportChat() {
               })}
             </article>
           ))}
+          {error && (
+            <TransportErrorBanner
+              error={error}
+              onRetry={() => {
+                clearError()
+                regenerate()
+              }}
+            />
+          )}
         </div>
         <div className="side-log">
           <label>

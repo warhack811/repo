@@ -76,6 +76,7 @@ const parseRequestBody = async (req: import('node:http').IncomingMessage) => {
     return {}
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8')) as {
+    cutAfterMs?: number
     messages?: UIMessage[]
     scenario?: string
   }
@@ -98,6 +99,8 @@ export default defineConfig({
 
           const body = await parseRequestBody(req)
           const scenario = body.scenario ?? 'mixed'
+          const url = new URL(req.url ?? '/api/chat', 'http://localhost')
+          const cutAfterMs = Number(url.searchParams.get('cut')) || body.cutAfterMs || 300
           const modelMessages = await convertToModelMessages(body.messages ?? [])
           console.info('[runa-spike] /api/chat', {
             scenario,
@@ -115,7 +118,7 @@ export default defineConfig({
                 delta: 'Stream deliberately cut after this partial sentence...',
               })}\n\n`,
             )
-            setTimeout(() => res.destroy(), 300)
+            setTimeout(() => res.destroy(), cutAfterMs)
             return
           }
 

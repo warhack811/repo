@@ -381,6 +381,19 @@ textarea,
   font-size: 13px;
 }
 
+.transport-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(240, 183, 157, 0.32);
+  border-radius: 8px;
+  background: rgba(240, 183, 157, 0.08);
+  color: #ffd9c8;
+}
+
 .conversation-load {
   display: grid;
   max-height: 620px;
