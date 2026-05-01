@@ -371,6 +371,16 @@ textarea,
   min-height: 44px;
 }
 
+.assistant-renderer-source {
+  display: inline-flex;
+  margin: 2px 4px;
+}
+
+.assistant-renderer-empty {
+  color: #8d867c;
+  font-size: 13px;
+}
+
 .conversation-load {
   display: grid;
   max-height: 620px;

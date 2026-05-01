@@ -57,6 +57,7 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool'
 import { Button } from '@/components/ui/button'
+import { MessageRenderer } from '@/lib/assistant-ui/MessageRenderer'
 import { StreamdownMessage } from '@/lib/streamdown/StreamdownMessage'
 import './App.css'
 
@@ -386,12 +387,12 @@ function AssistantThreadShell() {
               components={{
                 UserMessage: () => (
                   <MessagePrimitive.Root className="assistant-message user">
-                    <MessagePrimitive.Content />
+                    <MessageRenderer />
                   </MessagePrimitive.Root>
                 ),
                 AssistantMessage: () => (
                   <MessagePrimitive.Root className="assistant-message assistant">
-                    <MessagePrimitive.Content />
+                    <MessageRenderer />
                   </MessagePrimitive.Root>
                 ),
               }}
