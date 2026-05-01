@@ -4,6 +4,12 @@ main {
   color: #ece7dd;
 }
 
+.app-loading {
+  display: grid;
+  place-items: center;
+  color: #8fd3bd;
+}
+
 .hero-lockup {
   display: flex;
   align-items: end;
