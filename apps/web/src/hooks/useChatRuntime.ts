@@ -25,15 +25,12 @@ import type {
 	RunFeedbackState,
 	RunTransportSummary,
 } from '../lib/chat-runtime/types.js';
+import { reportTelemetryEvent, reportTransportErrorMetric } from '../lib/monitoring/telemetry.js';
 import {
 	type TransportErrorCode,
 	classifyWebSocketClose,
 	getTransportError,
 } from '../lib/transport/error-catalog.js';
-import {
-	reportTelemetryEvent,
-	reportTransportErrorMetric,
-} from '../lib/monitoring/telemetry.js';
 import {
 	createApprovalResolveMessage,
 	createClientId,
@@ -781,11 +778,9 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 
 								if (runStartedAt !== undefined) {
 									firstTokenSeenRunIdsRef.current.add(parsedMessage.payload.run_id);
-									reportTelemetryEvent(
-										'time_to_first_token',
-										performance.now() - runStartedAt,
-										{ run_id: parsedMessage.payload.run_id },
-									);
+									reportTelemetryEvent('time_to_first_token', performance.now() - runStartedAt, {
+										run_id: parsedMessage.payload.run_id,
+									});
 								}
 							}
 
