@@ -1,104 +1,25 @@
 import type {
+	EvidencePack,
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
-	ToolExecutionContext,
 	ToolResult,
 	ToolResultError,
 	ToolResultSuccess,
 	WebSearchTrustTier,
 } from '@runa/types';
 
-import {
-	sanitizeOptionalPromptContent,
-	sanitizePromptContent,
-} from '../utils/sanitize-prompt-content.js';
+import { compileEvidence } from '../evidence/compile.js';
+import { toTrustTier } from '../evidence/trust-score.js';
+import { classifySearchIntent } from '../search/intent.js';
+import type { SearchIntent, SearchProviderEnvironment } from '../search/provider.js';
+import { getDefaultProvider } from '../search/registry.js';
+import { getTransportErrorCode } from '../transport/error-codes.js';
 
-const DEFAULT_MAX_RESULTS = 5;
-const DEFAULT_SERPER_ENDPOINT = 'https://google.serper.dev/search';
-const DEFAULT_SERPER_NEWS_ENDPOINT = 'https://google.serper.dev/news';
-const MAX_MAX_RESULTS = 5;
+const DEFAULT_MAX_RESULTS = 8;
+const MAX_MAX_RESULTS = 8;
 const MAX_QUERY_LENGTH = 160;
-const MAX_SNIPPET_LENGTH = 280;
-const LOCALE_PATTERN = /^[a-z]{2}$/iu;
-const PROVIDER_RESULT_MULTIPLIER = 2;
-const REQUEST_TIMEOUT_MS = 8_000;
-
-const COMMUNITY_RESEARCH_HOST_SUFFIXES = ['researchgate.net', 'scholar.google.com'] as const;
-const GENERAL_WEB_HOST_SUFFIXES = [
-	'dev.to',
-	'facebook.com',
-	'instagram.com',
-	'linkedin.com',
-	'medium.com',
-	'pinterest.com',
-	'quora.com',
-	'reddit.com',
-	'substack.com',
-	'techcrunch.com',
-	'tiktok.com',
-	'twitter.com',
-	'x.com',
-	'youtube.com',
-] as const;
-
-const OFFICIAL_SOURCE_HOST_SUFFIXES = [
-	'europa.eu',
-	'gov.tr',
-	'meb.gov.tr',
-	'nih.gov',
-	'who.int',
-] as const;
-
-const REPUTABLE_RESEARCH_HOST_SUFFIXES = [
-	'arxiv.org',
-	'acm.org',
-	'doi.org',
-	'ieee.org',
-	'jstor.org',
-	'ncbi.nlm.nih.gov',
-	'nature.com',
-	'pubmed.ncbi.nlm.nih.gov',
-	'sciencedirect.com',
-	'wikipedia.org',
-] as const;
-
-const REPUTABLE_TECH_HOST_SUFFIXES = [
-	'developer.mozilla.org',
-	'docs.github.com',
-	'github.com',
-	'learn.microsoft.com',
-	'microsoft.com',
-	'nodejs.org',
-	'npmjs.com',
-	'stackoverflow.com',
-	'stackexchange.com',
-	'typescriptlang.org',
-	'vite.dev',
-	'vitest.dev',
-] as const;
-
-const DOCS_LIKE_PATH_SEGMENTS = [
-	'api',
-	'docs',
-	'documentation',
-	'guide',
-	'guides',
-	'manual',
-	'reference',
-];
-const DOCS_LIKE_SUBDOMAINS = ['api', 'developer', 'developers', 'docs', 'learn', 'platform'];
-const COMMUNITY_HOST_SEGMENTS = ['community', 'discourse', 'discuss', 'forum', 'forums'];
-const NON_VENDOR_PATH_SEGMENTS = [
-	'article',
-	'articles',
-	'blog',
-	'community',
-	'forum',
-	'news',
-	'post',
-	'posts',
-];
+const LOCALE_PATTERN = /^[a-z]{2}(?:-[a-z]{2})?$/iu;
 
 export type WebSearchProvider = 'serper';
 
@@ -112,34 +33,32 @@ export type WebSearchArguments = ToolArguments & {
 
 export interface WebSearchResultItem {
 	readonly authority_note?: string;
+	readonly canonical_url: string;
+	readonly domain: string;
+	readonly favicon: string;
 	readonly freshness_hint?: string;
+	readonly published_at: string | null;
 	readonly snippet: string;
 	readonly source: string;
 	readonly title: string;
+	readonly trust_score: number;
 	readonly trust_tier: WebSearchTrustTier;
 	readonly url: string;
 }
 
-export interface WebSearchAnswerBoxData {
-	readonly snippet: string;
-	readonly source?: string;
-	readonly title?: string;
-}
-
-export interface WebSearchKnowledgeGraphData {
-	readonly description?: string;
-	readonly source?: string;
-	readonly title?: string;
-}
-
 export interface WebSearchSuccessData {
-	readonly answer_box?: WebSearchAnswerBoxData;
 	readonly authority_note?: string;
+	readonly evidence: EvidencePack;
 	readonly freshness_note?: string;
 	readonly is_truncated: boolean;
-	readonly knowledge_graph?: WebSearchKnowledgeGraphData;
+	readonly model_context: string;
+	readonly result_count: number;
 	readonly results: readonly WebSearchResultItem[];
 	readonly search_provider: WebSearchProvider;
+	readonly searches: number;
+	readonly sources: EvidencePack['sources'];
+	readonly truncated: boolean;
+	readonly unreliable?: boolean;
 }
 
 export type WebSearchInput = ToolCallInput<'web.search', WebSearchArguments>;
@@ -151,79 +70,16 @@ export type WebSearchErrorResult = ToolResultError<'web.search'>;
 export type WebSearchResult = ToolResult<'web.search', WebSearchSuccessData>;
 
 interface WebSearchDependencies {
-	readonly environment: SearchEnvironment;
+	readonly environment: SearchProviderEnvironment;
 	readonly fetch: typeof fetch;
 }
 
-interface SearchEnvironment extends NodeJS.ProcessEnv {
-	readonly SERPER_API_KEY?: string;
-	readonly SERPER_ENDPOINT?: string;
-}
-
-type SearchType = 'news' | 'organic';
-
 interface SearchSettings {
+	readonly freshness: 'month' | null;
+	readonly intent: SearchIntent;
 	readonly locale?: string;
 	readonly max_results: number;
 	readonly query: string;
-	readonly search_type: SearchType;
-}
-
-interface SerperAnswerBoxCandidate {
-	readonly answer?: unknown;
-	readonly link?: unknown;
-	readonly snippet?: unknown;
-	readonly source?: unknown;
-	readonly title?: unknown;
-}
-
-interface SerperKnowledgeGraphCandidate {
-	readonly description?: unknown;
-	readonly source?: unknown;
-	readonly title?: unknown;
-	readonly website?: unknown;
-}
-
-interface SerperNewsResultCandidate {
-	readonly date?: unknown;
-	readonly link?: unknown;
-	readonly position?: unknown;
-	readonly snippet?: unknown;
-	readonly source?: unknown;
-	readonly title?: unknown;
-}
-
-interface SerperOrganicResultCandidate {
-	readonly date?: unknown;
-	readonly link?: unknown;
-	readonly position?: unknown;
-	readonly snippet?: unknown;
-	readonly source?: unknown;
-	readonly title?: unknown;
-}
-
-interface SerperResponseCandidate {
-	readonly answerBox?: unknown;
-	readonly answer_box?: unknown;
-	readonly knowledgeGraph?: unknown;
-	readonly knowledge_graph?: unknown;
-	readonly news?: unknown;
-	readonly organic?: unknown;
-}
-
-interface SerperSearchResult {
-	readonly date?: string;
-	readonly link: string;
-	readonly position?: number;
-	readonly snippet?: string;
-	readonly source?: string;
-	readonly title: string;
-}
-
-interface SerperParsedResponse {
-	readonly answer_box?: WebSearchAnswerBoxData;
-	readonly knowledge_graph?: WebSearchKnowledgeGraphData;
-	readonly results: readonly SerperSearchResult[];
 }
 
 interface WebSearchErrorResultCandidate {
@@ -278,276 +134,24 @@ function normalizeMaxResults(maxResults: number | undefined): number | undefined
 	return Math.min(maxResults, MAX_MAX_RESULTS);
 }
 
-function normalizeSnippet(snippet: string | undefined): string {
-	if (!snippet) {
-		return 'No snippet available from the search provider.';
+function normalizeSearchType(searchType: unknown): SearchIntent | undefined {
+	if (searchType === undefined) {
+		return undefined;
 	}
 
-	const normalizedSnippet = normalizeText(snippet);
-
-	if (normalizedSnippet.length <= MAX_SNIPPET_LENGTH) {
-		return normalizedSnippet;
+	if (searchType === 'news') {
+		return 'news';
 	}
 
-	return `${normalizedSnippet.slice(0, MAX_SNIPPET_LENGTH - 3)}...`;
-}
-
-function matchesHostSuffix(hostname: string, suffix: string): boolean {
-	return hostname === suffix || hostname.endsWith(`.${suffix}`);
-}
-
-function normalizeHostname(hostname: string): string {
-	return hostname.replace(/^www\./u, '').toLocaleLowerCase();
-}
-
-function isGeneralWebHost(hostname: string): boolean {
-	return GENERAL_WEB_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
-}
-
-function isCommunityResearchHost(hostname: string): boolean {
-	return COMMUNITY_RESEARCH_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
-}
-
-function isCommunityLikeHost(hostname: string): boolean {
-	return hostname.split('.').some((segment) => COMMUNITY_HOST_SEGMENTS.includes(segment));
-}
-
-function isOfficialInstitutionHost(hostname: string): boolean {
-	return (
-		OFFICIAL_SOURCE_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix)) ||
-		hostname.endsWith('.gov') ||
-		hostname.includes('.gov.') ||
-		hostname.endsWith('.edu') ||
-		hostname.includes('.edu.')
-	);
-}
-
-function isReputableResearchHost(hostname: string): boolean {
-	return REPUTABLE_RESEARCH_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
-}
-
-function isReputableTechHost(hostname: string): boolean {
-	return REPUTABLE_TECH_HOST_SUFFIXES.some((suffix) => matchesHostSuffix(hostname, suffix));
-}
-
-function hasDocsLikeSignal(hostname: string, pathName: string): boolean {
-	const hostSegments = hostname.split('.');
-	const pathSegments = pathName
-		.split('/')
-		.map((segment) => segment.trim().toLocaleLowerCase())
-		.filter((segment) => segment.length > 0);
-
-	return (
-		!hostSegments.some((segment) => COMMUNITY_HOST_SEGMENTS.includes(segment)) &&
-		(hostSegments.some((segment) => DOCS_LIKE_SUBDOMAINS.includes(segment)) ||
-			pathSegments.some((segment) => DOCS_LIKE_PATH_SEGMENTS.includes(segment)))
-	);
-}
-
-function isVendorLikeHost(hostname: string, pathName: string): boolean {
-	const hostSegments = hostname.split('.');
-	const pathSegments = pathName
-		.split('/')
-		.map((segment) => segment.trim().toLocaleLowerCase())
-		.filter((segment) => segment.length > 0);
-
-	if (hostSegments.length > 3) {
-		return false;
-	}
-
-	return !pathSegments.some((segment) => NON_VENDOR_PATH_SEGMENTS.includes(segment));
-}
-
-function detectTrustTier(url: URL): WebSearchTrustTier {
-	const hostname = normalizeHostname(url.hostname);
-
-	if (isCommunityResearchHost(hostname) || isCommunityLikeHost(hostname)) {
+	if (searchType === 'organic' || searchType === 'general') {
 		return 'general';
 	}
 
-	if (isOfficialInstitutionHost(hostname)) {
-		return 'official';
+	if (searchType === 'research') {
+		return 'research';
 	}
 
-	if (hasDocsLikeSignal(hostname, url.pathname)) {
-		return 'official';
-	}
-
-	if (isReputableResearchHost(hostname)) {
-		return 'reputable';
-	}
-
-	if (isReputableTechHost(hostname)) {
-		return 'reputable';
-	}
-
-	if (!isGeneralWebHost(hostname) && isVendorLikeHost(hostname, url.pathname)) {
-		return 'vendor';
-	}
-
-	return 'general';
-}
-
-function getAuthorityNote(trustTier: WebSearchTrustTier): string {
-	switch (trustTier) {
-		case 'official':
-			return 'Docs-like or official project source.';
-		case 'vendor':
-			return 'Vendor or project-owned site; verify exact details on canonical docs when available.';
-		case 'reputable':
-			return 'Reputable technical source; still secondary to official docs.';
-		case 'general':
-			return 'General web result, aggregator, or community-uploaded source; treat as lower-trust context.';
-	}
-}
-
-function getFreshnessHint(date: string | undefined): string | undefined {
-	if (!date) {
-		return undefined;
-	}
-
-	const normalizedDate = normalizeText(date);
-
-	return normalizedDate.length > 0 ? `Provider date: ${normalizedDate}` : undefined;
-}
-
-function getTrustRank(trustTier: WebSearchTrustTier): number {
-	switch (trustTier) {
-		case 'official':
-			return 0;
-		case 'vendor':
-			return 1;
-		case 'reputable':
-			return 2;
-		case 'general':
-			return 3;
-	}
-}
-
-function normalizeOptionalText(value: unknown): string | undefined {
-	if (typeof value !== 'string') {
-		return undefined;
-	}
-
-	const normalizedValue = normalizeText(value);
-
-	return normalizedValue.length > 0 ? normalizedValue : undefined;
-}
-
-function normalizeSourceLabel(rawSource: unknown, rawUrl: unknown): string | undefined {
-	const normalizedSource = normalizeOptionalText(rawSource);
-
-	if (normalizedSource) {
-		return sanitizePromptContent(normalizedSource);
-	}
-
-	const normalizedUrl = normalizeOptionalText(rawUrl);
-
-	if (!normalizedUrl) {
-		return undefined;
-	}
-
-	try {
-		return normalizeHostname(new URL(normalizedUrl).hostname);
-	} catch {
-		return sanitizePromptContent(normalizedUrl);
-	}
-}
-
-function isSerperSearchResult(value: unknown): value is SerperSearchResult {
-	if (!isRecord(value)) {
-		return false;
-	}
-
-	const candidate = value as SerperOrganicResultCandidate | SerperNewsResultCandidate;
-
-	return (
-		typeof candidate.title === 'string' &&
-		typeof candidate.link === 'string' &&
-		(candidate.snippet === undefined || typeof candidate.snippet === 'string') &&
-		(candidate.date === undefined || typeof candidate.date === 'string') &&
-		(candidate.position === undefined || typeof candidate.position === 'number') &&
-		(candidate.source === undefined || typeof candidate.source === 'string')
-	);
-}
-
-function parseSerperSearchResults(
-	payload: unknown,
-	searchType: SearchType,
-): readonly SerperSearchResult[] {
-	if (!isRecord(payload)) {
-		return [];
-	}
-
-	const candidate = payload as SerperResponseCandidate;
-	const rawResults = searchType === 'news' ? candidate.news : candidate.organic;
-
-	if (!Array.isArray(rawResults)) {
-		return [];
-	}
-
-	return rawResults.filter((result) => isSerperSearchResult(result));
-}
-
-function parseSerperAnswerBox(payload: unknown): WebSearchAnswerBoxData | undefined {
-	if (!isRecord(payload)) {
-		return undefined;
-	}
-
-	const candidate = payload as SerperAnswerBoxCandidate;
-	const snippetCandidate =
-		normalizeOptionalText(candidate.snippet) ?? normalizeOptionalText(candidate.answer);
-
-	if (!snippetCandidate) {
-		return undefined;
-	}
-
-	return {
-		snippet: sanitizePromptContent(normalizeSnippet(snippetCandidate)),
-		source: normalizeSourceLabel(candidate.source, candidate.link),
-		title: sanitizeOptionalPromptContent(normalizeOptionalText(candidate.title)),
-	};
-}
-
-function parseSerperKnowledgeGraph(payload: unknown): WebSearchKnowledgeGraphData | undefined {
-	if (!isRecord(payload)) {
-		return undefined;
-	}
-
-	const candidate = payload as SerperKnowledgeGraphCandidate;
-	const title = normalizeOptionalText(candidate.title);
-	const description = normalizeOptionalText(candidate.description);
-	const source = normalizeSourceLabel(candidate.source, candidate.website);
-
-	if (!title && !description && !source) {
-		return undefined;
-	}
-
-	return {
-		description: sanitizeOptionalPromptContent(description),
-		source,
-		title: sanitizeOptionalPromptContent(title),
-	};
-}
-
-function parseSerperResponse(payload: unknown, searchType: SearchType): SerperParsedResponse {
-	if (!isRecord(payload)) {
-		return {
-			results: [],
-		};
-	}
-
-	const candidate = payload as SerperResponseCandidate;
-	const answerBox = parseSerperAnswerBox(candidate.answerBox ?? candidate.answer_box);
-	const knowledgeGraph = parseSerperKnowledgeGraph(
-		candidate.knowledgeGraph ?? candidate.knowledge_graph,
-	);
-
-	return {
-		...(answerBox ? { answer_box: answerBox } : {}),
-		...(knowledgeGraph ? { knowledge_graph: knowledgeGraph } : {}),
-		results: parseSerperSearchResults(candidate, searchType),
-	};
+	return undefined;
 }
 
 function createErrorResult(
@@ -584,215 +188,6 @@ function isWebSearchErrorResult(value: unknown): value is WebSearchErrorResult {
 	);
 }
 
-function toExecutionErrorResult(input: WebSearchInput, error: unknown): WebSearchErrorResult {
-	if (error instanceof Error) {
-		if (error.name === 'AbortError') {
-			return createErrorResult(
-				input,
-				'TIMEOUT',
-				'Web search provider request timed out.',
-				{
-					reason: 'provider_timeout',
-				},
-				true,
-			);
-		}
-
-		return createErrorResult(
-			input,
-			'EXECUTION_FAILED',
-			`Web search failed: ${error.message}`,
-			{
-				reason: 'provider_request_failed',
-			},
-			true,
-		);
-	}
-
-	return createErrorResult(
-		input,
-		'UNKNOWN',
-		'Web search failed with an unknown error.',
-		{
-			reason: 'unknown_provider_error',
-		},
-		true,
-	);
-}
-
-function getSearchEndpoint(environment: SearchEnvironment, searchType: SearchType): string {
-	const configuredEndpoint = environment.SERPER_ENDPOINT?.trim();
-
-	if (!configuredEndpoint || configuredEndpoint.length === 0) {
-		return searchType === 'news' ? DEFAULT_SERPER_NEWS_ENDPOINT : DEFAULT_SERPER_ENDPOINT;
-	}
-
-	if (searchType === 'organic') {
-		return configuredEndpoint;
-	}
-
-	try {
-		const parsedEndpoint = new URL(configuredEndpoint);
-		const normalizedPath = parsedEndpoint.pathname.replace(/\/+$/u, '');
-
-		parsedEndpoint.pathname = normalizedPath.endsWith('/search')
-			? `${normalizedPath.slice(0, -'/search'.length)}/news`
-			: `${normalizedPath}/news`;
-
-		return parsedEndpoint.toString();
-	} catch {
-		return DEFAULT_SERPER_NEWS_ENDPOINT;
-	}
-}
-
-function getSearchApiKey(environment: SearchEnvironment): string | undefined {
-	const value = environment.SERPER_API_KEY?.trim();
-
-	return value && value.length > 0 ? value : undefined;
-}
-
-async function requestSerperResults(
-	dependencies: WebSearchDependencies,
-	input: WebSearchInput,
-	settings: SearchSettings,
-): Promise<SerperParsedResponse> {
-	const apiKey = getSearchApiKey(dependencies.environment);
-
-	if (!apiKey) {
-		throw createErrorResult(
-			input,
-			'EXECUTION_FAILED',
-			'web.search requires SERPER_API_KEY in the server environment.',
-			{
-				reason: 'missing_serper_api_key',
-			},
-			false,
-		);
-	}
-
-	const controller = new AbortController();
-	const timeoutHandle = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-	try {
-		const response = await dependencies.fetch(
-			getSearchEndpoint(dependencies.environment, settings.search_type),
-			{
-				body: JSON.stringify({
-					hl: settings.locale,
-					num: Math.min(settings.max_results * PROVIDER_RESULT_MULTIPLIER, 10),
-					q: settings.query,
-					tbs:
-						settings.search_type === 'organic' && input.arguments.freshness_required === true
-							? 'qdr:m'
-							: undefined,
-				}),
-				headers: {
-					'content-type': 'application/json',
-					'X-API-KEY': apiKey,
-				},
-				method: 'POST',
-				signal: controller.signal,
-			},
-		);
-
-		if (!response.ok) {
-			const responseBody = normalizeSnippet(await response.text());
-			throw createErrorResult(
-				input,
-				'EXECUTION_FAILED',
-				`Web search provider request failed with status ${response.status}.`,
-				{
-					provider_body: responseBody,
-					provider_status: response.status,
-					reason: 'provider_http_error',
-				},
-				response.status >= 500,
-			);
-		}
-
-		return parseSerperResponse((await response.json()) as unknown, settings.search_type);
-	} finally {
-		clearTimeout(timeoutHandle);
-	}
-}
-
-function shapeResults(
-	searchResults: readonly SerperSearchResult[],
-	maxResults: number,
-): Readonly<{
-	readonly is_truncated: boolean;
-	readonly results: readonly WebSearchResultItem[];
-}> {
-	const shapedResults = searchResults
-		.flatMap((result) => {
-			try {
-				const url = new URL(result.link);
-
-				if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-					return [];
-				}
-
-				const hostname = normalizeHostname(url.hostname);
-				const trustTier = detectTrustTier(url);
-
-				if (isGeneralWebHost(hostname)) {
-					return [];
-				}
-
-				return [
-					{
-						authority_note: sanitizePromptContent(getAuthorityNote(trustTier)),
-						freshness_hint: sanitizeOptionalPromptContent(getFreshnessHint(result.date)),
-						snippet: sanitizePromptContent(normalizeSnippet(result.snippet)),
-						source: normalizeSourceLabel(result.source, result.link) ?? hostname,
-						title: sanitizePromptContent(normalizeText(result.title)),
-						trust_tier: trustTier,
-						url: url.toString(),
-					} satisfies WebSearchResultItem,
-				];
-			} catch {
-				return [];
-			}
-		})
-		.filter((result) => result.title.length > 0)
-		.sort((left, right) => {
-			const trustRank = getTrustRank(left.trust_tier) - getTrustRank(right.trust_tier);
-
-			if (trustRank !== 0) {
-				return trustRank;
-			}
-
-			const sourceComparison = left.source.localeCompare(right.source);
-
-			if (sourceComparison !== 0) {
-				return sourceComparison;
-			}
-
-			return left.url.localeCompare(right.url);
-		});
-	const visibleResults = shapedResults.slice(0, maxResults);
-
-	return {
-		is_truncated: shapedResults.length > visibleResults.length,
-		results: visibleResults,
-	};
-}
-
-function getFreshnessNote(
-	searchType: SearchType,
-	freshnessRequired: boolean | undefined,
-): string | undefined {
-	if (searchType === 'news') {
-		return 'News search was requested; provider dates and snippets may lag the source article page.';
-	}
-
-	if (freshnessRequired === true) {
-		return 'Freshness was requested; snippets and provider dates may still lag the live page.';
-	}
-
-	return undefined;
-}
-
 function normalizeSearchSettings(input: WebSearchInput): SearchSettings | WebSearchErrorResult {
 	const query = input.arguments.query;
 	const normalizedQuery = typeof query === 'string' ? normalizeQuery(query) : undefined;
@@ -802,30 +197,19 @@ function normalizeSearchSettings(input: WebSearchInput): SearchSettings | WebSea
 			input,
 			'INVALID_INPUT',
 			`query must be a non-empty string with at most ${MAX_QUERY_LENGTH} characters.`,
-			{
-				reason: 'invalid_query',
-			},
+			{ reason: 'invalid_query' },
 			false,
 		);
 	}
 
-	const searchTypeArgument = input.arguments.search_type;
-	const normalizedSearchType =
-		searchTypeArgument === undefined
-			? 'organic'
-			: typeof searchTypeArgument === 'string' &&
-					(searchTypeArgument === 'organic' || searchTypeArgument === 'news')
-				? searchTypeArgument
-				: undefined;
+	const explicitIntent = normalizeSearchType(input.arguments.search_type);
 
-	if (!normalizedSearchType) {
+	if (input.arguments.search_type !== undefined && explicitIntent === undefined) {
 		return createErrorResult(
 			input,
 			'INVALID_INPUT',
-			'search_type must be "organic" or "news" when provided.',
-			{
-				reason: 'invalid_search_type',
-			},
+			'search_type must be "organic", "general", "research", or "news" when provided.',
+			{ reason: 'invalid_search_type' },
 			false,
 		);
 	}
@@ -838,9 +222,7 @@ function normalizeSearchSettings(input: WebSearchInput): SearchSettings | WebSea
 			input,
 			'INVALID_INPUT',
 			'freshness_required must be a boolean when provided.',
-			{
-				reason: 'invalid_freshness_required',
-			},
+			{ reason: 'invalid_freshness_required' },
 			false,
 		);
 	}
@@ -852,9 +234,7 @@ function normalizeSearchSettings(input: WebSearchInput): SearchSettings | WebSea
 			input,
 			'INVALID_INPUT',
 			'max_results must be a positive integer when provided.',
-			{
-				reason: 'invalid_max_results',
-			},
+			{ reason: 'invalid_max_results' },
 			false,
 		);
 	}
@@ -871,25 +251,87 @@ function normalizeSearchSettings(input: WebSearchInput): SearchSettings | WebSea
 		return createErrorResult(
 			input,
 			'INVALID_INPUT',
-			'locale must be a two-letter language code such as "tr" or "en" when provided.',
-			{
-				reason: 'invalid_locale',
-			},
+			'locale must be a language code such as "tr" or "tr-TR" when provided.',
+			{ reason: 'invalid_locale' },
 			false,
 		);
 	}
 
 	return {
+		freshness: input.arguments.freshness_required === true ? 'month' : null,
+		intent: explicitIntent ?? classifySearchIntent(normalizedQuery),
 		locale: normalizedLocale,
 		max_results: maxResults,
 		query: normalizedQuery,
-		search_type: normalizedSearchType,
 	};
+}
+
+function getAuthorityNote(unreliable: boolean | undefined): string {
+	if (unreliable === true) {
+		return 'EvidenceCompiler did not keep reliable current sources for this query.';
+	}
+
+	return 'EvidenceCompiler normalized, deduplicated, trust-scored, and recency-ranked public sources before returning them to the model.';
+}
+
+function getFreshnessNote(intent: SearchIntent): string | undefined {
+	if (intent === 'news') {
+		return 'News intent detected; recency ranking penalizes missing or stale provider dates.';
+	}
+
+	return undefined;
+}
+
+function toWebSearchResultItems(evidence: EvidencePack): readonly WebSearchResultItem[] {
+	return evidence.sources.map((source) => ({
+		authority_note: `Trust score: ${source.trust_score.toFixed(2)}`,
+		canonical_url: source.canonical_url,
+		domain: source.domain,
+		favicon: source.favicon,
+		freshness_hint: source.published_at ? `Published: ${source.published_at}` : undefined,
+		published_at: source.published_at,
+		snippet: source.snippet,
+		source: source.domain,
+		title: source.title,
+		trust_score: source.trust_score,
+		trust_tier: toTrustTier(source.trust_score),
+		url: source.url,
+	}));
+}
+
+function toExecutionErrorResult(input: WebSearchInput, error: unknown): WebSearchErrorResult {
+	const transportErrorCode = getTransportErrorCode(error);
+
+	if (error instanceof Error) {
+		return createErrorResult(
+			input,
+			transportErrorCode === 'timeout' ? 'TIMEOUT' : 'EXECUTION_FAILED',
+			`Web search failed: ${error.message}`,
+			{
+				reason: 'provider_request_failed',
+				transport_error_code: transportErrorCode,
+			},
+			'retryable' in error && typeof error.retryable === 'boolean'
+				? error.retryable
+				: transportErrorCode !== undefined,
+		);
+	}
+
+	return createErrorResult(
+		input,
+		'UNKNOWN',
+		'Web search failed with an unknown error.',
+		{
+			reason: 'unknown_provider_error',
+			transport_error_code: transportErrorCode,
+		},
+		true,
+	);
 }
 
 export function createWebSearchTool(
 	dependencies: WebSearchDependencies = {
-		environment: process.env as SearchEnvironment,
+		environment: process.env as SearchProviderEnvironment,
 		fetch: (input, init) => globalThis.fetch(input, init),
 	},
 ): ToolDefinition<WebSearchInput, WebSearchResult> {
@@ -903,11 +345,11 @@ export function createWebSearchTool(
 				},
 				max_results: {
 					description:
-						'Maximum number of authority-ranked public web results to return, capped to a small safe limit.',
+						'Maximum number of normalized evidence sources to return, capped to a small safe limit.',
 					type: 'number',
 				},
 				locale: {
-					description: 'Two-letter language code such as "tr" or "en".',
+					description: 'Language code such as "tr", "tr-TR", "en", or "en-US".',
 					type: 'string',
 				},
 				query: {
@@ -917,13 +359,14 @@ export function createWebSearchTool(
 					type: 'string',
 				},
 				search_type: {
-					description: 'Type of search: "organic" (default) or "news" for recent news articles.',
+					description:
+						'Optional search intent: "organic", "general", "research", or "news". If omitted, Runa classifies intent heuristically.',
 					type: 'string',
 				},
 			},
 		},
 		description:
-			'Performs a small, read-only public web search for external or freshness-sensitive questions with authority-first shaping, provenance-aware results, answer-box and knowledge-graph capture, conservative low-trust filtering, optional locale hints, and news-mode support. It complements local truth rather than replacing it.',
+			'Performs a small, read-only public web search and returns an EvidencePack with normalized URLs, deduped sources, trust scores, recency ranking, and compact model context.',
 		async execute(input): Promise<WebSearchResult> {
 			const normalizedSettings = normalizeSearchSettings(input);
 
@@ -932,32 +375,39 @@ export function createWebSearchTool(
 			}
 
 			try {
-				const serperResponse = await requestSerperResults(dependencies, input, normalizedSettings);
-				const shapedResults = shapeResults(serperResponse.results, normalizedSettings.max_results);
+				const compiledEvidence = await compileEvidence(normalizedSettings.query, {
+					freshness: normalizedSettings.freshness,
+					intent: normalizedSettings.intent,
+					limit: normalizedSettings.max_results,
+					locale: normalizedSettings.locale,
+					provider: getDefaultProvider({
+						environment: dependencies.environment,
+						fetch: dependencies.fetch,
+					}),
+				});
+				const evidence = compiledEvidence.evidence;
+				const results = toWebSearchResultItems(evidence);
 
 				return {
 					call_id: input.call_id,
 					output: {
-						answer_box: serperResponse.answer_box,
-						authority_note:
-							'Authority-first ordering prioritizes official, vendor, and reputable sources; high-signal answer surfaces retain provenance and lower-trust general web results are filtered only when clearly noisy.',
-						freshness_note: getFreshnessNote(
-							normalizedSettings.search_type,
-							input.arguments.freshness_required,
-						),
-						is_truncated: shapedResults.is_truncated,
-						knowledge_graph: serperResponse.knowledge_graph,
-						results: shapedResults.results,
-						search_provider: 'serper',
+						authority_note: getAuthorityNote(evidence.unreliable),
+						evidence,
+						freshness_note: getFreshnessNote(normalizedSettings.intent),
+						is_truncated: evidence.truncated,
+						model_context: compiledEvidence.model_context,
+						result_count: evidence.results,
+						results,
+						search_provider: compiledEvidence.provider as WebSearchProvider,
+						searches: evidence.searches,
+						sources: evidence.sources,
+						truncated: evidence.truncated,
+						unreliable: evidence.unreliable,
 					},
 					status: 'success',
 					tool_name: 'web.search',
 				};
 			} catch (error: unknown) {
-				if (isWebSearchErrorResult(error)) {
-					return error;
-				}
-
 				return toExecutionErrorResult(input, error);
 			}
 		},
@@ -966,7 +416,7 @@ export function createWebSearchTool(
 			requires_approval: false,
 			risk_level: 'low',
 			side_effect_level: 'read',
-			tags: ['authority-first', 'public-web', 'search', 'serper'],
+			tags: ['evidence', 'public-web', 'search', 'serper'],
 		},
 		name: 'web.search',
 	};
