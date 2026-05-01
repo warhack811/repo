@@ -1,5 +1,5 @@
 import { cjk } from '@streamdown/cjk'
-import { math } from '@streamdown/math'
+import { createMathPlugin } from '@streamdown/math'
 import type { ComponentProps } from 'react'
 import { Streamdown } from 'streamdown'
 import { CodeBlock } from './CodeBlock'
@@ -9,6 +9,7 @@ type CodeProps = ComponentProps<'code'> & {
   inline?: boolean
 }
 
+const math = createMathPlugin({ singleDollarTextMath: true })
 const streamdownPlugins = { cjk, math }
 
 const components = {
