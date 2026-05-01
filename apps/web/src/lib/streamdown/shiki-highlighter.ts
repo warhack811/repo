@@ -52,6 +52,7 @@ const aliases: Record<string, SupportedLanguage> = {
 
 let highlighterPromise: Promise<HighlighterCore> | undefined;
 const loadedLanguages = new Set<string>();
+const languageLoadPromises = new Map<SupportedLanguage, Promise<void>>();
 
 export const normalizeLanguage = (language: string | undefined): SupportedLanguage | undefined => {
 	const normalized = language?.trim().toLowerCase();
@@ -64,11 +65,25 @@ export const normalizeLanguage = (language: string | undefined): SupportedLangua
 };
 
 const getHighlighter = async () => {
-	highlighterPromise ??= createHighlighterCore({
-		engine: createJavaScriptRegexEngine(),
-		langs: [],
-		themes: await Promise.all(shikiThemes.map((theme) => themeLoaders[theme]())),
-	});
+	highlighterPromise ??= (async () => {
+		const [langs, themes] = await Promise.all([
+			Promise.all(initialLanguages.map((language) => languageLoaders[language]())).then(
+				(registrations) => registrations.flat(),
+			),
+			Promise.all(shikiThemes.map((theme) => themeLoaders[theme]())),
+		]);
+		const highlighter = await createHighlighterCore({
+			engine: createJavaScriptRegexEngine(),
+			langs,
+			themes,
+		});
+
+		for (const language of initialLanguages) {
+			loadedLanguages.add(language);
+		}
+
+		return highlighter;
+	})();
 
 	return highlighterPromise;
 };
@@ -82,9 +97,15 @@ export const highlightCode = async (code: string, language: string | undefined) 
 	}
 
 	if (!loadedLanguages.has(normalized)) {
-		const registrations = await languageLoaders[normalized]();
-		await highlighter.loadLanguage(...registrations);
-		loadedLanguages.add(normalized);
+		const loadPromise =
+			languageLoadPromises.get(normalized) ??
+			(async () => {
+				const registrations = await languageLoaders[normalized]();
+				await highlighter.loadLanguage(...registrations);
+				loadedLanguages.add(normalized);
+			})();
+		languageLoadPromises.set(normalized, loadPromise);
+		await loadPromise;
 	}
 
 	return highlighter.codeToHtml(code, {

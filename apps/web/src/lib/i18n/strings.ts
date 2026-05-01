@@ -1,4 +1,11 @@
 export const uiText = {
+	code: {
+		copy: 'Kopyala',
+		copied: 'Kopyalandı',
+		copyFailed: 'Kopyalama başarısız',
+		highlighting: 'Vurgulama yükleniyor...',
+		highlightingFailed: (language: string) => `${language} vurgulama başarısız`,
+	},
 	evidence: {
 		noReliableSourcesFound: 'Güvenilir kaynak bulunamadı',
 		results: (count: number) => `${count} sonuç`,
@@ -12,9 +19,11 @@ export const uiText = {
 	},
 	sources: {
 		openSource: 'Kaynağı aç',
+		showingWebResults: (count: number) => `${count} web sonucu gösteriliyor`,
 		title: 'Kaynaklar',
 		used: (count: number, results?: number) =>
 			results === undefined ? `${count} kaynak kullanıldı` : `${count} kaynak · ${results} sonuç`,
+		webSearchResults: 'Web arama sonuçları',
 	},
 	tool: {
 		awaitingApproval: 'Onay bekliyor',

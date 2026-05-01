@@ -1176,6 +1176,77 @@ pre {
 	word-break: break-word;
 }
 
+.transport-error {
+	align-items: center;
+	background: rgba(120, 53, 15, 0.18);
+	border: 1px solid rgba(250, 204, 21, 0.32);
+	border-radius: var(--radius-soft);
+	color: #fde68a;
+	display: flex;
+	flex-wrap: wrap;
+	font-size: 14px;
+	gap: 10px;
+	justify-content: space-between;
+	line-height: 1.45;
+	margin-bottom: 10px;
+	padding: 10px 12px;
+	position: relative;
+	z-index: 25;
+}
+
+.runa-code-block {
+	background: hsl(var(--color-surface) / 0.72);
+	border: 1px solid rgba(56, 189, 248, 0.2);
+	border-radius: var(--radius-panel);
+	display: grid;
+	gap: 10px;
+	margin: 12px 0;
+	min-width: 0;
+	overflow: hidden;
+	padding: 12px;
+}
+
+.runa-code-block__toolbar {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: space-between;
+}
+
+.runa-code-block figcaption {
+	color: #7dd3fc;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.runa-code-block pre {
+	margin: 0;
+	overflow-x: auto;
+	padding: 12px;
+	white-space: pre;
+}
+
+.runa-code-block.plain pre {
+	background: rgba(3, 7, 18, 0.62);
+	border-radius: var(--radius-soft);
+}
+
+.runa-code-block .shiki {
+	background: transparent !important;
+	border-radius: var(--radius-soft);
+	margin: 0;
+	overflow-x: auto;
+	padding: 12px;
+}
+
+.code-loading {
+	color: hsl(var(--color-text-soft));
+	font-size: 12px;
+}
+
 .runa-conversation-sidebar-trigger {
 	display: none;
 }
