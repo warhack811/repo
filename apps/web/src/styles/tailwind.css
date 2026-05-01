@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "katex/dist/katex.min.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Map spike theme to Tailwind v4 theme */
+@theme {
+	--font-heading: var(--font-sans);
+	--font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+
+	--color-background: hsl(var(--color-bg));
+	--color-foreground: hsl(var(--color-text));
+	--color-card: hsl(var(--color-surface));
+	--color-card-foreground: hsl(var(--color-text));
+	--color-popover: hsl(var(--color-surface-overlay));
+	--color-popover-foreground: hsl(var(--color-text));
+	--color-primary: hsl(var(--color-accent));
+	--color-primary-foreground: hsl(var(--color-accent-foreground));
+	--color-secondary: hsl(var(--color-surface));
+	--color-secondary-foreground: hsl(var(--color-text));
+	--color-muted: hsl(var(--color-bg-soft));
+	--color-muted-foreground: hsl(var(--color-text-muted));
+	--color-accent: hsl(var(--color-accent));
+	--color-accent-foreground: hsl(var(--color-accent-foreground));
+	--color-destructive: hsl(var(--color-danger));
+	--color-border: hsl(var(--color-border-soft));
+	--color-input: hsl(var(--color-border-soft));
+	--color-ring: hsl(var(--color-accent));
+
+	--radius-sm: var(--radius-soft);
+	--radius-md: var(--radius-soft);
+	--radius-lg: var(--radius-panel);
+	--radius-xl: var(--radius-panel);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+}
