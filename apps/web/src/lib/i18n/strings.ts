@@ -8,9 +8,12 @@ export const uiText = {
 	},
 	evidence: {
 		noReliableSourcesFound: 'Güvenilir kaynak bulunamadı',
+		published: (date: string) => `Yayın: ${date}`,
 		results: (count: number) => `${count} sonuç`,
 		searches: (count: number) => `${count} arama`,
+		trustScore: (score: number) => `Güven ${score}`,
 		truncated: 'Bazı sonuçlar kısaltıldı',
+		unreliable: 'Kaynak güveni sınırlı',
 	},
 	reasoning: {
 		thinking: 'Düşünüyor...',

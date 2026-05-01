@@ -29,6 +29,19 @@
 - Live Serper smoke: shell `SERPER_API_KEY` missing, `.env` fallback present; `.env` fallback ile 10 sorgu PASS, toplam latency `8305ms`, tum tekil sorgular `<2s`.
 - Kalan sinirlar: browser-level frontend Sources panel smoke kosulmadi; HTML meta-date/full-content extraction config-gated follow-up olarak birakildi; statik trust config henuz dar ve neutral score fazlasi var.
 
+### Evidence Sources Panel Browser Proof - 1 Mayis 2026
+
+- Kapsam: Backend EvidenceCompiler ciktilarinin frontend `web_search_result_block` Sources panelinde gorunur oldugu browser seviyesinde kanitlandi. Backend provider, runtime, WS, auth, desktop-agent ve persistence kontratlari degistirilmedi.
+- `WebSearchResultBlock` artik legacy `results` fallback'ini korurken `evidence`, `sources`, `searches`, `result_count`, `truncated` ve `unreliable` alanlarini oncelikli okuyor.
+- Sources panelde canonical evidence source basligi, domain, canonical URL, published date ve trust score gorunur hale geldi; legacy result yalniz evidence source yoksa fallback olarak kullaniliyor.
+- Browser proof icin `apps/web/tests/visual/evidence-sources-fixture.*` ve `evidence-sources-panel.spec.ts` eklendi. Desktop 1440 ve mobile 390 smoke, Sources paneli acip canonical source metadata'sini ve yatay overflow olmadigini dogruluyor.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web test -- BlockRenderer` PASS (`7` test)
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/evidence-sources-panel.spec.ts --config playwright.config.ts` PASS (`2` test)
+- Kalan sinirlar: HTML meta-date/full-content extraction henuz uygulanmadi; bu config-gated backend enrichment follow-up olarak kaldi. Statik trust config dar ve neutral score fazlasi ayrica ele alinacak.
+
 ### Docs Context Governance - 1 Mayis 2026
 
 - docs/INDEX.md ve docs/LLM-CONTEXT.md eklendi. Amac, IDE LLM oturumlarinda tum docs/ klasorunu context'e yuklemek yerine bootstrap + gorev bazli okuma rotasi kullanmak.
