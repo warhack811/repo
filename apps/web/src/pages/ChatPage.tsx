@@ -27,6 +27,7 @@ import { useDesktopDevices } from '../hooks/useDesktopDevices.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
 import { useTextToSpeechIntegration } from '../hooks/useTextToSpeechIntegration.js';
 import { deriveCurrentRunProgressSurface } from '../lib/chat-runtime/current-run-progress.js';
+import { normalizePresentationSurface } from '../lib/chat-runtime/normalize-presentation-surface.js';
 import type { PresentationRunSurface } from '../lib/chat-runtime/types.js';
 import { uiCopy } from '../localization/copy.js';
 import {
@@ -36,7 +37,6 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
-import type { RenderBlock } from '../ws-types.js';
 import '../styles/routes/chat-migration.css';
 
 type ChatPageProps = Readonly<{
@@ -44,46 +44,6 @@ type ChatPageProps = Readonly<{
 	embedded?: boolean;
 	runtime: UseChatRuntimeResult;
 }>;
-
-function filterSupersededApprovalBlocks(blocks: readonly RenderBlock[]): readonly RenderBlock[] {
-	const resolvedApprovalIds = new Set<string>();
-
-	for (const block of blocks) {
-		if (block.type === 'approval_block' && block.payload.status !== 'pending') {
-			resolvedApprovalIds.add(block.payload.approval_id);
-		}
-	}
-
-	if (resolvedApprovalIds.size === 0) {
-		return blocks;
-	}
-
-	return blocks.filter(
-		(block) =>
-			!(
-				block.type === 'approval_block' &&
-				block.payload.status === 'pending' &&
-				resolvedApprovalIds.has(block.payload.approval_id)
-			),
-	);
-}
-
-function normalizePresentationSurface(
-	surface: PresentationRunSurface | null,
-): PresentationRunSurface | null {
-	if (!surface) {
-		return null;
-	}
-
-	const blocks = filterSupersededApprovalBlocks(surface.blocks);
-
-	return blocks === surface.blocks
-		? surface
-		: {
-				...surface,
-				blocks,
-			};
-}
 
 function hasResolvedApprovalBlock(surface: PresentationRunSurface | null): boolean {
 	return Boolean(
@@ -146,8 +106,8 @@ export function ChatPage({
 	const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false);
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 	const visibleCurrentPresentationSurface = useMemo(
-		() => normalizePresentationSurface(currentPresentationSurface),
-		[currentPresentationSurface],
+		() => normalizePresentationSurface(currentPresentationSurface, activeConversationMessages),
+		[currentPresentationSurface, activeConversationMessages],
 	);
 	const currentRunFeedbackForProgress = hasResolvedApprovalBlock(visibleCurrentPresentationSurface)
 		? null
