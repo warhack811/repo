@@ -174,9 +174,10 @@ Durust repo notu:
 
 ## Kod Giris Noktalari
 
+- Runtime loop: `apps/server/src/runtime/agent-loop.ts`, `run-agent-loop.ts`, `run-model-turn-loop-adapter.ts`, `stop-conditions.ts`, `auto-continue-policy.ts`
+- Resilience & Recovery: `apps/server/src/runtime/tool-call-repair-recovery.ts`, `token-limit-recovery.ts`
 - WS composition root: `apps/server/src/ws/register-ws.ts`
 - WS split yuzeyi: `apps/server/src/ws/transport.ts`, `orchestration.ts`, `presentation.ts`, `run-execution.ts`
-- Runtime loop: `apps/server/src/runtime/agent-loop.ts`, `stop-conditions.ts`, `auto-continue-policy.ts`
 - Auth ve subscription seams: `apps/server/src/auth/supabase-auth.ts`, `apps/server/src/ws/ws-auth.ts`, `apps/server/src/ws/ws-subscription-gate.ts`
 - Shared WS contracts: `packages/types/src/ws.ts`, `packages/types/src/ws-guards.ts`
 - Web entry: `apps/web/src/App.tsx`

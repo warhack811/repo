@@ -98,7 +98,8 @@ Power-user capability, karmaşık veya ağır bir arayüz olarak değil; gerekti
 
 MVP aşamasını tamamladıktan sonra odaklandığımız Core Hardening (Phase 2) deneyimi:
 
-- **Otonom Çalışma:** Tek oyunluk turlar yerine, auto-continue ile işi bitirene kadar çalışan, aralarda durup devam edebilen (checkpoint) agentic bir döngü.
+- **Otonom Çalışma:** Tek oyunluk turlar yerine, auto-continue ile işi bitirene kadar çalışan, aralarda durup devam edebilen (checkpoint) ve hatalarını kendi kendine düzeltebilen (self-repair) agentic bir döngü.
+- **Dirençli Altyapı:** Modelin bozuk çıktılarını (invalid JSON) otomatik yakalayıp düzelten `Tool Call Repair Recovery` ile kesintisiz ilerleme.
 - **Bulut ve Yerel Birleşimi (Cloud-First Hybrid):** Supabase ile güvence altına alınmış bir auth/DB katmanı ve Windows bilgisayarı kontrol edebilen sessiz bir desktop agent'ın birleşimi.
 - **Premium UX:** Rakipler seviyesinde (ChatGPT, Claude) sade, kullanışlı, şık ve animasyonlu "consumer-grade" bir arayüz.
 - **Gelişmiş Kontrol:** "Kullanıcının açık olan ekranını gör, masaüstüne müdahale et" vizyonunu gerçekleştirecek desktop tool'ları.

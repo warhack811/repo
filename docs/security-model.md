@@ -61,6 +61,8 @@ Bugunku repo icinde gercekten mevcut olan korumalar:
   - tool, policy, gateway ve event akislari shared type kontratlariyla sinirlanir
 - **summary-first visibility**
   - mutasyon veya approval davranisi kullanicidan tamamen gizli degildir; ws/presentation zincirinde gorunur olur
+- **self-repair feedback loop**
+  - bozuk model ciktilarinda (invalid JSON) modelin uyarilarak kendini duzeltmesi saglanir; bu durum hatali komut calistirma ve format kaynakli halusinasyon riskini azaltir
 - **provider boundary abstraction**
   - model cagrisi dogrudan degil, `ModelGateway` uzerinden gecerek tek bir baglanti noktasinda toplanir
 

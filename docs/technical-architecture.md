@@ -414,6 +414,14 @@ Tool ayrimi provider'a gore gateway adapter'inda normalize edilir:
 
 Runtime tarafi ise provider-ozel JSON yerine ortak `tool_call_candidate` alanina baglidir.
 
+#### Recovery yolu
+
+Agent-loop adapter yolu, provider hatalarini runtime recovery katmanina tasir:
+
+- `tool-call-repair-recovery.ts`, `unparseable_tool_input` durumunda modele tek seferlik JSON repair talimati ekleyerek yeniden dener.
+- `token-limit-recovery.ts`, token limiti durumunda microcompact strategy ile istegi daraltip yeniden dener.
+- Her iki recovery de mevcut model event metadata'sina recovery bilgisini stamp eder; yeni runtime event tipi uretmez.
+
 ### 5.8 Tool dispatch akisi
 
 Temel dosyalar:
@@ -593,10 +601,9 @@ Bu katman bugun Vercel AI SDK adapter zinciri degil, provider API'lerine dogruda
 - system / compiled context katmanlarini tek system string'inde toplar
 - tool call candidate'i `tool_use` alanindan normalize eder
 
-#### Ortak sinir
+#### Ortak yetenekler
 
-Her iki adapter icin de `stream()` bugun implement edilmemistir.
-Canli akista temel yol request/response `generate()` davranisidir.
+Tüm ana adapter'lar (DeepSeek, Groq, Claude) hem `generate()` hem de `stream()` davranışlarını destekler. Canlı akışta temel yol incremental presentation block'ları üzerinden beslenir.
 
 ### 5.14 Tool sistemi
 

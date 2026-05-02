@@ -14,10 +14,11 @@ Bu indeks, `docs/` klasorunun tamamini LLM context'ine yuklemek yerine dogru bel
 | Gorev tipi | Ek belge |
 | --- | --- |
 | Mimari veya cross-module karar | `docs/implementation-blueprint.md`, `docs/technical-architecture.md`, `docs/architecture/constitution.md` |
+| Resilience, Recovery, Self-Repair | `docs/technical-architecture.md` runtime/gateway bolumleri, `docs/PROGRESS.md` Faz 1-4 kayitlari |
 | Security, auth, policy, approval | `docs/security-model.md`, ilgili `docs/tasks/TASK-*.md` |
 | UI, chat surface, design polish | `docs/RUNA-DESIGN-LANGUAGE.md`, ilgili `docs/tasks/TASK-*.md` veya aktif UI promptu |
 | Release, CI, launch proof | `docs/release-demo-checklist.md`, `docs/launch/` |
-| Provider/live smoke | `docs/groq-demo-runbook.md`, `docs/PROGRESS.md` son kayitlar |
+| Provider/live smoke | `docs/groq-demo-runbook.md`, DeepSeek baseline notlari, `docs/PROGRESS.md` son kayitlar |
 | Desktop companion | `docs/tasks/TASK-01-ELECTRON-DESKTOP-APP.md`, `docs/tasks/TASK-06-DESKTOP-UTILITY-TOOLS.md`, ilgili progress kaydi |
 | Migration veya production-lock UI stack | `docs/migration/` raporlari |
 
