@@ -1,0 +1,4 @@
+﻿{
+	"tool_input": "{\"path\"",
+	"expected_rejection_reason": "unparseable_tool_input"
+}

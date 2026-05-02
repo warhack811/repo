@@ -13,6 +13,17 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-RESILIENCE-05 - 2 Mayis 2026 (Tool Call Repair Hardening PR 1)
+
+- Kapsam: `tool-call-candidate` parser'i provider-agnostic tolerant pipeline'a tasindi; strict/sanitized/fence-stripped/trailing-comma/wrapped/empty-default stratejileri ve `repair_strategy` observability alani eklendi. Dogrulama: targeted gateway parser testleri PASS, targeted parser Biome PASS, workspace typecheck PASS; workspace lint/test mevcut `apps/server/src/ws/*` baseline kirleri nedeniyle RED.
+
+### TASK-RESILIENCE-06 - 2 Mayis 2026 (Tool Call Repair Hardening PR 2-6)
+
+- Kapsam: repair recovery tek-shot olmaktan cikarildi; `strict_reinforce`, `tool_subset` ve `force_no_tools` strateji zinciri production default'u oldu. Streaming sirasinda `unparseable_tool_input` veya repairable tool-call hatasi gelirse WS `text.delta.discard` yayip non-streaming `generate()` fallback'e geciyor.
+- Router/health: DeepSeek `tool_heavy` ve `deep_reasoning` intent'lerinde streaming bypass default acik (`RUNA_STREAMING_TOOL_HEAVY_BYPASS=1`); session-level provider health store ayni session/provider icin 10 dakikada 3 terminal tool-call failure sonrasi provider'i demote ediyor.
+- Regression guard: historical payload fixture replay testleri, `tool_call_repair_terminal_failure_total` process-local metric/log counter'i, provider demotion telemetry ve `.env.example` flag dokumantasyonu eklendi.
+- Dogrulama: targeted server repair/router/ws tests PASS (`8` dosya / `106` test), targeted web runtime tests PASS (`2` dosya / `6` test), `pnpm.cmd -w typecheck` PASS (`9` task), `pnpm.cmd -w lint` PASS (`693` dosya), `pnpm.cmd -w test` PASS (`7` task; server `137` dosya / `978` test, web `25` dosya / `68` test + `1` skipped, db `5` dosya / `26` test).
+
 ### TASK-RESILIENCE-04 - 2 Mayıs 2026 (Faz 4)
 
 - Kapsam: `token-limit-recovery` agent-loop adapter yolunda three-way field deseniyle wire edildi (`undefined` default, `null` opt-out, instance pass-through).
