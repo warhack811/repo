@@ -11,14 +11,19 @@ import type {
 	ToolResult,
 } from '@runa/types';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createMicrocompactStrategy } from '../context/compaction-strategies.js';
 import type { RunRecordWriter } from '../persistence/run-store.js';
 import { ToolRegistry } from '../tools/registry.js';
 
 import { runModelTurn } from './run-model-turn.js';
-import { createTokenLimitRecovery } from './token-limit-recovery.js';
+import { type TokenLimitRecovery, createTokenLimitRecovery } from './token-limit-recovery.js';
+import {
+	TOOL_CALL_REPAIR_RECOVERY_METADATA_KEY,
+	type ToolCallRepairRecovery,
+	createToolCallRepairRecovery,
+} from './tool-call-repair-recovery.js';
 
 class FakeModelGateway implements ModelGateway {
 	#generate: (request: ModelRequest) => Promise<ModelResponse>;
@@ -132,6 +137,80 @@ function createModelRequest(overrides: Partial<ModelRequest> = {}): ModelRequest
 		trace_id: 'trace_model_turn',
 		...overrides,
 	};
+}
+
+function createToolCallRepairError(): Error & {
+	readonly details: Readonly<Record<string, unknown>>;
+	readonly name: 'GatewayResponseError';
+} {
+	const error = new Error('DeepSeek rejected tool call arguments.');
+
+	return Object.assign(error, {
+		details: {
+			arguments_length: 12,
+			call_id_present: true,
+			reason: 'unparseable_tool_input',
+			tool_name_raw: 'file.read',
+			tool_name_resolved: 'file.read',
+		},
+		name: 'GatewayResponseError' as const,
+	});
+}
+
+function createTokenLimitError(): Error & { readonly code: string; readonly status: number } {
+	const error = new Error('context window exceeded');
+
+	return Object.assign(error, {
+		code: 'CONTEXT_LENGTH_EXCEEDED',
+		status: 413,
+	});
+}
+
+function createCompactableModelRequest(overrides: Partial<ModelRequest> = {}): ModelRequest {
+	return createModelRequest({
+		compiled_context: {
+			layers: [
+				{
+					content: {
+						principles: ['Use typed contracts.', 'Prefer deterministic behavior.'],
+					},
+					kind: 'instruction',
+					name: 'core_rules',
+				},
+				{
+					content: {
+						current_state: 'MODEL_THINKING',
+						run_id: 'run_model_turn_token_recovery',
+						trace_id: 'trace_model_turn_token_recovery',
+					},
+					kind: 'runtime',
+					name: 'run_layer',
+				},
+				{
+					content: {
+						items: [
+							{
+								content: Array.from({ length: 240 }, (_, index) => `memory-${index}`).join(' '),
+								summary: 'Long memory layer',
+							},
+						],
+						layer_type: 'memory_layer',
+					},
+					kind: 'memory',
+					name: 'memory_layer',
+				},
+				{
+					content: {
+						summary: Array.from({ length: 240 }, (_, index) => `workspace-${index}`).join(' '),
+						title: 'Workspace Overview',
+					},
+					kind: 'workspace',
+					name: 'workspace_layer',
+				},
+			],
+		},
+		...overrides,
+	});
 }
 
 describe('runModelTurn', () => {
@@ -932,6 +1011,276 @@ describe('runModelTurn', () => {
 			'MODEL_THINKING',
 			'COMPLETED',
 		]);
+	});
+
+	it('recovers from unparseable tool call arguments by adding a one-shot repair note', async () => {
+		const persistence = createPersistenceRecorder();
+		let generateCount = 0;
+		const gateway = new FakeModelGateway(async () => {
+			generateCount += 1;
+
+			if (generateCount === 1) {
+				throw createToolCallRepairError();
+			}
+
+			return {
+				finish_reason: 'stop',
+				message: {
+					content: 'Recovered after tool call repair.',
+					role: 'assistant',
+				},
+				model: 'deepseek-chat',
+				provider: 'deepseek',
+			};
+		});
+		const modelRequest = createModelRequest({
+			available_tools: explicitAvailableTools,
+			metadata: {
+				source: 'run-model-turn-test',
+			},
+			model: 'deepseek-chat',
+			run_id: 'run_model_turn_tool_repair',
+			temperature: 0.2,
+			trace_id: 'trace_model_turn_tool_repair',
+		});
+
+		const result = await runModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_model_turn_tool_repair',
+				trace_id: 'trace_model_turn_tool_repair',
+			},
+			model_gateway: gateway,
+			model_request: modelRequest,
+			persistence_writer: persistence.writer,
+			registry: new ToolRegistry(),
+			run_id: 'run_model_turn_tool_repair',
+			tool_call_repair_recovery: createToolCallRepairRecovery(),
+			trace_id: 'trace_model_turn_tool_repair',
+		});
+
+		expect(result.status).toBe('completed');
+
+		if (result.status !== 'completed' || result.final_state !== 'COMPLETED') {
+			throw new Error('Expected tool-call repair recovery path to complete.');
+		}
+
+		expect(result.assistant_text).toBe('Recovered after tool call repair.');
+		expect(gateway.requests).toHaveLength(2);
+		expect(gateway.requests[1]).toMatchObject({
+			available_tools: explicitAvailableTools,
+			model: 'deepseek-chat',
+			temperature: 0.2,
+		});
+		expect(gateway.requests[1]?.messages).toEqual([
+			...modelRequest.messages,
+			{
+				content: expect.stringContaining('not valid JSON'),
+				role: 'system',
+			},
+		]);
+		expect(gateway.requests[1]?.metadata).toMatchObject({
+			source: 'run-model-turn-test',
+			[TOOL_CALL_REPAIR_RECOVERY_METADATA_KEY]: {
+				retry_count: 1,
+				tool_call_repair_error: {
+					arguments_length: 12,
+					reason: 'unparseable_tool_input',
+					tool_name_raw: 'file.read',
+					tool_name_resolved: 'file.read',
+				},
+			},
+		});
+		expect(result.resolved_model_request).toEqual(gateway.requests[1]);
+		expect(persistence.runRecords.map((record) => record.current_state)).toEqual([
+			'MODEL_THINKING',
+			'COMPLETED',
+		]);
+	});
+
+	it('fails clearly when tool call repair retry still returns unparseable arguments', async () => {
+		const persistence = createPersistenceRecorder();
+		const gateway = new FakeModelGateway(async () => {
+			throw createToolCallRepairError();
+		});
+
+		const result = await runModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_model_turn_tool_repair_failed',
+				trace_id: 'trace_model_turn_tool_repair_failed',
+			},
+			model_gateway: gateway,
+			model_request: createModelRequest({
+				run_id: 'run_model_turn_tool_repair_failed',
+				trace_id: 'trace_model_turn_tool_repair_failed',
+			}),
+			persistence_writer: persistence.writer,
+			registry: new ToolRegistry(),
+			run_id: 'run_model_turn_tool_repair_failed',
+			tool_call_repair_recovery: createToolCallRepairRecovery(),
+			trace_id: 'trace_model_turn_tool_repair_failed',
+		});
+
+		expect(result.status).toBe('failed');
+
+		if (result.status !== 'failed') {
+			throw new Error('Expected failed tool-call repair recovery result.');
+		}
+
+		expect(gateway.requests).toHaveLength(2);
+		expect(result.failure.code).toBe('MODEL_GENERATE_FAILED');
+		expect(result.failure.message).toContain('after tool call repair recovery');
+		expect(result.failure.message).toBe(
+			'Model generate failed after tool call repair recovery: retry_still_unparseable: DeepSeek rejected tool call arguments.',
+		);
+		expect(persistence.runRecords.map((record) => record.current_state)).toEqual([
+			'MODEL_THINKING',
+			'FAILED',
+		]);
+	});
+
+	it('preserves legacy failure behavior when tool call repair recovery is not configured', async () => {
+		const persistence = createPersistenceRecorder();
+		const gateway = new FakeModelGateway(async () => {
+			throw createToolCallRepairError();
+		});
+
+		const result = await runModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_model_turn_tool_repair_legacy',
+				trace_id: 'trace_model_turn_tool_repair_legacy',
+			},
+			model_gateway: gateway,
+			model_request: createModelRequest({
+				run_id: 'run_model_turn_tool_repair_legacy',
+				trace_id: 'trace_model_turn_tool_repair_legacy',
+			}),
+			persistence_writer: persistence.writer,
+			registry: new ToolRegistry(),
+			run_id: 'run_model_turn_tool_repair_legacy',
+			trace_id: 'trace_model_turn_tool_repair_legacy',
+		});
+
+		expect(result.status).toBe('failed');
+
+		if (result.status !== 'failed') {
+			throw new Error('Expected legacy generate failure result.');
+		}
+
+		expect(gateway.requests).toHaveLength(1);
+		expect(result.failure).toMatchObject({
+			code: 'MODEL_GENERATE_FAILED',
+			message: 'Model generate failed: DeepSeek rejected tool call arguments.',
+		});
+	});
+
+	it('uses the first matching recovery when token-limit and tool-call repair recoveries are both configured', async () => {
+		const repairRecovery: ToolCallRepairRecovery = {
+			evaluate: async () => ({
+				reason: 'not_repairable_error',
+				status: 'no_recovery',
+			}),
+			recover: async () => {
+				throw new Error('repair recovery should not run for token-limit failures');
+			},
+		};
+		const repairRecoverSpy = vi.spyOn(repairRecovery, 'recover');
+		const tokenGateway = new FakeModelGateway(async (request) => {
+			const layerNames = request.compiled_context?.layers.map((layer) => layer.name) ?? [];
+
+			if (!layerNames.includes('microcompact_summary')) {
+				throw createTokenLimitError();
+			}
+
+			return {
+				finish_reason: 'stop',
+				message: {
+					content: 'Recovered after token limit.',
+					role: 'assistant',
+				},
+				model: 'claude-3-7-sonnet',
+				provider: 'claude',
+			};
+		});
+
+		const tokenResult = await runModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_model_turn_recovery_precedence_token',
+				trace_id: 'trace_model_turn_recovery_precedence_token',
+			},
+			model_gateway: tokenGateway,
+			model_request: createCompactableModelRequest({
+				run_id: 'run_model_turn_recovery_precedence_token',
+				trace_id: 'trace_model_turn_recovery_precedence_token',
+			}),
+			registry: new ToolRegistry(),
+			run_id: 'run_model_turn_recovery_precedence_token',
+			token_limit_recovery: createTokenLimitRecovery({
+				compaction_strategy: createMicrocompactStrategy(),
+			}),
+			tool_call_repair_recovery: repairRecovery,
+			trace_id: 'trace_model_turn_recovery_precedence_token',
+		});
+
+		expect(tokenResult.status).toBe('completed');
+		expect(repairRecoverSpy).not.toHaveBeenCalled();
+
+		const tokenRecovery: TokenLimitRecovery = {
+			evaluate: async () => ({
+				reason: 'not_token_limit',
+				status: 'no_recovery',
+			}),
+			recover: async () => ({
+				decision: {
+					reason: 'not_token_limit',
+					status: 'no_recovery',
+				},
+				status: 'no_recovery',
+			}),
+		};
+		const tokenRecoverSpy = vi.spyOn(tokenRecovery, 'recover');
+		let repairGenerateCount = 0;
+		const repairGateway = new FakeModelGateway(async () => {
+			repairGenerateCount += 1;
+
+			if (repairGenerateCount === 1) {
+				throw createToolCallRepairError();
+			}
+
+			return {
+				finish_reason: 'stop',
+				message: {
+					content: 'Recovered after repair.',
+					role: 'assistant',
+				},
+				model: 'deepseek-chat',
+				provider: 'deepseek',
+			};
+		});
+
+		const repairResult = await runModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_model_turn_recovery_precedence_repair',
+				trace_id: 'trace_model_turn_recovery_precedence_repair',
+			},
+			model_gateway: repairGateway,
+			model_request: createModelRequest({
+				run_id: 'run_model_turn_recovery_precedence_repair',
+				trace_id: 'trace_model_turn_recovery_precedence_repair',
+			}),
+			registry: new ToolRegistry(),
+			run_id: 'run_model_turn_recovery_precedence_repair',
+			token_limit_recovery: tokenRecovery,
+			tool_call_repair_recovery: createToolCallRepairRecovery(),
+			trace_id: 'trace_model_turn_recovery_precedence_repair',
+		});
+
+		expect(repairResult.status).toBe('completed');
+		expect(tokenRecoverSpy).not.toHaveBeenCalled();
 	});
 
 	it('fails clearly when registry-to-request binding fails for an unknown tool name', async () => {

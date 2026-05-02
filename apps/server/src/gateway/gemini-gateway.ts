@@ -12,7 +12,10 @@ import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } 
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { serializeCallableTool } from './request-tools.js';
-import { parseToolCallCandidateParts } from './tool-call-candidate.js';
+import {
+	type ToolCallCandidateRejectionReason,
+	parseToolCallCandidatePartsDetailed,
+} from './tool-call-candidate.js';
 
 interface GeminiChatCompletionRequest {
 	readonly max_completion_tokens?: number;
@@ -174,6 +177,38 @@ function mapGeminiFinishReason(finishReason?: string | null): ModelResponse['fin
 	}
 }
 
+function getGeminiToolArgumentsLength(value: unknown): number {
+	if (typeof value === 'string') {
+		return value.length;
+	}
+
+	if (value === undefined || value === null) {
+		return 0;
+	}
+
+	try {
+		return JSON.stringify(value).length;
+	} catch {
+		return 0;
+	}
+}
+
+function buildGeminiToolCallRejectionDetails(input: {
+	readonly arguments_text: unknown;
+	readonly call_id: unknown;
+	readonly reason: ToolCallCandidateRejectionReason | undefined;
+	readonly tool_name_raw: unknown;
+	readonly tool_name_resolved: unknown;
+}): Record<string, unknown> {
+	return {
+		arguments_length: getGeminiToolArgumentsLength(input.arguments_text),
+		call_id_present: typeof input.call_id === 'string' && input.call_id.length > 0,
+		reason: input.reason,
+		tool_name_raw: input.tool_name_raw,
+		tool_name_resolved: input.tool_name_resolved,
+	};
+}
+
 function buildGeminiRequestBody(
 	config: GatewayProviderConfig,
 	request: ModelRequest,
@@ -220,20 +255,30 @@ function parseGeminiToolCallCandidate(
 		return undefined;
 	}
 
-	const candidate = parseToolCallCandidateParts({
+	const toolNameRaw = firstToolCall.function?.name;
+	const parseResult = parseToolCallCandidatePartsDetailed({
 		call_id: firstToolCall.id,
 		tool_input: firstToolCall.function?.arguments,
-		tool_name: firstToolCall.function?.name,
+		tool_name: toolNameRaw,
 	});
 
-	if (!candidate) {
+	if (!parseResult.candidate) {
+		const reason = parseResult.rejection_reason;
+
 		throw new GatewayResponseError(
 			'gemini',
-			'Gemini response contained an invalid tool call candidate.',
+			`Gemini response contained an invalid tool call candidate (${reason}).`,
+			buildGeminiToolCallRejectionDetails({
+				arguments_text: firstToolCall.function?.arguments,
+				call_id: firstToolCall.id,
+				reason,
+				tool_name_raw: toolNameRaw,
+				tool_name_resolved: toolNameRaw,
+			}),
 		);
 	}
 
-	return candidate;
+	return parseResult.candidate;
 }
 
 function parseGeminiResponse(payload: unknown): ModelResponse {
@@ -337,20 +382,30 @@ function parseGeminiToolCallAccumulator(
 		return undefined;
 	}
 
-	const candidate = parseToolCallCandidateParts({
+	const toolNameRaw = firstToolCall.tool_name;
+	const parseResult = parseToolCallCandidatePartsDetailed({
 		call_id: firstToolCall.call_id,
 		tool_input: firstToolCall.arguments_text,
-		tool_name: firstToolCall.tool_name,
+		tool_name: toolNameRaw,
 	});
 
-	if (!candidate) {
+	if (!parseResult.candidate) {
+		const reason = parseResult.rejection_reason;
+
 		throw new GatewayResponseError(
 			'gemini',
-			'Gemini streaming response contained an invalid tool call candidate.',
+			`Gemini streaming response contained an invalid tool call candidate (${reason}).`,
+			buildGeminiToolCallRejectionDetails({
+				arguments_text: firstToolCall.arguments_text,
+				call_id: firstToolCall.call_id,
+				reason,
+				tool_name_raw: toolNameRaw,
+				tool_name_resolved: toolNameRaw,
+			}),
 		);
 	}
 
-	return candidate;
+	return parseResult.candidate;
 }
 
 export class GeminiGateway implements ModelGateway {

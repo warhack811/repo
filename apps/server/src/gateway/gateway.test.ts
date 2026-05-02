@@ -1,6 +1,7 @@
 import type { ModelRequest } from '@runa/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.js';
 import { ClaudeGateway } from './claude-gateway.js';
 import { DeepSeekGateway } from './deepseek-gateway.js';
 import { GatewayConfigurationError, GatewayResponseError } from './errors.js';
@@ -9,6 +10,7 @@ import { GeminiGateway } from './gemini-gateway.js';
 import { GroqGateway } from './groq-gateway.js';
 import { OpenAiGateway } from './openai-gateway.js';
 import { SambaNovaGateway } from './sambanova-gateway.js';
+import { parseToolCallCandidatePartsDetailed } from './tool-call-candidate.js';
 
 const groqRequest: ModelRequest = {
 	max_output_tokens: 64,
@@ -147,6 +149,14 @@ const callableToolsRequest: NonNullable<ModelRequest['available_tools']> = [
 				type: 'number',
 			},
 		},
+	},
+];
+
+const parameterlessToolRequest: NonNullable<ModelRequest['available_tools']> = [
+	{
+		description: 'Capture the current desktop screenshot.',
+		name: 'desktop.screenshot',
+		parameters: {},
 	},
 ];
 
@@ -381,6 +391,51 @@ function installFetchMock(response: Response) {
 	return { calls, fetchMock };
 }
 
+async function collectStreamChunks(stream: AsyncIterable<unknown>): Promise<unknown[]> {
+	const chunks: unknown[] = [];
+
+	for await (const chunk of stream) {
+		chunks.push(chunk);
+	}
+
+	return chunks;
+}
+
+function readErrorDetails(error: unknown): Record<string, unknown> | undefined {
+	if (typeof error !== 'object' || error === null || !('details' in error)) {
+		return undefined;
+	}
+
+	const details = (error as { readonly details?: unknown }).details;
+
+	return typeof details === 'object' && details !== null && !Array.isArray(details)
+		? (details as Record<string, unknown>)
+		: undefined;
+}
+
+async function expectStructuredToolCallRejection(input: {
+	readonly action: () => Promise<unknown>;
+	readonly arguments_length_greater_than_zero?: boolean;
+	readonly expected_details: Record<string, unknown>;
+	readonly expected_message: string;
+}): Promise<void> {
+	try {
+		await input.action();
+		throw new Error('Expected gateway rejection.');
+	} catch (error: unknown) {
+		expect(error).toBeInstanceOf(GatewayResponseError);
+		expect(error).toMatchObject({
+			details: input.expected_details,
+			message: input.expected_message,
+		});
+
+		if (input.arguments_length_greater_than_zero) {
+			expect(readErrorDetails(error)?.['arguments_length']).toEqual(expect.any(Number));
+			expect(readErrorDetails(error)?.['arguments_length']).toBeGreaterThan(0);
+		}
+	}
+}
+
 afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
@@ -391,6 +446,76 @@ afterEach(() => {
 beforeEach(() => {
 	gatewayTestEnvironment.RUNA_DEBUG_PROVIDER_ERRORS = undefined;
 	gatewayTestEnvironment.RUNA_OPENAI_COMPAT_ALLOW_REMOTE = undefined;
+});
+
+describe('tool call candidate parser', () => {
+	it.each([
+		[
+			'accepts empty string input as an empty object',
+			{
+				call_id: 'call_empty_string',
+				tool_input: '   ',
+				tool_name: 'file.read',
+			},
+			{
+				candidate: {
+					call_id: 'call_empty_string',
+					tool_input: {},
+					tool_name: 'file.read',
+				},
+			},
+		],
+		[
+			'accepts missing input as an empty object',
+			{
+				call_id: 'call_missing_input',
+				tool_input: undefined,
+				tool_name: 'file.read',
+			},
+			{
+				candidate: {
+					call_id: 'call_missing_input',
+					tool_input: {},
+					tool_name: 'file.read',
+				},
+			},
+		],
+		[
+			'reports missing call ids',
+			{
+				call_id: '',
+				tool_input: '{}',
+				tool_name: 'file.read',
+			},
+			{
+				rejection_reason: 'missing_call_id',
+			},
+		],
+		[
+			'reports invalid tool names',
+			{
+				call_id: 'call_invalid_name',
+				tool_input: '{}',
+				tool_name: 'file_read',
+			},
+			{
+				rejection_reason: 'invalid_tool_name',
+			},
+		],
+		[
+			'reports unparseable tool inputs',
+			{
+				call_id: 'call_bad_input',
+				tool_input: '{',
+				tool_name: 'file.read',
+			},
+			{
+				rejection_reason: 'unparseable_tool_input',
+			},
+		],
+	])('%s', (_name, parts, expected) => {
+		expect(parseToolCallCandidatePartsDetailed(parts)).toEqual(expected);
+	});
 });
 
 describe('gateway factory', () => {
@@ -608,6 +733,163 @@ describe('DeepSeekGateway', () => {
 				path: 'README.md',
 			},
 			tool_name: 'file.read',
+		});
+	});
+
+	it('accepts a streaming parameterless tool call when no arguments delta is sent', async () => {
+		const { calls } = installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_stream_tool","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_deepseek_screenshot","type":"function","function":{"name":"desktop-screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_stream_tool","model":"deepseek-v4-flash","choices":[{"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":3,"total_tokens":10}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = [];
+
+		for await (const chunk of gateway.stream({
+			...deepSeekRequest,
+			available_tools: parameterlessToolRequest,
+		})) {
+			chunks.push(chunk);
+		}
+
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+		expect(requestBody.tools?.map((tool) => tool.function?.name)).toEqual(['desktop_screenshot']);
+		expect(chunks).toEqual([
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: '',
+						role: 'assistant',
+					},
+					model: 'deepseek-v4-flash',
+					provider: 'deepseek',
+					response_id: 'chatcmpl_deepseek_stream_tool',
+					tool_call_candidate: {
+						call_id: 'call_deepseek_screenshot',
+						tool_input: {},
+						tool_name: 'desktop.screenshot',
+					},
+					usage: {
+						input_tokens: 7,
+						output_tokens: 3,
+						total_tokens: 10,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('surfaces missing call id as a structured DeepSeek streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_stream_missing_call","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function","function":{"name":"desktop_screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_stream_missing_call","model":"deepseek-v4-flash","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const consumeStream = async () => {
+			const chunks = [];
+
+			for await (const chunk of gateway.stream({
+				...deepSeekRequest,
+				available_tools: parameterlessToolRequest,
+			})) {
+				chunks.push(chunk);
+			}
+
+			return chunks;
+		};
+
+		await expect(consumeStream()).rejects.toMatchObject({
+			details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop_screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			message:
+				'DeepSeek streaming response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured DeepSeek streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_stream_bad_json","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_bad_json","type":"function","function":{"name":"file_read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_stream_bad_json","model":"deepseek-v4-flash","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const consumeStream = async () => {
+			const chunks = [];
+
+			for await (const chunk of gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+			})) {
+				chunks.push(chunk);
+			}
+
+			return chunks;
+		};
+
+		await expect(consumeStream()).rejects.toMatchObject({
+			details: {
+				arguments_length: 7,
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file_read',
+				tool_name_resolved: 'file.read',
+			},
+			message:
+				'DeepSeek streaming response contained an invalid tool call candidate (unparseable_tool_input).',
+		});
+	});
+
+	it('accepts a non-streaming parameterless tool call with empty arguments', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop_screenshot',
+									},
+									id: 'call_deepseek_empty_args',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_deepseek_empty_args',
+				model: 'deepseek-v4-flash',
+			}),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		const response = await gateway.generate({
+			...deepSeekRequest,
+			available_tools: parameterlessToolRequest,
+		});
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_deepseek_empty_args',
+			tool_input: {},
+			tool_name: 'desktop.screenshot',
 		});
 	});
 
@@ -848,6 +1130,174 @@ describe('SambaNovaGateway', () => {
 				path: 'README.md',
 			},
 			tool_name: 'file.read',
+		});
+	});
+
+	it('accepts a non-streaming parameterless tool call with empty arguments', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									id: 'call_sambanova_empty_args',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'DeepSeek-V3.1-cb',
+			}),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		const response = await gateway.generate({
+			...sambaNovaRequest,
+			available_tools: parameterlessToolRequest,
+		});
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_sambanova_empty_args',
+			tool_input: {},
+			tool_name: 'desktop.screenshot',
+		});
+	});
+
+	it('surfaces missing call id as a structured SambaNova tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'DeepSeek-V3.1-cb',
+			}),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(sambaNovaRequest),
+			expected_details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'SambaNova response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured SambaNova tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path"',
+										name: 'file.read',
+									},
+									id: 'call_sambanova_bad_json',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'DeepSeek-V3.1-cb',
+			}),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(sambaNovaRequest),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'SambaNova response contained an invalid tool call candidate (unparseable_tool_input).',
+		});
+	});
+
+	it('surfaces missing call id as a structured SambaNova streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_sambanova_stream_missing","model":"DeepSeek-V3.1-cb","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function","function":{"name":"desktop.screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_sambanova_stream_missing","model":"DeepSeek-V3.1-cb","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(sambaNovaRequest)),
+			expected_details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'SambaNova streaming response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured SambaNova streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_sambanova_stream_bad_json","model":"DeepSeek-V3.1-cb","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_sambanova_stream_bad_json","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_sambanova_stream_bad_json","model":"DeepSeek-V3.1-cb","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new SambaNovaGateway({ apiKey: 'sambanova-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(sambaNovaRequest)),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'SambaNova streaming response contained an invalid tool call candidate (unparseable_tool_input).',
 		});
 	});
 
@@ -1781,7 +2231,7 @@ describe('GroqGateway', () => {
 		const gateway = new GroqGateway({ apiKey: 'groq-key' });
 
 		await expect(gateway.generate(groqRequest)).rejects.toThrowError(
-			'Groq generate response contained only invalid tool call candidates.',
+			'Groq generate response contained only invalid tool call candidates (unparseable_tool_input).',
 		);
 	});
 
@@ -1817,7 +2267,275 @@ describe('GroqGateway', () => {
 				...groqRequest,
 				available_tools: callableToolsRequest,
 			}),
-		).rejects.toThrowError('Groq generate response contained only invalid tool call candidates.');
+		).rejects.toThrowError(
+			'Groq generate response contained only invalid tool call candidates (unparseable_tool_input).',
+		);
+	});
+
+	it('accepts a non-streaming parameterless tool call with empty arguments', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									id: 'call_groq_empty_args',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		const response = await gateway.generate({
+			...groqRequest,
+			available_tools: parameterlessToolRequest,
+		});
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_groq_empty_args',
+			tool_input: {},
+			tool_name: 'desktop.screenshot',
+		});
+	});
+
+	it('surfaces missing call id as a structured Groq all-invalid tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(groqRequest),
+			expected_details: {
+				reason: 'missing_call_id',
+				rejections: [
+					{
+						arguments_length: 0,
+						call_id_present: false,
+						reason: 'missing_call_id',
+						tool_name_raw: 'desktop.screenshot',
+						tool_name_resolved: 'desktop.screenshot',
+					},
+				],
+			},
+			expected_message:
+				'Groq generate response contained only invalid tool call candidates (missing_call_id).',
+		});
+	});
+
+	it('marks all-unparseable Groq rejections repair-eligible with flat structured details', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: 'not-json',
+										name: 'file.read',
+									},
+									id: 'call_groq_bad_json_1',
+									type: 'function',
+								},
+								{
+									function: {
+										arguments: '{"path"',
+										name: 'file.read',
+									},
+									id: 'call_groq_bad_json_2',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		try {
+			await gateway.generate(groqRequest);
+			throw new Error('Expected gateway rejection.');
+		} catch (error: unknown) {
+			expect(error).toBeInstanceOf(GatewayResponseError);
+			expect(error).toMatchObject({
+				details: {
+					reason: 'unparseable_tool_input',
+					rejections: [
+						{
+							arguments_length: 8,
+							call_id_present: true,
+							reason: 'unparseable_tool_input',
+							tool_name_raw: 'file.read',
+							tool_name_resolved: 'file.read',
+						},
+						{
+							arguments_length: 7,
+							call_id_present: true,
+							reason: 'unparseable_tool_input',
+							tool_name_raw: 'file.read',
+							tool_name_resolved: 'file.read',
+						},
+					],
+				},
+				message:
+					'Groq generate response contained only invalid tool call candidates (unparseable_tool_input).',
+			});
+			expect(isToolCallRepairableError(error)).toBe(true);
+		}
+	});
+
+	it('does not mark mixed Groq rejection reasons repair-eligible', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: 'not-json',
+										name: 'file.read',
+									},
+									id: 'call_groq_mixed_bad_json',
+									type: 'function',
+								},
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'llama-3.3-70b-versatile',
+			}),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		try {
+			await gateway.generate(groqRequest);
+			throw new Error('Expected gateway rejection.');
+		} catch (error: unknown) {
+			expect(error).toBeInstanceOf(GatewayResponseError);
+			expect(readErrorDetails(error)?.['reason']).toBeUndefined();
+			expect(error).toMatchObject({
+				details: {
+					rejections: [
+						{
+							reason: 'unparseable_tool_input',
+						},
+						{
+							reason: 'missing_call_id',
+						},
+					],
+				},
+			});
+			expect(isToolCallRepairableError(error)).toBe(false);
+		}
+	});
+
+	it('surfaces missing call id as a structured Groq streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_groq_stream_missing","model":"llama-3.3-70b-versatile","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function","function":{"name":"desktop.screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_groq_stream_missing","model":"llama-3.3-70b-versatile","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(groqRequest)),
+			expected_details: {
+				reason: 'missing_call_id',
+				rejections: [
+					{
+						arguments_length: 0,
+						call_id_present: false,
+						reason: 'missing_call_id',
+						tool_name_raw: 'desktop.screenshot',
+						tool_name_resolved: 'desktop.screenshot',
+					},
+				],
+			},
+			expected_message:
+				'Groq stream response contained only invalid tool call candidates (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured Groq streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_groq_stream_bad_json","model":"llama-3.3-70b-versatile","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_groq_stream_bad_json","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_groq_stream_bad_json","model":"llama-3.3-70b-versatile","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new GroqGateway({ apiKey: 'groq-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(groqRequest)),
+			expected_details: {
+				reason: 'unparseable_tool_input',
+				rejections: [
+					{
+						arguments_length: 7,
+						call_id_present: true,
+						reason: 'unparseable_tool_input',
+						tool_name_raw: 'file.read',
+						tool_name_resolved: 'file.read',
+					},
+				],
+			},
+			expected_message:
+				'Groq stream response contained only invalid tool call candidates (unparseable_tool_input).',
+			arguments_length_greater_than_zero: false,
+		});
 	});
 
 	it('logs structured provider debug context with run and trace correlation when enabled', async () => {
@@ -2309,7 +3027,7 @@ describe('ClaudeGateway', () => {
 		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
 
 		await expect(gateway.generate(claudeRequest)).rejects.toThrowError(
-			'Claude response contained an invalid tool call candidate.',
+			'Claude response contained an invalid tool call candidate (unparseable_tool_input).',
 		);
 	});
 
@@ -2335,7 +3053,150 @@ describe('ClaudeGateway', () => {
 				...claudeRequest,
 				available_tools: callableToolsRequest,
 			}),
-		).rejects.toThrowError('Claude response contained an invalid tool call candidate.');
+		).rejects.toThrowError(
+			'Claude response contained an invalid tool call candidate (unparseable_tool_input).',
+		);
+	});
+
+	it('accepts a non-streaming parameterless tool call with empty input', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				content: [
+					{
+						id: 'toolu_empty_args',
+						input: {},
+						name: 'desktop.screenshot',
+						type: 'tool_use',
+					},
+				],
+				model: 'claude-sonnet-4-5',
+				role: 'assistant',
+			}),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		const response = await gateway.generate({
+			...claudeRequest,
+			available_tools: parameterlessToolRequest,
+		});
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'toolu_empty_args',
+			tool_input: {},
+			tool_name: 'desktop.screenshot',
+		});
+	});
+
+	it('surfaces missing call id as a structured Claude tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				content: [
+					{
+						input: {},
+						name: 'desktop.screenshot',
+						type: 'tool_use',
+					},
+				],
+				model: 'claude-sonnet-4-5',
+				role: 'assistant',
+			}),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(claudeRequest),
+			expected_details: {
+				arguments_length: 2,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'Claude response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured Claude tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				content: [
+					{
+						id: 'toolu_bad_json',
+						input: '{"path"',
+						name: 'file.read',
+						type: 'tool_use',
+					},
+				],
+				model: 'claude-sonnet-4-5',
+				role: 'assistant',
+			}),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(claudeRequest),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'Claude response contained an invalid tool call candidate (unparseable_tool_input).',
+		});
+	});
+
+	it('surfaces missing call id as a structured Claude streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'event: message_start\ndata: {"message":{"id":"msg_stream_missing","model":"claude-sonnet-4-5"}}',
+				'event: content_block_start\ndata: {"index":0,"content_block":{"type":"tool_use","name":"desktop.screenshot","input":{}}}',
+				'event: message_delta\ndata: {"delta":{"stop_reason":"tool_use"}}',
+				'event: message_stop\ndata: {}',
+			]),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(claudeRequest)),
+			expected_details: {
+				arguments_length: 2,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'Claude streaming response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured Claude streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'event: message_start\ndata: {"message":{"id":"msg_stream_bad_json","model":"claude-sonnet-4-5"}}',
+				'event: content_block_start\ndata: {"index":0,"content_block":{"id":"toolu_stream_bad_json","type":"tool_use","name":"file.read","input":{}}}',
+				'event: content_block_delta\ndata: {"index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"path\\""}}',
+				'event: message_delta\ndata: {"delta":{"stop_reason":"tool_use"}}',
+				'event: message_stop\ndata: {}',
+			]),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(claudeRequest)),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'Claude streaming response contained an invalid tool call candidate (unparseable_tool_input).',
+		});
 	});
 
 	it('streams Claude text deltas and returns a terminal response chunk', async () => {
@@ -2545,6 +3406,174 @@ describe('OpenAiGateway', () => {
 				path: 'README.md',
 			},
 			tool_name: 'file.read',
+		});
+	});
+
+	it('accepts a non-streaming parameterless tool call with empty arguments', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									id: 'call_openai_empty_args',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'gpt-4.1-mini',
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		const response = await gateway.generate({
+			...openAiRequest,
+			available_tools: parameterlessToolRequest,
+		});
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_openai_empty_args',
+			tool_input: {},
+			tool_name: 'desktop.screenshot',
+		});
+	});
+
+	it('surfaces missing call id as a structured OpenAI tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'gpt-4.1-mini',
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(openAiRequest),
+			expected_details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'OpenAI response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured OpenAI tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path"',
+										name: 'file.read',
+									},
+									id: 'call_openai_bad_json',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'gpt-4.1-mini',
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(openAiRequest),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'OpenAI response contained an invalid tool call candidate (unparseable_tool_input).',
+		});
+	});
+
+	it('surfaces missing call id as a structured OpenAI streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_openai_stream_missing","model":"gpt-4.1-mini","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function","function":{"name":"desktop.screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_missing","model":"gpt-4.1-mini","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(openAiRequest)),
+			expected_details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'OpenAI streaming response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured OpenAI streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_openai_stream_bad_json","model":"gpt-4.1-mini","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_openai_stream_bad_json","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_bad_json","model":"gpt-4.1-mini","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(openAiRequest)),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'OpenAI streaming response contained an invalid tool call candidate (unparseable_tool_input).',
 		});
 	});
 
@@ -2761,6 +3790,174 @@ describe('GeminiGateway', () => {
 				path: 'README.md',
 			},
 			tool_name: 'file.read',
+		});
+	});
+
+	it('accepts a non-streaming parameterless tool call with empty arguments', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									id: 'call_gemini_empty_args',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'gemini-3-flash-preview',
+			}),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		const response = await gateway.generate({
+			...geminiRequest,
+			available_tools: parameterlessToolRequest,
+		});
+
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_gemini_empty_args',
+			tool_input: {},
+			tool_name: 'desktop.screenshot',
+		});
+	});
+
+	it('surfaces missing call id as a structured Gemini tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '',
+										name: 'desktop.screenshot',
+									},
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'gemini-3-flash-preview',
+			}),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(geminiRequest),
+			expected_details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'Gemini response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured Gemini tool call rejection', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: null,
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path"',
+										name: 'file.read',
+									},
+									id: 'call_gemini_bad_json',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				model: 'gemini-3-flash-preview',
+			}),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => gateway.generate(geminiRequest),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'Gemini response contained an invalid tool call candidate (unparseable_tool_input).',
+		});
+	});
+
+	it('surfaces missing call id as a structured Gemini streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_gemini_stream_missing","model":"gemini-3-flash-preview","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function","function":{"name":"desktop.screenshot"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_gemini_stream_missing","model":"gemini-3-flash-preview","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(geminiRequest)),
+			expected_details: {
+				arguments_length: 0,
+				call_id_present: false,
+				reason: 'missing_call_id',
+				tool_name_raw: 'desktop.screenshot',
+				tool_name_resolved: 'desktop.screenshot',
+			},
+			expected_message:
+				'Gemini streaming response contained an invalid tool call candidate (missing_call_id).',
+		});
+	});
+
+	it('surfaces invalid JSON arguments as a structured Gemini streaming tool call rejection', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_gemini_stream_bad_json","model":"gemini-3-flash-preview","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_gemini_stream_bad_json","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_gemini_stream_bad_json","model":"gemini-3-flash-preview","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new GeminiGateway({ apiKey: 'gemini-key' });
+
+		await expectStructuredToolCallRejection({
+			action: () => collectStreamChunks(gateway.stream(geminiRequest)),
+			arguments_length_greater_than_zero: true,
+			expected_details: {
+				call_id_present: true,
+				reason: 'unparseable_tool_input',
+				tool_name_raw: 'file.read',
+				tool_name_resolved: 'file.read',
+			},
+			expected_message:
+				'Gemini streaming response contained an invalid tool call candidate (unparseable_tool_input).',
 		});
 	});
 

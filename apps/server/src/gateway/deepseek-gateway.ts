@@ -12,7 +12,10 @@ import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } 
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { type SerializedCallableTool, serializeCallableTool } from './request-tools.js';
-import { parseToolCallCandidateParts } from './tool-call-candidate.js';
+import {
+	type ToolCallCandidateRejectionReason,
+	parseToolCallCandidatePartsDetailed,
+} from './tool-call-candidate.js';
 
 type DeepSeekThinkingType = 'disabled' | 'enabled';
 type DeepSeekReasoningEffort = 'high' | 'max';
@@ -250,7 +253,44 @@ function resolveDeepSeekToolName(
 	toolName: unknown,
 	toolNameByAlias: ReadonlyMap<string, string>,
 ): unknown {
-	return typeof toolName === 'string' ? (toolNameByAlias.get(toolName) ?? toolName) : toolName;
+	if (typeof toolName !== 'string') {
+		return toolName;
+	}
+
+	const mappedToolName = toolNameByAlias.get(toolName);
+
+	if (mappedToolName) {
+		return mappedToolName;
+	}
+
+	if (toolName.includes('.')) {
+		return toolName;
+	}
+
+	const rebuiltToolName = toolName.replace(/[_-]+/gu, '.');
+	const matches = [...new Set(toolNameByAlias.values())].filter(
+		(candidate) =>
+			candidate === rebuiltToolName ||
+			buildDeepSeekToolAlias(candidate).replace(/[_-]+/gu, '.') === rebuiltToolName,
+	);
+
+	return matches.length === 1 ? matches[0] : toolName;
+}
+
+function buildDeepSeekToolCallRejectionDetails(input: {
+	readonly arguments_text: unknown;
+	readonly call_id: unknown;
+	readonly reason: ToolCallCandidateRejectionReason | undefined;
+	readonly tool_name_raw: unknown;
+	readonly tool_name_resolved: unknown;
+}): Record<string, unknown> {
+	return {
+		arguments_length: typeof input.arguments_text === 'string' ? input.arguments_text.length : 0,
+		call_id_present: typeof input.call_id === 'string' && input.call_id.length > 0,
+		reason: input.reason,
+		tool_name_raw: input.tool_name_raw,
+		tool_name_resolved: input.tool_name_resolved,
+	};
 }
 
 function buildDebugContext(request: ModelRequest): Parameters<typeof postJson>[0]['debug_context'] {
@@ -321,20 +361,31 @@ function parseDeepSeekToolCallCandidates(
 	toolNameByAlias: ReadonlyMap<string, string>,
 ): Pick<ModelResponse, 'tool_call_candidate' | 'tool_call_candidates'> {
 	const candidates = [...(toolCalls ?? [])].map((toolCall) => {
-		const candidate = parseToolCallCandidateParts({
+		const toolNameRaw = toolCall.function?.name;
+		const toolNameResolved = resolveDeepSeekToolName(toolNameRaw, toolNameByAlias);
+		const parseResult = parseToolCallCandidatePartsDetailed({
 			call_id: toolCall.id,
 			tool_input: toolCall.function?.arguments,
-			tool_name: resolveDeepSeekToolName(toolCall.function?.name, toolNameByAlias),
+			tool_name: toolNameResolved,
 		});
 
-		if (!candidate) {
+		if (!parseResult.candidate) {
+			const reason = parseResult.rejection_reason;
+
 			throw new GatewayResponseError(
 				'deepseek',
-				'DeepSeek response contained an invalid tool call candidate.',
+				`DeepSeek response contained an invalid tool call candidate (${reason}).`,
+				buildDeepSeekToolCallRejectionDetails({
+					arguments_text: toolCall.function?.arguments,
+					call_id: toolCall.id,
+					reason,
+					tool_name_raw: toolNameRaw,
+					tool_name_resolved: toolNameResolved,
+				}),
 			);
 		}
 
-		return candidate;
+		return parseResult.candidate;
 	});
 
 	return {
@@ -447,20 +498,31 @@ function parseDeepSeekToolCallAccumulator(
 	const candidates = [...toolCallsByIndex.entries()]
 		.sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
 		.map(([, toolCall]) => {
-			const candidate = parseToolCallCandidateParts({
+			const toolNameRaw = toolCall.tool_name;
+			const toolNameResolved = resolveDeepSeekToolName(toolNameRaw, toolNameByAlias);
+			const parseResult = parseToolCallCandidatePartsDetailed({
 				call_id: toolCall.call_id,
 				tool_input: toolCall.arguments_text,
-				tool_name: resolveDeepSeekToolName(toolCall.tool_name, toolNameByAlias),
+				tool_name: toolNameResolved,
 			});
 
-			if (!candidate) {
+			if (!parseResult.candidate) {
+				const reason = parseResult.rejection_reason;
+
 				throw new GatewayResponseError(
 					'deepseek',
-					'DeepSeek streaming response contained an invalid tool call candidate.',
+					`DeepSeek streaming response contained an invalid tool call candidate (${reason}).`,
+					buildDeepSeekToolCallRejectionDetails({
+						arguments_text: toolCall.arguments_text,
+						call_id: toolCall.call_id,
+						reason,
+						tool_name_raw: toolNameRaw,
+						tool_name_resolved: toolNameResolved,
+					}),
 				);
 			}
 
-			return candidate;
+			return parseResult.candidate;
 		});
 
 	return {

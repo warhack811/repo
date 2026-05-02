@@ -12,7 +12,10 @@ import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } 
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { serializeCallableTool } from './request-tools.js';
-import { parseToolCallCandidateParts } from './tool-call-candidate.js';
+import {
+	type ToolCallCandidateRejectionReason,
+	parseToolCallCandidatePartsDetailed,
+} from './tool-call-candidate.js';
 
 type SambaNovaContentPart =
 	| {
@@ -169,6 +172,38 @@ function mapSambaNovaFinishReason(finishReason?: string | null): ModelResponse['
 	}
 }
 
+function getSambaNovaToolArgumentsLength(value: unknown): number {
+	if (typeof value === 'string') {
+		return value.length;
+	}
+
+	if (value === undefined || value === null) {
+		return 0;
+	}
+
+	try {
+		return JSON.stringify(value).length;
+	} catch {
+		return 0;
+	}
+}
+
+function buildSambaNovaToolCallRejectionDetails(input: {
+	readonly arguments_text: unknown;
+	readonly call_id: unknown;
+	readonly reason: ToolCallCandidateRejectionReason | undefined;
+	readonly tool_name_raw: unknown;
+	readonly tool_name_resolved: unknown;
+}): Record<string, unknown> {
+	return {
+		arguments_length: getSambaNovaToolArgumentsLength(input.arguments_text),
+		call_id_present: typeof input.call_id === 'string' && input.call_id.length > 0,
+		reason: input.reason,
+		tool_name_raw: input.tool_name_raw,
+		tool_name_resolved: input.tool_name_resolved,
+	};
+}
+
 function buildSambaNovaRequestBody(
 	config: GatewayProviderConfig,
 	request: ModelRequest,
@@ -215,20 +250,30 @@ function parseSambaNovaToolCallCandidate(
 		return undefined;
 	}
 
-	const candidate = parseToolCallCandidateParts({
+	const toolNameRaw = firstToolCall.function?.name;
+	const parseResult = parseToolCallCandidatePartsDetailed({
 		call_id: firstToolCall.id,
 		tool_input: firstToolCall.function?.arguments,
-		tool_name: firstToolCall.function?.name,
+		tool_name: toolNameRaw,
 	});
 
-	if (!candidate) {
+	if (!parseResult.candidate) {
+		const reason = parseResult.rejection_reason;
+
 		throw new GatewayResponseError(
 			'sambanova',
-			'SambaNova response contained an invalid tool call candidate.',
+			`SambaNova response contained an invalid tool call candidate (${reason}).`,
+			buildSambaNovaToolCallRejectionDetails({
+				arguments_text: firstToolCall.function?.arguments,
+				call_id: firstToolCall.id,
+				reason,
+				tool_name_raw: toolNameRaw,
+				tool_name_resolved: toolNameRaw,
+			}),
 		);
 	}
 
-	return candidate;
+	return parseResult.candidate;
 }
 
 function parseSambaNovaResponse(payload: unknown): ModelResponse {
@@ -334,20 +379,30 @@ function parseSambaNovaToolCallAccumulator(
 		return undefined;
 	}
 
-	const candidate = parseToolCallCandidateParts({
+	const toolNameRaw = firstToolCall.tool_name;
+	const parseResult = parseToolCallCandidatePartsDetailed({
 		call_id: firstToolCall.call_id,
 		tool_input: firstToolCall.arguments_text,
-		tool_name: firstToolCall.tool_name,
+		tool_name: toolNameRaw,
 	});
 
-	if (!candidate) {
+	if (!parseResult.candidate) {
+		const reason = parseResult.rejection_reason;
+
 		throw new GatewayResponseError(
 			'sambanova',
-			'SambaNova streaming response contained an invalid tool call candidate.',
+			`SambaNova streaming response contained an invalid tool call candidate (${reason}).`,
+			buildSambaNovaToolCallRejectionDetails({
+				arguments_text: firstToolCall.arguments_text,
+				call_id: firstToolCall.call_id,
+				reason,
+				tool_name_raw: toolNameRaw,
+				tool_name_resolved: toolNameRaw,
+			}),
 		);
 	}
 
-	return candidate;
+	return parseResult.candidate;
 }
 
 export class SambaNovaGateway implements ModelGateway {

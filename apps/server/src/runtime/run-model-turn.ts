@@ -20,6 +20,7 @@ import type {
 } from './continue-model-turn.js';
 import type { IngestedToolResult } from './ingest-tool-result.js';
 import type { TokenLimitRecovery } from './token-limit-recovery.js';
+import type { ToolCallRepairRecovery } from './tool-call-repair-recovery.js';
 
 import type { ToolRegistry } from '../tools/registry.js';
 
@@ -27,6 +28,8 @@ import { hasRunStoreConfiguration, persistRunState } from '../persistence/run-st
 import { adaptModelResponseToTurnOutcome } from './adapt-model-response-to-turn-outcome.js';
 import { bindAvailableTools } from './bind-available-tools.js';
 import { continueAssistantResponseFastPath, continueModelTurn } from './continue-model-turn.js';
+import { isTokenLimitError } from './token-limit-recovery.js';
+import { isToolCallRepairableError } from './tool-call-repair-recovery.js';
 
 interface RunModelTurnFailure {
 	readonly cause?: unknown;
@@ -49,6 +52,7 @@ export interface RunModelTurnInput {
 	readonly registry: ToolRegistry;
 	readonly run_id: string;
 	readonly token_limit_recovery?: TokenLimitRecovery;
+	readonly tool_call_repair_recovery?: ToolCallRepairRecovery;
 	readonly tool_names?: readonly ToolName[];
 	readonly trace_id: string;
 }
@@ -387,13 +391,15 @@ export async function runModelTurn(input: RunModelTurnInput): Promise<RunModelTu
 	}
 
 	const resolvedModelRequest = modelRequestResult.model_request;
-	let modelResponse: ModelResponse;
+	let modelResponse!: ModelResponse;
 	let finalModelRequest = resolvedModelRequest;
 
 	try {
 		modelResponse = await input.model_gateway.generate(resolvedModelRequest);
 	} catch (error: unknown) {
-		if (input.token_limit_recovery !== undefined) {
+		let recoveredFromGenerateFailure = false;
+
+		if (input.token_limit_recovery !== undefined && isTokenLimitError(error)) {
 			const recoveryResult = await input.token_limit_recovery.recover({
 				error,
 				model_request: resolvedModelRequest,
@@ -405,6 +411,7 @@ export async function runModelTurn(input: RunModelTurnInput): Promise<RunModelTu
 			if (recoveryResult.status === 'recovered') {
 				modelResponse = recoveryResult.model_response;
 				finalModelRequest = recoveryResult.model_request;
+				recoveredFromGenerateFailure = true;
 			} else {
 				const recoveryMessage =
 					recoveryResult.status === 'unrecoverable'
@@ -427,7 +434,48 @@ export async function runModelTurn(input: RunModelTurnInput): Promise<RunModelTu
 					resolved_model_request: resolvedModelRequest,
 				});
 			}
-		} else {
+		}
+
+		if (
+			!recoveredFromGenerateFailure &&
+			input.tool_call_repair_recovery !== undefined &&
+			isToolCallRepairableError(error)
+		) {
+			const recoveryResult = await input.tool_call_repair_recovery.recover({
+				error,
+				model_request: resolvedModelRequest,
+				retry_executor(request) {
+					return input.model_gateway.generate(request);
+				},
+			});
+
+			if (recoveryResult.status === 'recovered') {
+				modelResponse = recoveryResult.model_response;
+				finalModelRequest = recoveryResult.model_request;
+				recoveredFromGenerateFailure = true;
+			} else {
+				const recoveryMessage =
+					recoveryResult.status === 'unrecoverable'
+						? ` after tool call repair recovery: ${recoveryResult.reason}`
+						: '';
+				const failure = createFailure(
+					'MODEL_GENERATE_FAILED',
+					`Model generate failed${recoveryMessage}: ${toGenerateFailureMessage(error)}`,
+					recoveryResult.status === 'unrecoverable' ? (recoveryResult.cause ?? error) : error,
+				);
+
+				const persistenceFailure = await persistRunStateIfConfigured(
+					input,
+					'FAILED',
+					failure.code,
+					new Date().toISOString(),
+				);
+
+				return createFailureResult(persistenceFailure ?? failure, {
+					resolved_model_request: resolvedModelRequest,
+				});
+			}
+		} else if (!recoveredFromGenerateFailure) {
 			const failure = createFailure(
 				'MODEL_GENERATE_FAILED',
 				`Model generate failed: ${toGenerateFailureMessage(error)}`,
