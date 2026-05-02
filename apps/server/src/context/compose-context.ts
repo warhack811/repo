@@ -2,6 +2,7 @@ import type { RuntimeState, ToolArtifactRef, ToolErrorCode, ToolName } from '@ru
 
 import type { MemoryLayer } from './compose-memory-context.js';
 import type { WorkspaceLayer } from './compose-workspace-context.js';
+import { INLINE_FULL_THRESHOLD_CHARS } from './runtime-context-limits.js';
 
 // ─── Identity & Persona ───────────────────────────────────────────────
 const IDENTITY_RULES = [
@@ -100,6 +101,8 @@ export interface RunLayer {
 			readonly error_code?: ToolErrorCode;
 			readonly error_message?: string;
 			readonly output_kind?: 'array' | 'boolean' | 'null' | 'number' | 'object' | 'string';
+			readonly inline_output?: unknown;
+			readonly output_truncated?: boolean;
 			readonly result_status: 'error' | 'success';
 			readonly tool_name: ToolName;
 		};
@@ -150,23 +153,57 @@ function buildCoreRulesLayer(): CoreRulesLayer {
 	};
 }
 
+function measureSerializedOutputChars(output: unknown): number | undefined {
+	try {
+		const serialized = JSON.stringify(output);
+
+		return serialized === undefined ? undefined : serialized.length;
+	} catch {
+		return undefined;
+	}
+}
+
+function buildLatestToolResultReference(
+	latestToolResult: ContextToolResultReference,
+): NonNullable<RunLayer['content']['latest_tool_result']> {
+	const baseReference = {
+		artifact_attached: latestToolResult.artifact_ref !== undefined,
+		call_id: latestToolResult.call_id,
+		error_code: latestToolResult.error_code,
+		error_message: latestToolResult.error_message,
+		output_kind:
+			latestToolResult.result_status === 'success'
+				? detectOutputKind(latestToolResult.output)
+				: undefined,
+		result_status: latestToolResult.result_status,
+		tool_name: latestToolResult.tool_name,
+	};
+
+	if (latestToolResult.result_status !== 'success' || latestToolResult.output === undefined) {
+		return baseReference;
+	}
+
+	const serializedLength = measureSerializedOutputChars(latestToolResult.output);
+
+	if (serializedLength !== undefined && serializedLength <= INLINE_FULL_THRESHOLD_CHARS) {
+		return {
+			...baseReference,
+			inline_output: latestToolResult.output,
+		};
+	}
+
+	return {
+		...baseReference,
+		output_truncated: true,
+	};
+}
+
 function buildRunLayer(input: ComposeContextInput): RunLayer {
 	return {
 		content: {
 			current_state: input.current_state,
 			latest_tool_result: input.latest_tool_result
-				? {
-						artifact_attached: input.latest_tool_result.artifact_ref !== undefined,
-						call_id: input.latest_tool_result.call_id,
-						error_code: input.latest_tool_result.error_code,
-						error_message: input.latest_tool_result.error_message,
-						output_kind:
-							input.latest_tool_result.result_status === 'success'
-								? detectOutputKind(input.latest_tool_result.output)
-								: undefined,
-						result_status: input.latest_tool_result.result_status,
-						tool_name: input.latest_tool_result.tool_name,
-					}
+				? buildLatestToolResultReference(input.latest_tool_result)
 				: undefined,
 			run_id: input.run_id,
 			trace_id: input.trace_id,

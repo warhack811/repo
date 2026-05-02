@@ -163,9 +163,12 @@ describe('createAgentLoop', () => {
 		expect(final.done).toBe(true);
 		expect(final.value).toEqual({
 			final_snapshot: {
+				approval_request: undefined,
+				assistant_text: undefined,
 				config: {
 					max_turns: 3,
 					stop_conditions: {},
+					token_limits: undefined,
 				},
 				consecutive_tool_failure_count: 0,
 				current_loop_state: 'COMPLETED',
@@ -178,9 +181,17 @@ describe('createAgentLoop', () => {
 				},
 				model_response: undefined,
 				pending_tool_call: undefined,
+				recent_tool_calls: [],
 				resolved_model_request: undefined,
 				run_id: 'run_agent_loop',
 				state_transitions: undefined,
+				stop_reason: {
+					disposition: 'terminal',
+					finish_reason: 'stop',
+					kind: 'model_stop',
+					loop_state: 'COMPLETED',
+					turn_count: 1,
+				},
 				tool_arguments: undefined,
 				tool_result: undefined,
 				tool_results: undefined,

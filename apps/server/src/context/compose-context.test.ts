@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { composeContext } from './compose-context.js';
 import { composeMemoryContext } from './compose-memory-context.js';
 import { composeWorkspaceContext } from './compose-workspace-context.js';
+import { INLINE_FULL_THRESHOLD_CHARS } from './runtime-context-limits.js';
 
 describe('composeContext', () => {
 	it('appends workspace_layer after run_layer when workspace context is provided', async () => {
@@ -244,6 +245,9 @@ describe('composeContext', () => {
 				latest_tool_result: {
 					artifact_attached: false,
 					call_id: 'call_context_tool',
+					inline_output: {
+						path: 'README.md',
+					},
 					output_kind: 'object',
 					result_status: 'success',
 					tool_name: 'file.read',
@@ -251,6 +255,91 @@ describe('composeContext', () => {
 			},
 			name: 'run_layer',
 		});
+	});
+
+	it('carries inline_output for small successful tool results', () => {
+		const output = {
+			content: 'small result',
+			path: 'README.md',
+		};
+		const result = composeContext({
+			current_state: 'TOOL_RESULT_INGESTING',
+			latest_tool_result: {
+				call_id: 'call_context_small_output',
+				output,
+				result_status: 'success',
+				tool_name: 'file.read',
+			},
+			run_id: 'run_context_small_output',
+			trace_id: 'trace_context_small_output',
+		});
+
+		expect(result.layers[1]).toMatchObject({
+			content: {
+				latest_tool_result: {
+					inline_output: output,
+				},
+			},
+		});
+		const runLayer = result.layers[1];
+
+		if (runLayer?.name !== 'run_layer') {
+			throw new Error('Expected run_layer.');
+		}
+
+		expect(runLayer.content.latest_tool_result).not.toHaveProperty('output_truncated');
+	});
+
+	it('omits inline_output and marks output_truncated for oversized output', () => {
+		const result = composeContext({
+			current_state: 'TOOL_RESULT_INGESTING',
+			latest_tool_result: {
+				call_id: 'call_context_large_output',
+				output: {
+					content: 'x'.repeat(INLINE_FULL_THRESHOLD_CHARS + 100),
+				},
+				result_status: 'success',
+				tool_name: 'file.read',
+			},
+			run_id: 'run_context_large_output',
+			trace_id: 'trace_context_large_output',
+		});
+		const runLayer = result.layers[1];
+
+		if (runLayer?.name !== 'run_layer') {
+			throw new Error('Expected run_layer.');
+		}
+
+		expect(runLayer.content.latest_tool_result).toMatchObject({
+			output_truncated: true,
+		});
+		expect(runLayer.content.latest_tool_result).not.toHaveProperty('inline_output');
+	});
+
+	it('omits inline_output for error tool results', () => {
+		const result = composeContext({
+			current_state: 'TOOL_RESULT_INGESTING',
+			latest_tool_result: {
+				call_id: 'call_context_error_output',
+				error_code: 'EXECUTION_FAILED',
+				error_message: 'read failed',
+				output: {
+					content: 'should not be surfaced',
+				},
+				result_status: 'error',
+				tool_name: 'file.read',
+			},
+			run_id: 'run_context_error_output',
+			trace_id: 'trace_context_error_output',
+		});
+		const runLayer = result.layers[1];
+
+		if (runLayer?.name !== 'run_layer') {
+			throw new Error('Expected run_layer.');
+		}
+
+		expect(runLayer.content.latest_tool_result).not.toHaveProperty('inline_output');
+		expect(runLayer.content.latest_tool_result).not.toHaveProperty('output_truncated');
 	});
 
 	it('returns the same composed context for the same input', () => {

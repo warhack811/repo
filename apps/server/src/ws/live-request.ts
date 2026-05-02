@@ -11,7 +11,12 @@ import {
 	composeWorkspaceContext,
 } from '../context/compose-workspace-context.js';
 import { orchestrateMemoryRead } from '../context/orchestrate-memory-read.js';
+import {
+	INLINE_MAX_CHARS,
+	TOOL_RESULT_TRUNCATED_NOTICE,
+} from '../context/runtime-context-limits.js';
 import { defaultMemoryStore, hasMemoryStoreConfiguration } from '../persistence/memory-store.js';
+import type { ToolCallSignature } from '../runtime/stop-conditions.js';
 import type { RunRequestPayload } from './messages.js';
 import type { MemoryOrchestrationStore } from './orchestration-types.js';
 
@@ -205,8 +210,6 @@ function toModelRequest(payload: RunRequestPayload): RunRequestPayload['request'
 	};
 }
 
-const MAX_TOOL_RESULT_CONTINUATION_CHARS = 1200;
-
 function serializeToolResultPreviewValue(value: unknown): string {
 	if (typeof value === 'string') {
 		return value;
@@ -220,14 +223,40 @@ function serializeToolResultPreviewValue(value: unknown): string {
 }
 
 function truncateToolResultPreview(value: string): string {
-	if (value.length <= MAX_TOOL_RESULT_CONTINUATION_CHARS) {
+	if (value.length <= INLINE_MAX_CHARS) {
 		return value;
 	}
 
-	return `${value.slice(0, MAX_TOOL_RESULT_CONTINUATION_CHARS)}\n...[truncated]`;
+	return `${value.slice(0, INLINE_MAX_CHARS)}\n${TOOL_RESULT_TRUNCATED_NOTICE}`;
 }
 
-function buildToolResultContinuationUserTurn(userTurn: string, toolResult: ToolResult): string {
+function hasMatchingRecentToolCall(
+	toolResult: ToolResult,
+	recentToolCalls: readonly ToolCallSignature[] | undefined,
+): boolean {
+	if (recentToolCalls === undefined || recentToolCalls.length < 2) {
+		return false;
+	}
+
+	const tail = recentToolCalls[recentToolCalls.length - 1];
+
+	if (tail === undefined || tail.tool_name !== toolResult.tool_name) {
+		return false;
+	}
+
+	return recentToolCalls
+		.slice(0, -1)
+		.some(
+			(signature) =>
+				signature.tool_name === tail.tool_name && signature.args_hash === tail.args_hash,
+		);
+}
+
+export function buildToolResultContinuationUserTurn(
+	userTurn: string,
+	toolResult: ToolResult,
+	recentToolCalls?: readonly ToolCallSignature[],
+): string {
 	const toolStatus =
 		toolResult.status === 'success'
 			? 'succeeded'
@@ -236,8 +265,16 @@ function buildToolResultContinuationUserTurn(userTurn: string, toolResult: ToolR
 		toolResult.status === 'success'
 			? truncateToolResultPreview(serializeToolResultPreviewValue(toolResult.output))
 			: (toolResult.error_message ?? 'The tool returned an error without a detailed message.');
+	const recoveryPreamble = hasMatchingRecentToolCall(toolResult, recentToolCalls)
+		? [
+				'ATTENTION: You already called this exact tool with these arguments earlier in this run.',
+				'The previous result is shown below. DO NOT call this tool again with the same arguments.',
+				'Use the result to write your assistant response, or call a DIFFERENT tool / DIFFERENT arguments.',
+			]
+		: [];
 
 	return [
+		...recoveryPreamble,
 		'Continue the same user request using the latest ingested tool result from the runtime context.',
 		`Original user request: ${userTurn}`,
 		`Latest completed tool call: ${toolResult.tool_name} (${toolStatus}).`,
@@ -257,6 +294,7 @@ export async function buildLiveModelRequest(
 		readonly current_state?: RuntimeState;
 		readonly latest_tool_result?: ToolResult;
 		readonly memoryStore?: MemoryOrchestrationStore;
+		readonly recent_tool_calls?: readonly ToolCallSignature[];
 		readonly workspace_layer?: WorkspaceLayer;
 	}> = {},
 ): Promise<
@@ -279,7 +317,11 @@ export async function buildLiveModelRequest(
 
 	const resolvedUserTurn =
 		options.current_state === 'TOOL_RESULT_INGESTING' && options.latest_tool_result !== undefined
-			? buildToolResultContinuationUserTurn(extractedUserTurn.user_turn, options.latest_tool_result)
+			? buildToolResultContinuationUserTurn(
+					extractedUserTurn.user_turn,
+					options.latest_tool_result,
+					options.recent_tool_calls,
+				)
 			: extractedUserTurn.user_turn;
 
 	const composedContext = composeContext({

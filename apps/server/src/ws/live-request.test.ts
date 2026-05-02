@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { RunRequestPayload } from './messages.js';
 
-import { buildLiveModelRequest } from './live-request.js';
+import {
+	INLINE_MAX_CHARS,
+	TOOL_RESULT_TRUNCATED_NOTICE,
+} from '../context/runtime-context-limits.js';
+import { buildLiveModelRequest, buildToolResultContinuationUserTurn } from './live-request.js';
 
 function createRunRequestPayload(): RunRequestPayload {
 	return {
@@ -62,6 +66,90 @@ describe('buildLiveModelRequest', () => {
 				}),
 			]),
 		);
+	});
+
+	it('does not truncate a small tool result under the inline-full threshold', async () => {
+		const content = `<html>${'x'.repeat(1500)}</html>`;
+		const request = await buildLiveModelRequest(createRunRequestPayload(), 'D:/ai/Runa', {
+			current_state: 'TOOL_RESULT_INGESTING',
+			latest_tool_result: {
+				call_id: 'call_small_file_read',
+				output: {
+					content,
+					path: 'D:/ai/Runa/small.html',
+					size_bytes: content.length,
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+		});
+
+		expect(request.messages[0]?.content).toContain(content);
+		expect(request.messages[0]?.content).not.toContain(TOOL_RESULT_TRUNCATED_NOTICE);
+	});
+
+	it('truncates a very large tool result to the inline max preview', async () => {
+		const content = 'x'.repeat(50_000);
+		const request = await buildLiveModelRequest(createRunRequestPayload(), 'D:/ai/Runa', {
+			current_state: 'TOOL_RESULT_INGESTING',
+			latest_tool_result: {
+				call_id: 'call_large_file_read',
+				output: {
+					content,
+					path: 'D:/ai/Runa/large.html',
+					size_bytes: content.length,
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+		});
+		const message = request.messages[0]?.content ?? '';
+
+		expect(message).toContain(TOOL_RESULT_TRUNCATED_NOTICE);
+		expect(message).not.toContain('x'.repeat(20_000));
+		expect(message.length).toBeLessThan(INLINE_MAX_CHARS + 1000);
+	});
+
+	it('buildToolResultContinuationUserTurn injects recovery preamble when args_hash matches a recent call', () => {
+		const message = buildToolResultContinuationUserTurn(
+			'Read the file.',
+			{
+				call_id: 'call_second_read',
+				output: {
+					content: 'body',
+					path: 'README.md',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+			[
+				{ args_hash: 'same_hash', tool_name: 'file.read' },
+				{ args_hash: 'same_hash', tool_name: 'file.read' },
+			],
+		);
+
+		expect(message).toContain(
+			'ATTENTION: You already called this exact tool with these arguments earlier in this run.',
+		);
+		expect(message).toContain('DO NOT call this tool again with the same arguments.');
+	});
+
+	it('buildToolResultContinuationUserTurn does not inject recovery preamble when no recent match exists', () => {
+		const message = buildToolResultContinuationUserTurn(
+			'Read the file.',
+			{
+				call_id: 'call_first_read',
+				output: {
+					content: 'body',
+					path: 'README.md',
+				},
+				status: 'success',
+				tool_name: 'file.read',
+			},
+			[{ args_hash: 'same_hash', tool_name: 'file.read' }],
+		);
+
+		expect(message).not.toContain('ATTENTION: You already called this exact tool');
 	});
 
 	it('keeps the original user turn for initial non-continuation live requests', async () => {
