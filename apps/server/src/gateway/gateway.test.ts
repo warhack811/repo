@@ -463,6 +463,7 @@ describe('tool call candidate parser', () => {
 					tool_input: {},
 					tool_name: 'file.read',
 				},
+				repair_strategy: 'empty_default',
 			},
 		],
 		[
@@ -478,6 +479,7 @@ describe('tool call candidate parser', () => {
 					tool_input: {},
 					tool_name: 'file.read',
 				},
+				repair_strategy: 'empty_default',
 			},
 		],
 		[
