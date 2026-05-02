@@ -14,7 +14,10 @@ import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import type { ToolJsonSchemaObject } from './request-tools.js';
 import { prioritizeToolsForPrompt, serializeCallableTool } from './request-tools.js';
-import { parseToolCallCandidateParts } from './tool-call-candidate.js';
+import {
+	type ToolCallCandidateRejectionReason,
+	parseToolCallCandidatePartsDetailed,
+} from './tool-call-candidate.js';
 
 interface GroqChatCompletionRequest {
 	readonly max_completion_tokens?: number;
@@ -137,13 +140,6 @@ interface GroqToolCallAccumulator {
 	arguments_text: string;
 	call_id?: string;
 	tool_name?: string;
-}
-
-interface GroqToolCallParseIssue {
-	readonly call_id?: string;
-	readonly index: number;
-	readonly reason: 'invalid_call_id' | 'invalid_tool_input' | 'invalid_tool_name';
-	readonly tool_name?: string;
 }
 
 interface ParsedGroqToolCallCandidates {
@@ -369,6 +365,55 @@ function mapGroqFinishReason(finishReason?: string | null): ModelResponse['finis
 	}
 }
 
+function getGroqToolArgumentsLength(value: unknown): number {
+	if (typeof value === 'string') {
+		return value.length;
+	}
+
+	if (value === undefined || value === null) {
+		return 0;
+	}
+
+	try {
+		return JSON.stringify(value).length;
+	} catch {
+		return 0;
+	}
+}
+
+function buildGroqToolCallRejectionDetails(input: {
+	readonly arguments_text: unknown;
+	readonly call_id: unknown;
+	readonly reason: ToolCallCandidateRejectionReason | undefined;
+	readonly tool_name_raw: unknown;
+	readonly tool_name_resolved: unknown;
+}): Record<string, unknown> {
+	return {
+		arguments_length: getGroqToolArgumentsLength(input.arguments_text),
+		call_id_present: typeof input.call_id === 'string' && input.call_id.length > 0,
+		reason: input.reason,
+		tool_name_raw: input.tool_name_raw,
+		tool_name_resolved: input.tool_name_resolved,
+	};
+}
+
+function buildGroqAggregateToolCallRejectionDetails(
+	rejections: readonly Record<string, unknown>[],
+): Record<string, unknown> {
+	const reasons = [
+		...new Set(
+			rejections
+				.map((rejection) => rejection['reason'])
+				.filter((reason): reason is ToolCallCandidateRejectionReason => typeof reason === 'string'),
+		),
+	];
+
+	return {
+		reason: reasons.length === 1 ? reasons[0] : undefined,
+		rejections,
+	};
+}
+
 function buildGroqRequestBody(
 	config: GatewayProviderConfig,
 	request: ModelRequest,
@@ -438,44 +483,6 @@ function buildGroqDebugContext(
 	};
 }
 
-function resolveGroqToolCallParseIssue(
-	index: number,
-	toolCall: {
-		readonly function?: {
-			readonly arguments?: unknown;
-			readonly name?: unknown;
-		};
-		readonly id?: unknown;
-	},
-): GroqToolCallParseIssue {
-	if (typeof toolCall.id !== 'string' || toolCall.id.trim().length === 0) {
-		return {
-			index,
-			reason: 'invalid_call_id',
-			tool_name: typeof toolCall.function?.name === 'string' ? toolCall.function.name : undefined,
-		};
-	}
-
-	if (
-		typeof toolCall.function?.name !== 'string' ||
-		toolCall.function.name.trim().length === 0 ||
-		!toolCall.function.name.includes('.')
-	) {
-		return {
-			call_id: toolCall.id,
-			index,
-			reason: 'invalid_tool_name',
-		};
-	}
-
-	return {
-		call_id: toolCall.id,
-		index,
-		reason: 'invalid_tool_input',
-		tool_name: toolCall.function.name,
-	};
-}
-
 function parseGroqToolCallCandidates(
 	toolCalls:
 		| ReadonlyArray<{
@@ -493,40 +500,50 @@ function parseGroqToolCallCandidates(
 	}
 
 	const candidates: Exclude<ModelResponse['tool_call_candidate'], undefined>[] = [];
-	const issues: GroqToolCallParseIssue[] = [];
+	const rejections: Record<string, unknown>[] = [];
 
-	for (const [index, toolCall] of toolCalls.entries()) {
-		const candidate = parseToolCallCandidateParts({
+	for (const toolCall of toolCalls) {
+		const toolNameRaw = toolCall.function?.name;
+		const parseResult = parseToolCallCandidatePartsDetailed({
 			call_id: toolCall.id,
 			tool_input: toolCall.function?.arguments,
-			tool_name: toolCall.function?.name,
+			tool_name: toolNameRaw,
 		});
 
-		if (candidate) {
+		if (parseResult.candidate) {
 			if (candidates.length < 5) {
-				candidates.push(candidate);
+				candidates.push(parseResult.candidate);
 			}
 
 			continue;
 		}
 
-		issues.push(resolveGroqToolCallParseIssue(index, toolCall));
-	}
-
-	if (issues.length > 0 && candidates.length === 0) {
-		throw new GatewayResponseError(
-			'groq',
-			`Groq ${context} response contained only invalid tool call candidates.`,
-			{
-				invalid_candidates: issues,
-			},
+		rejections.push(
+			buildGroqToolCallRejectionDetails({
+				arguments_text: toolCall.function?.arguments,
+				call_id: toolCall.id,
+				reason: parseResult.rejection_reason,
+				tool_name_raw: toolNameRaw,
+				tool_name_resolved: toolNameRaw,
+			}),
 		);
 	}
 
-	if (issues.length > 0) {
+	if (rejections.length > 0 && candidates.length === 0) {
+		const details = buildGroqAggregateToolCallRejectionDetails(rejections);
+		const reasonSuffix = typeof details['reason'] === 'string' ? ` (${details['reason']})` : '';
+
+		throw new GatewayResponseError(
+			'groq',
+			`Groq ${context} response contained only invalid tool call candidates${reasonSuffix}.`,
+			details,
+		);
+	}
+
+	if (rejections.length > 0) {
 		groqLogger.warn('gateway.tool_calls.partial_parse_failed', {
 			context,
-			invalid_candidates: issues,
+			invalid_candidates: rejections,
 			total_tool_calls: toolCalls.length,
 			valid_candidates: candidates.length,
 		});

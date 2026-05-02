@@ -12,7 +12,10 @@ import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } 
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { buildToolJsonSchema } from './request-tools.js';
-import { parseToolCallCandidateParts } from './tool-call-candidate.js';
+import {
+	type ToolCallCandidateRejectionReason,
+	parseToolCallCandidatePartsDetailed,
+} from './tool-call-candidate.js';
 
 interface ClaudeMessageRequest {
 	readonly content:
@@ -181,6 +184,38 @@ function mapClaudeFinishReason(stopReason?: string | null): ModelResponse['finis
 	}
 }
 
+function getClaudeToolArgumentsLength(value: unknown): number {
+	if (typeof value === 'string') {
+		return value.length;
+	}
+
+	if (value === undefined || value === null) {
+		return 0;
+	}
+
+	try {
+		return JSON.stringify(value).length;
+	} catch {
+		return 0;
+	}
+}
+
+function buildClaudeToolCallRejectionDetails(input: {
+	readonly arguments_text: unknown;
+	readonly call_id: unknown;
+	readonly reason: ToolCallCandidateRejectionReason | undefined;
+	readonly tool_name_raw: unknown;
+	readonly tool_name_resolved: unknown;
+}): Record<string, unknown> {
+	return {
+		arguments_length: getClaudeToolArgumentsLength(input.arguments_text),
+		call_id_present: typeof input.call_id === 'string' && input.call_id.length > 0,
+		reason: input.reason,
+		tool_name_raw: input.tool_name_raw,
+		tool_name_resolved: input.tool_name_resolved,
+	};
+}
+
 function buildClaudeRequestBody(
 	config: GatewayProviderConfig,
 	request: ModelRequest,
@@ -271,20 +306,29 @@ function parseClaudeToolCallCandidate(
 		return undefined;
 	}
 
-	const candidate = parseToolCallCandidateParts({
+	const parseResult = parseToolCallCandidatePartsDetailed({
 		call_id: toolUseBlock.id,
 		tool_input: toolUseBlock.input,
 		tool_name: toolUseBlock.name,
 	});
 
-	if (!candidate) {
+	if (!parseResult.candidate) {
+		const reason = parseResult.rejection_reason;
+
 		throw new GatewayResponseError(
 			'claude',
-			'Claude response contained an invalid tool call candidate.',
+			`Claude response contained an invalid tool call candidate (${reason}).`,
+			buildClaudeToolCallRejectionDetails({
+				arguments_text: toolUseBlock.input,
+				call_id: toolUseBlock.id,
+				reason,
+				tool_name_raw: toolUseBlock.name,
+				tool_name_resolved: toolUseBlock.name,
+			}),
 		);
 	}
 
-	return candidate;
+	return parseResult.candidate;
 }
 
 function parseClaudeResponse(payload: unknown): ModelResponse {
@@ -406,21 +450,31 @@ function parseClaudeStreamToolCallCandidate(
 		return undefined;
 	}
 
-	const candidate = parseToolCallCandidateParts({
+	const toolInput =
+		firstToolUse.input_text.length > 0 ? firstToolUse.input_text : firstToolUse.input_object;
+	const parseResult = parseToolCallCandidatePartsDetailed({
 		call_id: firstToolUse.call_id,
-		tool_input:
-			firstToolUse.input_text.length > 0 ? firstToolUse.input_text : firstToolUse.input_object,
+		tool_input: toolInput,
 		tool_name: firstToolUse.tool_name,
 	});
 
-	if (!candidate) {
+	if (!parseResult.candidate) {
+		const reason = parseResult.rejection_reason;
+
 		throw new GatewayResponseError(
 			'claude',
-			'Claude streaming response contained an invalid tool call candidate.',
+			`Claude streaming response contained an invalid tool call candidate (${reason}).`,
+			buildClaudeToolCallRejectionDetails({
+				arguments_text: toolInput,
+				call_id: firstToolUse.call_id,
+				reason,
+				tool_name_raw: firstToolUse.tool_name,
+				tool_name_resolved: firstToolUse.tool_name,
+			}),
 		);
 	}
 
-	return candidate;
+	return parseResult.candidate;
 }
 
 export class ClaudeGateway implements ModelGateway {
