@@ -1,0 +1,4 @@
+﻿{
+	"tool_input": "{\"path\":\"src/foo.ts\",}",
+	"expected_repair_strategy": "trailing_comma"
+}

@@ -1,0 +1,4 @@
+﻿{
+	"tool_input": "{\"path\":\"README.md\"}",
+	"expected_repair_strategy": "strict"
+}

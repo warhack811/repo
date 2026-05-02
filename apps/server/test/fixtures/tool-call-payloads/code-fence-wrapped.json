@@ -1,0 +1,4 @@
+﻿{
+	"tool_input": "```json\n{\"path\":\"README.md\"}\n```",
+	"expected_repair_strategy": "fence_stripped"
+}
