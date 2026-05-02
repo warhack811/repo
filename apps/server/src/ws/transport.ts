@@ -20,6 +20,7 @@ import type {
 	RunRejectedServerMessage,
 	RunRequestPayload,
 	RuntimeEventServerMessage,
+	TextDeltaDiscardServerMessage,
 	TextDeltaServerMessage,
 	WebSocketClientMessage,
 	WebSocketServerBridgeMessage,
@@ -126,7 +127,7 @@ export function createAcceptedMessage(payload: RunRequestPayload): RunAcceptedSe
 }
 
 export function createRuntimeEventMessage(
-	payload: RunRequestPayload,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
 	event: RuntimeEvent,
 ): RuntimeEventServerMessage {
 	return {
@@ -150,6 +151,18 @@ export function createTextDeltaMessage(
 			trace_id: payload.trace_id,
 		},
 		type: 'text.delta',
+	};
+}
+
+export function createTextDeltaDiscardMessage(
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+): TextDeltaDiscardServerMessage {
+	return {
+		payload: {
+			run_id: payload.run_id,
+			trace_id: payload.trace_id,
+		},
+		type: 'text.delta.discard',
 	};
 }
 
@@ -200,7 +213,7 @@ export function createStandalonePresentationBlocksMessage(
 }
 
 export function createFinishedMessage(
-	payload: RunRequestPayload,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
 	result: FinishedRunResult,
 ): RunFinishedServerMessage | undefined {
 	if (

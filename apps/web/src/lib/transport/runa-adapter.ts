@@ -96,6 +96,10 @@ function appendTextPart(
 	];
 }
 
+function discardTextParts(parts: readonly RunaUiPart[], runId: string): readonly RunaUiPart[] {
+	return parts.filter((part) => part.type !== 'text' || !part.id.startsWith(`text:${runId}:`));
+}
+
 function webSearchBlockToEvidencePack(
 	block: Extract<RenderBlock, { type: 'web_search_result_block' }>,
 ): EvidencePack {
@@ -212,6 +216,18 @@ export function applyRunaBridgeMessage(
 					id:
 						current.id === emptyMessage.id ? `runa-message:${message.payload.run_id}` : current.id,
 					parts: appendTextPart(current.parts, message.payload.run_id, message.payload.text_delta),
+					runId: message.payload.run_id,
+					status: 'running',
+					traceId: message.payload.trace_id,
+				},
+			};
+		case 'text.delta.discard':
+			return {
+				message: {
+					...current,
+					id:
+						current.id === emptyMessage.id ? `runa-message:${message.payload.run_id}` : current.id,
+					parts: discardTextParts(current.parts, message.payload.run_id),
 					runId: message.payload.run_id,
 					status: 'running',
 					traceId: message.payload.trace_id,

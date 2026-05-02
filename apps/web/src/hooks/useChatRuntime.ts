@@ -161,15 +161,17 @@ function createDefaultRuntimeConfig(): Readonly<{
 	};
 }
 
-function shouldMigrateStoredRuntimeConfigToDefaultProvider(
+export function shouldMigrateStoredRuntimeConfigToDefaultProvider(
 	config: Readonly<{
 		model: string;
 		provider: GatewayProvider;
 	}>,
 ): boolean {
+	const trimmedModel = config.model.trim();
+
 	return (
 		config.provider === LEGACY_DEFAULT_PROVIDER &&
-		(config.model.trim().length === 0 || config.model.trim() === LEGACY_DEFAULT_MODEL)
+		(trimmedModel.length === 0 || LEGACY_GROQ_DEFAULT_MODELS.has(trimmedModel))
 	);
 }
 

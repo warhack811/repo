@@ -17,6 +17,7 @@ import type {
 import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
 import { GatewayUnsupportedOperationError } from '../gateway/errors.js';
 import { createModelGateway } from '../gateway/factory.js';
+import { resolveModelRoute } from '../gateway/model-router.js';
 import { createSearchMemoryTool } from '../memory/search-memory-tool.js';
 import {
 	type ApprovalStore,
@@ -43,6 +44,7 @@ import {
 } from '../runtime/continue-model-turn.js';
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
 import { orchestrateMemoryWrite } from '../runtime/orchestrate-memory-write.js';
+import { defaultProviderHealthStore } from '../runtime/provider-health.js';
 import { requestApproval } from '../runtime/request-approval.js';
 import { runAgentLoop } from '../runtime/run-agent-loop.js';
 import type {
@@ -54,6 +56,9 @@ import { runToolStep } from '../runtime/run-tool-step.js';
 import { buildRunStartedEvent, buildStateEnteredEvent } from '../runtime/runtime-events.js';
 import { buildRunFailedEvent } from '../runtime/runtime-events.js';
 import { runSequentialSubAgentDelegation } from '../runtime/sequential-sub-agent.js';
+import { recordToolCallRepairTerminalFailure } from '../runtime/tool-call-repair-metrics.js';
+import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.js';
+import type { RepairStrategy } from '../runtime/tool-call-repair-recovery.js';
 import type {
 	ScheduledToolCandidate,
 	ToolEffectClass,
@@ -111,6 +116,7 @@ import {
 	createFinishedMessage,
 	createPresentationBlocksMessage,
 	createRuntimeEventMessage,
+	createTextDeltaDiscardMessage,
 	createTextDeltaMessage,
 	sendServerMessage,
 } from './transport.js';
@@ -138,6 +144,35 @@ function isRuntimeEventEnvelope(event: AnyRuntimeEvent): event is RuntimeEvent {
 
 function isRuntimeEvent(event: TurnProgressEvent): event is LoopRuntimeProgressEvent {
 	return isRuntimeEventEnvelope(event);
+}
+
+function resolveRuntimeSessionId(
+	payload: Pick<RunRequestPayload, 'conversation_id' | 'run_id'>,
+	authContext?: RuntimeWebSocketHandlerOptions['auth_context'],
+): string {
+	const principal = authContext?.principal;
+	const principalSessionId =
+		principal !== undefined && 'session_id' in principal ? principal.session_id : undefined;
+
+	return (
+		authContext?.session?.session_id ??
+		principalSessionId ??
+		payload.conversation_id ??
+		payload.run_id
+	);
+}
+
+function inferRepairStrategiesTried(retryCount: number): readonly RepairStrategy[] {
+	const productionStrategies: readonly RepairStrategy[] = [
+		'strict_reinforce',
+		'tool_subset',
+		'force_no_tools',
+	];
+
+	return productionStrategies.slice(
+		0,
+		Math.max(1, Math.min(retryCount, productionStrategies.length)),
+	);
 }
 
 function createLoopTurnStartedEvents(
@@ -799,8 +834,20 @@ async function generateModelResponseWithStreaming(
 	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
 	modelGateway: Pick<ReturnType<typeof createModelGateway>, 'generate' | 'stream'>,
 	modelRequest: ModelRequest,
+	requestedProvider?: RunRequestPayload['provider'],
 ): Promise<ModelResponse> {
 	let streamedResponse: ModelResponse | undefined;
+	let streamedTextLength = 0;
+
+	if (
+		requestedProvider !== undefined &&
+		!resolveModelRoute({
+			request: modelRequest,
+			requested_provider: requestedProvider,
+		}).streaming_eligible
+	) {
+		return modelGateway.generate(modelRequest);
+	}
 
 	try {
 		for await (const chunk of modelGateway.stream(modelRequest)) {
@@ -809,6 +856,7 @@ async function generateModelResponseWithStreaming(
 					continue;
 				}
 
+				streamedTextLength += chunk.text_delta.length;
 				sendServerMessage(socket, createTextDeltaMessage(payload, chunk.text_delta));
 				continue;
 			}
@@ -816,9 +864,19 @@ async function generateModelResponseWithStreaming(
 			streamedResponse = chunk.response;
 		}
 	} catch (error: unknown) {
-		if (!(error instanceof GatewayUnsupportedOperationError)) {
-			throw error;
+		if (error instanceof GatewayUnsupportedOperationError) {
+			return modelGateway.generate(modelRequest);
 		}
+
+		if (isToolCallRepairableError(error)) {
+			if (streamedTextLength > 0) {
+				sendServerMessage(socket, createTextDeltaDiscardMessage(payload));
+			}
+
+			return modelGateway.generate(modelRequest);
+		}
+
+		throw error;
 	}
 
 	if (streamedResponse) {
@@ -880,6 +938,8 @@ async function runPolicyAwareModelTurn(
 		readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
 		readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 		readonly desktop_target_connection_id?: string;
+		readonly requested_provider?: RunRequestPayload['provider'];
+		readonly session_id?: string;
 	}> = {},
 ): Promise<RunModelTurnResult> {
 	const turnLogger = runExecutionLogger.child({
@@ -907,6 +967,7 @@ async function runPolicyAwareModelTurn(
 	}
 
 	const resolvedModelRequest = modelRequestResult.model_request;
+	let finalResolvedModelRequest = resolvedModelRequest;
 	let modelResponse: ModelResponse;
 	const gatewaySpan = startLogSpan(turnLogger, 'gateway.generate', {
 		model: resolvedModelRequest.model,
@@ -921,26 +982,108 @@ async function runPolicyAwareModelTurn(
 			},
 			input.model_gateway,
 			resolvedModelRequest,
+			options.requested_provider,
 		);
 		gatewaySpan.end({
 			finish_reason: modelResponse.finish_reason,
 			response_model: modelResponse.model,
 		});
 	} catch (error: unknown) {
-		gatewaySpan.fail(error, {
-			model: resolvedModelRequest.model,
-		});
-		const errorMessage = error instanceof Error ? error.message : 'Unknown model generate failure.';
+		if (input.tool_call_repair_recovery !== undefined && isToolCallRepairableError(error)) {
+			const recoveryResult = await input.tool_call_repair_recovery.recover({
+				error,
+				model_request: resolvedModelRequest,
+				retry_executor(request) {
+					return generateModelResponseWithStreaming(
+						socket,
+						{
+							run_id: input.run_id,
+							trace_id: input.trace_id,
+						},
+						input.model_gateway,
+						request,
+						options.requested_provider,
+					);
+				},
+			});
 
-		return {
-			failure: {
-				code: 'MODEL_GENERATE_FAILED',
-				message: `Model generate failed: ${errorMessage}`,
-			},
-			final_state: 'FAILED',
-			resolved_model_request: resolvedModelRequest,
-			status: 'failed',
-		};
+			if (recoveryResult.status === 'recovered') {
+				modelResponse = recoveryResult.model_response;
+				finalResolvedModelRequest = recoveryResult.model_request;
+				gatewaySpan.end({
+					finish_reason: modelResponse.finish_reason,
+					recovery: 'tool_call_repair',
+					response_model: modelResponse.model,
+				});
+			} else {
+				if (
+					recoveryResult.status === 'unrecoverable' &&
+					options.requested_provider !== undefined &&
+					options.session_id !== undefined &&
+					(recoveryResult.reason === 'retry_budget_exhausted' ||
+						recoveryResult.reason === 'retry_still_unparseable')
+				) {
+					const terminalRoute = resolveModelRoute({
+						request: resolvedModelRequest,
+						requested_provider: options.requested_provider,
+					});
+					recordToolCallRepairTerminalFailure({
+						intent: terminalRoute.intent,
+						provider: options.requested_provider,
+						strategies_tried: inferRepairStrategiesTried(recoveryResult.retry_count),
+					});
+					defaultProviderHealthStore.recordFailure({
+						provider: options.requested_provider,
+						reason:
+							recoveryResult.reason === 'retry_still_unparseable'
+								? 'retry_still_unparseable'
+								: 'unparseable_tool_input',
+						session_id: options.session_id,
+					});
+				}
+
+				gatewaySpan.fail(
+					recoveryResult.status === 'unrecoverable' ? (recoveryResult.cause ?? error) : error,
+					{
+						model: resolvedModelRequest.model,
+						recovery: 'tool_call_repair',
+						recovery_status: recoveryResult.status,
+					},
+				);
+				const recoveryMessage =
+					recoveryResult.status === 'unrecoverable'
+						? ` after tool call repair recovery: ${recoveryResult.reason}`
+						: '';
+				const errorMessage =
+					error instanceof Error ? error.message : 'Unknown model generate failure.';
+
+				return {
+					failure: {
+						code: 'MODEL_GENERATE_FAILED',
+						message: `Model generate failed${recoveryMessage}: ${errorMessage}`,
+					},
+					final_state: 'FAILED',
+					resolved_model_request: resolvedModelRequest,
+					status: 'failed',
+				};
+			}
+		} else {
+			gatewaySpan.fail(error, {
+				model: resolvedModelRequest.model,
+			});
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown model generate failure.';
+
+			return {
+				failure: {
+					code: 'MODEL_GENERATE_FAILED',
+					message: `Model generate failed: ${errorMessage}`,
+				},
+				final_state: 'FAILED',
+				resolved_model_request: resolvedModelRequest,
+				status: 'failed',
+			};
+		}
 	}
 
 	const adaptedOutcomeResult = adaptModelResponseToTurnOutcome({
@@ -955,7 +1098,7 @@ async function runPolicyAwareModelTurn(
 			},
 			final_state: 'FAILED',
 			model_response: modelResponse,
-			resolved_model_request: resolvedModelRequest,
+			resolved_model_request: finalResolvedModelRequest,
 			status: 'failed',
 		};
 	}
@@ -974,7 +1117,7 @@ async function runPolicyAwareModelTurn(
 			final_state: continuationResult.final_state,
 			model_response: modelResponse,
 			model_turn_outcome: adaptedOutcomeResult.outcome,
-			resolved_model_request: resolvedModelRequest,
+			resolved_model_request: finalResolvedModelRequest,
 			status: 'completed',
 		};
 	}
@@ -990,7 +1133,7 @@ async function runPolicyAwareModelTurn(
 			current_state: input.current_state,
 			error_message: 'Model returned tool calls, but no primary tool call outcome was available.',
 			model_response: modelResponse,
-			resolved_model_request: resolvedModelRequest,
+			resolved_model_request: finalResolvedModelRequest,
 		});
 	}
 
@@ -1003,7 +1146,7 @@ async function runPolicyAwareModelTurn(
 				error_message: `Tool not found in registry: ${primaryToolCallOutcome.tool_name}`,
 				model_response: modelResponse,
 				model_turn_outcome: primaryToolCallOutcome,
-				resolved_model_request: resolvedModelRequest,
+				resolved_model_request: finalResolvedModelRequest,
 			});
 		}
 
@@ -1052,7 +1195,7 @@ async function runPolicyAwareModelTurn(
 						error_message: ingestionResult.failure.message,
 						model_response: modelResponse,
 						model_turn_outcome: primaryToolCallOutcome,
-						resolved_model_request: resolvedModelRequest,
+						resolved_model_request: finalResolvedModelRequest,
 						tool_result: executedCandidate.tool_result,
 						tool_results: [executedCandidate.tool_result],
 					});
@@ -1078,7 +1221,7 @@ async function runPolicyAwareModelTurn(
 					ingested_result: ingestionResult.ingested_result,
 					model_response: modelResponse,
 					model_turn_outcome: primaryToolCallOutcome,
-					resolved_model_request: resolvedModelRequest,
+					resolved_model_request: finalResolvedModelRequest,
 					status: 'completed',
 					suggested_next_state: ingestionResult.suggested_next_state,
 					tool_result: ingestionResult.tool_result,
@@ -1117,7 +1260,7 @@ async function runPolicyAwareModelTurn(
 								: 'Policy approval path did not produce an approval request.',
 						model_response: modelResponse,
 						model_turn_outcome: primaryToolCallOutcome,
-						resolved_model_request: resolvedModelRequest,
+						resolved_model_request: finalResolvedModelRequest,
 					});
 				}
 
@@ -1144,7 +1287,7 @@ async function runPolicyAwareModelTurn(
 					final_state: approvalResult.final_state,
 					model_response: modelResponse,
 					model_turn_outcome: primaryToolCallOutcome,
-					resolved_model_request: resolvedModelRequest,
+					resolved_model_request: finalResolvedModelRequest,
 					status: 'approval_required',
 				};
 			}
@@ -1167,7 +1310,7 @@ async function runPolicyAwareModelTurn(
 					error_message: denialMessage,
 					model_response: modelResponse,
 					model_turn_outcome: primaryToolCallOutcome,
-					resolved_model_request: resolvedModelRequest,
+					resolved_model_request: finalResolvedModelRequest,
 				});
 			}
 			case 'pause':
@@ -1181,7 +1324,7 @@ async function runPolicyAwareModelTurn(
 						'Session is paused after consecutive permission denials; approval is required before continuing.',
 					model_response: modelResponse,
 					model_turn_outcome: primaryToolCallOutcome,
-					resolved_model_request: resolvedModelRequest,
+					resolved_model_request: finalResolvedModelRequest,
 				});
 		}
 	}
@@ -1231,7 +1374,7 @@ async function runPolicyAwareModelTurn(
 						missingCandidate === undefined
 							? primaryToolCallOutcome
 							: toToolCallOutcome(missingCandidate.candidate),
-					resolved_model_request: resolvedModelRequest,
+					resolved_model_request: finalResolvedModelRequest,
 					tool_result: executedCandidates.at(-1)?.tool_result,
 					tool_results: executedCandidates.map(
 						(executedCandidate) => executedCandidate.tool_result,
@@ -1266,7 +1409,7 @@ async function runPolicyAwareModelTurn(
 								: 'Parallel tool execution failed unexpectedly.',
 						model_response: modelResponse,
 						model_turn_outcome: toToolCallOutcome(fallbackParallelFailureCandidate),
-						resolved_model_request: resolvedModelRequest,
+						resolved_model_request: finalResolvedModelRequest,
 						tool_result: executedCandidates.at(-1)?.tool_result,
 						tool_results: executedCandidates.map((candidate) => candidate.tool_result),
 					});
@@ -1288,7 +1431,7 @@ async function runPolicyAwareModelTurn(
 						error_message: `Prepared tool candidate missing for ${candidate.candidate.tool_name}/${candidate.candidate.call_id}.`,
 						model_response: modelResponse,
 						model_turn_outcome: toToolCallOutcome(candidate.candidate),
-						resolved_model_request: resolvedModelRequest,
+						resolved_model_request: finalResolvedModelRequest,
 						tool_result: executedCandidates.at(-1)?.tool_result,
 						tool_results: executedCandidates.map(
 							(executedCandidate) => executedCandidate.tool_result,
@@ -1315,7 +1458,7 @@ async function runPolicyAwareModelTurn(
 							: 'Sequential tool execution failed unexpectedly.',
 					model_response: modelResponse,
 					model_turn_outcome: toToolCallOutcome(candidate.candidate),
-					resolved_model_request: resolvedModelRequest,
+					resolved_model_request: finalResolvedModelRequest,
 					tool_result: executedCandidates.at(-1)?.tool_result,
 					tool_results: executedCandidates.map(
 						(executedCandidate) => executedCandidate.tool_result,
@@ -1358,7 +1501,7 @@ async function runPolicyAwareModelTurn(
 				error_message: 'Tool scheduler blocked on a non-approval decision unexpectedly.',
 				model_response: modelResponse,
 				model_turn_outcome: toToolCallOutcome(blockedApprovalCandidate.candidate),
-				resolved_model_request: resolvedModelRequest,
+				resolved_model_request: finalResolvedModelRequest,
 				tool_result: lastExecutedToolResult,
 				tool_results: orderedToolResults,
 			});
@@ -1392,7 +1535,7 @@ async function runPolicyAwareModelTurn(
 						: 'Policy approval path did not produce an approval request.',
 				model_response: modelResponse,
 				model_turn_outcome: toToolCallOutcome(blockedApprovalCandidate.candidate),
-				resolved_model_request: resolvedModelRequest,
+				resolved_model_request: finalResolvedModelRequest,
 				tool_result: lastExecutedToolResult,
 				tool_results: orderedToolResults,
 			});
@@ -1421,7 +1564,7 @@ async function runPolicyAwareModelTurn(
 			final_state: approvalResult.final_state,
 			model_response: modelResponse,
 			model_turn_outcome: toToolCallOutcome(blockedApprovalCandidate.candidate),
-			resolved_model_request: resolvedModelRequest,
+			resolved_model_request: finalResolvedModelRequest,
 			status: 'approval_required',
 			tool_result: lastExecutedToolResult,
 			tool_results: orderedToolResults,
@@ -1453,7 +1596,7 @@ async function runPolicyAwareModelTurn(
 					error_message: denialMessage,
 					model_response: modelResponse,
 					model_turn_outcome: toToolCallOutcome(deniedCandidate),
-					resolved_model_request: resolvedModelRequest,
+					resolved_model_request: finalResolvedModelRequest,
 					tool_result: lastExecutedToolResult,
 					tool_results: orderedToolResults,
 				});
@@ -1465,7 +1608,7 @@ async function runPolicyAwareModelTurn(
 			error_message: preparedPlan.blocked_failure.error_message,
 			model_response: modelResponse,
 			model_turn_outcome: toToolCallOutcome(deniedCandidate),
-			resolved_model_request: resolvedModelRequest,
+			resolved_model_request: finalResolvedModelRequest,
 			tool_result: lastExecutedToolResult,
 			tool_results: orderedToolResults,
 		});
@@ -1477,7 +1620,7 @@ async function runPolicyAwareModelTurn(
 			error_message: 'Model returned tool calls, but no executable tool candidate was scheduled.',
 			model_response: modelResponse,
 			model_turn_outcome: primaryToolCallOutcome,
-			resolved_model_request: resolvedModelRequest,
+			resolved_model_request: finalResolvedModelRequest,
 		});
 	}
 
@@ -1498,7 +1641,7 @@ async function runPolicyAwareModelTurn(
 			error_message: ingestionResult.failure.message,
 			model_response: modelResponse,
 			model_turn_outcome: toToolCallOutcome(terminalCandidate),
-			resolved_model_request: resolvedModelRequest,
+			resolved_model_request: finalResolvedModelRequest,
 			tool_result: lastExecutedToolResult,
 			tool_results: orderedToolResults,
 		});
@@ -1524,7 +1667,7 @@ async function runPolicyAwareModelTurn(
 		ingested_result: ingestionResult.ingested_result,
 		model_response: modelResponse,
 		model_turn_outcome: toToolCallOutcome(terminalCandidate),
-		resolved_model_request: resolvedModelRequest,
+		resolved_model_request: finalResolvedModelRequest,
 		status: 'completed',
 		suggested_next_state: ingestionResult.suggested_next_state,
 		tool_result: ingestionResult.tool_result,
@@ -1550,8 +1693,12 @@ async function executeLiveRun(
 	const workspaceLayer =
 		options.workspace_layer ?? (await buildLiveWorkspaceLayer(payload, options.workingDirectory));
 	const policyWiring = getPolicyWiring(options);
+	const runtimeSessionId = resolveRuntimeSessionId(payload, options.auth_context);
 	const gateway = createModelGateway({
 		config: payload.provider_config,
+		health_signal: defaultProviderHealthStore.getSignal({
+			session_id: runtimeSessionId,
+		}),
 		provider: payload.provider,
 	});
 	const toolResultsByCallId = new Map<string, ToolResult>();
@@ -1660,6 +1807,8 @@ async function executeLiveRun(
 				auth_context: options.auth_context,
 				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 				desktop_target_connection_id: payload.desktop_target_connection_id,
+				requested_provider: payload.provider,
+				session_id: runtimeSessionId,
 			}),
 		on_yield: async ({ snapshot, yield: loopYield }) => {
 			for (const toolResult of snapshot.tool_results ?? []) {
@@ -1835,7 +1984,7 @@ async function executeLiveRun(
 	}
 }
 
-async function finalizeLiveRunResult(
+export async function finalizeLiveRunResult(
 	socket: WebSocketConnection,
 	payload: RunRequestPayload,
 	result: RunToolWebSocketResult,
