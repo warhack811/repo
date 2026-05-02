@@ -296,6 +296,59 @@ describe('runModelTurn', () => {
 		expect(persistence.toolCallRecords).toEqual([]);
 	});
 
+	it('fails assistant responses truncated by max_tokens without marking the run complete', async () => {
+		const persistence = createPersistenceRecorder();
+		const modelResponse: ModelResponse = {
+			finish_reason: 'max_tokens',
+			message: {
+				content: 'Partial answer that stops mid-sentence',
+				role: 'assistant',
+			},
+			model: 'deepseek-v4-pro',
+			provider: 'deepseek',
+		};
+		const gateway = new FakeModelGateway(async () => modelResponse);
+
+		const result = await runModelTurn({
+			current_state: 'MODEL_THINKING',
+			execution_context: {
+				run_id: 'run_model_turn_truncated',
+				trace_id: 'trace_model_turn_truncated',
+			},
+			model_gateway: gateway,
+			model_request: createModelRequest({
+				max_output_tokens: 64,
+				run_id: 'run_model_turn_truncated',
+				trace_id: 'trace_model_turn_truncated',
+			}),
+			persistence_writer: persistence.writer,
+			registry: new ToolRegistry(),
+			run_id: 'run_model_turn_truncated',
+			trace_id: 'trace_model_turn_truncated',
+		});
+
+		expect(result.status).toBe('failed');
+		expect(result.final_state).toBe('FAILED');
+		if (result.status !== 'failed') {
+			throw new Error('Expected max_tokens assistant response to fail.');
+		}
+		expect(result.failure).toEqual({
+			code: 'MODEL_RESPONSE_TRUNCATED',
+			message:
+				'Model response reached the max_output_tokens limit before a natural stop; partial assistant text was not marked complete.',
+		});
+		expect(result.model_response).toBe(modelResponse);
+		expect(result.model_turn_outcome).toEqual({
+			kind: 'assistant_response',
+			text: 'Partial answer that stops mid-sentence',
+		});
+		expect(persistence.runRecords.map((record) => record.current_state)).toEqual([
+			'MODEL_THINKING',
+			'FAILED',
+		]);
+		expect(persistence.runRecords.at(-1)?.last_error_code).toBe('MODEL_RESPONSE_TRUNCATED');
+	});
+
 	it('completes the tool_call path from generate through adapter and continuation', async () => {
 		const registry = new ToolRegistry();
 		const persistence = createPersistenceRecorder();
