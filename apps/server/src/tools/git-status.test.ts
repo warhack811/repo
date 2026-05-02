@@ -11,6 +11,7 @@ import { createGitStatusTool, gitStatusTool } from './git-status.js';
 import { ToolRegistry } from './registry.js';
 
 const execFileAsync = promisify(execFile);
+const GIT_BACKED_TOOL_TEST_TIMEOUT_MS = 15_000;
 type GitStatusStat = typeof import('node:fs/promises')['stat'];
 
 async function createTempWorkspace(prefix: string): Promise<string> {
@@ -64,70 +65,82 @@ function createStatsResult(isDirectory: boolean): Stats {
 }
 
 describe('gitStatusTool', () => {
-	it('returns a clean repository summary', async () => {
-		const workspace = await createCommittedGitWorkspace();
+	it(
+		'returns a clean repository summary',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
 
-		try {
-			const result = await gitStatusTool.execute(createInput(), createContext(workspace));
+			try {
+				const result = await gitStatusTool.execute(createInput(), createContext(workspace));
 
-			expect(result.status).toBe('success');
+				expect(result.status).toBe('success');
 
-			if (result.status !== 'success') {
-				throw new Error('Expected a success result for git.status.');
+				if (result.status !== 'success') {
+					throw new Error('Expected a success result for git.status.');
+				}
+
+				expect(result.output.is_clean).toBe(true);
+				expect(result.output.branch.length).toBeGreaterThan(0);
+				expect(result.output.staged_files).toEqual([]);
+				expect(result.output.modified_files).toEqual([]);
+				expect(result.output.untracked_files).toEqual([]);
+				expect(result.output.working_directory).toBe(workspace);
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
 			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
 
-			expect(result.output.is_clean).toBe(true);
-			expect(result.output.branch.length).toBeGreaterThan(0);
-			expect(result.output.staged_files).toEqual([]);
-			expect(result.output.modified_files).toEqual([]);
-			expect(result.output.untracked_files).toEqual([]);
-			expect(result.output.working_directory).toBe(workspace);
-		} finally {
-			await rm(workspace, { force: true, recursive: true });
-		}
-	});
+	it(
+		'returns modified and untracked file lists deterministically',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
 
-	it('returns modified and untracked file lists deterministically', async () => {
-		const workspace = await createCommittedGitWorkspace();
+			try {
+				await writeFile(join(workspace, 'tracked.txt'), 'tracked changed\n');
+				await writeFile(join(workspace, 'src', 'nested.txt'), 'nested changed\n');
+				await runGit(['add', 'src/nested.txt'], workspace);
+				await writeFile(join(workspace, 'untracked.txt'), 'new file\n');
 
-		try {
-			await writeFile(join(workspace, 'tracked.txt'), 'tracked changed\n');
-			await writeFile(join(workspace, 'src', 'nested.txt'), 'nested changed\n');
-			await runGit(['add', 'src/nested.txt'], workspace);
-			await writeFile(join(workspace, 'untracked.txt'), 'new file\n');
+				const result = await gitStatusTool.execute(createInput(), createContext(workspace));
 
-			const result = await gitStatusTool.execute(createInput(), createContext(workspace));
+				expect(result.status).toBe('success');
 
-			expect(result.status).toBe('success');
+				if (result.status !== 'success') {
+					throw new Error('Expected a success result for git.status changes.');
+				}
 
-			if (result.status !== 'success') {
-				throw new Error('Expected a success result for git.status changes.');
+				expect(result.output.is_clean).toBe(false);
+				expect(result.output.staged_files).toEqual(['src/nested.txt']);
+				expect(result.output.modified_files).toEqual(['tracked.txt']);
+				expect(result.output.untracked_files).toEqual(['untracked.txt']);
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
 			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
 
-			expect(result.output.is_clean).toBe(false);
-			expect(result.output.staged_files).toEqual(['src/nested.txt']);
-			expect(result.output.modified_files).toEqual(['tracked.txt']);
-			expect(result.output.untracked_files).toEqual(['untracked.txt']);
-		} finally {
-			await rm(workspace, { force: true, recursive: true });
-		}
-	});
+	it(
+		'returns a typed error result for a non-repository path',
+		async () => {
+			const workspace = await createTempWorkspace('runa-git-status-missing-repo-');
 
-	it('returns a typed error result for a non-repository path', async () => {
-		const workspace = await createTempWorkspace('runa-git-status-missing-repo-');
+			try {
+				const result = await gitStatusTool.execute(createInput(), createContext(workspace));
 
-		try {
-			const result = await gitStatusTool.execute(createInput(), createContext(workspace));
-
-			expect(result).toMatchObject({
-				error_code: 'INVALID_INPUT',
-				status: 'error',
-				tool_name: 'git.status',
-			});
-		} finally {
-			await rm(workspace, { force: true, recursive: true });
-		}
-	});
+				expect(result).toMatchObject({
+					error_code: 'INVALID_INPUT',
+					status: 'error',
+					tool_name: 'git.status',
+				});
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
 
 	it('returns a typed error result when the resolved working directory is not a directory', async () => {
 		let execCallCount = 0;
