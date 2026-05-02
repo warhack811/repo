@@ -29,3 +29,9 @@ After the initial full-suite run, two `register-ws.test.ts` failures remained:
 The `web.search` case passed when isolated with the server dist Vitest workflow, so no runtime code or assertion change was made for F2. The earlier sequence mismatch was treated as a cascade after the timed-out `git.diff` test interrupted the same file's run.
 
 The `git.diff` case passed twice on the stashed base and once on this branch when isolated. The live `git.diff` tool span stayed small, so no M3/M4 runtime performance regression was found. The failure was narrowed to a full-suite, environment-sensitive timing budget issue on Windows. The test keeps its assertions unchanged and now uses a 15s per-test timeout, below the task's 60s ceiling.
+
+## E2E Regression Resolution
+
+`resolveRuntimeTerminationCode` initially mapped non-failure stop kinds (`completed`, `cancelled`, `model_stop`) to termination codes. This propagated into `run.finished.error_code`, which the web UI treated as failure, breaking 4 approval-flow e2e tests on PR #30.
+
+Fix: restricted the function to terminal-failure kinds only. Success paths now emit `run.finished` with `error_code: undefined` as before. `RuntimeTerminationCode` union remains additive; only the mapping narrowed.

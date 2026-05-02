@@ -9,6 +9,7 @@ import {
 	buildTerminalFailureMessage,
 	createOrderedToolResultContinuationText,
 	replaceFinalUserMessage,
+	resolveRuntimeTerminationCode,
 } from './run-execution.js';
 
 function createSnapshot(overrides: Partial<AgentLoopSnapshot>): AgentLoopSnapshot {
@@ -47,6 +48,43 @@ function createRunRequestPayload(): RunRequestPayload {
 }
 
 describe('run-execution tool result pipeline helpers', () => {
+	it('resolveRuntimeTerminationCode returns undefined for completed stop_reason', () => {
+		expect(
+			resolveRuntimeTerminationCode({
+				disposition: 'terminal',
+				final_runtime_state: 'COMPLETED',
+				kind: 'completed',
+				loop_state: 'COMPLETED',
+				turn_count: 1,
+			}),
+		).toBeUndefined();
+	});
+
+	it('resolveRuntimeTerminationCode returns undefined for cancelled stop_reason', () => {
+		expect(
+			resolveRuntimeTerminationCode({
+				actor: 'user',
+				disposition: 'terminal',
+				kind: 'cancelled',
+				loop_state: 'CANCELLED',
+				turn_count: 1,
+			}),
+		).toBeUndefined();
+	});
+
+	it('resolveRuntimeTerminationCode returns the failure code for repeated_tool_call', () => {
+		expect(
+			resolveRuntimeTerminationCode({
+				consecutive_count: 3,
+				disposition: 'terminal',
+				kind: 'repeated_tool_call',
+				loop_state: 'FAILED',
+				tool_name: 'file.read',
+				turn_count: 3,
+			}),
+		).toBe('REPEATED_TOOL_CALL');
+	});
+
 	it('buildTerminalFailureMessage surfaces repeated_tool_call details', () => {
 		const message = buildTerminalFailureMessage(
 			createSnapshot({

@@ -398,7 +398,7 @@ function formatStopReasonMessage(stopReason: AgentLoopSnapshot['stop_reason']): 
 	}
 }
 
-function resolveRuntimeTerminationCode(
+export function resolveRuntimeTerminationCode(
 	stopReason: AgentLoopSnapshot['stop_reason'],
 ): RuntimeTerminationCode | undefined {
 	if (stopReason === undefined) {
@@ -407,15 +407,13 @@ function resolveRuntimeTerminationCode(
 
 	switch (stopReason.kind) {
 		case 'cancelled':
-			return 'CANCELLED';
 		case 'completed':
-			return 'COMPLETED';
+		case 'model_stop':
+			return undefined;
 		case 'failed':
 			return 'FAILED';
 		case 'max_turns_reached':
 			return 'MAX_TURNS_REACHED';
-		case 'model_stop':
-			return 'MODEL_STOP';
 		case 'repeated_tool_call':
 			return 'REPEATED_TOOL_CALL';
 		case 'stagnation':
@@ -425,7 +423,7 @@ function resolveRuntimeTerminationCode(
 		case 'tool_failure':
 			return 'TOOL_FAILURE';
 		default:
-			return 'RUN_TERMINATED';
+			return undefined;
 	}
 }
 
