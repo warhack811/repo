@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
 	TOOL_CALL_REPAIR_RECOVERY_METADATA_KEY,
+	type ToolCallRepairRecoveryEvent,
 	createToolCallRepairRecovery,
 	isToolCallRepairableError,
 } from './tool-call-repair-recovery.js';
@@ -156,7 +157,12 @@ describe('tool-call-repair-recovery', () => {
 
 	describe('recover', () => {
 		it('recovers successfully when the repaired retry returns a clean response', async () => {
-			const recovery = createToolCallRepairRecovery();
+			const events: ToolCallRepairRecoveryEvent[] = [];
+			const recovery = createToolCallRepairRecovery({
+				on_event(event) {
+					events.push(event);
+				},
+			});
 			const retryExecutor = vi.fn(async (): Promise<ModelResponse> => createModelResponse());
 
 			const result = await recovery.recover({
@@ -177,10 +183,34 @@ describe('tool-call-repair-recovery', () => {
 			expect(result.model_request.messages.at(-1)).toMatchObject({
 				role: 'system',
 			});
+			expect(events.map((event) => event.type)).toEqual([
+				'recovery.attempted',
+				'recovery.succeeded',
+			]);
+			expect(events[0]).toMatchObject({
+				recovery_type: 'tool_call_repair',
+				retry_count: 1,
+				trigger_error: {
+					arguments_length: 17,
+					reason: 'unparseable_tool_input',
+					tool_name_raw: 'file.read',
+					tool_name_resolved: 'file.read',
+				},
+			});
+			expect(events[1]).toMatchObject({
+				metadata: result.recovery_metadata,
+				recovery_type: 'tool_call_repair',
+				retry_count: 1,
+			});
 		});
 
 		it('returns retry_still_unparseable when the repaired retry hits the same rejection', async () => {
-			const recovery = createToolCallRepairRecovery();
+			const events: ToolCallRepairRecoveryEvent[] = [];
+			const recovery = createToolCallRepairRecovery({
+				on_event(event) {
+					events.push(event);
+				},
+			});
 
 			const result = await recovery.recover({
 				error: createGatewayResponseErrorShape('unparseable_tool_input'),
@@ -194,6 +224,12 @@ describe('tool-call-repair-recovery', () => {
 				reason: 'retry_still_unparseable',
 				retry_count: 1,
 				status: 'unrecoverable',
+			});
+			expect(events.map((event) => event.type)).toEqual(['recovery.attempted', 'recovery.failed']);
+			expect(events[1]).toMatchObject({
+				reason: 'retry_still_unparseable',
+				recovery_type: 'tool_call_repair',
+				retry_count: 1,
 			});
 		});
 

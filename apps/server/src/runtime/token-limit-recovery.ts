@@ -124,6 +124,32 @@ export type TokenLimitRecoveryResult =
 	| RecoveredTokenLimitResult
 	| UnrecoverableTokenLimitResult;
 
+export type TokenLimitRecoveryEvent =
+	| {
+			readonly recovery_type: 'token_limit';
+			readonly retry_count: number;
+			readonly trigger_error: TokenLimitErrorDetails;
+			readonly type: 'recovery.attempted';
+	  }
+	| {
+			readonly metadata: TokenLimitRecoveryMetadata;
+			readonly recovery_type: 'token_limit';
+			readonly retry_count: number;
+			readonly type: 'recovery.succeeded';
+	  }
+	| {
+			readonly reason:
+				| 'compaction_failed'
+				| 'compaction_not_effective'
+				| 'missing_compiled_context'
+				| 'retry_budget_exhausted'
+				| 'retry_failed'
+				| 'retry_still_token_limited';
+			readonly recovery_type: 'token_limit';
+			readonly retry_count: number;
+			readonly type: 'recovery.failed';
+	  };
+
 export interface TokenLimitRecovery {
 	evaluate(input: EvaluateTokenLimitRecoveryInput): Promise<TokenLimitRecoveryDecision>;
 	recover(input: RecoverFromTokenLimitInput): Promise<TokenLimitRecoveryResult>;
@@ -132,6 +158,7 @@ export interface TokenLimitRecovery {
 export interface CreateTokenLimitRecoveryOptions {
 	readonly compaction_strategy: ContextCompactionStrategy;
 	readonly max_retries?: number;
+	readonly on_event?: (event: TokenLimitRecoveryEvent) => void;
 }
 
 interface TokenLimitErrorRecord {
@@ -287,6 +314,7 @@ export function createTokenLimitRecovery(
 	options: CreateTokenLimitRecoveryOptions,
 ): TokenLimitRecovery {
 	const maxRetries = normalizeMaxRetries(options.max_retries);
+	const onEvent = options.on_event;
 
 	return {
 		async evaluate(input: EvaluateTokenLimitRecoveryInput): Promise<TokenLimitRecoveryDecision> {
@@ -298,25 +326,53 @@ export function createTokenLimitRecovery(
 			}
 
 			const retryCount = normalizeRetryCount(input.retry_count);
+			const nextRetryCount = retryCount + 1;
+			const triggerError = buildTokenLimitErrorDetails(input.error);
 
 			if (retryCount >= normalizeMaxRetries(input.max_retries ?? maxRetries)) {
+				onEvent?.({
+					recovery_type: 'token_limit',
+					retry_count: retryCount,
+					trigger_error: triggerError,
+					type: 'recovery.attempted',
+				});
+				onEvent?.({
+					reason: 'retry_budget_exhausted',
+					recovery_type: 'token_limit',
+					retry_count: retryCount,
+					type: 'recovery.failed',
+				});
+
 				return {
 					reason: 'retry_budget_exhausted',
 					status: 'unrecoverable',
 				};
 			}
 
+			onEvent?.({
+				recovery_type: 'token_limit',
+				retry_count: nextRetryCount,
+				trigger_error: triggerError,
+				type: 'recovery.attempted',
+			});
+
 			if (
 				input.model_request.compiled_context === undefined ||
 				input.model_request.compiled_context.layers.length === 0
 			) {
+				onEvent?.({
+					reason: 'missing_compiled_context',
+					recovery_type: 'token_limit',
+					retry_count: nextRetryCount,
+					type: 'recovery.failed',
+				});
+
 				return {
 					reason: 'missing_compiled_context',
 					status: 'unrecoverable',
 				};
 			}
 
-			const nextRetryCount = retryCount + 1;
 			const originalContextEstimate = measureCompiledContextUsage(
 				input.model_request.compiled_context,
 			)?.total;
@@ -339,6 +395,13 @@ export function createTokenLimitRecovery(
 					target_token_range: input.compaction_input?.target_token_range,
 				});
 			} catch (error: unknown) {
+				onEvent?.({
+					reason: 'compaction_failed',
+					recovery_type: 'token_limit',
+					retry_count: nextRetryCount,
+					type: 'recovery.failed',
+				});
+
 				return {
 					cause: error,
 					reason: 'compaction_failed',
@@ -365,6 +428,13 @@ export function createTokenLimitRecovery(
 					originalContextEstimate !== undefined &&
 					compactedContextEstimate.token_count >= originalContextEstimate.token_count)
 			) {
+				onEvent?.({
+					reason: 'compaction_not_effective',
+					recovery_type: 'token_limit',
+					retry_count: nextRetryCount,
+					type: 'recovery.failed',
+				});
+
 				return {
 					compaction_result: compactionResult,
 					reason: 'compaction_not_effective',
@@ -410,6 +480,13 @@ export function createTokenLimitRecovery(
 			try {
 				const modelResponse = await input.retry_executor(decision.compacted_model_request);
 
+				onEvent?.({
+					metadata: decision.recovery_metadata,
+					recovery_type: 'token_limit',
+					retry_count: decision.recovery_metadata.retry_count,
+					type: 'recovery.succeeded',
+				});
+
 				return {
 					compaction_result: decision.compaction_result,
 					model_request: decision.compacted_model_request,
@@ -420,6 +497,13 @@ export function createTokenLimitRecovery(
 				};
 			} catch (error: unknown) {
 				if (isTokenLimitError(error)) {
+					onEvent?.({
+						reason: 'retry_still_token_limited',
+						recovery_type: 'token_limit',
+						retry_count: decision.recovery_metadata.retry_count,
+						type: 'recovery.failed',
+					});
+
 					return {
 						cause: error,
 						compaction_result: decision.compaction_result,
@@ -431,6 +515,13 @@ export function createTokenLimitRecovery(
 						status: 'unrecoverable',
 					};
 				}
+
+				onEvent?.({
+					reason: 'retry_failed',
+					recovery_type: 'token_limit',
+					retry_count: decision.recovery_metadata.retry_count,
+					type: 'recovery.failed',
+				});
 
 				return {
 					cause: error,

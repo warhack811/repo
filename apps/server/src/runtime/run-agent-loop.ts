@@ -23,6 +23,7 @@ import type {
 	CreateRunModelTurnLoopExecutorInput,
 } from './run-model-turn-loop-adapter.js';
 import type { RunModelTurnInput, RunModelTurnResult } from './run-model-turn.js';
+import type { TokenLimitRecovery } from './token-limit-recovery.js';
 import type { ToolCallRepairRecovery } from './tool-call-repair-recovery.js';
 
 import { createAgentLoopCheckpointWriter } from './agent-loop-checkpointing.js';
@@ -48,6 +49,7 @@ export interface RunAgentLoopInput {
 	readonly registry: ToolRegistry;
 	readonly run_id: string;
 	readonly run_model_turn?: (input: RunModelTurnInput) => Promise<RunModelTurnResult>;
+	readonly token_limit_recovery?: TokenLimitRecovery | null;
 	readonly tool_call_repair_recovery?: ToolCallRepairRecovery | null;
 	readonly tool_names?: readonly ToolName[];
 	readonly trace_id: string;
@@ -69,6 +71,7 @@ function toExecutorInput(input: RunAgentLoopInput): CreateRunModelTurnLoopExecut
 		persistence_writer: input.persistence_writer,
 		registry: input.registry,
 		run_model_turn: input.run_model_turn,
+		token_limit_recovery: input.token_limit_recovery,
 		tool_call_repair_recovery: input.tool_call_repair_recovery,
 		tool_names: input.tool_names,
 	};

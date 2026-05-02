@@ -7,6 +7,7 @@ import type {
 	TurnProgressEvent,
 } from '@runa/types';
 
+import { createMicrocompactStrategy } from '../context/compaction-strategies.js';
 import type { RunRecordWriter } from '../persistence/run-store.js';
 import type { ToolRegistry } from '../tools/registry.js';
 
@@ -33,6 +34,12 @@ import {
 	buildStateEnteredEvent,
 } from './runtime-events.js';
 import {
+	TOKEN_LIMIT_RECOVERY_METADATA_KEY,
+	type TokenLimitRecovery,
+	createTokenLimitRecovery,
+} from './token-limit-recovery.js';
+import {
+	TOOL_CALL_REPAIR_RECOVERY_METADATA_KEY,
 	type ToolCallRepairRecovery,
 	createToolCallRepairRecovery,
 } from './tool-call-repair-recovery.js';
@@ -48,8 +55,65 @@ export interface CreateRunModelTurnLoopExecutorInput {
 	readonly persistence_writer?: RunRecordWriter;
 	readonly registry: ToolRegistry;
 	readonly run_model_turn?: (input: RunModelTurnInput) => Promise<RunModelTurnResult>;
+	readonly token_limit_recovery?: TokenLimitRecovery | null;
 	readonly tool_call_repair_recovery?: ToolCallRepairRecovery | null;
 	readonly tool_names?: readonly ToolName[];
+}
+
+interface RecoveryEventMetadata {
+	readonly outcome: 'recovered' | 'unrecoverable';
+	readonly retry_count: number;
+	readonly type: 'token_limit' | 'tool_call_repair';
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readRecoveryRetryCount(metadata: unknown): number | undefined {
+	if (!isRecord(metadata)) {
+		return undefined;
+	}
+
+	const retryCount = metadata['retry_count'];
+
+	return typeof retryCount === 'number' && Number.isFinite(retryCount)
+		? Math.trunc(retryCount)
+		: undefined;
+}
+
+function buildRecoveryEventMetadata(
+	modelRequest: ModelRequest | undefined,
+): RecoveryEventMetadata | undefined {
+	const metadata = modelRequest?.metadata;
+
+	if (!isRecord(metadata)) {
+		return undefined;
+	}
+
+	const tokenLimitRetryCount = readRecoveryRetryCount(metadata[TOKEN_LIMIT_RECOVERY_METADATA_KEY]);
+
+	if (tokenLimitRetryCount !== undefined) {
+		return {
+			outcome: 'recovered',
+			retry_count: tokenLimitRetryCount,
+			type: 'token_limit',
+		};
+	}
+
+	const toolCallRepairRetryCount = readRecoveryRetryCount(
+		metadata[TOOL_CALL_REPAIR_RECOVERY_METADATA_KEY],
+	);
+
+	if (toolCallRepairRetryCount !== undefined) {
+		return {
+			outcome: 'recovered',
+			retry_count: toolCallRepairRetryCount,
+			type: 'tool_call_repair',
+		};
+	}
+
+	return undefined;
 }
 
 function buildExecutionContext(
@@ -149,10 +213,13 @@ function createRuntimeProgressEvents(
 					},
 					metadata:
 						result.resolved_model_request !== undefined
-							? buildModelUsageEventMetadata({
-									model_request: result.resolved_model_request,
-									model_response: result.model_response,
-								})
+							? {
+									...buildModelUsageEventMetadata({
+										model_request: result.resolved_model_request,
+										model_response: result.model_response,
+									}),
+									recovery: buildRecoveryEventMetadata(result.resolved_model_request),
+								}
 							: undefined,
 					run_id: turnInput.run_id,
 					sequence_no: sequenceNo,
@@ -390,6 +457,13 @@ export function createRunModelTurnLoopExecutor(
 	input: CreateRunModelTurnLoopExecutorInput,
 ): AgentLoopTurnExecutor {
 	const runModelTurnDependency = input.run_model_turn ?? runModelTurn;
+	const tokenLimitRecovery =
+		input.token_limit_recovery === null
+			? undefined
+			: (input.token_limit_recovery ??
+				createTokenLimitRecovery({
+					compaction_strategy: createMicrocompactStrategy(),
+				}));
 	const repairRecovery =
 		input.tool_call_repair_recovery === null
 			? undefined
@@ -411,6 +485,7 @@ export function createRunModelTurnLoopExecutor(
 			persistence_writer: input.persistence_writer,
 			registry: input.registry,
 			run_id: turnInput.run_id,
+			token_limit_recovery: tokenLimitRecovery,
 			tool_call_repair_recovery: repairRecovery,
 			tool_names: input.tool_names,
 			trace_id: turnInput.trace_id,

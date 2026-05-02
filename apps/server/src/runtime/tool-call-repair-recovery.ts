@@ -86,6 +86,26 @@ export type ToolCallRepairRecoveryResult =
 	| RecoveredToolCallRepairResult
 	| UnrecoverableToolCallRepairResult;
 
+export type ToolCallRepairRecoveryEvent =
+	| {
+			readonly recovery_type: 'tool_call_repair';
+			readonly retry_count: number;
+			readonly trigger_error: ToolCallRepairErrorDetails;
+			readonly type: 'recovery.attempted';
+	  }
+	| {
+			readonly metadata: ToolCallRepairRecoveryMetadata;
+			readonly recovery_type: 'tool_call_repair';
+			readonly retry_count: number;
+			readonly type: 'recovery.succeeded';
+	  }
+	| {
+			readonly reason: 'retry_budget_exhausted' | 'retry_failed' | 'retry_still_unparseable';
+			readonly recovery_type: 'tool_call_repair';
+			readonly retry_count: number;
+			readonly type: 'recovery.failed';
+	  };
+
 export interface ToolCallRepairRecovery {
 	evaluate(input: EvaluateToolCallRepairRecoveryInput): Promise<ToolCallRepairRecoveryDecision>;
 	recover(input: RecoverFromToolCallRepairInput): Promise<ToolCallRepairRecoveryResult>;
@@ -93,6 +113,7 @@ export interface ToolCallRepairRecovery {
 
 export interface CreateToolCallRepairRecoveryOptions {
 	readonly max_retries?: number;
+	readonly on_event?: (event: ToolCallRepairRecoveryEvent) => void;
 }
 
 interface ToolCallRepairErrorRecord {
@@ -186,6 +207,7 @@ export function createToolCallRepairRecovery(
 	options: CreateToolCallRepairRecoveryOptions = {},
 ): ToolCallRepairRecovery {
 	const maxRetries = normalizeMaxRetries(options.max_retries);
+	const onEvent = options.on_event;
 
 	return {
 		async evaluate(
@@ -201,17 +223,38 @@ export function createToolCallRepairRecovery(
 			}
 
 			const retryCount = normalizeRetryCount(input.retry_count);
+			const nextRetryCount = retryCount + 1;
 
 			if (retryCount >= normalizeMaxRetries(input.max_retries ?? maxRetries)) {
+				onEvent?.({
+					recovery_type: 'tool_call_repair',
+					retry_count: retryCount,
+					trigger_error: errorDetails,
+					type: 'recovery.attempted',
+				});
+				onEvent?.({
+					reason: 'retry_budget_exhausted',
+					recovery_type: 'tool_call_repair',
+					retry_count: retryCount,
+					type: 'recovery.failed',
+				});
+
 				return {
 					reason: 'retry_budget_exhausted',
 					status: 'unrecoverable',
 				};
 			}
 
+			onEvent?.({
+				recovery_type: 'tool_call_repair',
+				retry_count: nextRetryCount,
+				trigger_error: errorDetails,
+				type: 'recovery.attempted',
+			});
+
 			const recoveryMetadata = buildRecoveryMetadata({
 				error_details: errorDetails,
-				retry_count: retryCount + 1,
+				retry_count: nextRetryCount,
 			});
 
 			return {
@@ -245,6 +288,13 @@ export function createToolCallRepairRecovery(
 			try {
 				const modelResponse = await input.retry_executor(decision.repaired_model_request);
 
+				onEvent?.({
+					metadata: decision.recovery_metadata,
+					recovery_type: 'tool_call_repair',
+					retry_count: decision.recovery_metadata.retry_count,
+					type: 'recovery.succeeded',
+				});
+
 				return {
 					model_request: decision.repaired_model_request,
 					model_response: modelResponse,
@@ -254,6 +304,13 @@ export function createToolCallRepairRecovery(
 				};
 			} catch (error: unknown) {
 				if (isToolCallRepairableError(error)) {
+					onEvent?.({
+						reason: 'retry_still_unparseable',
+						recovery_type: 'tool_call_repair',
+						retry_count: decision.recovery_metadata.retry_count,
+						type: 'recovery.failed',
+					});
+
 					return {
 						cause: error,
 						decision,
@@ -264,6 +321,13 @@ export function createToolCallRepairRecovery(
 						status: 'unrecoverable',
 					};
 				}
+
+				onEvent?.({
+					reason: 'retry_failed',
+					recovery_type: 'tool_call_repair',
+					retry_count: decision.recovery_metadata.retry_count,
+					type: 'recovery.failed',
+				});
 
 				return {
 					cause: error,

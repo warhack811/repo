@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMicrocompactStrategy } from '../context/compaction-strategies.js';
 import {
 	TOKEN_LIMIT_RECOVERY_METADATA_KEY,
+	type TokenLimitRecoveryEvent,
 	createTokenLimitRecovery,
 	isTokenLimitError,
 } from './token-limit-recovery.js';
@@ -125,8 +126,12 @@ describe('token-limit-recovery', () => {
 	});
 
 	it('recovers successfully when compacted retry execution succeeds', async () => {
+		const events: TokenLimitRecoveryEvent[] = [];
 		const recovery = createTokenLimitRecovery({
 			compaction_strategy: createMicrocompactStrategy(),
+			on_event(event) {
+				events.push(event);
+			},
 		});
 		const retryExecutor = vi.fn(
 			async (request: ModelRequest): Promise<ModelResponse> => ({
@@ -166,11 +171,29 @@ describe('token-limit-recovery', () => {
 		]);
 		expect(result.model_response.message.content).toBe('Recovered with 3 layers.');
 		expect(result.retry_count).toBe(1);
+		expect(events.map((event) => event.type)).toEqual(['recovery.attempted', 'recovery.succeeded']);
+		expect(events[0]).toMatchObject({
+			recovery_type: 'token_limit',
+			retry_count: 1,
+			trigger_error: {
+				code: 'CONTEXT_LENGTH_EXCEEDED',
+				status_code: 413,
+			},
+		});
+		expect(events[1]).toMatchObject({
+			metadata: result.recovery_metadata,
+			recovery_type: 'token_limit',
+			retry_count: 1,
+		});
 	});
 
 	it('returns controlled unrecoverable when the compacted retry still hits token limit', async () => {
+		const events: TokenLimitRecoveryEvent[] = [];
 		const recovery = createTokenLimitRecovery({
 			compaction_strategy: createMicrocompactStrategy(),
+			on_event(event) {
+				events.push(event);
+			},
 		});
 
 		const result = await recovery.recover({
@@ -191,6 +214,12 @@ describe('token-limit-recovery', () => {
 			reason: 'retry_still_token_limited',
 			retry_count: 1,
 			status: 'unrecoverable',
+		});
+		expect(events.map((event) => event.type)).toEqual(['recovery.attempted', 'recovery.failed']);
+		expect(events[1]).toMatchObject({
+			reason: 'retry_still_token_limited',
+			recovery_type: 'token_limit',
+			retry_count: 1,
 		});
 	});
 
