@@ -537,6 +537,7 @@ describe('runAgentLoop', () => {
 			persistence_writer: persistenceWriter,
 			registry,
 			run_id: 'run_agent_loop_forwarded',
+			tool_call_repair_recovery: expect.any(Object),
 			tool_names: ['file.read'],
 			trace_id: 'trace_agent_loop_forwarded',
 		});

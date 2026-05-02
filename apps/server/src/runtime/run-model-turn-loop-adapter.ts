@@ -32,6 +32,10 @@ import {
 	buildRunFailedEvent,
 	buildStateEnteredEvent,
 } from './runtime-events.js';
+import {
+	type ToolCallRepairRecovery,
+	createToolCallRepairRecovery,
+} from './tool-call-repair-recovery.js';
 
 export type AgentLoopModelRequestFactory = (
 	input: AgentLoopTurnInput,
@@ -44,6 +48,7 @@ export interface CreateRunModelTurnLoopExecutorInput {
 	readonly persistence_writer?: RunRecordWriter;
 	readonly registry: ToolRegistry;
 	readonly run_model_turn?: (input: RunModelTurnInput) => Promise<RunModelTurnResult>;
+	readonly tool_call_repair_recovery?: ToolCallRepairRecovery | null;
 	readonly tool_names?: readonly ToolName[];
 }
 
@@ -385,6 +390,10 @@ export function createRunModelTurnLoopExecutor(
 	input: CreateRunModelTurnLoopExecutorInput,
 ): AgentLoopTurnExecutor {
 	const runModelTurnDependency = input.run_model_turn ?? runModelTurn;
+	const repairRecovery =
+		input.tool_call_repair_recovery === null
+			? undefined
+			: (input.tool_call_repair_recovery ?? createToolCallRepairRecovery());
 
 	return async function runModelTurnLoopExecutor(
 		turnInput: AgentLoopTurnInput,
@@ -402,6 +411,7 @@ export function createRunModelTurnLoopExecutor(
 			persistence_writer: input.persistence_writer,
 			registry: input.registry,
 			run_id: turnInput.run_id,
+			tool_call_repair_recovery: repairRecovery,
 			tool_names: input.tool_names,
 			trace_id: turnInput.trace_id,
 		});

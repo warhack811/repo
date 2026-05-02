@@ -1,6 +1,6 @@
 import type { ModelGateway, ModelRequest, ModelResponse, ModelStreamChunk } from '@runa/types';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { AgentLoopTurnInput } from './agent-loop.js';
 import type {
@@ -11,7 +11,9 @@ import type {
 	RunModelTurnResult,
 	RunModelTurnToolCallResult,
 } from './run-model-turn.js';
+import type { ToolCallRepairRecovery } from './tool-call-repair-recovery.js';
 
+import { GatewayResponseError } from '../gateway/errors.js';
 import { ToolRegistry } from '../tools/registry.js';
 import {
 	createRunModelTurnLoopExecutor,
@@ -21,6 +23,47 @@ import {
 class StubModelGateway implements ModelGateway {
 	async generate(_request: ModelRequest): Promise<ModelResponse> {
 		throw new Error('generate should not be called directly in adapter tests');
+	}
+
+	async *stream(_request: ModelRequest): AsyncIterable<ModelStreamChunk> {
+		yield* [];
+	}
+}
+
+class RepairableThenSuccessGateway implements ModelGateway {
+	readonly #failuresBeforeSuccess: number;
+	generate_calls = 0;
+
+	constructor(failuresBeforeSuccess: number) {
+		this.#failuresBeforeSuccess = failuresBeforeSuccess;
+	}
+
+	async generate(_request: ModelRequest): Promise<ModelResponse> {
+		this.generate_calls += 1;
+
+		if (this.generate_calls <= this.#failuresBeforeSuccess) {
+			throw new GatewayResponseError(
+				'openai',
+				'OpenAI response contained an invalid tool call candidate (unparseable_tool_input).',
+				{
+					arguments_length: 8,
+					call_id_present: true,
+					reason: 'unparseable_tool_input',
+					tool_name_raw: 'file.read',
+					tool_name_resolved: 'file.read',
+				},
+			);
+		}
+
+		return {
+			finish_reason: 'stop',
+			message: {
+				content: 'Recovered final answer.',
+				role: 'assistant',
+			},
+			model: 'gpt-4.1-mini',
+			provider: 'openai',
+		};
 	}
 
 	async *stream(_request: ModelRequest): AsyncIterable<ModelStreamChunk> {
@@ -559,6 +602,7 @@ describe('run-model-turn-loop-adapter', () => {
 			persistence_writer: undefined,
 			registry: expect.any(ToolRegistry),
 			run_id: 'run_loop_adapter_forwarded',
+			tool_call_repair_recovery: expect.any(Object),
 			tool_names: ['file.read'],
 			trace_id: 'trace_loop_adapter_forwarded',
 		});
@@ -592,6 +636,103 @@ describe('run-model-turn-loop-adapter', () => {
 			progress_events: expect.arrayContaining([
 				...createToolContinuationResult().continuation_result.events,
 			]),
+		});
+	});
+
+	it('enables tool call repair recovery by default for real runModelTurn execution', async () => {
+		const gateway = new RepairableThenSuccessGateway(1);
+		const executor = createRunModelTurnLoopExecutor({
+			async build_model_request() {
+				return createModelRequest();
+			},
+			model_gateway: gateway,
+			registry: new ToolRegistry(),
+		});
+
+		const result = await executor(createLoopTurnInput());
+
+		expect(gateway.generate_calls).toBe(2);
+		expect(result).toMatchObject({
+			assistant_text: 'Recovered final answer.',
+			current_loop_state: 'COMPLETED',
+			current_runtime_state: 'COMPLETED',
+		});
+	});
+
+	it('keeps tool call repair recovery disabled when explicitly opted out with null', async () => {
+		const gateway = new RepairableThenSuccessGateway(1);
+		const executor = createRunModelTurnLoopExecutor({
+			async build_model_request() {
+				return createModelRequest();
+			},
+			model_gateway: gateway,
+			registry: new ToolRegistry(),
+			tool_call_repair_recovery: null,
+		});
+
+		const result = await executor(createLoopTurnInput());
+
+		expect(gateway.generate_calls).toBe(1);
+		expect(result).toMatchObject({
+			current_loop_state: 'FAILED',
+			current_runtime_state: 'FAILED',
+			failure: {
+				error_code: 'MODEL_GENERATE_FAILED',
+				error_message:
+					'Model generate failed: OpenAI response contained an invalid tool call candidate (unparseable_tool_input).',
+			},
+		});
+	});
+
+	it('uses an explicit tool call repair recovery instance when provided', async () => {
+		const gateway = new RepairableThenSuccessGateway(2);
+		const recoveredResponse: ModelResponse = {
+			finish_reason: 'stop',
+			message: {
+				content: 'Custom recovery final answer.',
+				role: 'assistant',
+			},
+			model: 'gpt-4.1-mini',
+			provider: 'openai',
+		};
+		const customRecovery: ToolCallRepairRecovery = {
+			evaluate: vi.fn(async () => ({
+				reason: 'not_repairable_error' as const,
+				status: 'no_recovery' as const,
+			})),
+			recover: vi.fn(async (input: Parameters<ToolCallRepairRecovery['recover']>[0]) => ({
+				model_request: input.model_request,
+				model_response: recoveredResponse,
+				recovery_metadata: {
+					retry_count: 1,
+					tool_call_repair_error: {
+						arguments_length: 8,
+						reason: 'unparseable_tool_input' as const,
+						tool_name_raw: 'file.read',
+						tool_name_resolved: 'file.read',
+					},
+				},
+				retry_count: 1,
+				status: 'recovered' as const,
+			})),
+		};
+		const executor = createRunModelTurnLoopExecutor({
+			async build_model_request() {
+				return createModelRequest();
+			},
+			model_gateway: gateway,
+			registry: new ToolRegistry(),
+			tool_call_repair_recovery: customRecovery,
+		});
+
+		const result = await executor(createLoopTurnInput());
+
+		expect(customRecovery.recover).toHaveBeenCalledTimes(1);
+		expect(gateway.generate_calls).toBe(1);
+		expect(result).toMatchObject({
+			assistant_text: 'Custom recovery final answer.',
+			current_loop_state: 'COMPLETED',
+			current_runtime_state: 'COMPLETED',
 		});
 	});
 });
