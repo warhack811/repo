@@ -134,6 +134,10 @@ const DEFAULT_PROVIDER: GatewayProvider = 'deepseek';
 const DEFAULT_MODEL = runtimeDefaultGatewayModels[DEFAULT_PROVIDER];
 const LEGACY_DEFAULT_PROVIDER: GatewayProvider = 'groq';
 const LEGACY_DEFAULT_MODEL = runtimeDefaultGatewayModels[LEGACY_DEFAULT_PROVIDER];
+const LEGACY_GROQ_DEFAULT_MODELS = new Set<string>([
+	LEGACY_DEFAULT_MODEL,
+	'llama-3.3-70b-versatile',
+]);
 function isGatewayProviderValue(value: unknown): value is GatewayProvider {
 	return typeof value === 'string' && gatewayProviders.includes(value as GatewayProvider);
 }
@@ -160,15 +164,17 @@ function createDefaultRuntimeConfig(): Readonly<{
 	};
 }
 
-function shouldMigrateStoredRuntimeConfigToDefaultProvider(
+export function shouldMigrateStoredRuntimeConfigToDefaultProvider(
 	config: Readonly<{
 		model: string;
 		provider: GatewayProvider;
 	}>,
 ): boolean {
+	const trimmedModel = config.model.trim();
+
 	return (
 		config.provider === LEGACY_DEFAULT_PROVIDER &&
-		(config.model.trim().length === 0 || config.model.trim() === LEGACY_DEFAULT_MODEL)
+		(trimmedModel.length === 0 || LEGACY_GROQ_DEFAULT_MODELS.has(trimmedModel))
 	);
 }
 
