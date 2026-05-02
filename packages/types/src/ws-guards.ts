@@ -23,6 +23,7 @@ import type {
 	RunRequestClientMessage,
 	RunRequestPayload,
 	RuntimeEventServerMessage,
+	TextDeltaDiscardServerMessage,
 	TextDeltaServerMessage,
 	WebSocketClientMessage,
 	WebSocketServerBridgeMessage,
@@ -219,6 +220,11 @@ interface TextDeltaMessageCandidate {
 interface TextDeltaPayloadCandidate {
 	readonly run_id?: unknown;
 	readonly text_delta?: unknown;
+	readonly trace_id?: unknown;
+}
+
+interface TextDeltaDiscardPayloadCandidate {
+	readonly run_id?: unknown;
 	readonly trace_id?: unknown;
 }
 
@@ -589,6 +595,12 @@ function isTextDeltaMessageCandidate(value: unknown): value is TextDeltaMessageC
 }
 
 function isTextDeltaPayloadCandidate(value: unknown): value is TextDeltaPayloadCandidate {
+	return isRecord(value);
+}
+
+function isTextDeltaDiscardPayloadCandidate(
+	value: unknown,
+): value is TextDeltaDiscardPayloadCandidate {
 	return isRecord(value);
 }
 
@@ -1258,6 +1270,18 @@ export function isTextDeltaServerMessage(value: unknown): value is TextDeltaServ
 	);
 }
 
+export function isTextDeltaDiscardServerMessage(
+	value: unknown,
+): value is TextDeltaDiscardServerMessage {
+	return (
+		isTextDeltaMessageCandidate(value) &&
+		value.type === 'text.delta.discard' &&
+		isTextDeltaDiscardPayloadCandidate(value.payload) &&
+		typeof value.payload.run_id === 'string' &&
+		typeof value.payload.trace_id === 'string'
+	);
+}
+
 export function isDesktopAgentConnectionReadyServerMessage(
 	value: unknown,
 ): value is DesktopAgentConnectionReadyServerMessage {
@@ -1415,6 +1439,7 @@ export function isWebSocketServerBridgeMessage(
 		isRunAcceptedServerMessage(value) ||
 		isRuntimeEventServerMessage(value) ||
 		isTextDeltaServerMessage(value) ||
+		isTextDeltaDiscardServerMessage(value) ||
 		isRunRejectedServerMessage(value) ||
 		isRunFinishedServerMessage(value) ||
 		isPresentationBlocksServerMessage(value)

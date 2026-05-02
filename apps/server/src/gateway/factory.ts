@@ -2,6 +2,7 @@ import type { ModelGateway, ModelRequest, ModelResponse, ModelStreamChunk } from
 
 import { defaultGatewayModels } from '@runa/types';
 
+import type { ProviderHealthSignal } from '../runtime/provider-health.js';
 import { ClaudeGateway } from './claude-gateway.js';
 import { resolveGatewayConfig } from './config-resolver.js';
 import { DeepSeekGateway } from './deepseek-gateway.js';
@@ -63,6 +64,7 @@ function buildGatewayConfigForProvider(
 }
 
 class RoutedModelGateway implements ModelGateway {
+	readonly #healthSignal: ProviderHealthSignal | undefined;
 	readonly #requestedConfig: GatewayProviderConfig;
 	readonly #requestedProvider: GatewayProvider;
 
@@ -70,14 +72,17 @@ class RoutedModelGateway implements ModelGateway {
 		input: Readonly<{
 			readonly requested_config: GatewayProviderConfig;
 			readonly requested_provider: GatewayProvider;
+			readonly health_signal?: ProviderHealthSignal;
 		}>,
 	) {
+		this.#healthSignal = input.health_signal;
 		this.#requestedConfig = input.requested_config;
 		this.#requestedProvider = input.requested_provider;
 	}
 
 	async generate(request: ModelRequest): Promise<ModelResponse> {
 		const route = resolveModelRoute({
+			health_signal: this.#healthSignal,
 			request,
 			requested_provider: this.#requestedProvider,
 		});
@@ -124,6 +129,7 @@ class RoutedModelGateway implements ModelGateway {
 
 	async *stream(request: ModelRequest): AsyncIterable<ModelStreamChunk> {
 		const route = resolveModelRoute({
+			health_signal: this.#healthSignal,
 			request,
 			requested_provider: this.#requestedProvider,
 		});
@@ -182,8 +188,15 @@ class RoutedModelGateway implements ModelGateway {
 	}
 }
 
-export function createModelGateway({ config, provider }: CreateGatewayOptions): ModelGateway {
+export function createModelGateway({
+	config,
+	health_signal,
+	provider,
+}: CreateGatewayOptions & {
+	readonly health_signal?: ProviderHealthSignal;
+}): ModelGateway {
 	return new RoutedModelGateway({
+		health_signal,
 		requested_config: config,
 		requested_provider: provider,
 	});

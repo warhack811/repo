@@ -200,6 +200,14 @@ export interface TextDeltaServerMessage {
 	readonly type: 'text.delta';
 }
 
+export interface TextDeltaDiscardServerMessage {
+	readonly payload: {
+		readonly run_id: string;
+		readonly trace_id: string;
+	};
+	readonly type: 'text.delta.discard';
+}
+
 export interface RunRejectedServerMessage {
 	readonly payload: {
 		readonly error_code?: TransportErrorCode;
@@ -292,6 +300,7 @@ export type WebSocketServerMessage =
 	| RunAcceptedServerMessage
 	| RuntimeEventServerMessage
 	| TextDeltaServerMessage
+	| TextDeltaDiscardServerMessage
 	| RunRejectedServerMessage
 	| RunFinishedServerMessage;
 

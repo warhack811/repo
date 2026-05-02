@@ -21,6 +21,7 @@ export type {
 	RunRequestModelRequest,
 	RunRequestPayload,
 	RuntimeEventServerMessage,
+	TextDeltaDiscardServerMessage,
 	TextDeltaServerMessage,
 	WebSocketServerBridgeMessage,
 	WebSocketClientMessage,

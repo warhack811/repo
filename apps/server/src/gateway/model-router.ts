@@ -1,6 +1,7 @@
 import { defaultGatewayModels } from '@runa/types';
 import type { ModelRequest } from '@runa/types';
 
+import type { ProviderHealthSignal } from '../runtime/provider-health.js';
 import type { GatewayProvider } from './providers.js';
 
 export type ModelRouteIntent = 'balanced' | 'cheap' | 'deep_reasoning' | 'tool_heavy';
@@ -39,7 +40,17 @@ export interface ResolvedModelRoute {
 		| 'requested_provider';
 	readonly routed_model: string;
 	readonly routed_provider: GatewayProvider;
+	readonly streaming_eligible: boolean;
 }
+
+const providerDemotionOrder: readonly GatewayProvider[] = [
+	'groq',
+	'sambanova',
+	'openai',
+	'gemini',
+	'claude',
+	'deepseek',
+];
 
 function isGatewayProvider(value: unknown): value is GatewayProvider {
 	return (
@@ -58,6 +69,29 @@ function isTruthyEnvironmentFlag(value: string | undefined): boolean {
 
 function isDisabledEnvironmentFlag(value: string | undefined): boolean {
 	return value === '0' || value?.toLowerCase() === 'false';
+}
+
+function isStreamingToolHeavyBypassEnabled(): boolean {
+	const env = process.env as NodeJS.ProcessEnv & {
+		readonly RUNA_STREAMING_TOOL_HEAVY_BYPASS?: string;
+	};
+
+	return !isDisabledEnvironmentFlag(env.RUNA_STREAMING_TOOL_HEAVY_BYPASS);
+}
+
+export function resolveStreamingEligibility(
+	intent: ModelRouteIntent,
+	provider: GatewayProvider,
+): boolean {
+	if (
+		isStreamingToolHeavyBypassEnabled() &&
+		provider === 'deepseek' &&
+		(intent === 'tool_heavy' || intent === 'deep_reasoning')
+	) {
+		return false;
+	}
+
+	return true;
 }
 
 function resolveDeepSeekModelForIntent(intent: ModelRouteIntent): string {
@@ -191,6 +225,7 @@ export function classifyModelRouteIntent(request: ModelRequest): ModelRouteInten
 
 export function resolveModelRoute(
 	input: Readonly<{
+		readonly health_signal?: ProviderHealthSignal;
 		readonly request: ModelRequest;
 		readonly requested_provider: GatewayProvider;
 	}>,
@@ -198,16 +233,20 @@ export function resolveModelRoute(
 	const metadata = readModelRouterMetadata(input.request);
 
 	if (!isModelRouterEnabled(metadata, input.requested_provider)) {
-		return {
-			allow_provider_fallback: false,
-			intent: 'balanced',
-			reason: 'requested_provider',
-			routed_model:
-				typeof input.request.model === 'string' && input.request.model.trim().length > 0
-					? input.request.model
-					: defaultGatewayModels[input.requested_provider],
-			routed_provider: input.requested_provider,
-		};
+		return applyProviderHealthSignal(
+			{
+				allow_provider_fallback: false,
+				intent: 'balanced',
+				reason: 'requested_provider',
+				routed_model:
+					typeof input.request.model === 'string' && input.request.model.trim().length > 0
+						? input.request.model
+						: defaultGatewayModels[input.requested_provider],
+				routed_provider: input.requested_provider,
+				streaming_eligible: resolveStreamingEligibility('balanced', input.requested_provider),
+			},
+			input.health_signal,
+		);
 	}
 
 	const preferredProvider = metadata?.preferred_provider;
@@ -215,74 +254,128 @@ export function resolveModelRoute(
 	if (isGatewayProvider(preferredProvider)) {
 		const preferredModel = metadata?.preferred_model;
 
-		return {
-			allow_provider_fallback: metadata?.allow_provider_fallback !== false,
-			intent: classifyModelRouteIntent(input.request),
-			reason: 'explicit_preferred_provider',
-			routed_model:
-				typeof preferredModel === 'string' && preferredModel.trim().length > 0
-					? preferredModel
-					: defaultGatewayModels[preferredProvider],
-			routed_provider: preferredProvider,
-		};
+		const intent = classifyModelRouteIntent(input.request);
+
+		return applyProviderHealthSignal(
+			{
+				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
+				intent,
+				reason: 'explicit_preferred_provider',
+				routed_model:
+					typeof preferredModel === 'string' && preferredModel.trim().length > 0
+						? preferredModel
+						: defaultGatewayModels[preferredProvider],
+				routed_provider: preferredProvider,
+				streaming_eligible: resolveStreamingEligibility(intent, preferredProvider),
+			},
+			input.health_signal,
+		);
 	}
 
 	const intent = classifyModelRouteIntent(input.request);
 
 	if (input.requested_provider === 'deepseek') {
-		return {
-			allow_provider_fallback: metadata?.allow_provider_fallback !== false,
-			intent,
-			reason:
-				intent === 'cheap'
-					? 'heuristic_cheap'
-					: intent === 'deep_reasoning'
-						? 'heuristic_deep_reasoning'
-						: intent === 'tool_heavy'
-							? 'heuristic_tool_heavy'
-							: 'requested_provider',
-			routed_model: resolveDeepSeekModelForIntent(intent),
-			routed_provider: 'deepseek',
-		};
+		return applyProviderHealthSignal(
+			{
+				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
+				intent,
+				reason:
+					intent === 'cheap'
+						? 'heuristic_cheap'
+						: intent === 'deep_reasoning'
+							? 'heuristic_deep_reasoning'
+							: intent === 'tool_heavy'
+								? 'heuristic_tool_heavy'
+								: 'requested_provider',
+				routed_model: resolveDeepSeekModelForIntent(intent),
+				routed_provider: 'deepseek',
+				streaming_eligible: resolveStreamingEligibility(intent, 'deepseek'),
+			},
+			input.health_signal,
+		);
 	}
 
 	switch (intent) {
 		case 'cheap':
-			return {
-				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
-				intent,
-				reason: 'heuristic_cheap',
-				routed_model: defaultGatewayModels.deepseek,
-				routed_provider: 'deepseek',
-			};
+			return applyProviderHealthSignal(
+				{
+					allow_provider_fallback: metadata?.allow_provider_fallback !== false,
+					intent,
+					reason: 'heuristic_cheap',
+					routed_model: defaultGatewayModels.deepseek,
+					routed_provider: 'deepseek',
+					streaming_eligible: resolveStreamingEligibility(intent, 'deepseek'),
+				},
+				input.health_signal,
+			);
 		case 'deep_reasoning':
-			return {
-				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
-				intent,
-				reason: 'heuristic_deep_reasoning',
-				routed_model: defaultGatewayModels.claude,
-				routed_provider: 'claude',
-			};
+			return applyProviderHealthSignal(
+				{
+					allow_provider_fallback: metadata?.allow_provider_fallback !== false,
+					intent,
+					reason: 'heuristic_deep_reasoning',
+					routed_model: defaultGatewayModels.claude,
+					routed_provider: 'claude',
+					streaming_eligible: resolveStreamingEligibility(intent, 'claude'),
+				},
+				input.health_signal,
+			);
 		case 'tool_heavy':
-			return {
-				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
-				intent,
-				reason: 'heuristic_tool_heavy',
-				routed_model: defaultGatewayModels.claude,
-				routed_provider: 'claude',
-			};
+			return applyProviderHealthSignal(
+				{
+					allow_provider_fallback: metadata?.allow_provider_fallback !== false,
+					intent,
+					reason: 'heuristic_tool_heavy',
+					routed_model: defaultGatewayModels.claude,
+					routed_provider: 'claude',
+					streaming_eligible: resolveStreamingEligibility(intent, 'claude'),
+				},
+				input.health_signal,
+			);
 		case 'balanced':
-			return {
-				allow_provider_fallback: metadata?.allow_provider_fallback !== false,
-				intent,
-				reason: 'requested_provider',
-				routed_model:
-					typeof input.request.model === 'string' && input.request.model.trim().length > 0
-						? input.request.model
-						: defaultGatewayModels[input.requested_provider],
-				routed_provider: input.requested_provider,
-			};
+			return applyProviderHealthSignal(
+				{
+					allow_provider_fallback: metadata?.allow_provider_fallback !== false,
+					intent,
+					reason: 'requested_provider',
+					routed_model:
+						typeof input.request.model === 'string' && input.request.model.trim().length > 0
+							? input.request.model
+							: defaultGatewayModels[input.requested_provider],
+					routed_provider: input.requested_provider,
+					streaming_eligible: resolveStreamingEligibility(intent, input.requested_provider),
+				},
+				input.health_signal,
+			);
 	}
+}
+
+function applyProviderHealthSignal(
+	route: ResolvedModelRoute,
+	healthSignal: ProviderHealthSignal | undefined,
+): ResolvedModelRoute {
+	if (
+		healthSignal === undefined ||
+		!healthSignal.demoted_providers.includes(route.routed_provider)
+	) {
+		return route;
+	}
+
+	const nextProvider = providerDemotionOrder.find(
+		(provider) =>
+			provider !== route.routed_provider && !healthSignal.demoted_providers.includes(provider),
+	);
+
+	if (nextProvider === undefined) {
+		return route;
+	}
+
+	return {
+		...route,
+		routed_model: defaultGatewayModels[nextProvider],
+		routed_provider: nextProvider,
+		streaming_eligible: resolveStreamingEligibility(route.intent, nextProvider),
+	};
 }
 
 export function applyModelRouteToRequest(

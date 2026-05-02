@@ -134,7 +134,6 @@ const DEFAULT_PROVIDER: GatewayProvider = 'deepseek';
 const DEFAULT_MODEL = runtimeDefaultGatewayModels[DEFAULT_PROVIDER];
 const LEGACY_DEFAULT_PROVIDER: GatewayProvider = 'groq';
 const LEGACY_DEFAULT_MODEL = runtimeDefaultGatewayModels[LEGACY_DEFAULT_PROVIDER];
-
 function isGatewayProviderValue(value: unknown): value is GatewayProvider {
 	return typeof value === 'string' && gatewayProviders.includes(value as GatewayProvider);
 }
@@ -789,6 +788,25 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								currentStreamingRunId: parsedMessage.payload.run_id,
 								currentStreamingText:
 									currentPresentationState.currentStreamingText + parsedMessage.payload.text_delta,
+							}));
+							return;
+						}
+
+						if (parsedMessage.type === 'text.delta.discard') {
+							if (
+								!matchesTrackedRun(
+									parsedMessage.payload.run_id,
+									presentationRunIdRef.current,
+									expectedPresentationRunIdRef.current,
+								)
+							) {
+								return;
+							}
+
+							chatStore.setPresentationState((currentPresentationState) => ({
+								...currentPresentationState,
+								currentStreamingRunId: parsedMessage.payload.run_id,
+								currentStreamingText: '',
 							}));
 							return;
 						}
