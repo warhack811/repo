@@ -49,6 +49,37 @@ describe('runa-adapter', () => {
 		]);
 	});
 
+	it('discards tentative text.delta chunks for the active run', () => {
+		const message = applyMessages([
+			{
+				payload: {
+					provider: 'deepseek',
+					run_id: 'run_1',
+					trace_id: 'trace_1',
+				},
+				type: 'run.accepted',
+			},
+			{
+				payload: {
+					run_id: 'run_1',
+					text_delta: 'Tentative text',
+					trace_id: 'trace_1',
+				},
+				type: 'text.delta',
+			},
+			{
+				payload: {
+					run_id: 'run_1',
+					trace_id: 'trace_1',
+				},
+				type: 'text.delta.discard',
+			},
+		]);
+
+		expect(message.parts).toEqual([]);
+		expect(message.status).toBe('running');
+	});
+
 	it('maps presentation blocks into source and tool parts', () => {
 		const blocks: readonly RenderBlock[] = [
 			{

@@ -38,7 +38,8 @@ function setEnvVariable(
 		| 'GEMINI_API_KEY'
 		| 'OPENAI_API_KEY'
 		| 'RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED'
-		| 'RUNA_MODEL_ROUTER_ENABLED',
+		| 'RUNA_MODEL_ROUTER_ENABLED'
+		| 'RUNA_STREAMING_TOOL_HEAVY_BYPASS',
 	value: string | undefined,
 ): void {
 	if (value === undefined) {
@@ -69,6 +70,7 @@ afterEach(() => {
 	setEnvVariable('OPENAI_API_KEY', undefined);
 	setEnvVariable('RUNA_DEEPSEEK_MODEL_ROUTER_ENABLED', undefined);
 	setEnvVariable('RUNA_MODEL_ROUTER_ENABLED', undefined);
+	setEnvVariable('RUNA_STREAMING_TOOL_HEAVY_BYPASS', undefined);
 });
 
 describe('model-router helpers', () => {
@@ -86,6 +88,7 @@ describe('model-router helpers', () => {
 			reason: 'requested_provider',
 			routed_model: 'llama-3.3-70b-versatile',
 			routed_provider: 'groq',
+			streaming_eligible: true,
 		});
 	});
 
@@ -242,10 +245,73 @@ describe('model-router helpers', () => {
 				reason: 'heuristic_deep_reasoning',
 				routed_model: 'claude-sonnet-4-5',
 				routed_provider: 'claude',
+				streaming_eligible: true,
 			},
 		);
 
 		expect(updatedRequest.model).toBe('claude-sonnet-4-5');
+	});
+
+	it('marks DeepSeek tool-heavy and deep-reasoning routes as streaming-ineligible by default', () => {
+		const toolHeavyRoute = resolveModelRoute({
+			request: createModelRequest({
+				messages: [{ content: 'Use file and shell tools', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+		const deepReasoningRoute = resolveModelRoute({
+			request: createModelRequest({
+				messages: [{ content: 'architecture deep analysis', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+
+		expect(toolHeavyRoute).toMatchObject({
+			intent: 'tool_heavy',
+			routed_provider: 'deepseek',
+			streaming_eligible: false,
+		});
+		expect(deepReasoningRoute).toMatchObject({
+			intent: 'deep_reasoning',
+			routed_provider: 'deepseek',
+			streaming_eligible: false,
+		});
+	});
+
+	it('keeps DeepSeek tool-heavy streaming eligible when the bypass flag is disabled', () => {
+		setEnvVariable('RUNA_STREAMING_TOOL_HEAVY_BYPASS', '0');
+
+		const route = resolveModelRoute({
+			request: createModelRequest({
+				messages: [{ content: 'Use file and shell tools', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+
+		expect(route).toMatchObject({
+			intent: 'tool_heavy',
+			routed_provider: 'deepseek',
+			streaming_eligible: true,
+		});
+	});
+
+	it('moves a demoted routed provider behind a healthy fallback for the current session', () => {
+		const route = resolveModelRoute({
+			health_signal: {
+				demoted_providers: ['deepseek'],
+			},
+			request: createModelRequest({
+				messages: [{ content: 'Merhaba', role: 'user' }],
+			}),
+			requested_provider: 'deepseek',
+		});
+
+		expect(route).toMatchObject({
+			intent: 'cheap',
+			routed_model: 'qwen/qwen3-32b',
+			routed_provider: 'groq',
+			streaming_eligible: true,
+		});
 	});
 });
 
