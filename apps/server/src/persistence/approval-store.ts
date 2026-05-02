@@ -54,7 +54,7 @@ export interface PendingApprovalToolCall {
 
 export interface PendingApprovalContinuationContext {
 	readonly payload: RunRequestPayload;
-	readonly tool_result: ToolResult;
+	readonly tool_result?: ToolResult;
 	readonly tool_result_history?: readonly ToolResult[];
 	readonly turn_count: number;
 	readonly working_directory: string;
@@ -283,7 +283,7 @@ function isPendingApprovalContinuationContext(
 
 	return (
 		isRunRequestPayload(candidate.payload) &&
-		isToolResult(candidate.tool_result) &&
+		(candidate.tool_result === undefined || isToolResult(candidate.tool_result)) &&
 		hasValidToolResultHistory &&
 		typeof candidate.turn_count === 'number' &&
 		Number.isInteger(candidate.turn_count) &&

@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+
 import type { ModelMessage, RuntimeState, ToolResult } from '@runa/types';
 
 import { adaptContextToModelRequest } from '../context/adapt-context-to-model-request.js';
@@ -17,8 +20,29 @@ interface ExtractedUserTurn {
 	readonly user_turn: string;
 }
 
-export function getLiveWorkingDirectory(): string {
-	return process.cwd();
+function hasWorkspaceRootMarker(directory: string): boolean {
+	return (
+		existsSync(resolve(directory, 'pnpm-workspace.yaml')) ||
+		(existsSync(resolve(directory, '.git')) && existsSync(resolve(directory, 'package.json')))
+	);
+}
+
+export function getLiveWorkingDirectory(startDirectory = process.cwd()): string {
+	let currentDirectory = resolve(startDirectory);
+
+	while (true) {
+		if (hasWorkspaceRootMarker(currentDirectory)) {
+			return currentDirectory;
+		}
+
+		const parentDirectory = dirname(currentDirectory);
+
+		if (parentDirectory === currentDirectory) {
+			return resolve(startDirectory);
+		}
+
+		currentDirectory = parentDirectory;
+	}
 }
 
 export function getLiveMemoryScopeId(workingDirectory: string): string {

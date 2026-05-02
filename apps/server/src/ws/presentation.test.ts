@@ -86,7 +86,8 @@ describe('createAutomaticApprovalPresentationInputs', () => {
 		});
 	});
 
-	it('does not attach continuation context to unrelated non-desktop approvals', () => {
+	it('persists non-desktop approval continuation context for replay follow-up', () => {
+		const contextResult = createToolResult('call_shell_context', 'search.codebase');
 		const inputs = createAutomaticApprovalPresentationInputs(
 			{
 				approval_request: createApprovalRequest('shell.exec'),
@@ -94,7 +95,7 @@ describe('createAutomaticApprovalPresentationInputs', () => {
 				final_state: 'WAITING_APPROVAL',
 				runtime_events: [],
 				status: 'approval_required',
-				tool_result: createToolResult('call_shell_context', 'search.codebase'),
+				tool_result: contextResult,
 				turn_count: 2,
 			},
 			'd:\\ai\\Runa',
@@ -106,6 +107,40 @@ describe('createAutomaticApprovalPresentationInputs', () => {
 		if (input?.kind !== 'request_result') {
 			throw new Error('Expected request_result approval presentation input.');
 		}
-		expect(input.continuation_context).toBeUndefined();
+		expect(input.continuation_context).toEqual({
+			payload: createPayload(),
+			tool_result: contextResult,
+			tool_result_history: [contextResult],
+			turn_count: 2,
+			working_directory: 'd:\\ai\\Runa',
+		});
+	});
+
+	it('persists first-tool approval continuation context before any tool result exists', () => {
+		const inputs = createAutomaticApprovalPresentationInputs(
+			{
+				approval_request: createApprovalRequest('file.write'),
+				events: [],
+				final_state: 'WAITING_APPROVAL',
+				runtime_events: [],
+				status: 'approval_required',
+				turn_count: 1,
+			},
+			'd:\\ai\\Runa',
+			createPayload(),
+		);
+
+		const input = inputs[0];
+		expect(input?.kind).toBe('request_result');
+		if (input?.kind !== 'request_result') {
+			throw new Error('Expected request_result approval presentation input.');
+		}
+		expect(input.continuation_context).toEqual({
+			payload: createPayload(),
+			tool_result: undefined,
+			tool_result_history: undefined,
+			turn_count: 1,
+			working_directory: 'd:\\ai\\Runa',
+		});
 	});
 });

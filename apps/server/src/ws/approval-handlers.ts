@@ -1,13 +1,23 @@
-import type { ApprovalRequest, RenderBlock, ToolCallInput, ToolResult } from '@runa/types';
+import type {
+	ApprovalRequest,
+	RenderBlock,
+	RuntimeEvent,
+	ToolCallInput,
+	ToolResult,
+} from '@runa/types';
 
 import {
 	type ApprovalStore,
+	type PendingApprovalEntry,
 	type PendingApprovalToolCall,
 	approvalPersistenceScopeFromAuthContext,
 } from '../persistence/approval-store.js';
+import { persistRuntimeEvents } from '../persistence/event-store.js';
+import { persistRunState } from '../persistence/run-store.js';
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
 import { resolveApproval } from '../runtime/resolve-approval.js';
 import { resumeApprovedToolCall } from '../runtime/resume-approved-tool-call.js';
+import { buildRunFailedEvent } from '../runtime/runtime-events.js';
 import { defaultDesktopAgentBridgeRegistry } from './desktop-agent-bridge.js';
 import type { RuntimeWebSocketHandlerOptions } from './orchestration-types.js';
 import {
@@ -19,10 +29,12 @@ import {
 	mergeRenderBlocks,
 	rememberInspectionContext,
 } from './presentation.js';
-import { resumeApprovedAutoContinue } from './run-execution.js';
+import { finalizeLiveRunResult, resumeApprovedAutoContinue } from './run-execution.js';
 import { getDefaultToolRegistryAsync, getPolicyWiring } from './runtime-dependencies.js';
 import {
 	type WebSocketConnection,
+	createFinishedMessage,
+	createRuntimeEventMessage,
 	createStandalonePresentationBlocksMessage,
 	sendServerMessage,
 } from './transport.js';
@@ -42,6 +54,124 @@ function toReplayToolInput(
 		call_id: approvalRequest.call_id,
 		tool_name: approvalRequest.tool_name,
 	};
+}
+
+function createApprovalRejectedErrorMessage(
+	input: Readonly<{
+		readonly note?: string;
+		readonly tool_name?: string;
+	}>,
+): string {
+	const targetLabel = input.tool_name ? ` for ${input.tool_name}` : '';
+	const note = input.note?.trim();
+
+	return note && note.length > 0
+		? `Approval rejected${targetLabel}: ${note}`
+		: `Approval rejected${targetLabel}.`;
+}
+
+async function finalizeRejectedApprovalRun(
+	socket: WebSocketConnection,
+	pendingApprovalEntry: PendingApprovalEntry,
+	resolvedApprovalResult: Extract<
+		ReturnType<typeof resolveApproval>,
+		{ readonly status: 'rejected' }
+	>,
+	options: RuntimeWebSocketHandlerOptions & {
+		readonly approvalStore: ApprovalStore;
+	},
+): Promise<void> {
+	const errorMessage = createApprovalRejectedErrorMessage({
+		note: resolvedApprovalResult.approval_resolution.decision.note,
+		tool_name: pendingApprovalEntry.approval_request.tool_name,
+	});
+	const runFailedEvent = buildRunFailedEvent(
+		{
+			error_code: 'APPROVAL_REJECTED',
+			error_message: errorMessage,
+			final_state: 'FAILED',
+			retryable: false,
+		},
+		{
+			actor: {
+				type: 'user',
+			},
+			run_id: pendingApprovalEntry.approval_request.run_id,
+			sequence_no: pendingApprovalEntry.next_sequence_no + 1,
+			source: {
+				kind: 'websocket',
+			},
+			state_after: 'FAILED',
+			state_before: 'WAITING_APPROVAL',
+			trace_id: pendingApprovalEntry.approval_request.trace_id,
+		},
+	);
+	const runtimeEvents: readonly RuntimeEvent[] = [runFailedEvent];
+
+	sendServerMessage(
+		socket,
+		createRuntimeEventMessage(
+			{
+				run_id: pendingApprovalEntry.approval_request.run_id,
+				trace_id: pendingApprovalEntry.approval_request.trace_id,
+			},
+			runFailedEvent,
+		),
+	);
+
+	if (pendingApprovalEntry.auto_continue_context !== undefined) {
+		await finalizeLiveRunResult(
+			socket,
+			pendingApprovalEntry.auto_continue_context.payload,
+			{
+				approval_request: pendingApprovalEntry.approval_request,
+				error_code: 'APPROVAL_REJECTED',
+				error_message: errorMessage,
+				events: [resolvedApprovalResult.approval_event, runFailedEvent],
+				final_state: 'FAILED',
+				pending_tool_call: pendingApprovalEntry.pending_tool_call,
+				runtime_events: runtimeEvents,
+				status: 'failed',
+				tool_result_history: pendingApprovalEntry.auto_continue_context.tool_result_history,
+				turn_count: pendingApprovalEntry.auto_continue_context.turn_count,
+			},
+			options,
+			{
+				conversation_id: pendingApprovalEntry.auto_continue_context.payload.conversation_id,
+				persist_live_memory_write: false,
+				working_directory: pendingApprovalEntry.auto_continue_context.working_directory,
+			},
+		);
+		return;
+	}
+
+	const persistEvents = options.persistEvents ?? persistRuntimeEvents;
+	const persistRunStateRecord = options.persistRunState ?? persistRunState;
+
+	await persistEvents(runtimeEvents);
+	await persistRunStateRecord({
+		current_state: 'FAILED',
+		last_error_code: 'APPROVAL_REJECTED',
+		recorded_at: runFailedEvent.timestamp,
+		run_id: pendingApprovalEntry.approval_request.run_id,
+		trace_id: pendingApprovalEntry.approval_request.trace_id,
+	});
+
+	const finishedMessage = createFinishedMessage(
+		{
+			run_id: pendingApprovalEntry.approval_request.run_id,
+			trace_id: pendingApprovalEntry.approval_request.trace_id,
+		},
+		{
+			error_message: errorMessage,
+			final_state: 'FAILED',
+			status: 'failed',
+		},
+	);
+
+	if (finishedMessage) {
+		sendServerMessage(socket, finishedMessage);
+	}
 }
 
 export async function handleApprovalResolveMessage(
@@ -233,26 +363,31 @@ export async function handleApprovalResolveMessage(
 		}),
 	);
 
-	if (approvalDecision.request.kind === 'auto_continue') {
-		if (resolvedApprovalResult.status === 'approved') {
-			const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options);
+	if (resolvedApprovalResult.status === 'rejected') {
+		await finalizeRejectedApprovalRun(
+			socket,
+			pendingApprovalEntry,
+			resolvedApprovalResult,
+			options,
+		);
+		return;
+	}
 
-			if (!resumed) {
-				throw new Error(
-					`Pending auto-continue context missing: ${pendingApprovalEntry.approval_request.approval_id}`,
-				);
-			}
-		} else {
-			return;
+	if (approvalDecision.request.kind === 'auto_continue') {
+		const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options);
+
+		if (!resumed) {
+			throw new Error(
+				`Pending auto-continue context missing: ${pendingApprovalEntry.approval_request.approval_id}`,
+			);
 		}
+
+		return;
 	}
 
 	if (
-		resolvedApprovalResult.status === 'approved' &&
-		approvalDecision.request.kind !== 'auto_continue' &&
 		approvedReplayToolResult !== undefined &&
-		pendingApprovalEntry.auto_continue_context !== undefined &&
-		pendingApprovalEntry.approval_request.tool_name?.startsWith('desktop.') === true
+		pendingApprovalEntry.auto_continue_context !== undefined
 	) {
 		const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options, {
 			initial_tool_result: approvedReplayToolResult,
@@ -261,7 +396,7 @@ export async function handleApprovalResolveMessage(
 
 		if (!resumed) {
 			throw new Error(
-				`Pending desktop continuation context missing: ${pendingApprovalEntry.approval_request.approval_id}`,
+				`Pending tool replay continuation context missing: ${pendingApprovalEntry.approval_request.approval_id}`,
 			);
 		}
 	}

@@ -51,6 +51,7 @@ import {
 	setConversationCollaborationAccessResolver,
 } from './conversation-collaboration.js';
 import { DesktopAgentBridgeRegistry } from './desktop-agent-bridge.js';
+import { getLiveMemoryScopeId, getLiveWorkingDirectory } from './live-request.js';
 import { createWebSocketPolicyWiring } from './policy-wiring.js';
 import {
 	attachDesktopAgentWebSocketHandler,
@@ -371,6 +372,7 @@ afterEach(() => {
 	resetUsageRateLimitStore();
 	Reflect.deleteProperty(process.env, 'ANTHROPIC_API_KEY');
 	Reflect.deleteProperty(process.env, 'GROQ_API_KEY');
+	Reflect.deleteProperty(process.env, 'RUNA_STREAMING_TOOL_HEAVY_BYPASS');
 });
 
 describe('approval release rehearsal helpers', () => {
@@ -428,7 +430,7 @@ async function withTempDirectory<T>(callback: (directory: string) => Promise<T>)
 async function withWorkspaceTempDirectory<T>(
 	callback: (directory: string) => Promise<T>,
 ): Promise<T> {
-	const directory = await mkdtemp(join(process.cwd(), 'runa-ws-live-'));
+	const directory = await mkdtemp(join(getLiveWorkingDirectory(), 'runa-ws-live-'));
 
 	try {
 		return await callback(directory);
@@ -503,6 +505,38 @@ function createGroqAssistantResponse(input: {
 			],
 			id: input.response_id,
 			model: 'llama-3.3-70b-versatile',
+			usage: {
+				completion_tokens: 12,
+				prompt_tokens: 8,
+				total_tokens: 20,
+			},
+		}),
+		{
+			headers: {
+				'content-type': 'application/json',
+			},
+			status: 200,
+		},
+	);
+}
+
+function createDeepSeekAssistantResponse(input: {
+	readonly content: string;
+	readonly response_id: string;
+}): Response {
+	return new Response(
+		JSON.stringify({
+			choices: [
+				{
+					finish_reason: 'stop',
+					message: {
+						content: input.content,
+						role: 'assistant',
+					},
+				},
+			],
+			id: input.response_id,
+			model: 'deepseek-v4-flash',
 			usage: {
 				completion_tokens: 12,
 				prompt_tokens: 8,
@@ -713,6 +747,28 @@ describe('register-ws', () => {
 		schema_version: 1,
 		type: 'tool_result',
 	};
+
+	it('resolves live working directory to the workspace root when server cwd is the package', async () => {
+		const previousCwd = process.cwd();
+		const workspaceRoot = getLiveWorkingDirectory(previousCwd);
+		const serverPackageDirectory = join(workspaceRoot, 'apps', 'server');
+
+		try {
+			process.chdir(serverPackageDirectory);
+
+			expect(getLiveWorkingDirectory()).toBe(workspaceRoot);
+			expect(getLiveMemoryScopeId(getLiveWorkingDirectory())).toBe(workspaceRoot);
+		} finally {
+			process.chdir(previousCwd);
+		}
+	});
+
+	it('keeps explicit temporary directories when no workspace root marker exists', async () => {
+		await withTempDirectory(async (directory) => {
+			expect(getLiveWorkingDirectory(directory)).toBe(directory);
+			expect(getLiveMemoryScopeId(directory)).toBe(directory);
+		});
+	});
 
 	it('sends connection.ready when a connection is attached', () => {
 		const socket = new MockSocket();
@@ -1061,6 +1117,202 @@ describe('register-ws', () => {
 				run_id: 'run_ws_stream_1',
 				status: 'completed',
 				trace_id: 'trace_ws_stream_1',
+			},
+			type: 'run.finished',
+		});
+	});
+
+	it('discards tentative DeepSeek streaming text and falls back to generate on unparseable tool calls', async () => {
+		process.env['RUNA_STREAMING_TOOL_HEAVY_BYPASS'] = '0';
+		const socket = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const registry = new ToolRegistry();
+		const requestBodies: Array<{
+			readonly messages?: ReadonlyArray<{
+				readonly content?: unknown;
+				readonly role?: unknown;
+			}>;
+		}> = [];
+		const fetchResponses = [
+			new Response(
+				[
+					'data: {"id":"chatcmpl_deepseek_ws_bad_tool","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","content":"Tentative text before tool "},"finish_reason":null}]}',
+					'',
+					'data: {"id":"chatcmpl_deepseek_ws_bad_tool","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_bad_json","type":"function","function":{"name":"file_read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+					'',
+					'data: {"id":"chatcmpl_deepseek_ws_bad_tool","model":"deepseek-v4-flash","choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+					'',
+					'data: [DONE]',
+					'',
+				].join('\n'),
+				{
+					headers: {
+						'content-type': 'text/event-stream',
+					},
+					status: 200,
+				},
+			),
+			createDeepSeekAssistantResponse({
+				content: 'Tool call repaired and the run can continue.',
+				response_id: 'chatcmpl_deepseek_ws_repaired',
+			}),
+		];
+
+		registry.register(fileReadTool);
+		attachRuntimeWebSocketHandler(socket);
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (_input, init) => {
+				if (init && typeof init === 'object' && 'body' in init && typeof init.body === 'string') {
+					requestBodies.push(JSON.parse(init.body) as (typeof requestBodies)[number]);
+				}
+
+				const nextResponse = fetchResponses.shift();
+
+				if (!nextResponse) {
+					throw new Error('Unexpected fetch call in DeepSeek repair recovery test.');
+				}
+
+				return nextResponse;
+			}),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					provider: 'deepseek',
+					provider_config: {
+						apiKey: 'deepseek-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Read a file', role: 'user' }],
+						metadata: {
+							model_router: {
+								allow_provider_fallback: false,
+							},
+						},
+						model: 'deepseek-v4-flash',
+					},
+					run_id: 'run_ws_deepseek_repair_1',
+					trace_id: 'trace_ws_deepseek_repair_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				persistEvents,
+				toolRegistry: registry,
+			},
+		);
+
+		const messages = parseMessages(socket);
+		const runtimeEventMessages = messages.filter(
+			(message): message is Extract<WebSocketServerBridgeMessage, { type: 'runtime.event' }> =>
+				message.type === 'runtime.event',
+		);
+		const discardMessages = messages.filter(
+			(message): message is Extract<WebSocketServerBridgeMessage, { type: 'text.delta.discard' }> =>
+				message.type === 'text.delta.discard',
+		);
+		const modelCompletedMessage = runtimeEventMessages.find(
+			(message) => message.payload.event.event_type === 'model.completed',
+		);
+		const secondRequestMessages = requestBodies[1]?.messages ?? [];
+
+		expect(requestBodies).toHaveLength(2);
+		expect(
+			secondRequestMessages.some(
+				(message) =>
+					message.role === 'system' &&
+					typeof message.content === 'string' &&
+					message.content.includes('strictly JSON-parseable'),
+			),
+		).toBe(false);
+		expect(discardMessages).toEqual([
+			{
+				payload: {
+					run_id: 'run_ws_deepseek_repair_1',
+					trace_id: 'trace_ws_deepseek_repair_1',
+				},
+				type: 'text.delta.discard',
+			},
+		]);
+		expect(modelCompletedMessage?.payload.event.metadata).not.toMatchObject({
+			recovery: {
+				type: 'tool_call_repair',
+			},
+		});
+		expect(messages.at(-1)).toMatchObject({
+			payload: {
+				final_state: 'COMPLETED',
+				run_id: 'run_ws_deepseek_repair_1',
+				status: 'completed',
+				trace_id: 'trace_ws_deepseek_repair_1',
+			},
+			type: 'run.finished',
+		});
+	});
+
+	it('bypasses streaming for DeepSeek tool-heavy live run requests by default', async () => {
+		const socket = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const registry = new ToolRegistry();
+		const requestBodies: Array<Readonly<Record<string, unknown>>> = [];
+
+		registry.register(fileReadTool);
+		attachRuntimeWebSocketHandler(socket);
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (_input, init) => {
+				if (init && typeof init === 'object' && 'body' in init && typeof init.body === 'string') {
+					requestBodies.push(JSON.parse(init.body) as Readonly<Record<string, unknown>>);
+				}
+
+				return createDeepSeekAssistantResponse({
+					content: 'Generated without streaming for tool-heavy intent.',
+					response_id: 'chatcmpl_deepseek_ws_bypass',
+				});
+			}),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					provider: 'deepseek',
+					provider_config: {
+						apiKey: 'deepseek-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Use file.read to inspect the workspace.', role: 'user' }],
+						model: 'deepseek-v4-flash',
+					},
+					run_id: 'run_ws_deepseek_bypass_1',
+					trace_id: 'trace_ws_deepseek_bypass_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				persistEvents,
+				toolRegistry: registry,
+			},
+		);
+
+		const messages = parseMessages(socket);
+		const finishedMessage = messages.find((message) => message.type === 'run.finished');
+
+		expect(requestBodies).toHaveLength(1);
+		expect(requestBodies[0]?.['stream']).toBeUndefined();
+		expect(messages.some((message) => message.type === 'text.delta')).toBe(false);
+		expect(finishedMessage).toMatchObject({
+			payload: {
+				final_state: 'COMPLETED',
+				run_id: 'run_ws_deepseek_bypass_1',
+				status: 'completed',
 			},
 			type: 'run.finished',
 		});
@@ -4017,7 +4269,7 @@ describe('register-ws', () => {
 			const policyWiring = await enableAutoContinueForSocket(socket);
 			const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
 			const executeSpy = vi.spyOn(searchCodebaseTool, 'execute');
-			const workspaceRelativePath = relative(process.cwd(), directory);
+			const workspaceRelativePath = relative(getLiveWorkingDirectory(), directory);
 			const filePath = join(directory, 'match.ts');
 			const query = 'search_codebase_live_needle_66';
 
@@ -4183,7 +4435,7 @@ describe('register-ws', () => {
 
 			if (presentationMessage?.type === 'presentation.blocks') {
 				const workspaceContext = await composeWorkspaceContext({
-					working_directory: process.cwd(),
+					working_directory: getLiveWorkingDirectory(),
 				});
 
 				expect(workspaceContext.status).toBe('workspace_layer_created');
@@ -4839,8 +5091,8 @@ describe('register-ws', () => {
 			const fileWriteExecuteSpy = vi.spyOn(fileWriteTool, 'execute');
 			const sourceDirectory = join(directory, 'src');
 			const filePath = join(sourceDirectory, 'auth-middleware.ts');
-			const relativeFilePath = relative(process.cwd(), filePath);
-			const workspaceRelativePath = relative(process.cwd(), directory);
+			const relativeFilePath = relative(getLiveWorkingDirectory(), filePath);
+			const workspaceRelativePath = relative(getLiveWorkingDirectory(), directory);
 			const query = 'sprint5_demo_auth_bug_marker_91';
 			const originalContent = [
 				`// ${query}`,
@@ -4949,6 +5201,10 @@ describe('register-ws', () => {
 						path: relativeFilePath,
 					},
 					tool_name: 'file.write',
+				}),
+				createGroqAssistantResponse({
+					content: 'Auth middleware bug fixed.',
+					response_id: 'chatcmpl_ws_demo_write_2',
 				}),
 			];
 
@@ -5098,19 +5354,38 @@ describe('register-ws', () => {
 				searchRunPresentationMessages[searchRunPresentationMessages.length - 1];
 			const readPresentationMessage =
 				readRunPresentationMessages[readRunPresentationMessages.length - 1];
-			const resolvedWritePresentationMessage = writePresentationMessages[2];
+			const resolvedWritePresentationMessage = writePresentationMessages.find((message) =>
+				message.payload.blocks.some(
+					(block) =>
+						block.type === 'approval_block' &&
+						block.payload.approval_id === pendingApprovalBlock.payload.approval_id &&
+						block.payload.status === 'approved',
+				),
+			);
+			const writeFinishedMessage = parseMessages(socket)
+				.filter((message) => message.type === 'run.finished')
+				.find((message) => message.payload.run_id === 'run_ws_demo_write_1');
 
 			expect(searchRunPresentationMessages).toHaveLength(2);
 			expect(readRunPresentationMessages).toHaveLength(2);
-			expect(writePresentationMessages).toHaveLength(3);
-			expect(requestBodies).toHaveLength(5);
-			expect(persistEvents).toHaveBeenCalledTimes(3);
+			expect(writePresentationMessages).toHaveLength(5);
+			expect(requestBodies).toHaveLength(6);
+			expect(persistEvents).toHaveBeenCalledTimes(4);
 			expect(approvalStore.getPendingApprovalByIdMock).toHaveBeenCalledWith(
 				pendingApprovalBlock.payload.approval_id,
 			);
 			expect(approvalStore.persistApprovalResolutionMock).toHaveBeenCalledTimes(1);
 			expect(fileWriteExecuteSpy).toHaveBeenCalledTimes(1);
 			expect(await readFile(filePath, 'utf8')).toBe(fixedContent);
+			expect(writeFinishedMessage).toMatchObject({
+				payload: {
+					final_state: 'COMPLETED',
+					run_id: 'run_ws_demo_write_1',
+					status: 'completed',
+					trace_id: 'trace_ws_demo_write_1',
+				},
+				type: 'run.finished',
+			});
 
 			for (const requestBody of requestBodies) {
 				expect(parseToolNamesFromRequestBody(requestBody)).toEqual(
@@ -5325,7 +5600,7 @@ describe('register-ws', () => {
 		expect(memoryStore.records[0]).toMatchObject({
 			content: 'the project theme is blue.',
 			scope: 'workspace',
-			scope_id: process.cwd(),
+			scope_id: getLiveWorkingDirectory(),
 			source_kind: 'user_explicit',
 			source_run_id: 'run_ws_live_memory_write_1',
 			source_trace_id: 'trace_ws_live_memory_write_1',
@@ -6139,6 +6414,57 @@ describe('register-ws', () => {
 			const approvalStore = createApprovalStore();
 			const registry = new ToolRegistry();
 			const filePath = join(directory, 'approved.txt');
+			const requestBodies: Array<{
+				readonly messages?: ReadonlyArray<{
+					readonly content?: unknown;
+					readonly role?: unknown;
+				}>;
+			}> = [];
+			const fetchResponses = [
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								finish_reason: 'tool_calls',
+								message: {
+									role: 'assistant',
+									tool_calls: [
+										{
+											function: {
+												arguments: {
+													content: 'approved content',
+													overwrite: true,
+													path: filePath,
+												},
+												name: 'file.write',
+											},
+											id: 'call_ws_live_approval_1',
+											type: 'function',
+										},
+									],
+								},
+							},
+						],
+						id: 'chatcmpl_ws_live_approval',
+						model: 'llama-3.3-70b-versatile',
+						usage: {
+							completion_tokens: 12,
+							prompt_tokens: 8,
+							total_tokens: 20,
+						},
+					}),
+					{
+						headers: {
+							'content-type': 'application/json',
+						},
+						status: 200,
+					},
+				),
+				createGroqAssistantResponse({
+					content: 'approved.txt has been written.',
+					response_id: 'chatcmpl_ws_live_approval_continued',
+				}),
+			];
 
 			registry.register(fileWriteTool);
 
@@ -6146,48 +6472,19 @@ describe('register-ws', () => {
 
 			vi.stubGlobal(
 				'fetch',
-				vi.fn(
-					async () =>
-						new Response(
-							JSON.stringify({
-								choices: [
-									{
-										finish_reason: 'tool_calls',
-										message: {
-											role: 'assistant',
-											tool_calls: [
-												{
-													function: {
-														arguments: {
-															content: 'approved content',
-															overwrite: true,
-															path: filePath,
-														},
-														name: 'file.write',
-													},
-													id: 'call_ws_live_approval_1',
-													type: 'function',
-												},
-											],
-										},
-									},
-								],
-								id: 'chatcmpl_ws_live_approval',
-								model: 'llama-3.3-70b-versatile',
-								usage: {
-									completion_tokens: 12,
-									prompt_tokens: 8,
-									total_tokens: 20,
-								},
-							}),
-							{
-								headers: {
-									'content-type': 'application/json',
-								},
-								status: 200,
-							},
-						),
-				),
+				vi.fn(async (_input, init) => {
+					if (init && typeof init === 'object' && 'body' in init && typeof init.body === 'string') {
+						requestBodies.push(JSON.parse(init.body) as (typeof requestBodies)[number]);
+					}
+
+					const nextResponse = fetchResponses.shift();
+
+					if (!nextResponse) {
+						throw new Error('Unexpected fetch call in approved file.write continuation test.');
+					}
+
+					return nextResponse;
+				}),
 			);
 
 			await handleWebSocketMessage(
@@ -6248,6 +6545,19 @@ describe('register-ws', () => {
 				'state.entered',
 			]);
 			expect(approvalStore.persistApprovalRequestMock).toHaveBeenCalledTimes(1);
+			expect(approvalStore.persistApprovalRequestMock).toHaveBeenCalledWith(
+				expect.objectContaining({
+					auto_continue_context: expect.objectContaining({
+						payload: expect.objectContaining({
+							run_id: 'run_ws_live_approval_1',
+							trace_id: 'trace_ws_live_approval_1',
+						}),
+						tool_result: undefined,
+						turn_count: expect.any(Number),
+						working_directory: getLiveWorkingDirectory(),
+					}),
+				}),
+			);
 			await expect(readFile(filePath, 'utf8')).rejects.toBeInstanceOf(Error);
 			expect(initialPresentationMessages).toHaveLength(2);
 
@@ -6339,11 +6649,44 @@ describe('register-ws', () => {
 				): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
 					message.type === 'presentation.blocks',
 			);
-			const resolvedMessage = presentationMessages[presentationMessages.length - 1];
+			const resolvedMessage = presentationMessages.find((message) =>
+				message.payload.blocks.some(
+					(block) =>
+						block.type === 'approval_block' &&
+						block.payload.approval_id === approvalBlock.payload.approval_id &&
+						block.payload.status === 'approved',
+				),
+			);
+			const runtimeEventMessages = allMessages.filter(
+				(message): message is Extract<WebSocketServerBridgeMessage, { type: 'runtime.event' }> =>
+					message.type === 'runtime.event',
+			);
+			const finishedMessage = allMessages.at(-1);
 
 			expect(resolvedMessage).toBeDefined();
+			expect(requestBodies).toHaveLength(2);
+			expect(
+				requestBodies[1]?.messages?.some(
+					(message) =>
+						message.role === 'user' &&
+						typeof message.content === 'string' &&
+						message.content.includes('Do not repeat that same completed tool call'),
+				),
+			).toBe(true);
 			expect(approvalStore.persistApprovalResolutionMock).toHaveBeenCalledTimes(1);
 			expect(await readFile(filePath, 'utf8')).toBe('approved content');
+			expect(runtimeEventMessages.map((message) => message.payload.event.event_type)).toContain(
+				'run.completed',
+			);
+			expect(finishedMessage).toMatchObject({
+				payload: {
+					final_state: 'COMPLETED',
+					run_id: 'run_ws_live_approval_1',
+					status: 'completed',
+					trace_id: 'trace_ws_live_approval_1',
+				},
+				type: 'run.finished',
+			});
 
 			if (resolvedMessage?.type === 'presentation.blocks') {
 				expect(resolvedMessage.payload.blocks.map((block) => block.type)).toEqual([
@@ -6421,6 +6764,12 @@ describe('register-ws', () => {
 			});
 			const registry = new ToolRegistry();
 			const filePath = 'restart-approved.txt';
+			const requestBodies: Array<{
+				readonly messages?: ReadonlyArray<{
+					readonly content?: unknown;
+					readonly role?: unknown;
+				}>;
+			}> = [];
 
 			registry.register(fileWriteTool);
 			attachRuntimeWebSocketHandler(resumedSocket, {
@@ -6460,6 +6809,24 @@ describe('register-ws', () => {
 
 			sharedEntries.set(pendingApprovalResult.approval_request.approval_id, {
 				approval_request: pendingApprovalResult.approval_request,
+				auto_continue_context: {
+					payload: {
+						include_presentation_blocks: true,
+						provider: 'groq',
+						provider_config: {
+							apiKey: 'groq-key',
+						},
+						request: {
+							max_output_tokens: 64,
+							messages: [{ content: 'Write restart-approved.txt', role: 'user' }],
+							model: 'llama-3.3-70b-versatile',
+						},
+						run_id: 'run_ws_restart_safe_approval_1',
+						trace_id: 'trace_ws_restart_safe_approval_1',
+					},
+					turn_count: 1,
+					working_directory: directory,
+				},
 				next_sequence_no: 12,
 				pending_tool_call: {
 					tool_input: {
@@ -6470,6 +6837,19 @@ describe('register-ws', () => {
 					working_directory: directory,
 				},
 			});
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(async (_input, init) => {
+					if (init && typeof init === 'object' && 'body' in init && typeof init.body === 'string') {
+						requestBodies.push(JSON.parse(init.body) as (typeof requestBodies)[number]);
+					}
+
+					return createGroqAssistantResponse({
+						content: 'restart-approved.txt has been written.',
+						response_id: 'chatcmpl_ws_restart_safe_approval_continued',
+					});
+				}),
+			);
 
 			await handleWebSocketMessage(
 				resumedSocket,
@@ -6501,6 +6881,16 @@ describe('register-ws', () => {
 			});
 			expect(await readFile(join(directory, filePath), 'utf8')).toBe('restart-safe content');
 			expect(sharedEntries.has(pendingApprovalResult.approval_request.approval_id)).toBe(false);
+			expect(requestBodies).toHaveLength(1);
+			expect(parseMessages(resumedSocket).at(-1)).toMatchObject({
+				payload: {
+					final_state: 'COMPLETED',
+					run_id: 'run_ws_restart_safe_approval_1',
+					status: 'completed',
+					trace_id: 'trace_ws_restart_safe_approval_1',
+				},
+				type: 'run.finished',
+			});
 		});
 	});
 
@@ -6861,7 +7251,14 @@ describe('register-ws', () => {
 			): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
 				message.type === 'presentation.blocks',
 		);
-		const resolvedMessage = allPresentationMessages[allPresentationMessages.length - 1];
+		const resolvedMessage = allPresentationMessages.find((message) =>
+			message.payload.blocks.some(
+				(block) =>
+					block.type === 'approval_block' &&
+					block.payload.approval_id === approvalBlock.payload.approval_id &&
+					block.payload.status === 'approved',
+			),
+		);
 
 		if (resolvedMessage?.type !== 'presentation.blocks') {
 			throw new Error('Expected resolved desktop screenshot presentation blocks.');
@@ -7912,6 +8309,7 @@ describe('register-ws', () => {
 				message.type === 'presentation.blocks',
 		);
 		const resolvedMessage = presentationMessages[1];
+		const finishedMessage = messages.at(-1);
 
 		expect(resolvedMessage).toBeDefined();
 		expect(approvalStore.persistApprovalRequestMock).toHaveBeenCalledTimes(1);
@@ -7920,6 +8318,16 @@ describe('register-ws', () => {
 		);
 		expect(approvalStore.persistApprovalResolutionMock).toHaveBeenCalledTimes(1);
 		expect(executeCount).toBe(0);
+		expect(finishedMessage).toMatchObject({
+			payload: {
+				error_message: 'Approval rejected for shell.exec: Risk too high',
+				final_state: 'FAILED',
+				run_id: 'run_ws_bidirectional_rejected_1',
+				status: 'failed',
+				trace_id: 'trace_ws_bidirectional_rejected_1',
+			},
+			type: 'run.finished',
+		});
 
 		if (resolvedMessage?.type === 'presentation.blocks') {
 			expect(resolvedMessage.payload.blocks.map((block) => block.type)).toEqual([
