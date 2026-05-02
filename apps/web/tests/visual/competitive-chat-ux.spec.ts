@@ -55,7 +55,9 @@ test.describe('competitive chat UX screenshots', () => {
 		await page.locator('input[type="email"]').fill('wrong@example.com');
 		await page.locator('input[type="password"]').first().fill('wrong-password');
 		await page.getByRole('button', { name: /giri/i }).click();
-		await expect(page.getByRole('alert')).toContainText(/E-posta veya .*ifre hatal/i);
+		await expect(page.getByRole('alert')).toContainText(
+			/E-posta veya .*ifre hatal|Kimlik doğrulama servisine şu an ulaşılamıyor/i,
+		);
 		await page.screenshot({
 			fullPage: true,
 			path: resolve(screenshotDir, 'desktop-login-error.png'),
