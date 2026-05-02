@@ -795,6 +795,7 @@ describe('run-model-turn-loop-adapter', () => {
 				model_response: recoveredResponse,
 				recovery_metadata: {
 					retry_count: 1,
+					strategy_used: 'strict_reinforce' as const,
 					tool_call_repair_error: {
 						arguments_length: 8,
 						reason: 'unparseable_tool_input' as const,

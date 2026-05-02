@@ -467,7 +467,10 @@ export function createRunModelTurnLoopExecutor(
 	const repairRecovery =
 		input.tool_call_repair_recovery === null
 			? undefined
-			: (input.tool_call_repair_recovery ?? createToolCallRepairRecovery());
+			: (input.tool_call_repair_recovery ??
+				createToolCallRepairRecovery({
+					strategies: ['strict_reinforce', 'tool_subset', 'force_no_tools'],
+				}));
 
 	return async function runModelTurnLoopExecutor(
 		turnInput: AgentLoopTurnInput,

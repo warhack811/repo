@@ -141,6 +141,7 @@ describe('tool-call-repair-recovery', () => {
 			});
 			expect(decision.recovery_metadata).toEqual({
 				retry_count: 1,
+				strategy_used: 'strict_reinforce',
 				tool_call_repair_error: {
 					arguments_length: 17,
 					reason: 'unparseable_tool_input',
@@ -247,6 +248,129 @@ describe('tool-call-repair-recovery', () => {
 			expect(result).toMatchObject({
 				reason: 'retry_failed',
 				retry_count: 1,
+				status: 'unrecoverable',
+			});
+		});
+
+		it('tries tool_subset after strict_reinforce fails and records the winning strategy', async () => {
+			const events: ToolCallRepairRecoveryEvent[] = [];
+			const recovery = createToolCallRepairRecovery({
+				on_event(event) {
+					events.push(event);
+				},
+				strategies: ['strict_reinforce', 'tool_subset', 'force_no_tools'],
+			});
+			const retryRequests: ModelRequest[] = [];
+			const retryExecutor = vi.fn(async (request: ModelRequest): Promise<ModelResponse> => {
+				retryRequests.push(request);
+
+				if (retryRequests.length === 1) {
+					throw createGatewayResponseErrorShape('unparseable_tool_input');
+				}
+
+				return createModelResponse();
+			});
+
+			const result = await recovery.recover({
+				error: createGatewayResponseErrorShape('unparseable_tool_input'),
+				model_request: createModelRequest({
+					available_tools: [
+						{
+							description: 'Read a file.',
+							name: 'file.read',
+						},
+						{
+							description: 'Search the workspace.',
+							name: 'search.codebase',
+						},
+					],
+				}),
+				retry_executor: retryExecutor,
+			});
+
+			expect(result.status).toBe('recovered');
+			expect(retryRequests).toHaveLength(2);
+			expect(retryRequests[0]?.available_tools?.map((tool) => tool.name)).toEqual([
+				'file.read',
+				'search.codebase',
+			]);
+			expect(retryRequests[1]?.available_tools?.map((tool) => tool.name)).toEqual(['file.read']);
+			expect(
+				result.status === 'recovered' ? result.recovery_metadata.strategy_used : undefined,
+			).toBe('tool_subset');
+			expect(events).toContainEqual(
+				expect.objectContaining({
+					next_strategy: 'tool_subset',
+					reason: 'retry_still_unparseable',
+					strategy: 'strict_reinforce',
+					type: 'recovery.failed',
+				}),
+			);
+			expect(events).toContainEqual(
+				expect.objectContaining({
+					strategy_used: 'tool_subset',
+					type: 'recovery.succeeded',
+				}),
+			);
+		});
+
+		it('falls back to force_no_tools as a degraded terminal strategy', async () => {
+			const recovery = createToolCallRepairRecovery({
+				strategies: ['strict_reinforce', 'tool_subset', 'force_no_tools'],
+			});
+			const retryRequests: ModelRequest[] = [];
+
+			const result = await recovery.recover({
+				error: createGatewayResponseErrorShape('unparseable_tool_input'),
+				model_request: createModelRequest({
+					available_tools: [
+						{
+							description: 'Read a file.',
+							name: 'file.read',
+						},
+						{
+							description: 'Search the workspace.',
+							name: 'search.codebase',
+						},
+					],
+				}),
+				retry_executor: async (request) => {
+					retryRequests.push(request);
+
+					if (retryRequests.length < 3) {
+						throw createGatewayResponseErrorShape('unparseable_tool_input');
+					}
+
+					return createModelResponse();
+				},
+			});
+
+			expect(result.status).toBe('recovered');
+			expect(retryRequests).toHaveLength(3);
+			expect(retryRequests[2]?.available_tools).toBeUndefined();
+			expect(retryRequests[2]?.messages.at(-1)?.content).toContain('Do not call any tools');
+			expect(result.status === 'recovered' ? result.recovery_metadata : undefined).toMatchObject({
+				degraded: true,
+				strategy_used: 'force_no_tools',
+			});
+		});
+
+		it('returns retry_budget_exhausted when every configured strategy stays unparseable', async () => {
+			const recovery = createToolCallRepairRecovery({
+				strategies: ['strict_reinforce', 'force_no_tools'],
+			});
+
+			const result = await recovery.recover({
+				error: createGatewayResponseErrorShape('unparseable_tool_input'),
+				model_request: createModelRequest(),
+				retry_executor: async () => {
+					throw createGatewayResponseErrorShape('unparseable_tool_input');
+				},
+			});
+
+			expect(result).toMatchObject({
+				reason: 'retry_budget_exhausted',
+				retry_count: 2,
 				status: 'unrecoverable',
 			});
 		});
