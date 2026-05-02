@@ -486,16 +486,10 @@ export function createAutomaticApprovalPresentationInputs(
 		return [];
 	}
 
-	const isAutoContinueApproval = result.approval_request.target?.label === 'agent.auto_continue';
-	const isDesktopApproval =
-		result.approval_request.tool_name?.startsWith('desktop.') === true ||
-		result.approval_request.target?.tool_name?.startsWith('desktop.') === true;
 	const toolResultHistory =
 		result.tool_result_history ??
 		(result.tool_result === undefined ? undefined : [result.tool_result]);
 	const continuationContext =
-		(isAutoContinueApproval || isDesktopApproval) &&
-		result.tool_result !== undefined &&
 		typeof result.turn_count === 'number'
 			? {
 					payload,
