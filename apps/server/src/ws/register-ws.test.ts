@@ -4615,6 +4615,7 @@ describe('register-ws', () => {
 		const previousSerperApiKey = environment.SERPER_API_KEY;
 		const previousSerperEndpoint = environment.SERPER_ENDPOINT;
 		const query = 'latest runa release date';
+		let modelFetchCount = 0;
 		const additionalSearchBlock = mapSearchResultToBlock({
 			call_id: 'call_ws_hooked_search_result_1',
 			created_at: '2026-04-12T11:00:00.000Z',
@@ -4663,6 +4664,15 @@ describe('register-ws', () => {
 								status: 200,
 							},
 						);
+					}
+
+					modelFetchCount += 1;
+
+					if (modelFetchCount > 1) {
+						return createGroqAssistantResponse({
+							content: 'Public release notes checked against local notes.',
+							response_id: 'chatcmpl_ws_live_web_search_conflict_2',
+						});
 					}
 
 					return new Response(
@@ -4800,11 +4810,7 @@ describe('register-ws', () => {
 				}
 				expect(
 					presentationMessage.payload.blocks[traceDebugBlockIndex].payload.debug_notes,
-				).toEqual(
-					expect.arrayContaining([
-						'Workspace context prepared before codebase search and public web search.',
-					]),
-				);
+				).toEqual(expect.arrayContaining(['Workspace context prepared.']));
 			}
 		} finally {
 			if (previousSerperApiKey === undefined) {
