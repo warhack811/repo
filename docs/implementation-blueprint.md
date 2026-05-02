@@ -88,7 +88,9 @@ Provider dili kural:
 | Groq | Aktif - primary dev provider | Sprint 1 (MVP) |
 | Supabase | Phase 2 - Auth + DB + Storage | Sprint 7B (Core Hardening) |
 | Serper | Aktif - `web.search` tool | Phase 1.1 (tamamlandi) |
-| Claude / Gemini | Phase 2 - prod provider | Yayin oncesi |
+| DeepSeek | Aktif - primary production baseline | Faz 2.5 (tamamlandi) |
+| Resilience | Aktif - Tool Call Repair Recovery | Faz 3 (tamamlandi) |
+| Claude / Gemini | Phase 2 - secondary provider | Yayin oncesi |
 | Qdrant | Phase 3 - semantic memory | Phase 3 |
 | Neo4j | Phase 3+ - knowledge graph | Phase 3+ |
 

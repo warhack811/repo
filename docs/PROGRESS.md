@@ -7,11 +7,52 @@
 
 ## Mevcut Durum Ozeti
 
-- **Tarih:** 27 Nisan 2026
-- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmis isleri repoda, GAP-12 desktop-agent bridge/input/launch shell zemini ilerledi
-- **Vizyon:** Basit kullanicidan teknik uzmana kadar herkesin kullanabilecegi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI calisma ortagi.
-- **Odak:** Kapanan audit gap'leri sonrasi kalan hardening, docs/onboarding senkronizasyonu, desktop companion hedefinin authoritative dille belgelenmesi ve desktop capability migration backlog'unun daraltilmasi.
-- **Son Onemli Olay:** 2026-04-27 tarihinde kok `TASK-*` ve `UI-PHASE-*` belgeleri yeniden audit edildi; kod/test/build/lint kapilari yesil, fakat Docker/LM Studio/gercek desktop input gibi ortam veya canli proof isteyen alanlar ayrica bloklu not edildi.
+- **Tarih:** 2 Mayıs 2026
+- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmiş işleri repoda, DeepSeek Tool Call Recovery (Faz 1-4) tamamlandı.
+- **Vizyon:** Basit kullanıcıdan teknik uzmana kadar herkesin kullanabileceği, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI çalışma ortağı.
+- **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
+- **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
+
+### TASK-RESILIENCE-04 - 2 Mayıs 2026 (Faz 4)
+
+- Kapsam: `token-limit-recovery` agent-loop adapter yolunda three-way field deseniyle wire edildi (`undefined` default, `null` opt-out, instance pass-through).
+- Default Kararı: `createMicrocompactStrategy()` içindeki default summarizer heuristik olduğu, LLM veya external dependency çağırmadığı için token-limit recovery default açık bırakıldı.
+- Telemetry: `token-limit-recovery` ve `tool-call-repair-recovery` için yapılandırılmış `on_event` callback'leri eklendi; `model.completed` metadata'sına recovery stamp'i işlendi. Yeni runtime event tipi eklenmedi.
+- Doğrulama:
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS
+  - `pnpm.cmd --filter @runa/server test` PASS
+- Sonuç: Repair recovery, token-limit recovery ve recovery telemetry aynı agent-loop adapter yüzeyinde default davranışla kapanmış oldu.
+
+### TASK-RESILIENCE-03 - 2 Mayıs 2026 (Faz 3)
+
+- Kapsam: `tool-call-repair-recovery` mekanizması agent-loop yolunda (`run-model-turn-loop-adapter.ts`) varsayılan (default) hale getirildi ve tüm ana gateway'ler (Claude, Gemini, Groq, OpenAI, SambaNova) "structured rejection details" sistemine taşındı.
+- Default Wiring: `createRunModelTurnLoopExecutor` artık `tool_call_repair_recovery` parametresi verilmezse otomatik olarak bir instance oluşturup enjekte ediyor. `null` geçilerek açıkça devre dışı bırakılabilir (opt-out).
+- Universal Migration: Tüm gateway'ler `parseToolCallCandidatePartsDetailed` kullanacak şekilde güncellendi. Artık her sağlayıcı hata anında `reason`, `arguments_length`, `tool_name_raw` vb. içeren yapılandırılmış detaylar üretiyor.
+- Groq Özel: Çoklu tool call adaylarında "all-unparseable" durumu için toplu kurtarma desteği eklendi; karma hatalarda (mixed) güvenlik gereği kurtarma tetiklenmiyor.
+- Doğrulama:
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS
+  - `pnpm.cmd --filter @runa/server test -- tool-call-repair-recovery gateway run-model-turn-loop-adapter` PASS (`941` toplam test içinde ilgili tüm testler yeşil).
+- Sonuç: Runa'nın "self-repair" yeteneği tüm modeller için evrensel hale getirildi ve üretim yolunda (production path) aktifleşti.
+
+### TASK-RESILIENCE-02 - 2 Mayıs 2026 (Faz 2)
+
+- Kapsam: Runtime katmanına, modelin bozuk JSON çıktılarını tek seferlik uyarıyla düzeltmesini sağlayan `Tool Call Repair Recovery` mekanizması eklendi.
+- Mimari: `token-limit-recovery` deseni birebir taklit edilerek `apps/server/src/runtime/tool-call-repair-recovery.ts` dosyası oluşturuldu. Mantık tamamen runtime katmanında izole edildi (gateway bağımsız).
+- Recovery Akışı: `unparseable_tool_input` hatası alındığında, model request'ine özel bir system mesajı eklenerek tek seferlik (`max_retries: 1`) yeniden deneme (retry) başlatılıyor.
+- Güvenlik: `missing_call_id` veya `invalid_tool_name` gibi yapısal hatalar "güvenli liman" ilkesi gereği kurtarma kapsamı dışında tutuldu.
+- Doğrulama:
+  - `apps/server/src/runtime/tool-call-repair-recovery.test.ts` eklendi (Unit testler PASS).
+  - `run-model-turn.ts` entegrasyonu tamamlandı ve test edildi.
+
+### TASK-RESILIENCE-01 - 2 Mayıs 2026 (Faz 1)
+
+- Kapsam: DeepSeek gateway'inde streaming sırasında yaşanan "invalid tool call candidate" hatasını çözmek için "Structured Rejection Details" sistemi kuruldu.
+- Parser Güçlendirme: `tool-call-candidate.ts` içinde boş argümanların (`undefined`/`null`/whitespace) otomatik olarak `{}` olarak kabul edilmesi sağlandı.
+- Hata Detayları: `GatewayResponseError` fırlatılırken üçüncü argüman (`details`) içine hatanın teknik nedeni (`reason`), argüman uzunluğu ve ham isimler eklendi.
+- Alias Dayanıklılığı: DeepSeek'in `_` ve `-` karakterlerini karıştırmasına karşı "conservative fallback" (tek eşleşme varsa kurtar) mantığı eklendi.
+- Doğrulama: DeepSeek streaming testleri ve parametresiz tool call senaryoları doğrulandı.
 
 ### Backend EvidenceCompiler + SearchProvider Foundation - 1 Mayis 2026
 

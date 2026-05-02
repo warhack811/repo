@@ -231,15 +231,64 @@ function resolveSessionStorage(): Storage | null {
 	return window.sessionStorage;
 }
 
+function readJsonErrorMessage(value: string): string | null {
+	try {
+		const parsed = JSON.parse(value) as unknown;
+
+		if (!isRecord(parsed)) {
+			return null;
+		}
+
+		const message = parsed['message'];
+		return typeof message === 'string' && message.trim().length > 0 ? message.trim() : null;
+	} catch {
+		return null;
+	}
+}
+
+export function formatAuthErrorMessage(message: string, status?: number): string {
+	const normalizedMessage = readJsonErrorMessage(message) ?? message.trim();
+	const lowerMessage = normalizedMessage.toLowerCase();
+
+	if (
+		lowerMessage.includes('invalid login credentials') ||
+		lowerMessage.includes('invalid credentials')
+	) {
+		return 'E-posta veya şifre hatalı. Bilgileri kontrol et; yerel geliştirme yapıyorsan deneme oturumunu da başlatabilirsin.';
+	}
+
+	if (
+		status === 502 ||
+		status === 503 ||
+		status === 504 ||
+		lowerMessage.includes('502') ||
+		lowerMessage.includes('503') ||
+		lowerMessage.includes('504') ||
+		lowerMessage.includes('bad gateway') ||
+		lowerMessage.includes('failed to fetch') ||
+		lowerMessage.includes('networkerror')
+	) {
+		return 'Kimlik doğrulama servisine şu an ulaşılamıyor. Biraz sonra tekrar dene; yerel geliştirme yapıyorsan deneme oturumunu başlatabilirsin.';
+	}
+
+	if (normalizedMessage.length === 0) {
+		return status
+			? `Kimlik doğrulama isteği ${status} durumuyla başarısız oldu.`
+			: 'Kimlik doğrulama isteği başarısız oldu.';
+	}
+
+	return normalizedMessage;
+}
+
 async function readErrorMessage(response: Response): Promise<string> {
 	const responseText = await response.text();
 	const trimmedText = responseText.trim();
 
 	if (trimmedText.length === 0) {
-		return `Auth isteği ${response.status} durumu ile başarısız oldu.`;
+		return formatAuthErrorMessage('', response.status);
 	}
 
-	return trimmedText;
+	return formatAuthErrorMessage(trimmedText, response.status);
 }
 
 async function requestAuthJson(

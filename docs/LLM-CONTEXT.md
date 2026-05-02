@@ -24,7 +24,7 @@ Kod davranisini degistirmeden once kapsam/non-goal listesini tekrar kontrol et.
 - Backend/runtime/WS: `docs/technical-architecture.md`, `docs/implementation-blueprint.md`, ilgili server testleri.
 - Auth/security/policy: `docs/security-model.md`, ilgili auth/policy kodu ve testleri.
 - Release/CI/merge: `docs/release-demo-checklist.md`, `docs/launch/`, GitHub check sonuclari.
-- Provider/live smoke: `docs/groq-demo-runbook.md`, env truth, ilgili smoke scriptleri.
+- Provider/live smoke: DeepSeek/Groq env truth, ilgili smoke scriptleri.
 - Desktop companion: ilgili `docs/tasks/TASK-01*`, `TASK-06*`, desktop-agent kodu ve progress kayitlari.
 
 ## Normalde Okunmayacaklar

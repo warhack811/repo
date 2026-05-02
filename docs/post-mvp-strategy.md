@@ -121,7 +121,7 @@ Current repo reality:
 ### Guncel Accepted Gaps
 Asagidakiler gorunur kalir ama Phase 2 Core Hardening closure blocker'i degildir:
 
-- secondary provider claim'i yayin oncesine kadar `TBD` durumundadir
+- Anthropic / Gemini claim'i yayin oncesine kadar `TBD` durumundadir (DeepSeek primary baseline olarak onaylandi)
 - full browser e2e eylem bazinda test otomasyonu (e2e suite)
 - enterprise-grade on-premise deployment playbook
 - observability backend maturity eksigi
