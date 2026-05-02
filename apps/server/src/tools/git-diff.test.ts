@@ -10,6 +10,7 @@ import { createGitDiffTool, gitDiffTool } from './git-diff.js';
 import { ToolRegistry } from './registry.js';
 
 const execFileAsync = promisify(execFile);
+const GIT_BACKED_TOOL_TEST_TIMEOUT_MS = 15_000;
 
 async function createTempWorkspace(prefix: string): Promise<string> {
 	return mkdtemp(join(tmpdir(), prefix));
@@ -70,96 +71,112 @@ function createContext(working_directory: string) {
 }
 
 describe('gitDiffTool', () => {
-	it('returns diff text and changed paths for workspace changes', async () => {
-		const workspace = await createCommittedGitWorkspace();
+	it(
+		'returns diff text and changed paths for workspace changes',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
 
-		try {
-			await writeFile(join(workspace, 'alpha.txt'), 'alpha updated\n');
+			try {
+				await writeFile(join(workspace, 'alpha.txt'), 'alpha updated\n');
 
-			const result = await gitDiffTool.execute(createInput(), createContext(workspace));
+				const result = await gitDiffTool.execute(createInput(), createContext(workspace));
 
-			expect(result.status).toBe('success');
+				expect(result.status).toBe('success');
 
-			if (result.status !== 'success') {
-				throw new Error('Expected a success result for git.diff.');
+				if (result.status !== 'success') {
+					throw new Error('Expected a success result for git.diff.');
+				}
+
+				expect(result.output.changed_paths).toEqual(['alpha.txt']);
+				expect(result.output.diff_text).toContain('alpha updated');
+				expect(result.output.is_truncated).toBe(false);
+			} finally {
+				await removeTempWorkspace(workspace);
 			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
 
-			expect(result.output.changed_paths).toEqual(['alpha.txt']);
-			expect(result.output.diff_text).toContain('alpha updated');
-			expect(result.output.is_truncated).toBe(false);
-		} finally {
-			await removeTempWorkspace(workspace);
-		}
-	});
+	it(
+		'supports path filtering',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
 
-	it('supports path filtering', async () => {
-		const workspace = await createCommittedGitWorkspace();
+			try {
+				await writeFile(join(workspace, 'alpha.txt'), 'alpha updated\n');
+				await writeFile(join(workspace, 'beta.txt'), 'beta updated\n');
 
-		try {
-			await writeFile(join(workspace, 'alpha.txt'), 'alpha updated\n');
-			await writeFile(join(workspace, 'beta.txt'), 'beta updated\n');
+				const result = await gitDiffTool.execute(
+					createInput({
+						path: 'alpha.txt',
+					}),
+					createContext(workspace),
+				);
 
-			const result = await gitDiffTool.execute(
-				createInput({
-					path: 'alpha.txt',
-				}),
-				createContext(workspace),
-			);
+				expect(result.status).toBe('success');
 
-			expect(result.status).toBe('success');
+				if (result.status !== 'success') {
+					throw new Error('Expected a success result for git.diff path filter.');
+				}
 
-			if (result.status !== 'success') {
-				throw new Error('Expected a success result for git.diff path filter.');
+				expect(result.output.changed_paths).toEqual(['alpha.txt']);
+				expect(result.output.diff_text).toContain('alpha updated');
+				expect(result.output.diff_text).not.toContain('beta updated');
+			} finally {
+				await removeTempWorkspace(workspace);
 			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
 
-			expect(result.output.changed_paths).toEqual(['alpha.txt']);
-			expect(result.output.diff_text).toContain('alpha updated');
-			expect(result.output.diff_text).not.toContain('beta updated');
-		} finally {
-			await removeTempWorkspace(workspace);
-		}
-	});
-
-	it('truncates large diffs deterministically', async () => {
-		const workspace = await createCommittedGitWorkspace();
-		const tool = createGitDiffTool({
-			max_diff_bytes: 96,
-		});
-
-		try {
-			await writeFile(join(workspace, 'alpha.txt'), `${'line\n'.repeat(80)}final\n`);
-
-			const result = await tool.execute(createInput(), createContext(workspace));
-
-			expect(result.status).toBe('success');
-
-			if (result.status !== 'success') {
-				throw new Error('Expected a success result for git.diff truncation.');
-			}
-
-			expect(result.output.is_truncated).toBe(true);
-			expect(result.output.diff_text).toContain('[truncated]');
-			expect(result.output.changed_paths).toEqual(['alpha.txt']);
-		} finally {
-			await removeTempWorkspace(workspace);
-		}
-	});
-
-	it('returns a typed error result for a non-repository path', async () => {
-		const workspace = await createTempWorkspace('runa-git-diff-missing-repo-');
-
-		try {
-			const result = await gitDiffTool.execute(createInput(), createContext(workspace));
-
-			expect(result).toMatchObject({
-				error_code: 'INVALID_INPUT',
-				status: 'error',
-				tool_name: 'git.diff',
+	it(
+		'truncates large diffs deterministically',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
+			const tool = createGitDiffTool({
+				max_diff_bytes: 96,
 			});
-		} finally {
-			await removeTempWorkspace(workspace);
-		}
-	});
+
+			try {
+				await writeFile(join(workspace, 'alpha.txt'), `${'line\n'.repeat(80)}final\n`);
+
+				const result = await tool.execute(createInput(), createContext(workspace));
+
+				expect(result.status).toBe('success');
+
+				if (result.status !== 'success') {
+					throw new Error('Expected a success result for git.diff truncation.');
+				}
+
+				expect(result.output.is_truncated).toBe(true);
+				expect(result.output.diff_text).toContain('[truncated]');
+				expect(result.output.changed_paths).toEqual(['alpha.txt']);
+			} finally {
+				await removeTempWorkspace(workspace);
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
+
+	it(
+		'returns a typed error result for a non-repository path',
+		async () => {
+			const workspace = await createTempWorkspace('runa-git-diff-missing-repo-');
+
+			try {
+				const result = await gitDiffTool.execute(createInput(), createContext(workspace));
+
+				expect(result).toMatchObject({
+					error_code: 'INVALID_INPUT',
+					status: 'error',
+					tool_name: 'git.diff',
+				});
+			} finally {
+				await removeTempWorkspace(workspace);
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
 
 	it('is compatible with the central ToolRegistry', () => {
 		const registry = new ToolRegistry();
