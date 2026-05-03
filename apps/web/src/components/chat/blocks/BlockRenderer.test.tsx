@@ -331,6 +331,34 @@ describe('BlockRenderer', () => {
 		expect(markup).not.toContain(['Show', 'ing 1 web results'].join(''));
 	});
 
+	it('keeps timeline tool labels user-facing', () => {
+		const timelineBlock: RenderBlock = {
+			created_at: createdAt,
+			id: 'timeline:file-write',
+			payload: {
+				items: [
+					{
+						call_id: 'call_file_write',
+						detail: 'file.write completed successfully.',
+						kind: 'tool_completed',
+						label: 'Wrote file changes',
+						state: 'success',
+						tool_name: 'file.write',
+					},
+				],
+				summary: 'Timeline shows approval resolution for file write.',
+				title: 'Run timeline',
+			},
+			schema_version: 1,
+			type: 'run_timeline_block',
+		};
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={timelineBlock} isDeveloperMode />);
+
+		expect(markup).toContain('Dosya yazma');
+		expect(markup).not.toContain('file.write');
+	});
+
 	it('keeps approval decisions user-facing while preserving technical details', () => {
 		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
 

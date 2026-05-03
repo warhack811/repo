@@ -1,7 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import type { CurrentRunProgressSurface } from '../../lib/chat-runtime/current-run-progress.js';
 import { StreamdownMessage } from '../../lib/streamdown/StreamdownMessage.js';
+import { RunProgressPanel } from './RunProgressPanel.js';
 import { ScreenshotCard } from './ScreenshotCard.js';
 import { StreamingMessageSurface } from './StreamingMessageSurface.js';
 import { ThinkingBlock } from './ThinkingBlock.js';
@@ -73,6 +75,35 @@ describe('UI Phase 5 surfaces', () => {
 		expect(thinkingMarkup).toContain('Runa çalışıyor');
 		expect(thinkingMarkup).not.toContain('chain-of-thought');
 		expect(activityMarkup).toContain('completed');
+	});
+
+	it('keeps current run tool activity labels user-facing outside developer mode', () => {
+		const progress: CurrentRunProgressSurface = {
+			approval_block: null,
+			correlation_label: null,
+			detail: 'Proof saved.',
+			headline: 'Calisma tamamlandi',
+			hidden_step_count: 0,
+			meta_items: [],
+			phase_items: [],
+			run_id: 'run_activity',
+			status_tone: 'success',
+			step_items: [
+				{
+					call_id: 'call_file_write',
+					detail: 'file.write completed successfully.',
+					kind: 'tool_completed',
+					label: 'Wrote file changes',
+					state: 'success',
+					tool_name: 'file.write',
+				},
+			],
+		};
+
+		const markup = renderToStaticMarkup(<RunProgressPanel progress={progress} />);
+
+		expect(markup).toContain('Dosya yazma');
+		expect(markup).not.toContain('file.write');
 	});
 
 	it('renders screenshot preview with lazy image metadata', () => {

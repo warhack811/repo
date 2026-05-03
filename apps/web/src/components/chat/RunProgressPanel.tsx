@@ -14,6 +14,32 @@ type RunProgressPanelProps = Readonly<{
 	progress: CurrentRunProgressSurface;
 }>;
 
+const userFacingToolLabels = new Map<string, string>([
+	['desktop.screenshot', 'Ekran goruntusu'],
+	['file.read', 'Dosya okuma'],
+	['file.write', 'Dosya yazma'],
+	['search.codebase', 'Kod arama'],
+	['web.search', 'Web arama'],
+]);
+
+function formatUserFacingToolLabel(toolName: string): string {
+	return userFacingToolLabels.get(toolName) ?? toolName.replace(/\./gu, ' ');
+}
+
+function formatUserFacingToolDetail(detail: string | undefined): string | undefined {
+	if (!detail) {
+		return undefined;
+	}
+
+	let formattedDetail = detail;
+
+	for (const [technicalLabel, friendlyLabel] of userFacingToolLabels) {
+		formattedDetail = formattedDetail.replaceAll(technicalLabel, friendlyLabel);
+	}
+
+	return formattedDetail;
+}
+
 function getPanelAccent(tone: CurrentRunProgressSurface['status_tone']): Readonly<{
 	readonly borderColor: string;
 	readonly eyebrowColor: string;
@@ -93,9 +119,9 @@ function createToolActivityItems(progress: CurrentRunProgressSurface): readonly 
 				item.kind === 'tool_failed',
 		)
 		.map((item, index) => ({
-			detail: item.detail,
+			detail: formatUserFacingToolDetail(item.detail),
 			id: `${item.kind}:${item.call_id ?? item.label}:${index}`,
-			label: item.tool_name ?? item.label,
+			label: item.tool_name ? formatUserFacingToolLabel(item.tool_name) : item.label,
 			status:
 				item.kind === 'tool_failed'
 					? 'failed'

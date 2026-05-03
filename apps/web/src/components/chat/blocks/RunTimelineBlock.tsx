@@ -15,6 +15,28 @@ type RunTimelineBlockProps = BlockComponentProps<
 	Extract<RenderBlock, { type: 'run_timeline_block' }>
 >;
 
+const technicalToolLabels = new Map<string, string>([
+	['desktop.screenshot', 'Ekran goruntusu'],
+	['file.read', 'Dosya okuma'],
+	['file.write', 'Dosya yazma'],
+	['search.codebase', 'Kod arama'],
+	['web.search', 'Web arama'],
+]);
+
+function formatTimelineToolLabel(toolName: string): string {
+	return technicalToolLabels.get(toolName) ?? toolName.replace(/\./gu, ' ');
+}
+
+function formatTimelineDetail(detail: string): string {
+	let formattedDetail = detail;
+
+	for (const [technicalLabel, friendlyLabel] of technicalToolLabels) {
+		formattedDetail = formattedDetail.replaceAll(technicalLabel, friendlyLabel);
+	}
+
+	return formattedDetail;
+}
+
 export function RunTimelineBlock({
 	block,
 	getInspectionActionState,
@@ -49,9 +71,13 @@ export function RunTimelineBlock({
 							<strong>{item.label}</strong>
 							{item.state ? <span className={styles['chip']}>{item.state}</span> : null}
 						</div>
-						{item.detail ? <p className={styles['summary']}>{item.detail}</p> : null}
+						{item.detail ? (
+							<p className={styles['summary']}>{formatTimelineDetail(item.detail)}</p>
+						) : null}
 						<div className={styles['chipRow']}>
-							{item.tool_name ? <code className={styles['chip']}>{item.tool_name}</code> : null}
+							{item.tool_name ? (
+								<span className={styles['chip']}>{formatTimelineToolLabel(item.tool_name)}</span>
+							) : null}
 							{item.call_id ? <code className={styles['chip']}>{item.call_id}</code> : null}
 						</div>
 					</div>
