@@ -1,5 +1,6 @@
 export * from './auth.js';
 export * from './electron-session-storage.js';
+export * from './electron-window-host.js';
 export * from './launch-controller.js';
 export * from './launch-html.js';
 export * from './launch-surface.js';

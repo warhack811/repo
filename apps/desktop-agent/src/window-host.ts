@@ -1,7 +1,9 @@
 import type { DesktopAgentSessionInputPayload } from './auth.js';
+import type { DesktopAgentLaunchControllerViewModel } from './launch-controller.js';
 
 export type DesktopAgentWindowActionId =
 	| 'connect'
+	| 'connecting'
 	| 'retry'
 	| 'sign_in'
 	| 'sign_out'
@@ -13,6 +15,10 @@ export interface DesktopAgentWindowDocument {
 
 export interface DesktopAgentWindowConnectActionEvent {
 	readonly id: 'connect';
+}
+
+export interface DesktopAgentWindowConnectingActionEvent {
+	readonly id: 'connecting';
 }
 
 export interface DesktopAgentWindowRetryActionEvent {
@@ -34,6 +40,7 @@ export interface DesktopAgentWindowSubmitSessionActionEvent {
 
 export type DesktopAgentWindowActionEvent =
 	| DesktopAgentWindowConnectActionEvent
+	| DesktopAgentWindowConnectingActionEvent
 	| DesktopAgentWindowRetryActionEvent
 	| DesktopAgentWindowSignInActionEvent
 	| DesktopAgentWindowSignOutActionEvent
@@ -45,9 +52,15 @@ export type DesktopAgentWindowActionHandler = (
 
 export interface DesktopAgentWindowHost {
 	dispose(): Promise<void> | void;
-	mount(document: DesktopAgentWindowDocument): Promise<void> | void;
+	mount(
+		document: DesktopAgentWindowDocument,
+		viewModel?: DesktopAgentLaunchControllerViewModel,
+	): Promise<void> | void;
 	setActionHandler(handler: DesktopAgentWindowActionHandler): Promise<void> | void;
-	update(document: DesktopAgentWindowDocument): Promise<void> | void;
+	update(
+		document: DesktopAgentWindowDocument,
+		viewModel?: DesktopAgentLaunchControllerViewModel,
+	): Promise<void> | void;
 }
 
 class NoopDesktopAgentWindowHost implements DesktopAgentWindowHost {

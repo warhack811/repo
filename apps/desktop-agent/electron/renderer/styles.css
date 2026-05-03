@@ -27,7 +27,7 @@
 	color: #9ca3af;
 	background: rgba(255, 255, 255, 0.05);
 	padding: 4px 12px;
-	border-radius: 16px;
+	border-radius: 999px;
 }
 
 .app-main {
@@ -45,7 +45,7 @@
 	gap: 16px;
 	background: rgba(255, 255, 255, 0.05);
 	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 16px;
+	border-radius: 8px;
 	padding: 24px 32px;
 	min-width: 300px;
 }
@@ -54,6 +54,27 @@
 	width: 16px;
 	height: 16px;
 	border-radius: 50%;
+	background: #6b7280;
+	flex: 0 0 auto;
+}
+
+.app-container[data-status="awaiting_session_input"] .status-indicator,
+.app-container[data-status="needs_sign_in"] .status-indicator {
+	background: #f59e0b;
+}
+
+.app-container[data-status="bootstrapping"] .status-indicator,
+.app-container[data-status="connecting"] .status-indicator {
+	background: #3b82f6;
+}
+
+.app-container[data-status="connected"] .status-indicator,
+.app-container[data-status="ready"] .status-indicator {
+	background: #22c55e;
+}
+
+.app-container[data-status="error"] .status-indicator {
+	background: #ef4444;
 }
 
 .status-content {
@@ -76,7 +97,7 @@
 
 .info-grid {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: 1fr;
 	gap: 16px;
 	width: 100%;
 	max-width: 400px;
@@ -109,6 +130,59 @@
 	margin-top: 16px;
 }
 
+.message-panel {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	max-width: 520px;
+	text-align: center;
+}
+
+.device-label {
+	color: #9ca3af;
+	font-size: 13px;
+	margin: 0;
+}
+
+.message-text {
+	color: #e5e7eb;
+	font-size: 16px;
+	line-height: 1.5;
+	margin: 0;
+}
+
+.session-form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: min(100%, 520px);
+}
+
+.field-label {
+	color: #d1d5db;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.session-form input,
+.session-form textarea {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: 8px;
+	color: #f9fafb;
+	font: inherit;
+	padding: 10px 12px;
+	resize: vertical;
+}
+
+.form-error {
+	color: #fca5a5;
+	font-size: 13px;
+	margin: 0;
+}
+
 .action-button {
 	padding: 12px 32px;
 	border-radius: 8px;
@@ -117,6 +191,11 @@
 	cursor: pointer;
 	border: none;
 	transition: all 0.2s ease;
+}
+
+.action-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.65;
 }
 
 .action-button.primary {

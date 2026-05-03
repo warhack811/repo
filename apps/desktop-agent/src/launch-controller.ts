@@ -36,11 +36,14 @@ export interface DesktopAgentLaunchControllerViewModel extends DesktopAgentLaunc
 export interface DesktopAgentLaunchController {
 	getSnapshot(): DesktopAgentLaunchControllerSnapshot;
 	getViewModel(): DesktopAgentLaunchControllerViewModel;
+	invokeAction(
+		actionId: DesktopAgentLaunchControllerViewModel['primary_action']['id'],
+	): Promise<DesktopAgentLaunchControllerSnapshot>;
 	signOut(): Promise<DesktopAgentLaunchControllerSnapshot>;
 	start(): Promise<DesktopAgentLaunchControllerSnapshot>;
 	stop(): Promise<DesktopAgentLaunchControllerSnapshot>;
 	submitSession(
-		session: DesktopAgentPersistedSession,
+		session: DesktopAgentSessionInputPayload,
 	): Promise<DesktopAgentLaunchControllerSnapshot>;
 }
 
@@ -237,6 +240,21 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 		return cloneControllerViewModel(this.#viewModel);
 	}
 
+	async invokeAction(
+		actionId: DesktopAgentLaunchControllerViewModel['primary_action']['id'],
+	): Promise<DesktopAgentLaunchControllerSnapshot> {
+		if (actionId === 'submit_session') {
+			this.#awaitingSessionInput = true;
+			this.#sessionInputMessage = null;
+			this.#syncFromSurface();
+			await this.#render('update');
+			return this.getSnapshot();
+		}
+
+		await this.#handleAction({ id: actionId });
+		return this.getSnapshot();
+	}
+
 	signOut(): Promise<DesktopAgentLaunchControllerSnapshot> {
 		this.#awaitingSessionInput = false;
 		this.#sessionInputMessage = null;
@@ -255,6 +273,7 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 		this.#surfaceUnsubscribe = this.#launchSurface.subscribe((snapshot, viewModel) => {
 			this.#surfaceSnapshot = snapshot;
 			this.#surfaceViewModel = viewModel;
+			this.#syncAwaitingSessionInputFromSurface();
 			this.#syncFromSurface();
 
 			if (this.#mounted) {
@@ -263,7 +282,11 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 		});
 		await this.#render('mount');
 		this.#mounted = true;
-		await this.#launchSurface.start();
+		this.#surfaceSnapshot = await this.#launchSurface.start();
+		this.#surfaceViewModel = this.#launchSurface.getViewModel();
+		this.#syncAwaitingSessionInputFromSurface();
+		this.#syncFromSurface();
+		await this.#render('update');
 		return this.getSnapshot();
 	}
 
@@ -284,17 +307,18 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 	}
 
 	async submitSession(
-		session: DesktopAgentPersistedSession,
+		session: DesktopAgentSessionInputPayload,
 	): Promise<DesktopAgentLaunchControllerSnapshot> {
-		this.#awaitingSessionInput = false;
-		this.#sessionInputMessage = null;
-		return this.#run(async () => await this.#launchSurface.submitSession(session));
+		await this.#handleSessionSubmit(session);
+		return this.getSnapshot();
 	}
 
 	async #handleAction(event: DesktopAgentWindowActionEvent): Promise<void> {
 		switch (event.id) {
 			case 'connect':
 				await this.#launchSurface.start();
+				return;
+			case 'connecting':
 				return;
 			case 'retry':
 				await this.#launchSurface.retry();
@@ -321,6 +345,7 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 	): Promise<DesktopAgentLaunchControllerSnapshot> {
 		this.#surfaceSnapshot = await operation();
 		this.#surfaceViewModel = this.#launchSurface.getViewModel();
+		this.#syncAwaitingSessionInputFromSurface();
 		this.#syncFromSurface();
 
 		if (this.#started) {
@@ -331,14 +356,15 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 	}
 
 	async #render(mode: 'mount' | 'update'): Promise<void> {
-		const document = renderDesktopAgentLaunchDocument(this.getViewModel());
+		const viewModel = this.getViewModel();
+		const document = renderDesktopAgentLaunchDocument(viewModel);
 
 		if (mode === 'mount') {
-			await this.#host.mount(document);
+			await this.#host.mount(document, viewModel);
 			return;
 		}
 
-		await this.#host.update(document);
+		await this.#host.update(document, viewModel);
 	}
 
 	#syncFromSurface(): void {
@@ -353,6 +379,16 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 			this.#awaitingSessionInput,
 			this.#sessionInputMessage ?? undefined,
 		);
+	}
+
+	#syncAwaitingSessionInputFromSurface(): void {
+		if (
+			!this.#surfaceSnapshot.session_present &&
+			this.#surfaceSnapshot.status === 'needs_sign_in'
+		) {
+			this.#awaitingSessionInput = true;
+			this.#sessionInputMessage = null;
+		}
 	}
 
 	async #handleSessionSubmit(payload: DesktopAgentSessionInputPayload): Promise<void> {

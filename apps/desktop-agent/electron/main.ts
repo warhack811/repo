@@ -3,31 +3,33 @@ import { dirname, join } from 'node:path';
 import { BrowserWindow, Menu, Tray, app, ipcMain, nativeImage } from 'electron';
 
 import {
-	type DesktopAgentRuntimeSnapshot,
-	createDesktopAgentSessionRuntime,
+	type DesktopAgentLaunchController,
+	type DesktopAgentLaunchControllerViewModel,
+	type DesktopAgentSessionInputPayload,
+	createDesktopAgentLaunchController,
+	createElectronDesktopAgentWindowHost,
 	createFileDesktopAgentSessionStorage,
 	createNodeWebSocket,
-	normalizeDesktopAgentSessionInputPayload,
 	readDesktopAgentBootstrapConfigFromEnvironment,
 	startDesktopAgentBridge,
 } from '../src/index.js';
 
-type ShellState = Readonly<{
+type LegacyShellState = Readonly<{
 	agentConnected: boolean;
 	errorMessage?: string;
 	sessionValid: boolean;
 	status: 'connected' | 'connecting' | 'error' | 'needs_sign_in' | 'stopped';
 }>;
 
+type ShellInvokeActionPayload = Readonly<{
+	actionId: DesktopAgentLaunchControllerViewModel['primary_action']['id'];
+}>;
+
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
-let runtime: ReturnType<typeof createDesktopAgentSessionRuntime> | null = null;
-let currentShellState: ShellState = {
-	agentConnected: false,
-	sessionValid: false,
-	status: 'stopped',
-};
+let controller: DesktopAgentLaunchController | null = null;
+let configurationErrorMessage: string | null = null;
 
 function logBoot(message: string, data?: unknown): void {
 	const payload = data === undefined ? '' : ` ${JSON.stringify(data)}`;
@@ -47,130 +49,155 @@ function resolvePackagedPath(...segments: readonly string[]): string {
 	return join(getAppDir(), ...segments);
 }
 
-function mapRuntimeSnapshotToShellState(snapshot: DesktopAgentRuntimeSnapshot): ShellState {
-	switch (snapshot.status) {
+function createFallbackViewModel(): DesktopAgentLaunchControllerViewModel {
+	return {
+		agent_id: 'unconfigured',
+		awaiting_session_input: false,
+		message: configurationErrorMessage ?? 'Desktop runtime setup failed.',
+		primary_action: {
+			id: 'retry',
+			label: 'Try again',
+		},
+		session_present: false,
+		status: 'error',
+		title: 'Connection failed',
+	};
+}
+
+function getViewModel(): DesktopAgentLaunchControllerViewModel {
+	return controller?.getViewModel() ?? createFallbackViewModel();
+}
+
+function projectViewModelToLegacyShellState(
+	viewModel: DesktopAgentLaunchControllerViewModel,
+): LegacyShellState {
+	switch (viewModel.status) {
 		case 'bootstrapping':
-		case 'bridge_connecting':
+		case 'connecting':
 			return {
 				agentConnected: false,
-				sessionValid: 'session' in snapshot,
+				sessionValid: viewModel.session_present,
 				status: 'connecting',
 			};
-		case 'bridge_connected':
+		case 'connected':
 			return {
 				agentConnected: true,
 				sessionValid: true,
 				status: 'connected',
 			};
-		case 'bridge_error':
+		case 'error':
 			return {
 				agentConnected: false,
-				errorMessage: snapshot.error_message,
-				sessionValid: true,
+				errorMessage: viewModel.message,
+				sessionValid: viewModel.session_present,
 				status: 'error',
 			};
-		case 'signed_in':
+		case 'awaiting_session_input':
+		case 'needs_sign_in':
+			return {
+				agentConnected: false,
+				sessionValid: false,
+				status: 'needs_sign_in',
+			};
+		case 'ready':
 			return {
 				agentConnected: false,
 				sessionValid: true,
 				status: 'stopped',
 			};
-		case 'signed_out':
-			return {
-				agentConnected: false,
-				errorMessage: snapshot.error_message,
-				sessionValid: false,
-				status: 'needs_sign_in',
-			};
 	}
 }
 
-function broadcastShellState(): void {
-	mainWindow?.webContents.send('shell:stateChanged', currentShellState);
-
-	if (!tray) {
-		return;
-	}
-
-	const toolTips: Record<ShellState['status'], string> = {
-		connected: 'Runa Desktop - Connected',
-		connecting: 'Runa Desktop - Connecting...',
-		error: 'Runa Desktop - Connection needs attention',
-		needs_sign_in: 'Runa Desktop - Sign in required',
-		stopped: 'Runa Desktop - Disconnected',
-	};
-
-	tray.setToolTip(toolTips[currentShellState.status]);
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function setShellState(nextState: ShellState): void {
-	currentShellState = nextState;
-	logBoot('shell-state-update', nextState);
-	broadcastShellState();
-}
-
-async function startRuntime(): Promise<ShellState> {
-	if (!runtime) {
-		return currentShellState;
+function isDesktopAgentSessionInputPayload(
+	value: unknown,
+): value is DesktopAgentSessionInputPayload {
+	if (!isRecord(value)) {
+		return false;
 	}
 
-	setShellState({
-		...currentShellState,
-		status: 'connecting',
-	});
-	const snapshot = await runtime.start();
-	const nextState = mapRuntimeSnapshotToShellState(snapshot);
-	setShellState(nextState);
-	return nextState;
-}
+	const expiresAt = value.expires_at;
 
-async function stopRuntime(): Promise<ShellState> {
-	if (!runtime) {
-		return currentShellState;
-	}
-
-	const snapshot = await runtime.stop();
-	const nextState = mapRuntimeSnapshotToShellState(snapshot);
-	setShellState(nextState);
-	return nextState;
-}
-
-async function signOutRuntime(): Promise<ShellState> {
-	if (!runtime) {
-		return currentShellState;
-	}
-
-	const snapshot = await runtime.signOut();
-	const nextState = mapRuntimeSnapshotToShellState(snapshot);
-	setShellState(nextState);
-	return nextState;
-}
-
-async function submitSession(payload: unknown): Promise<ShellState> {
-	if (!runtime) {
-		return currentShellState;
-	}
-
-	const session = normalizeDesktopAgentSessionInputPayload(
-		payload as Parameters<typeof normalizeDesktopAgentSessionInputPayload>[0],
+	return (
+		typeof value.access_token === 'string' &&
+		typeof value.refresh_token === 'string' &&
+		(expiresAt === undefined || typeof expiresAt === 'number') &&
+		(value.token_type === undefined || typeof value.token_type === 'string')
 	);
-	await runtime.setSession(session);
-	return await startRuntime();
 }
 
-function createRuntimeFromEnvironment(): void {
+function isShellInvokeActionPayload(value: unknown): value is ShellInvokeActionPayload {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	return (
+		value.actionId === 'connect' ||
+		value.actionId === 'connecting' ||
+		value.actionId === 'retry' ||
+		value.actionId === 'sign_in' ||
+		value.actionId === 'sign_out'
+	);
+}
+
+async function invokeControllerAction(
+	actionId: ShellInvokeActionPayload['actionId'],
+): Promise<DesktopAgentLaunchControllerViewModel> {
+	if (!controller) {
+		return getViewModel();
+	}
+
+	await controller.invokeAction(actionId);
+	return controller.getViewModel();
+}
+
+async function stopController(): Promise<DesktopAgentLaunchControllerViewModel> {
+	if (!controller) {
+		return getViewModel();
+	}
+
+	await controller.stop();
+	return controller.getViewModel();
+}
+
+async function signOutController(): Promise<DesktopAgentLaunchControllerViewModel> {
+	if (!controller) {
+		return getViewModel();
+	}
+
+	await controller.signOut();
+	return controller.getViewModel();
+}
+
+async function submitSession(payload: unknown): Promise<DesktopAgentLaunchControllerViewModel> {
+	if (!controller || !isDesktopAgentSessionInputPayload(payload)) {
+		return getViewModel();
+	}
+
+	await controller.submitSession(payload);
+	return controller.getViewModel();
+}
+
+function createControllerFromEnvironment(): void {
 	try {
 		const config = readDesktopAgentBootstrapConfigFromEnvironment();
-		runtime = createDesktopAgentSessionRuntime({
+		controller = createDesktopAgentLaunchController({
 			...config,
 			bridge_factory: async (bridgeOptions) =>
 				await startDesktopAgentBridge({
 					...bridgeOptions,
 					web_socket_factory: createNodeWebSocket,
 				}),
+			host: createElectronDesktopAgentWindowHost({
+				mainWindow,
+				tray,
+			}),
 			session_storage: createFileDesktopAgentSessionStorage(app.getPath('userData')),
 		});
-		setShellState(mapRuntimeSnapshotToShellState(runtime.getSnapshot()));
+		configurationErrorMessage = null;
 		logBoot('runtime:configured', {
 			agent_id: config.agent_id,
 			has_initial_session: config.initial_session !== undefined,
@@ -178,14 +205,10 @@ function createRuntimeFromEnvironment(): void {
 			server_url: config.server_url,
 		});
 	} catch (error: unknown) {
-		setShellState({
-			agentConnected: false,
-			errorMessage: error instanceof Error ? error.message : 'Desktop runtime setup failed.',
-			sessionValid: false,
-			status: 'needs_sign_in',
-		});
+		configurationErrorMessage =
+			error instanceof Error ? error.message : 'Desktop runtime setup failed.';
 		logBoot('runtime:configuration-error', {
-			error: error instanceof Error ? error.message : String(error),
+			error: configurationErrorMessage,
 		});
 	}
 }
@@ -206,20 +229,20 @@ function createTray(): void {
 			{ type: 'separator' },
 			{
 				click: () => {
-					void startRuntime();
+					void invokeControllerAction('connect');
 				},
 				label: 'Connect',
 			},
 			{
 				click: () => {
-					void stopRuntime();
+					void stopController();
 				},
 				label: 'Disconnect',
 			},
 			{ type: 'separator' },
 			{
 				click: () => {
-					void signOutRuntime();
+					void signOutController();
 				},
 				label: 'Sign out',
 			},
@@ -230,7 +253,6 @@ function createTray(): void {
 			},
 		]),
 	);
-	broadcastShellState();
 }
 
 function createMainWindow(): void {
@@ -252,7 +274,11 @@ function createMainWindow(): void {
 	mainWindow.once('ready-to-show', () => {
 		logBoot('window:ready-to-show');
 		mainWindow?.show();
-		broadcastShellState();
+		mainWindow?.webContents.send('shell:viewModel', getViewModel());
+		mainWindow?.webContents.send(
+			'shell:stateChanged',
+			projectViewModelToLegacyShellState(getViewModel()),
+		);
 	});
 	mainWindow.on('close', (event) => {
 		if (!isQuitting) {
@@ -276,15 +302,34 @@ function showMainWindow(): void {
 }
 
 function registerIpcHandlers(): void {
-	ipcMain.handle('agent:getStatus', () => currentShellState);
-	ipcMain.handle('shell:getState', () => currentShellState);
-	ipcMain.handle('shell:connect', async () => await startRuntime());
-	ipcMain.handle('shell:disconnect', async () => await stopRuntime());
+	ipcMain.handle('shell:getViewModel', () => getViewModel());
+	ipcMain.handle('shell:invokeAction', async (_event, payload: unknown) => {
+		if (!isShellInvokeActionPayload(payload)) {
+			return getViewModel();
+		}
+
+		return await invokeControllerAction(payload.actionId);
+	});
+	ipcMain.handle(
+		'session:submit',
+		async (_event, payload: unknown) => await submitSession(payload),
+	);
+
+	// Deprecated compatibility adapter. Remove in desktop IPC v2.
+	ipcMain.handle('agent:getStatus', () => projectViewModelToLegacyShellState(getViewModel()));
+	// Deprecated compatibility adapter. Remove in desktop IPC v2.
+	ipcMain.handle('shell:getState', () => projectViewModelToLegacyShellState(getViewModel()));
+	// Deprecated compatibility adapter. Remove in desktop IPC v2.
+	ipcMain.handle('shell:connect', async () => await invokeControllerAction('connect'));
+	// Deprecated compatibility adapter. Remove in desktop IPC v2.
+	ipcMain.handle('shell:disconnect', async () => await stopController());
+	// Deprecated compatibility adapter. Remove in desktop IPC v2.
 	ipcMain.handle(
 		'session:signIn',
 		async (_event, payload: unknown) => await submitSession(payload),
 	);
-	ipcMain.handle('session:signOut', async () => await signOutRuntime());
+	// Deprecated compatibility adapter. Remove in desktop IPC v2.
+	ipcMain.handle('session:signOut', async () => await signOutController());
 }
 
 app
@@ -292,10 +337,10 @@ app
 	.then(async () => {
 		logBoot('app-ready');
 		registerIpcHandlers();
-		createRuntimeFromEnvironment();
 		createTray();
 		createMainWindow();
-		await startRuntime();
+		createControllerFromEnvironment();
+		await controller?.start();
 		logBoot('main-process:boot-complete');
 	})
 	.catch((error: unknown) => {
@@ -314,7 +359,7 @@ app.on('before-quit', () => {
 	logBoot('app:before-quit');
 	tray?.destroy();
 	tray = null;
-	void stopRuntime();
+	void controller?.stop();
 });
 
 process.on('uncaughtException', (error) => {

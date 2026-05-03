@@ -202,6 +202,162 @@ function createFileDesktopAgentSessionStorage(userDataDirectory) {
   return new FileDesktopAgentSessionStorage(userDataDirectory);
 }
 
+// src/electron-window-host.ts
+var TOOLTIP_BY_STATUS = {
+  awaiting_session_input: "Runa Desktop - Sign in required",
+  bootstrapping: "Runa Desktop - Checking session...",
+  connected: "Runa Desktop - Connected",
+  connecting: "Runa Desktop - Connecting...",
+  error: "Runa Desktop - Connection needs attention",
+  needs_sign_in: "Runa Desktop - Sign in required",
+  ready: "Runa Desktop - Ready"
+};
+function cloneViewModel(viewModel) {
+  return {
+    ...viewModel,
+    primary_action: {
+      ...viewModel.primary_action
+    },
+    secondary_action: viewModel.secondary_action ? {
+      ...viewModel.secondary_action
+    } : void 0,
+    session_input: viewModel.session_input ? {
+      ...viewModel.session_input
+    } : void 0
+  };
+}
+function projectLegacyShellState(viewModel) {
+  switch (viewModel.status) {
+    case "bootstrapping":
+    case "connecting":
+      return {
+        agentConnected: false,
+        sessionValid: viewModel.session_present,
+        status: "connecting"
+      };
+    case "connected":
+      return {
+        agentConnected: true,
+        sessionValid: true,
+        status: "connected"
+      };
+    case "error":
+      return {
+        agentConnected: false,
+        errorMessage: viewModel.message,
+        sessionValid: viewModel.session_present,
+        status: "error"
+      };
+    case "awaiting_session_input":
+    case "needs_sign_in":
+      return {
+        agentConnected: false,
+        sessionValid: false,
+        status: "needs_sign_in"
+      };
+    case "ready":
+      return {
+        agentConnected: false,
+        sessionValid: true,
+        status: "stopped"
+      };
+  }
+}
+var ElectronDesktopAgentWindowHost = class {
+  #options;
+  #disposed = false;
+  constructor(options) {
+    this.#options = options;
+  }
+  dispose() {
+    this.#disposed = true;
+  }
+  mount(_document, viewModel) {
+    this.#publish(viewModel);
+  }
+  setActionHandler(_handler) {
+    this.#disposed = false;
+  }
+  update(_document, viewModel) {
+    this.#publish(viewModel);
+  }
+  #publish(viewModel) {
+    if (this.#disposed || !viewModel) {
+      return;
+    }
+    const clonedViewModel = cloneViewModel(viewModel);
+    this.#options.mainWindow?.webContents.send("shell:viewModel", clonedViewModel);
+    this.#options.mainWindow?.webContents.send(
+      "shell:stateChanged",
+      projectLegacyShellState(clonedViewModel)
+    );
+    this.#options.tray?.setToolTip(TOOLTIP_BY_STATUS[clonedViewModel.status]);
+  }
+};
+function createElectronDesktopAgentWindowHost(options) {
+  return new ElectronDesktopAgentWindowHost(options);
+}
+
+// src/launch-html.ts
+function escapeHtml(value) {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+}
+function renderDeviceLabel(viewModel) {
+  if (viewModel.machine_label) {
+    return viewModel.machine_label;
+  }
+  return `Agent ${viewModel.agent_id}`;
+}
+function renderSessionInputMarkup(viewModel) {
+  if (!viewModel.session_input) {
+    return "";
+  }
+  return `<section data-session-input="true">
+        <label for="desktop-agent-access-token">${escapeHtml(
+    viewModel.session_input.access_token_label
+  )}</label>
+        <textarea id="desktop-agent-access-token" name="access_token" rows="4"></textarea>
+        <label for="desktop-agent-refresh-token">${escapeHtml(
+    viewModel.session_input.refresh_token_label
+  )}</label>
+        <textarea id="desktop-agent-refresh-token" name="refresh_token" rows="4"></textarea>
+      </section>`;
+}
+function renderDesktopAgentLaunchDocument(viewModel) {
+  const secondaryActionMarkup = viewModel.secondary_action ? `<button type="button" data-action="${escapeHtml(viewModel.secondary_action.id)}">${escapeHtml(
+    viewModel.secondary_action.label
+  )}</button>` : "";
+  const connectedAtMarkup = viewModel.connected_at ? `<p class="launch-meta">Connected at ${escapeHtml(viewModel.connected_at)}</p>` : "";
+  const sessionInputMarkup = renderSessionInputMarkup(viewModel);
+  return {
+    html: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(viewModel.title)}</title>
+  </head>
+  <body>
+    <main data-status="${escapeHtml(viewModel.status)}">
+      <header>
+        <p>${escapeHtml(renderDeviceLabel(viewModel))}</p>
+        <h1>${escapeHtml(viewModel.title)}</h1>
+      </header>
+      <p>${escapeHtml(viewModel.message)}</p>
+      ${connectedAtMarkup}
+      ${sessionInputMarkup}
+      <section>
+        <button type="button" data-action="${escapeHtml(viewModel.primary_action.id)}">${escapeHtml(
+      viewModel.primary_action.label
+    )}</button>
+        ${secondaryActionMarkup}
+      </section>
+    </main>
+  </body>
+</html>`
+  };
+}
+
 // ../../packages/types/dist/ws.js
 var desktopAgentProtocolVersion = 1;
 var desktopAgentToolNames = [
@@ -1691,6 +1847,697 @@ function createDesktopAgentSessionRuntime(options) {
   return new DesktopAgentSessionRuntimeImpl(options);
 }
 
+// src/shell.ts
+function projectShellSnapshot(runtimeSnapshot) {
+  switch (runtimeSnapshot.status) {
+    case "bootstrapping":
+      return {
+        agent_id: runtimeSnapshot.agent_id,
+        machine_label: runtimeSnapshot.machine_label,
+        message: "Connecting to Runa",
+        session_present: false,
+        status: "bootstrapping"
+      };
+    case "signed_in":
+      return {
+        agent_id: runtimeSnapshot.agent_id,
+        machine_label: runtimeSnapshot.machine_label,
+        message: "Ready to connect",
+        session_present: true,
+        status: "ready"
+      };
+    case "bridge_connecting":
+      return {
+        agent_id: runtimeSnapshot.agent_id,
+        machine_label: runtimeSnapshot.machine_label,
+        message: "Connecting to Runa",
+        session_present: true,
+        status: "connecting"
+      };
+    case "bridge_connected":
+      return {
+        agent_id: runtimeSnapshot.agent_id,
+        connected_at: runtimeSnapshot.connected_at,
+        machine_label: runtimeSnapshot.machine_label,
+        message: "Connected",
+        session_present: true,
+        status: "connected"
+      };
+    case "bridge_error":
+      return {
+        agent_id: runtimeSnapshot.agent_id,
+        machine_label: runtimeSnapshot.machine_label,
+        message: "Connection failed",
+        session_present: true,
+        status: "error"
+      };
+    case "signed_out":
+      return {
+        agent_id: runtimeSnapshot.agent_id,
+        machine_label: runtimeSnapshot.machine_label,
+        message: runtimeSnapshot.reason === "bootstrap_failed" || runtimeSnapshot.reason === "refresh_failed" ? "Connection failed" : "Sign in required",
+        session_present: false,
+        status: runtimeSnapshot.reason === "bootstrap_failed" || runtimeSnapshot.reason === "refresh_failed" ? "error" : "needs_sign_in"
+      };
+  }
+}
+function resolveShellErrorSnapshot(runtimeSnapshot) {
+  return {
+    agent_id: runtimeSnapshot.agent_id,
+    machine_label: runtimeSnapshot.machine_label,
+    message: "Connection failed",
+    session_present: "session" in runtimeSnapshot,
+    status: "error"
+  };
+}
+function cloneShellSnapshot(snapshot) {
+  return {
+    ...snapshot
+  };
+}
+function areShellSnapshotsEqual(left, right) {
+  return left.agent_id === right.agent_id && left.connected_at === right.connected_at && left.machine_label === right.machine_label && left.message === right.message && left.session_present === right.session_present && left.status === right.status;
+}
+var SHELL_RUNTIME_WATCH_INTERVAL_MS = 500;
+var DesktopAgentShellImpl = class {
+  #runtime;
+  #listeners = /* @__PURE__ */ new Set();
+  #snapshot;
+  #watchHandle = null;
+  constructor(options) {
+    this.#runtime = options.session_runtime ?? createDesktopAgentSessionRuntime({
+      agent_id: options.agent_id,
+      auth_fetch: options.auth_fetch,
+      bridge_factory: options.bridge_factory,
+      initial_session: options.initial_session,
+      machine_label: options.machine_label,
+      server_url: options.server_url,
+      session_storage: options.session_storage
+    });
+    this.#snapshot = projectShellSnapshot(this.#runtime.getSnapshot());
+  }
+  getSnapshot() {
+    return cloneShellSnapshot(this.#snapshot);
+  }
+  retry() {
+    return this.#syncFromRuntime(async () => await this.#runtime.start());
+  }
+  signOut() {
+    return this.#syncFromRuntime(async () => await this.#runtime.signOut());
+  }
+  start() {
+    return this.#syncFromRuntime(async () => await this.#runtime.start());
+  }
+  stop() {
+    return this.#syncFromRuntime(async () => await this.#runtime.stop());
+  }
+  submitSession(session) {
+    return this.#syncFromRuntime(async () => await this.#runtime.setSession(session));
+  }
+  subscribe(listener) {
+    this.#listeners.add(listener);
+    this.#ensureWatchLoop();
+    listener(this.getSnapshot());
+    return () => {
+      this.#listeners.delete(listener);
+      this.#stopWatchLoopIfIdle();
+    };
+  }
+  async #syncFromRuntime(operation) {
+    try {
+      this.#setSnapshot(projectShellSnapshot(await operation()));
+    } catch {
+      this.#setSnapshot(resolveShellErrorSnapshot(this.#runtime.getSnapshot()));
+    }
+    return this.getSnapshot();
+  }
+  #ensureWatchLoop() {
+    if (this.#watchHandle || this.#listeners.size === 0) {
+      return;
+    }
+    this.#watchHandle = setInterval(() => {
+      const runtimeSnapshot = this.#runtime.getSnapshot();
+      this.#setSnapshot(projectShellSnapshot(runtimeSnapshot));
+    }, SHELL_RUNTIME_WATCH_INTERVAL_MS);
+    if (typeof this.#watchHandle === "object" && this.#watchHandle !== null && "unref" in this.#watchHandle && typeof this.#watchHandle.unref === "function") {
+      this.#watchHandle.unref();
+    }
+  }
+  #stopWatchLoopIfIdle() {
+    if (this.#listeners.size > 0 || !this.#watchHandle) {
+      return;
+    }
+    clearInterval(this.#watchHandle);
+    this.#watchHandle = null;
+  }
+  #setSnapshot(nextSnapshot) {
+    if (areShellSnapshotsEqual(this.#snapshot, nextSnapshot)) {
+      return;
+    }
+    this.#snapshot = cloneShellSnapshot(nextSnapshot);
+    this.#notifyListeners();
+  }
+  #notifyListeners() {
+    const snapshot = this.getSnapshot();
+    for (const listener of this.#listeners) {
+      listener(snapshot);
+    }
+  }
+};
+function createDesktopAgentShell(options) {
+  return new DesktopAgentShellImpl(options);
+}
+
+// src/launch-surface.ts
+function cloneLaunchAction(action) {
+  return {
+    ...action
+  };
+}
+function cloneLaunchSnapshot(snapshot) {
+  return {
+    ...snapshot
+  };
+}
+function cloneLaunchViewModel(viewModel) {
+  return {
+    ...viewModel,
+    primary_action: cloneLaunchAction(viewModel.primary_action),
+    secondary_action: viewModel.secondary_action ? cloneLaunchAction(viewModel.secondary_action) : void 0
+  };
+}
+function projectLaunchSurfaceSnapshot(shellSnapshot) {
+  return {
+    agent_id: shellSnapshot.agent_id,
+    connected_at: shellSnapshot.connected_at,
+    machine_label: shellSnapshot.machine_label,
+    message: shellSnapshot.message,
+    session_present: shellSnapshot.session_present,
+    status: shellSnapshot.status
+  };
+}
+function resolveLaunchViewModel(snapshot) {
+  switch (snapshot.status) {
+    case "needs_sign_in":
+      return {
+        agent_id: snapshot.agent_id,
+        machine_label: snapshot.machine_label,
+        message: "Sign in to connect this computer to Runa.",
+        primary_action: {
+          id: "sign_in",
+          label: "Sign in"
+        },
+        session_present: snapshot.session_present,
+        status: snapshot.status,
+        title: "Sign in required"
+      };
+    case "bootstrapping":
+      return {
+        agent_id: snapshot.agent_id,
+        machine_label: snapshot.machine_label,
+        message: "Checking your saved session.",
+        primary_action: {
+          id: "connecting",
+          label: "Checking session"
+        },
+        session_present: snapshot.session_present,
+        status: snapshot.status,
+        title: "Connecting to Runa"
+      };
+    case "ready":
+      return {
+        agent_id: snapshot.agent_id,
+        machine_label: snapshot.machine_label,
+        message: "Your session is ready when you want to connect.",
+        primary_action: {
+          id: "connect",
+          label: "Connect"
+        },
+        secondary_action: {
+          id: "sign_out",
+          label: "Sign out"
+        },
+        session_present: snapshot.session_present,
+        status: snapshot.status,
+        title: "Ready to connect"
+      };
+    case "connecting":
+      return {
+        agent_id: snapshot.agent_id,
+        machine_label: snapshot.machine_label,
+        message: "Connecting to Runa.",
+        primary_action: {
+          id: "connecting",
+          label: "Connecting"
+        },
+        secondary_action: {
+          id: "sign_out",
+          label: "Sign out"
+        },
+        session_present: snapshot.session_present,
+        status: snapshot.status,
+        title: "Connecting to Runa"
+      };
+    case "connected":
+      return {
+        agent_id: snapshot.agent_id,
+        connected_at: snapshot.connected_at,
+        machine_label: snapshot.machine_label,
+        message: "This computer is connected and ready.",
+        primary_action: {
+          id: "connect",
+          label: "Connected"
+        },
+        secondary_action: {
+          id: "sign_out",
+          label: "Sign out"
+        },
+        session_present: snapshot.session_present,
+        status: snapshot.status,
+        title: "Connected"
+      };
+    case "error":
+      return {
+        agent_id: snapshot.agent_id,
+        machine_label: snapshot.machine_label,
+        message: snapshot.session_present ? "We could not connect right now. You can try again." : "Sign in again to continue.",
+        primary_action: snapshot.session_present ? {
+          id: "retry",
+          label: "Try again"
+        } : {
+          id: "sign_in",
+          label: "Sign in"
+        },
+        secondary_action: snapshot.session_present ? {
+          id: "sign_out",
+          label: "Sign out"
+        } : void 0,
+        session_present: snapshot.session_present,
+        status: snapshot.status,
+        title: "Connection failed"
+      };
+  }
+}
+var DesktopAgentLaunchSurfaceImpl = class {
+  #listeners = /* @__PURE__ */ new Set();
+  #shell;
+  #snapshot;
+  #viewModel;
+  constructor(options) {
+    this.#shell = options.shell ?? createDesktopAgentShell({
+      agent_id: options.agent_id,
+      auth_fetch: options.auth_fetch,
+      bridge_factory: options.bridge_factory,
+      initial_session: options.initial_session,
+      machine_label: options.machine_label,
+      server_url: options.server_url,
+      session_runtime: options.session_runtime,
+      session_storage: options.session_storage
+    });
+    this.#snapshot = projectLaunchSurfaceSnapshot(this.#shell.getSnapshot());
+    this.#viewModel = resolveLaunchViewModel(this.#snapshot);
+    this.#shell.subscribe((shellSnapshot) => {
+      this.#sync(shellSnapshot);
+    });
+  }
+  getSnapshot() {
+    return cloneLaunchSnapshot(this.#snapshot);
+  }
+  getViewModel() {
+    return cloneLaunchViewModel(this.#viewModel);
+  }
+  retry() {
+    return this.#run(async () => await this.#shell.retry());
+  }
+  signOut() {
+    return this.#run(async () => await this.#shell.signOut());
+  }
+  start() {
+    return this.#run(async () => await this.#shell.start());
+  }
+  stop() {
+    return this.#run(async () => await this.#shell.stop());
+  }
+  submitSession(session) {
+    return this.#run(async () => await this.#shell.submitSession(session));
+  }
+  subscribe(listener) {
+    this.#listeners.add(listener);
+    listener(this.getSnapshot(), this.getViewModel());
+    return () => {
+      this.#listeners.delete(listener);
+    };
+  }
+  async #run(operation) {
+    await operation();
+    return this.getSnapshot();
+  }
+  #sync(shellSnapshot) {
+    this.#snapshot = projectLaunchSurfaceSnapshot(shellSnapshot);
+    this.#viewModel = resolveLaunchViewModel(this.#snapshot);
+    this.#notifyListeners();
+  }
+  #notifyListeners() {
+    if (this.#listeners.size === 0) {
+      return;
+    }
+    const snapshot = this.getSnapshot();
+    const viewModel = this.getViewModel();
+    for (const listener of this.#listeners) {
+      listener(snapshot, viewModel);
+    }
+  }
+};
+function createDesktopAgentLaunchSurface(options) {
+  return new DesktopAgentLaunchSurfaceImpl(options);
+}
+
+// src/window-host.ts
+var NoopDesktopAgentWindowHost = class {
+  #document = null;
+  #handler = null;
+  dispose() {
+    this.#document = null;
+    this.#handler = null;
+  }
+  mount(document) {
+    this.#document = document;
+  }
+  setActionHandler(handler) {
+    this.#handler = handler;
+  }
+  update(document) {
+    this.#document = document;
+  }
+};
+function createNoopDesktopAgentWindowHost() {
+  return new NoopDesktopAgentWindowHost();
+}
+
+// src/launch-controller.ts
+function cloneControllerSnapshot(snapshot) {
+  return {
+    ...snapshot
+  };
+}
+function cloneControllerViewModel(viewModel) {
+  return {
+    ...viewModel,
+    primary_action: {
+      ...viewModel.primary_action
+    },
+    secondary_action: viewModel.secondary_action ? {
+      ...viewModel.secondary_action
+    } : void 0,
+    session_input: viewModel.session_input ? {
+      ...viewModel.session_input
+    } : void 0
+  };
+}
+function projectControllerSnapshot(snapshot, awaitingSessionInput, awaitingSessionMessage) {
+  if (awaitingSessionInput) {
+    return {
+      agent_id: snapshot.agent_id,
+      awaiting_session_input: true,
+      machine_label: snapshot.machine_label,
+      message: awaitingSessionMessage ?? "Paste your session to continue connecting this computer.",
+      session_present: snapshot.session_present,
+      status: "awaiting_session_input"
+    };
+  }
+  return {
+    agent_id: snapshot.agent_id,
+    awaiting_session_input: false,
+    connected_at: snapshot.connected_at,
+    machine_label: snapshot.machine_label,
+    message: snapshot.message,
+    session_present: snapshot.session_present,
+    status: snapshot.status
+  };
+}
+function resolvePrimaryAction(viewModel) {
+  switch (viewModel.status) {
+    case "needs_sign_in":
+      return {
+        id: "sign_in",
+        label: viewModel.primary_action.label
+      };
+    case "error":
+      return {
+        id: viewModel.session_present ? "retry" : "sign_in",
+        label: viewModel.primary_action.label
+      };
+    case "bootstrapping":
+    case "connecting":
+    case "connected":
+    case "ready":
+      return {
+        id: "connect",
+        label: viewModel.primary_action.label
+      };
+  }
+}
+function resolveSecondaryAction(viewModel, awaitingSessionInput) {
+  if (awaitingSessionInput && viewModel.session_present) {
+    return {
+      id: "sign_out",
+      label: "Sign out"
+    };
+  }
+  if (!viewModel.secondary_action) {
+    return void 0;
+  }
+  return {
+    id: "sign_out",
+    label: viewModel.secondary_action.label
+  };
+}
+function projectControllerViewModel(snapshot, viewModel, awaitingSessionInput, awaitingSessionMessage) {
+  if (awaitingSessionInput) {
+    return {
+      agent_id: snapshot.agent_id,
+      awaiting_session_input: true,
+      machine_label: snapshot.machine_label,
+      message: awaitingSessionMessage ?? "Paste your session to continue connecting this computer.",
+      primary_action: {
+        id: "submit_session",
+        label: "Continue"
+      },
+      session_present: snapshot.session_present,
+      session_input: {
+        access_token_label: "Access token",
+        refresh_token_label: "Refresh token"
+      },
+      status: "awaiting_session_input",
+      title: "Sign in required"
+    };
+  }
+  return {
+    agent_id: snapshot.agent_id,
+    awaiting_session_input: false,
+    connected_at: snapshot.connected_at,
+    machine_label: snapshot.machine_label,
+    message: viewModel.message,
+    primary_action: resolvePrimaryAction(viewModel),
+    secondary_action: resolveSecondaryAction(viewModel, false),
+    session_present: snapshot.session_present,
+    status: snapshot.status,
+    title: viewModel.title
+  };
+}
+var DesktopAgentLaunchControllerImpl = class {
+  #host;
+  #launchSurface;
+  #awaitingSessionInput = false;
+  #mounted = false;
+  #started = false;
+  #surfaceSnapshot;
+  #surfaceViewModel;
+  #sessionInputMessage = null;
+  #snapshot;
+  #surfaceUnsubscribe = null;
+  #viewModel;
+  constructor(options) {
+    this.#host = options.host ?? createNoopDesktopAgentWindowHost();
+    this.#launchSurface = options.launch_surface ?? createDesktopAgentLaunchSurface({
+      agent_id: options.agent_id,
+      auth_fetch: options.auth_fetch,
+      bridge_factory: options.bridge_factory,
+      initial_session: options.initial_session,
+      machine_label: options.machine_label,
+      server_url: options.server_url,
+      session_runtime: options.session_runtime,
+      session_storage: options.session_storage,
+      shell: options.shell
+    });
+    this.#surfaceSnapshot = this.#launchSurface.getSnapshot();
+    this.#surfaceViewModel = this.#launchSurface.getViewModel();
+    this.#snapshot = projectControllerSnapshot(this.#surfaceSnapshot, false);
+    this.#viewModel = projectControllerViewModel(
+      this.#surfaceSnapshot,
+      this.#surfaceViewModel,
+      false
+    );
+  }
+  getSnapshot() {
+    return cloneControllerSnapshot(this.#snapshot);
+  }
+  getViewModel() {
+    return cloneControllerViewModel(this.#viewModel);
+  }
+  async invokeAction(actionId) {
+    if (actionId === "submit_session") {
+      this.#awaitingSessionInput = true;
+      this.#sessionInputMessage = null;
+      this.#syncFromSurface();
+      await this.#render("update");
+      return this.getSnapshot();
+    }
+    await this.#handleAction({ id: actionId });
+    return this.getSnapshot();
+  }
+  signOut() {
+    this.#awaitingSessionInput = false;
+    this.#sessionInputMessage = null;
+    return this.#run(async () => await this.#launchSurface.signOut());
+  }
+  async start() {
+    if (this.#started) {
+      return this.getSnapshot();
+    }
+    this.#started = true;
+    await this.#host.setActionHandler(async (event) => {
+      await this.#handleAction(event);
+    });
+    this.#surfaceUnsubscribe = this.#launchSurface.subscribe((snapshot, viewModel) => {
+      this.#surfaceSnapshot = snapshot;
+      this.#surfaceViewModel = viewModel;
+      this.#syncAwaitingSessionInputFromSurface();
+      this.#syncFromSurface();
+      if (this.#mounted) {
+        void this.#render("update");
+      }
+    });
+    await this.#render("mount");
+    this.#mounted = true;
+    this.#surfaceSnapshot = await this.#launchSurface.start();
+    this.#surfaceViewModel = this.#launchSurface.getViewModel();
+    this.#syncAwaitingSessionInputFromSurface();
+    this.#syncFromSurface();
+    await this.#render("update");
+    return this.getSnapshot();
+  }
+  async stop() {
+    if (!this.#started) {
+      return this.getSnapshot();
+    }
+    this.#awaitingSessionInput = false;
+    this.#sessionInputMessage = null;
+    await this.#launchSurface.stop();
+    this.#surfaceUnsubscribe?.();
+    this.#surfaceUnsubscribe = null;
+    this.#mounted = false;
+    await this.#host.dispose();
+    this.#started = false;
+    return this.getSnapshot();
+  }
+  async submitSession(session) {
+    await this.#handleSessionSubmit(session);
+    return this.getSnapshot();
+  }
+  async #handleAction(event) {
+    switch (event.id) {
+      case "connect":
+        await this.#launchSurface.start();
+        return;
+      case "connecting":
+        return;
+      case "retry":
+        await this.#launchSurface.retry();
+        return;
+      case "sign_out":
+        this.#awaitingSessionInput = false;
+        this.#sessionInputMessage = null;
+        await this.#launchSurface.signOut();
+        return;
+      case "sign_in":
+        this.#awaitingSessionInput = true;
+        this.#sessionInputMessage = null;
+        this.#syncFromSurface();
+        await this.#render("update");
+        return;
+      case "submit_session":
+        await this.#handleSessionSubmit(event.payload);
+        return;
+    }
+  }
+  async #run(operation) {
+    this.#surfaceSnapshot = await operation();
+    this.#surfaceViewModel = this.#launchSurface.getViewModel();
+    this.#syncAwaitingSessionInputFromSurface();
+    this.#syncFromSurface();
+    if (this.#started) {
+      await this.#render("update");
+    }
+    return this.getSnapshot();
+  }
+  async #render(mode) {
+    const viewModel = this.getViewModel();
+    const document = renderDesktopAgentLaunchDocument(viewModel);
+    if (mode === "mount") {
+      await this.#host.mount(document, viewModel);
+      return;
+    }
+    await this.#host.update(document, viewModel);
+  }
+  #syncFromSurface() {
+    this.#snapshot = projectControllerSnapshot(
+      this.#surfaceSnapshot,
+      this.#awaitingSessionInput,
+      this.#sessionInputMessage ?? void 0
+    );
+    this.#viewModel = projectControllerViewModel(
+      this.#surfaceSnapshot,
+      this.#surfaceViewModel,
+      this.#awaitingSessionInput,
+      this.#sessionInputMessage ?? void 0
+    );
+  }
+  #syncAwaitingSessionInputFromSurface() {
+    if (!this.#surfaceSnapshot.session_present && this.#surfaceSnapshot.status === "needs_sign_in") {
+      this.#awaitingSessionInput = true;
+      this.#sessionInputMessage = null;
+    }
+  }
+  async #handleSessionSubmit(payload) {
+    this.#awaitingSessionInput = true;
+    let normalizedSession;
+    try {
+      normalizedSession = normalizeDesktopAgentSessionInputPayload(payload);
+    } catch (error) {
+      this.#sessionInputMessage = this.#resolveSessionInputMessage(error);
+      this.#syncFromSurface();
+      await this.#render("update");
+      return;
+    }
+    this.#sessionInputMessage = null;
+    this.#awaitingSessionInput = false;
+    await this.#run(async () => await this.#launchSurface.submitSession(normalizedSession));
+  }
+  #resolveSessionInputMessage(error) {
+    if (error instanceof Error) {
+      const message = error.message.trim();
+      if (message.length > 0) {
+        return message;
+      }
+    }
+    return "Paste a valid session to continue.";
+  }
+};
+function createDesktopAgentLaunchController(options) {
+  return new DesktopAgentLaunchControllerImpl(options);
+}
+
 // src/node-websocket.ts
 var import_node_crypto = require("node:crypto");
 var import_node_net = require("node:net");
@@ -1869,12 +2716,8 @@ function createNodeWebSocket(url) {
 var tray = null;
 var mainWindow = null;
 var isQuitting = false;
-var runtime = null;
-var currentShellState = {
-  agentConnected: false,
-  sessionValid: false,
-  status: "stopped"
-};
+var controller = null;
+var configurationErrorMessage = null;
 function logBoot(message, data) {
   const payload = data === void 0 ? "" : ` ${JSON.stringify(data)}`;
   console.log(`[boot:${message}]${payload}`);
@@ -1889,115 +2732,120 @@ function getAppDir() {
 function resolvePackagedPath(...segments) {
   return (0, import_node_path3.join)(getAppDir(), ...segments);
 }
-function mapRuntimeSnapshotToShellState(snapshot) {
-  switch (snapshot.status) {
+function createFallbackViewModel() {
+  return {
+    agent_id: "unconfigured",
+    awaiting_session_input: false,
+    message: configurationErrorMessage ?? "Desktop runtime setup failed.",
+    primary_action: {
+      id: "retry",
+      label: "Try again"
+    },
+    session_present: false,
+    status: "error",
+    title: "Connection failed"
+  };
+}
+function getViewModel() {
+  return controller?.getViewModel() ?? createFallbackViewModel();
+}
+function projectViewModelToLegacyShellState(viewModel) {
+  switch (viewModel.status) {
     case "bootstrapping":
-    case "bridge_connecting":
+    case "connecting":
       return {
         agentConnected: false,
-        sessionValid: "session" in snapshot,
+        sessionValid: viewModel.session_present,
         status: "connecting"
       };
-    case "bridge_connected":
+    case "connected":
       return {
         agentConnected: true,
         sessionValid: true,
         status: "connected"
       };
-    case "bridge_error":
+    case "error":
       return {
         agentConnected: false,
-        errorMessage: snapshot.error_message,
-        sessionValid: true,
+        errorMessage: viewModel.message,
+        sessionValid: viewModel.session_present,
         status: "error"
       };
-    case "signed_in":
+    case "awaiting_session_input":
+    case "needs_sign_in":
+      return {
+        agentConnected: false,
+        sessionValid: false,
+        status: "needs_sign_in"
+      };
+    case "ready":
       return {
         agentConnected: false,
         sessionValid: true,
         status: "stopped"
       };
-    case "signed_out":
-      return {
-        agentConnected: false,
-        errorMessage: snapshot.error_message,
-        sessionValid: false,
-        status: "needs_sign_in"
-      };
   }
 }
-function broadcastShellState() {
-  mainWindow?.webContents.send("shell:stateChanged", currentShellState);
-  if (!tray) {
-    return;
-  }
-  const toolTips = {
-    connected: "Runa Desktop - Connected",
-    connecting: "Runa Desktop - Connecting...",
-    error: "Runa Desktop - Connection needs attention",
-    needs_sign_in: "Runa Desktop - Sign in required",
-    stopped: "Runa Desktop - Disconnected"
-  };
-  tray.setToolTip(toolTips[currentShellState.status]);
+function isRecord4(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-function setShellState(nextState) {
-  currentShellState = nextState;
-  logBoot("shell-state-update", nextState);
-  broadcastShellState();
-}
-async function startRuntime() {
-  if (!runtime) {
-    return currentShellState;
+function isDesktopAgentSessionInputPayload(value) {
+  if (!isRecord4(value)) {
+    return false;
   }
-  setShellState({
-    ...currentShellState,
-    status: "connecting"
-  });
-  const snapshot = await runtime.start();
-  const nextState = mapRuntimeSnapshotToShellState(snapshot);
-  setShellState(nextState);
-  return nextState;
+  const expiresAt = value.expires_at;
+  return typeof value.access_token === "string" && typeof value.refresh_token === "string" && (expiresAt === void 0 || typeof expiresAt === "number") && (value.token_type === void 0 || typeof value.token_type === "string");
 }
-async function stopRuntime() {
-  if (!runtime) {
-    return currentShellState;
+function isShellInvokeActionPayload(value) {
+  if (!isRecord4(value)) {
+    return false;
   }
-  const snapshot = await runtime.stop();
-  const nextState = mapRuntimeSnapshotToShellState(snapshot);
-  setShellState(nextState);
-  return nextState;
+  return value.actionId === "connect" || value.actionId === "connecting" || value.actionId === "retry" || value.actionId === "sign_in" || value.actionId === "sign_out";
 }
-async function signOutRuntime() {
-  if (!runtime) {
-    return currentShellState;
+async function invokeControllerAction(actionId) {
+  if (!controller) {
+    return getViewModel();
   }
-  const snapshot = await runtime.signOut();
-  const nextState = mapRuntimeSnapshotToShellState(snapshot);
-  setShellState(nextState);
-  return nextState;
+  await controller.invokeAction(actionId);
+  return controller.getViewModel();
+}
+async function stopController() {
+  if (!controller) {
+    return getViewModel();
+  }
+  await controller.stop();
+  return controller.getViewModel();
+}
+async function signOutController() {
+  if (!controller) {
+    return getViewModel();
+  }
+  await controller.signOut();
+  return controller.getViewModel();
 }
 async function submitSession(payload) {
-  if (!runtime) {
-    return currentShellState;
+  if (!controller || !isDesktopAgentSessionInputPayload(payload)) {
+    return getViewModel();
   }
-  const session = normalizeDesktopAgentSessionInputPayload(
-    payload
-  );
-  await runtime.setSession(session);
-  return await startRuntime();
+  await controller.submitSession(payload);
+  return controller.getViewModel();
 }
-function createRuntimeFromEnvironment() {
+function createControllerFromEnvironment() {
   try {
     const config = readDesktopAgentBootstrapConfigFromEnvironment();
-    runtime = createDesktopAgentSessionRuntime({
+    controller = createDesktopAgentLaunchController({
       ...config,
       bridge_factory: async (bridgeOptions) => await startDesktopAgentBridge({
         ...bridgeOptions,
         web_socket_factory: createNodeWebSocket
       }),
+      host: createElectronDesktopAgentWindowHost({
+        mainWindow,
+        tray
+      }),
       session_storage: createFileDesktopAgentSessionStorage(import_electron.app.getPath("userData"))
     });
-    setShellState(mapRuntimeSnapshotToShellState(runtime.getSnapshot()));
+    configurationErrorMessage = null;
     logBoot("runtime:configured", {
       agent_id: config.agent_id,
       has_initial_session: config.initial_session !== void 0,
@@ -2005,14 +2853,9 @@ function createRuntimeFromEnvironment() {
       server_url: config.server_url
     });
   } catch (error) {
-    setShellState({
-      agentConnected: false,
-      errorMessage: error instanceof Error ? error.message : "Desktop runtime setup failed.",
-      sessionValid: false,
-      status: "needs_sign_in"
-    });
+    configurationErrorMessage = error instanceof Error ? error.message : "Desktop runtime setup failed.";
     logBoot("runtime:configuration-error", {
-      error: error instanceof Error ? error.message : String(error)
+      error: configurationErrorMessage
     });
   }
 }
@@ -2029,20 +2872,20 @@ function createTray() {
       { type: "separator" },
       {
         click: () => {
-          void startRuntime();
+          void invokeControllerAction("connect");
         },
         label: "Connect"
       },
       {
         click: () => {
-          void stopRuntime();
+          void stopController();
         },
         label: "Disconnect"
       },
       { type: "separator" },
       {
         click: () => {
-          void signOutRuntime();
+          void signOutController();
         },
         label: "Sign out"
       },
@@ -2053,7 +2896,6 @@ function createTray() {
       }
     ])
   );
-  broadcastShellState();
 }
 function createMainWindow() {
   logBoot("window:create-start");
@@ -2073,7 +2915,11 @@ function createMainWindow() {
   mainWindow.once("ready-to-show", () => {
     logBoot("window:ready-to-show");
     mainWindow?.show();
-    broadcastShellState();
+    mainWindow?.webContents.send("shell:viewModel", getViewModel());
+    mainWindow?.webContents.send(
+      "shell:stateChanged",
+      projectViewModelToLegacyShellState(getViewModel())
+    );
   });
   mainWindow.on("close", (event) => {
     if (!isQuitting) {
@@ -2094,23 +2940,34 @@ function showMainWindow() {
   mainWindow.focus();
 }
 function registerIpcHandlers() {
-  import_electron.ipcMain.handle("agent:getStatus", () => currentShellState);
-  import_electron.ipcMain.handle("shell:getState", () => currentShellState);
-  import_electron.ipcMain.handle("shell:connect", async () => await startRuntime());
-  import_electron.ipcMain.handle("shell:disconnect", async () => await stopRuntime());
+  import_electron.ipcMain.handle("shell:getViewModel", () => getViewModel());
+  import_electron.ipcMain.handle("shell:invokeAction", async (_event, payload) => {
+    if (!isShellInvokeActionPayload(payload)) {
+      return getViewModel();
+    }
+    return await invokeControllerAction(payload.actionId);
+  });
+  import_electron.ipcMain.handle(
+    "session:submit",
+    async (_event, payload) => await submitSession(payload)
+  );
+  import_electron.ipcMain.handle("agent:getStatus", () => projectViewModelToLegacyShellState(getViewModel()));
+  import_electron.ipcMain.handle("shell:getState", () => projectViewModelToLegacyShellState(getViewModel()));
+  import_electron.ipcMain.handle("shell:connect", async () => await invokeControllerAction("connect"));
+  import_electron.ipcMain.handle("shell:disconnect", async () => await stopController());
   import_electron.ipcMain.handle(
     "session:signIn",
     async (_event, payload) => await submitSession(payload)
   );
-  import_electron.ipcMain.handle("session:signOut", async () => await signOutRuntime());
+  import_electron.ipcMain.handle("session:signOut", async () => await signOutController());
 }
 import_electron.app.whenReady().then(async () => {
   logBoot("app-ready");
   registerIpcHandlers();
-  createRuntimeFromEnvironment();
   createTray();
   createMainWindow();
-  await startRuntime();
+  createControllerFromEnvironment();
+  await controller?.start();
   logBoot("main-process:boot-complete");
 }).catch((error) => {
   logBoot("main-process:boot-error", {
@@ -2126,7 +2983,7 @@ import_electron.app.on("before-quit", () => {
   logBoot("app:before-quit");
   tray?.destroy();
   tray = null;
-  void stopRuntime();
+  void controller?.stop();
 });
 process.on("uncaughtException", (error) => {
   logBoot("process:uncaught-exception", {
