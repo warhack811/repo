@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import type { PresentationRunSurface, RunTransportSummary } from '../lib/chat-runtime/types.js';
 import type { TransportErrorCode } from '../lib/transport/error-catalog.js';
 import type {
+	ApprovalMode,
 	ConnectionStatus,
 	GatewayProvider,
 	WebSocketServerBridgeMessage,
@@ -10,6 +11,7 @@ import type {
 
 export type RuntimeConfigState = Readonly<{
 	apiKey: string;
+	approvalMode: ApprovalMode;
 	includePresentationBlocks: boolean;
 	model: string;
 	provider: GatewayProvider;

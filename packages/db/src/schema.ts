@@ -1,6 +1,7 @@
 import type {
 	ApprovalActionKind,
 	ApprovalDecisionKind,
+	ApprovalMode,
 	ApprovalStatus,
 	ApprovalTargetKind,
 	CheckpointMeta,
@@ -222,6 +223,11 @@ export const approvalsTable = pgTable(
 export const policyStatesTable = pgTable(
 	'policy_states',
 	{
+		approval_mode: text('approval_mode').$type<ApprovalMode>(),
+		approval_mode_updated_at: timestamp('approval_mode_updated_at', {
+			mode: 'string',
+			withTimezone: true,
+		}),
 		auto_continue_enabled: boolean('auto_continue_enabled').notNull(),
 		auto_continue_enabled_at: timestamp('auto_continue_enabled_at', {
 			mode: 'string',
@@ -242,6 +248,19 @@ export const policyStatesTable = pgTable(
 		status: text('status').$type<'active' | 'paused'>().notNull(),
 		tenant_id: text('tenant_id'),
 		threshold: integer('threshold').notNull(),
+		trusted_session_approved_capability_count: integer('trusted_session_approved_capability_count'),
+		trusted_session_consumed_turns: integer('trusted_session_consumed_turns'),
+		trusted_session_enabled: boolean('trusted_session_enabled'),
+		trusted_session_enabled_at: timestamp('trusted_session_enabled_at', {
+			mode: 'string',
+			withTimezone: true,
+		}),
+		trusted_session_expires_at: timestamp('trusted_session_expires_at', {
+			mode: 'string',
+			withTimezone: true,
+		}),
+		trusted_session_max_approved_capabilities: integer('trusted_session_max_approved_capabilities'),
+		trusted_session_max_turns: integer('trusted_session_max_turns'),
 		updated_at: timestamp('updated_at', { mode: 'string', withTimezone: true }).notNull(),
 		user_id: text('user_id'),
 		workspace_id: text('workspace_id'),

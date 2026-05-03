@@ -32,6 +32,16 @@ export const defaultGatewayModels: Readonly<Record<GatewayProvider, string>> = {
 	sambanova: 'DeepSeek-V3.1-cb',
 };
 
+export const approvalModes = ['ask-every-time', 'standard', 'trusted-session'] as const;
+
+export type ApprovalMode = (typeof approvalModes)[number];
+
+export const defaultApprovalMode: ApprovalMode = 'standard';
+
+export interface RunApprovalPolicy {
+	readonly mode: ApprovalMode;
+}
+
 export interface GatewayProviderConfig {
 	readonly apiKey: string;
 	readonly baseUrl?: string;
@@ -43,6 +53,7 @@ export type RunRequestModelRequest = Omit<ModelRequest, 'run_id' | 'trace_id'> &
 	Partial<Pick<ModelRequest, 'run_id' | 'trace_id'>>;
 
 export interface RunRequestPayload {
+	readonly approval_policy?: RunApprovalPolicy;
 	readonly attachments?: readonly ModelAttachment[];
 	readonly conversation_id?: string;
 	readonly desktop_target_connection_id?: string;

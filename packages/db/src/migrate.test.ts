@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DatabaseConnection } from './client.js';
 
+import { getDatabaseSchemaBootstrapStatements } from './client.js';
 import { DatabaseConfigError } from './config.js';
 import {
 	createDatabaseBootstrapPlan,
@@ -132,5 +133,30 @@ describe('runDatabaseBootstrapPlan', () => {
 		).rejects.toThrowError('schema bootstrap failed');
 
 		expect(events).toEqual(['create', 'ensure', 'close']);
+	});
+});
+
+describe('policy_states migration statements', () => {
+	it('adds approval-mode and trusted-session columns idempotently for old tables', () => {
+		const bootstrapStatements = getDatabaseSchemaBootstrapStatements();
+
+		expect(bootstrapStatements).toEqual(
+			expect.arrayContaining([
+				expect.stringContaining('ALTER TABLE policy_states'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS approval_mode text'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS approval_mode_updated_at timestamptz'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS trusted_session_enabled boolean'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS trusted_session_enabled_at timestamptz'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS trusted_session_expires_at timestamptz'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS trusted_session_max_turns integer'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS trusted_session_consumed_turns integer'),
+				expect.stringContaining(
+					'ADD COLUMN IF NOT EXISTS trusted_session_max_approved_capabilities integer',
+				),
+				expect.stringContaining(
+					'ADD COLUMN IF NOT EXISTS trusted_session_approved_capability_count integer',
+				),
+			]),
+		);
 	});
 });

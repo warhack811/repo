@@ -375,6 +375,225 @@ describe('websocket policy wiring', () => {
 		});
 	});
 
+	it('normalizes and persists approval mode changes on the socket policy state', async () => {
+		const socket = createSocket();
+		const policyStateStore = createPolicyStateStore();
+		const wiring = createWebSocketPolicyWiring({
+			permission_engine: createPermissionEngine({
+				now: () => '2026-05-03T10:00:00.000Z',
+			}),
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(socket);
+
+		await wiring.setApprovalMode(socket, 'trusted-session');
+		expect((await wiring.getState(socket)).progressive_trust).toMatchObject({
+			approval_mode: {
+				mode: 'trusted-session',
+				updated_at: '2026-05-03T10:00:00.000Z',
+			},
+			auto_continue: {
+				enabled: false,
+			},
+			trusted_session: {
+				consumed_turns: 1,
+				enabled: true,
+				enabled_at: '2026-05-03T10:00:00.000Z',
+			},
+		});
+		expect(policyStateStore.putPolicyStateMock).toHaveBeenCalled();
+
+		await wiring.setApprovalMode(socket, 'invalid-mode');
+		expect((await wiring.getState(socket)).progressive_trust).toMatchObject({
+			approval_mode: {
+				mode: 'standard',
+				updated_at: '2026-05-03T10:00:00.000Z',
+			},
+			auto_continue: {
+				enabled: false,
+			},
+			trusted_session: {
+				enabled: false,
+			},
+		});
+		expect(policyStateStore.states.get('session_policy')?.progressive_trust).toMatchObject({
+			approval_mode: {
+				mode: 'standard',
+			},
+			trusted_session: {
+				enabled: false,
+			},
+		});
+	});
+
+	it('preserves trusted-session counters across fresh wiring hydration', async () => {
+		const authContext = createAuthContext();
+		const firstSocket = createSocket();
+		const secondSocket = createSocket();
+		const policyStateStore = createPolicyStateStore();
+		const permissionEngine = createPermissionEngine({
+			now: () => '2026-05-03T10:00:00.000Z',
+		});
+		const safeReadTool = createToolDefinition({
+			capability_class: 'file_system',
+			name: 'file.read',
+			requires_approval: true,
+			risk_level: 'medium',
+			side_effect_level: 'read',
+		});
+		const firstWiring = createWebSocketPolicyWiring({
+			permission_engine: permissionEngine,
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(firstSocket, authContext);
+		await firstWiring.setApprovalMode(firstSocket, 'trusted-session');
+
+		const firstDecision = (
+			await firstWiring.evaluateToolPermission(firstSocket, {
+				call_id: 'call_trusted_roundtrip_1',
+				tool_definition: safeReadTool,
+			})
+		).decision;
+
+		expect(firstDecision).toMatchObject({
+			decision: 'allow',
+			reason: 'progressive_trust_enabled',
+		});
+
+		await firstWiring.recordOutcome(firstSocket, {
+			decision: firstDecision,
+			outcome: 'allowed',
+		});
+
+		const secondWiring = createWebSocketPolicyWiring({
+			permission_engine: permissionEngine,
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(secondSocket, authContext);
+
+		await expect(secondWiring.getState(secondSocket)).resolves.toMatchObject({
+			progressive_trust: {
+				approval_mode: {
+					mode: 'trusted-session',
+				},
+				trusted_session: {
+					approved_capability_count: 1,
+					consumed_turns: 1,
+					enabled: true,
+				},
+			},
+		});
+
+		const secondDecision = (
+			await secondWiring.evaluateToolPermission(secondSocket, {
+				call_id: 'call_trusted_roundtrip_2',
+				tool_definition: safeReadTool,
+			})
+		).decision;
+
+		expect(secondDecision.decision).toBe('allow');
+	});
+
+	it('resets trusted-session and auto-continue state when the approval mode changes', async () => {
+		const socket = createSocket();
+		const policyStateStore = createPolicyStateStore();
+		const wiring = createWebSocketPolicyWiring({
+			permission_engine: createPermissionEngine({
+				now: () => '2026-05-03T10:00:00.000Z',
+			}),
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(socket);
+		policyStateStore.states.set('session_policy', {
+			denial_tracking: {
+				consecutive_denials: 0,
+				threshold: 3,
+			},
+			progressive_trust: {
+				approval_mode: {
+					mode: 'trusted-session',
+					updated_at: '2026-05-03T09:00:00.000Z',
+				},
+				auto_continue: {
+					enabled: true,
+					enabled_at: '2026-05-03T09:05:00.000Z',
+					max_consecutive_turns: 4,
+				},
+				trusted_session: {
+					approved_capability_count: 3,
+					consumed_turns: 2,
+					enabled: true,
+					enabled_at: '2026-05-03T09:00:00.000Z',
+					expires_at: '2026-05-03T10:00:00.000Z',
+					max_approved_capabilities: 50,
+					max_turns: 20,
+				},
+			},
+			session_pause: {
+				active: false,
+			},
+		});
+
+		await expect(wiring.setApprovalMode(socket, 'standard')).resolves.toMatchObject({
+			progressive_trust: {
+				approval_mode: {
+					mode: 'standard',
+					updated_at: '2026-05-03T10:00:00.000Z',
+				},
+				auto_continue: {
+					enabled: false,
+				},
+				trusted_session: {
+					approved_capability_count: 0,
+					consumed_turns: 0,
+					enabled: false,
+				},
+			},
+		});
+		expect(policyStateStore.putPolicyStateMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				session_id: 'session_policy',
+			}),
+			expect.objectContaining({
+				progressive_trust: expect.objectContaining({
+					approval_mode: expect.objectContaining({
+						mode: 'standard',
+					}),
+					trusted_session: expect.objectContaining({
+						enabled: false,
+					}),
+				}),
+			}),
+		);
+	});
+
+	it('requires approval for safe tools when ask-every-time mode is selected', async () => {
+		const socket = createSocket();
+		const wiring = createWebSocketPolicyWiring();
+		const safeTool = createToolDefinition({
+			capability_class: 'file_system',
+			name: 'file.read',
+			requires_approval: false,
+			risk_level: 'low',
+			side_effect_level: 'read',
+		});
+
+		await wiring.setApprovalMode(socket, 'ask-every-time');
+		const decision = (
+			await wiring.evaluateToolPermission(socket, {
+				call_id: 'call_ask_every_time_read',
+				tool_definition: safeTool,
+			})
+		).decision;
+
+		expect(decision.decision).toBe('require_approval');
+		expect(decision.reason).toBe('approval_required_by_mode');
+	});
+
 	it('hydrates paused denial tracking for a fresh socket from the persistent policy store', async () => {
 		const authContext = createAuthContext();
 		const firstSocket = createSocket();
@@ -427,7 +646,15 @@ describe('websocket policy wiring', () => {
 				threshold: 3,
 			},
 			progressive_trust: {
+				approval_mode: {
+					mode: 'standard',
+				},
 				auto_continue: {
+					enabled: false,
+				},
+				trusted_session: {
+					approved_capability_count: 0,
+					consumed_turns: 0,
 					enabled: false,
 				},
 			},
@@ -453,7 +680,15 @@ describe('websocket policy wiring', () => {
 				threshold: 3,
 			},
 			progressive_trust: {
+				approval_mode: {
+					mode: 'standard',
+				},
 				auto_continue: {
+					enabled: false,
+				},
+				trusted_session: {
+					approved_capability_count: 0,
+					consumed_turns: 0,
 					enabled: false,
 				},
 			},
@@ -516,10 +751,18 @@ describe('websocket policy wiring', () => {
 				threshold: 3,
 			},
 			progressive_trust: {
+				approval_mode: {
+					mode: 'standard',
+				},
 				auto_continue: {
 					enabled: true,
 					enabled_at: '2026-04-23T13:00:00.000Z',
 					max_consecutive_turns: 4,
+				},
+				trusted_session: {
+					approved_capability_count: 0,
+					consumed_turns: 0,
+					enabled: false,
 				},
 			},
 			session_pause: {
@@ -541,10 +784,18 @@ describe('websocket policy wiring', () => {
 					threshold: 3,
 				},
 				progressive_trust: {
+					approval_mode: {
+						mode: 'standard',
+					},
 					auto_continue: {
 						enabled: true,
 						enabled_at: '2026-04-23T13:00:00.000Z',
 						max_consecutive_turns: 4,
+					},
+					trusted_session: {
+						approved_capability_count: 0,
+						consumed_turns: 0,
+						enabled: false,
 					},
 				},
 				session_pause: {

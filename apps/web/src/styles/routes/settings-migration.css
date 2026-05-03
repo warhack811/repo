@@ -260,6 +260,54 @@
 	overflow-wrap: anywhere;
 }
 
+.runa-settings-approval-modes {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+
+.runa-settings-approval-mode {
+	align-items: flex-start;
+	background: hsl(var(--color-surface) / 0.5);
+	border: 1px solid hsl(var(--color-border-soft) / 0.7);
+	border-radius: var(--radius-panel);
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	min-width: 0;
+	padding: 12px;
+	transition: background 160ms ease, border-color 160ms ease;
+}
+
+.runa-settings-approval-mode.is-active {
+	background: hsl(var(--color-accent) / 0.12);
+	border-color: hsl(var(--color-accent) / 0.55);
+}
+
+.runa-settings-approval-mode input {
+	flex: 0 0 auto;
+	margin-top: 3px;
+}
+
+.runa-settings-approval-mode span {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+}
+
+.runa-settings-approval-mode strong {
+	color: hsl(var(--color-text));
+	font-size: 14px;
+	line-height: 1.3;
+}
+
+.runa-settings-approval-mode small {
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	line-height: 1.45;
+	overflow-wrap: anywhere;
+}
+
 .runa-migrated-components-auth-sessioncard-11 {
 	font-size: 12px;
 	letter-spacing: 0.08em;
