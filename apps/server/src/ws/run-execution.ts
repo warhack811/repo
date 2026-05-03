@@ -5,6 +5,7 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelToolCallCandidate,
+	RenderBlock,
 	RuntimeEvent,
 	RuntimeState,
 	RuntimeTerminationCode,
@@ -506,6 +507,7 @@ function cloneToolDefinitionWithApprovalRequired(toolDefinition: ToolDefinition)
 interface FinalizeLiveRunResultOptions {
 	readonly conversation_id?: string;
 	readonly persist_live_memory_write: boolean;
+	readonly retained_presentation_blocks?: readonly RenderBlock[];
 	readonly working_directory: string;
 }
 
@@ -2156,14 +2158,17 @@ export async function finalizeLiveRunResult(
 
 	const presentationAdditionalBlocks =
 		payload.include_presentation_blocks === true
-			? await createAdditionalPresentationBlocks({
-					approvalStore: options.approvalStore,
-					automaticApprovalPresentationInputs,
-					approvalPersistenceScope: approvalPersistenceScopeFromAuthContext(options.auth_context),
-					hooks: options,
-					payload,
-					result,
-				})
+			? [
+					...(finalizeOptions.retained_presentation_blocks ?? []),
+					...(await createAdditionalPresentationBlocks({
+						approvalStore: options.approvalStore,
+						automaticApprovalPresentationInputs,
+						approvalPersistenceScope: approvalPersistenceScopeFromAuthContext(options.auth_context),
+						hooks: options,
+						payload,
+						result,
+					})),
+				]
 			: undefined;
 
 	if (presentationAdditionalBlocks) {
@@ -2213,6 +2218,7 @@ export async function resumeApprovedAutoContinue(
 	override?: Readonly<{
 		readonly initial_tool_result?: ToolResult;
 		readonly initial_turn_count?: number;
+		readonly retained_presentation_blocks?: readonly RenderBlock[];
 	}>,
 ): Promise<boolean> {
 	if (pendingApproval.auto_continue_context === undefined) {
@@ -2240,6 +2246,7 @@ export async function resumeApprovedAutoContinue(
 	await finalizeLiveRunResult(_socket, pendingContext.payload, continuationResult, options, {
 		conversation_id: pendingContext.payload.conversation_id,
 		persist_live_memory_write: false,
+		retained_presentation_blocks: override?.retained_presentation_blocks,
 		working_directory: pendingContext.working_directory,
 	});
 

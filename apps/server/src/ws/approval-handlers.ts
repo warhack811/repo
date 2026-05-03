@@ -373,8 +373,12 @@ export async function handleApprovalResolveMessage(
 		return;
 	}
 
+	const retainedApprovalBlocks = blocks.filter((block) => block.type === 'approval_block');
+
 	if (approvalDecision.request.kind === 'auto_continue') {
-		const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options);
+		const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options, {
+			retained_presentation_blocks: retainedApprovalBlocks,
+		});
 
 		if (!resumed) {
 			throw new Error(
@@ -392,6 +396,7 @@ export async function handleApprovalResolveMessage(
 		const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options, {
 			initial_tool_result: approvedReplayToolResult,
 			initial_turn_count: pendingApprovalEntry.auto_continue_context.turn_count,
+			retained_presentation_blocks: retainedApprovalBlocks,
 		});
 
 		if (!resumed) {

@@ -32,6 +32,10 @@ The `git.diff` case passed twice on the stashed base and once on this branch whe
 
 ## E2E Regression Resolution
 
-`resolveRuntimeTerminationCode` initially mapped non-failure stop kinds (`completed`, `cancelled`, `model_stop`) to termination codes. This propagated into `run.finished.error_code`, which the web UI treated as failure, breaking 4 approval-flow e2e tests on PR #30.
+`resolveRuntimeTerminationCode` initially mapped non-failure stop kinds (`completed`, `cancelled`, `model_stop`) to termination codes. The `run.finished` transport message does not currently serialize `error_code`, but the result-level code could still leak into persistence or collaboration surfaces and break the success/failure contract.
 
-Fix: restricted the function to terminal-failure kinds only. Success paths now emit `run.finished` with `error_code: undefined` as before. `RuntimeTerminationCode` union remains additive; only the mapping narrowed.
+Fix: restricted the function to terminal-failure kinds only. Success paths now keep the result-level `error_code` undefined as before. `RuntimeTerminationCode` union remains additive; only the mapping narrowed.
+
+Follow-up CI evidence showed the same e2e failures after that mapping fix. The downloaded Playwright artifact showed the approved run completed successfully and wrote the proof file, but the final presentation snapshot replaced the standalone approved approval block before the tests could observe `Onaylandı` / `Kabul edildi`.
+
+Second fix: carry resolved approval blocks into the auto-continue final presentation snapshot. This keeps the trust-boundary decision visible after completion without changing frontend merge behavior or replaying tool/trace presentation blocks.

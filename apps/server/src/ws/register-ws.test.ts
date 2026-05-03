@@ -4061,6 +4061,27 @@ describe('register-ws', () => {
 				'presentation.blocks',
 				'run.finished',
 			]);
+			const finalPresentationMessage = resumedMessages
+				.filter(
+					(
+						message,
+					): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+						message.type === 'presentation.blocks',
+				)
+				.at(-1);
+
+			if (!finalPresentationMessage) {
+				throw new Error('Expected final presentation blocks after approval auto-continue.');
+			}
+
+			expect(
+				finalPresentationMessage.payload.blocks.some(
+					(block) =>
+						block.type === 'approval_block' &&
+						block.payload.approval_id === pendingApprovalBlock.payload.approval_id &&
+						block.payload.status === 'approved',
+				),
+			).toBe(true);
 			expect(persistRunState.mock.calls).toEqual([
 				[
 					expect.objectContaining({
