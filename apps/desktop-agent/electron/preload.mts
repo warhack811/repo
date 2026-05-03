@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('runaDesktop', {
 	// Shell state
 	getViewModel: () => ipcRenderer.invoke('shell:getViewModel'),
 	invokeAction: (payload: unknown) => ipcRenderer.invoke('shell:invokeAction', payload),
+	getSettings: () => ipcRenderer.invoke('settings:get'),
+	updateSettings: (payload: unknown) => ipcRenderer.invoke('settings:update', payload),
 	getShellState: () => ipcRenderer.invoke('shell:getState'),
 	connect: () => ipcRenderer.invoke('shell:connect'),
 	disconnect: () => ipcRenderer.invoke('shell:disconnect'),

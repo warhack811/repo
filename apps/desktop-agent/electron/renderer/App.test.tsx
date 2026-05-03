@@ -77,6 +77,11 @@ describe('Desktop renderer App', () => {
 			connect: async () => undefined,
 			disconnect: async () => undefined,
 			getAgentStatus: async () => undefined,
+			getSettings: async () => ({
+				autoStart: true,
+				openWindowOnStart: false,
+				telemetryOptIn: false,
+			}),
 			getShellState: async () => undefined,
 			getViewModel: async () => createAwaitingSessionViewModel(),
 			invokeAction: async () => createConnectedViewModel(),
@@ -92,6 +97,11 @@ describe('Desktop renderer App', () => {
 				submittedPayloads.push(payload);
 				return createConnectedViewModel();
 			},
+			updateSettings: async (payload) => ({
+				autoStart: payload.autoStart ?? true,
+				openWindowOnStart: payload.openWindowOnStart ?? false,
+				telemetryOptIn: payload.telemetryOptIn ?? false,
+			}),
 			versions: {
 				chrome: '130.0.0',
 				electron: '38.0.0',

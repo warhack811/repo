@@ -12,6 +12,7 @@ import type { DesktopAgentWindowActionEvent, DesktopAgentWindowHost } from './wi
 import { normalizeDesktopAgentSessionInputPayload } from './auth.js';
 import { renderDesktopAgentLaunchDocument } from './launch-html.js';
 import { createDesktopAgentLaunchSurface } from './launch-surface.js';
+import { maskDesktopPairingCode } from './protocol-handler.js';
 import { createNoopDesktopAgentWindowHost } from './window-host.js';
 
 export type DesktopAgentLaunchControllerStatus =
@@ -36,6 +37,7 @@ export interface DesktopAgentLaunchControllerViewModel extends DesktopAgentLaunc
 export interface DesktopAgentLaunchController {
 	getSnapshot(): DesktopAgentLaunchControllerSnapshot;
 	getViewModel(): DesktopAgentLaunchControllerViewModel;
+	handlePairingCode(code: string): Promise<DesktopAgentLaunchControllerSnapshot>;
 	invokeAction(
 		actionId: DesktopAgentLaunchControllerViewModel['primary_action']['id'],
 	): Promise<DesktopAgentLaunchControllerSnapshot>;
@@ -47,10 +49,19 @@ export interface DesktopAgentLaunchController {
 	): Promise<DesktopAgentLaunchControllerSnapshot>;
 }
 
+export interface DesktopAgentLaunchControllerLogger {
+	warn(message: string): void;
+}
+
 export interface DesktopAgentLaunchControllerOptions extends DesktopAgentLaunchSurfaceOptions {
 	readonly host?: DesktopAgentWindowHost;
 	readonly launch_surface?: DesktopAgentLaunchSurface;
+	readonly logger?: DesktopAgentLaunchControllerLogger;
 }
+
+const noopLaunchControllerLogger: DesktopAgentLaunchControllerLogger = {
+	warn: () => {},
+};
 
 function cloneControllerSnapshot(
 	snapshot: DesktopAgentLaunchControllerSnapshot,
@@ -197,6 +208,7 @@ function projectControllerViewModel(
 class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 	readonly #host: DesktopAgentWindowHost;
 	readonly #launchSurface: DesktopAgentLaunchSurface;
+	readonly #logger: DesktopAgentLaunchControllerLogger;
 	#awaitingSessionInput = false;
 	#mounted = false;
 	#started = false;
@@ -205,10 +217,12 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 	#sessionInputMessage: string | null = null;
 	#snapshot: DesktopAgentLaunchControllerSnapshot;
 	#surfaceUnsubscribe: (() => void) | null = null;
+	#pendingPairingCode: string | null = null;
 	#viewModel: DesktopAgentLaunchControllerViewModel;
 
 	constructor(options: DesktopAgentLaunchControllerOptions) {
 		this.#host = options.host ?? createNoopDesktopAgentWindowHost();
+		this.#logger = options.logger ?? noopLaunchControllerLogger;
 		this.#launchSurface =
 			options.launch_surface ??
 			createDesktopAgentLaunchSurface({
@@ -238,6 +252,17 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 
 	getViewModel(): DesktopAgentLaunchControllerViewModel {
 		return cloneControllerViewModel(this.#viewModel);
+	}
+
+	async handlePairingCode(code: string): Promise<DesktopAgentLaunchControllerSnapshot> {
+		this.#pendingPairingCode = code;
+		this.#awaitingSessionInput = true;
+		this.#sessionInputMessage = `Pairing code received, exchanging ${maskDesktopPairingCode(
+			code,
+		)}.`;
+		this.#syncFromSurface();
+		await this.#render('update');
+		return this.getSnapshot();
 	}
 
 	async invokeAction(
@@ -393,6 +418,15 @@ class DesktopAgentLaunchControllerImpl implements DesktopAgentLaunchController {
 
 	async #handleSessionSubmit(payload: DesktopAgentSessionInputPayload): Promise<void> {
 		this.#awaitingSessionInput = true;
+
+		if (this.#pendingPairingCode) {
+			// TODO(Task #3): exchange the pairing code for a desktop session via the auth API.
+			this.#logger.warn('Desktop pairing code exchange is not implemented yet.');
+			this.#sessionInputMessage = 'Pairing code exchange is not available in this build yet.';
+			this.#syncFromSurface();
+			await this.#render('update');
+			return;
+		}
 
 		let normalizedSession: DesktopAgentPersistedSession;
 

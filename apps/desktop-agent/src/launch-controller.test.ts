@@ -199,4 +199,25 @@ describe('DesktopAgentLaunchController', () => {
 		expect(host.statuses).toContain('connecting');
 		expect(host.statuses).toContain('connected');
 	});
+
+	it('accepts a masked pairing code without logging the raw code in the view model', async () => {
+		const host = new CapturingWindowHost();
+		const controller = createDesktopAgentLaunchController({
+			agent_id: 'agent-1',
+			host,
+			launch_surface: new FakeLaunchSurface({
+				agent_id: 'agent-1',
+				machine_label: 'Test PC',
+				session_present: false,
+				status: 'needs_sign_in',
+			}),
+			server_url: 'ws://127.0.0.1:3000/ws/desktop-agent',
+		});
+
+		await controller.handlePairingCode('ABCD1234SECRET');
+
+		expect(controller.getSnapshot().status).toBe('awaiting_session_input');
+		expect(controller.getViewModel().message).toContain('ABCD...');
+		expect(controller.getViewModel().message).not.toContain('SECRET');
+	});
 });

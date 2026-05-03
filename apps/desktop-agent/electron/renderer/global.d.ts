@@ -2,6 +2,7 @@
  * Global type declarations for Runa Desktop Agent renderer.
  */
 
+import type { DesktopAgentSettingsStoreState } from '@runa/types';
 import type {
 	DesktopAgentLaunchControllerViewModel,
 	DesktopAgentSessionInputPayload,
@@ -21,10 +22,14 @@ interface RunaDesktopAPI {
 
 	getAgentStatus(): Promise<unknown>;
 	getShellState(): Promise<unknown>;
+	getSettings(): Promise<DesktopAgentSettingsStoreState>;
 	getViewModel(): Promise<DesktopAgentLaunchControllerViewModel>;
 	invokeAction(
 		payload: RunaDesktopShellInvokeActionPayload,
 	): Promise<DesktopAgentLaunchControllerViewModel>;
+	updateSettings(
+		payload: Partial<DesktopAgentSettingsStoreState>,
+	): Promise<DesktopAgentSettingsStoreState>;
 
 	connect(): Promise<unknown>;
 	disconnect(): Promise<unknown>;

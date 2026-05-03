@@ -16,6 +16,8 @@ import_electron.contextBridge.exposeInMainWorld("runaDesktop", {
   // Shell state
   getViewModel: () => import_electron.ipcRenderer.invoke("shell:getViewModel"),
   invokeAction: (payload) => import_electron.ipcRenderer.invoke("shell:invokeAction", payload),
+  getSettings: () => import_electron.ipcRenderer.invoke("settings:get"),
+  updateSettings: (payload) => import_electron.ipcRenderer.invoke("settings:update", payload),
   getShellState: () => import_electron.ipcRenderer.invoke("shell:getState"),
   connect: () => import_electron.ipcRenderer.invoke("shell:connect"),
   disconnect: () => import_electron.ipcRenderer.invoke("shell:disconnect"),

@@ -2,8 +2,8 @@
 
 // electron/main.ts
 var import_node_fs = require("node:fs");
-var import_promises3 = require("node:fs/promises");
-var import_node_path3 = require("node:path");
+var import_promises4 = require("node:fs/promises");
+var import_node_path4 = require("node:path");
 var import_electron = require("electron");
 
 // src/auth.ts
@@ -2304,6 +2304,41 @@ function createDesktopAgentLaunchSurface(options) {
   return new DesktopAgentLaunchSurfaceImpl(options);
 }
 
+// src/protocol-handler.ts
+var PAIRING_CODE_PATTERN = /^[A-Z0-9_-]{6,128}$/u;
+function parseDesktopPairingCodeUrl(input) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(input);
+  } catch {
+    return null;
+  }
+  if (parsedUrl.protocol !== "runa:" || parsedUrl.hostname !== "desktop-pair") {
+    return null;
+  }
+  const code = parsedUrl.searchParams.get("code")?.trim();
+  if (!code || !PAIRING_CODE_PATTERN.test(code)) {
+    return null;
+  }
+  return { code };
+}
+function findDesktopPairingCodeInArgv(argv) {
+  for (const argument of argv) {
+    const payload = parseDesktopPairingCodeUrl(argument);
+    if (payload) {
+      return payload;
+    }
+  }
+  return null;
+}
+function maskDesktopPairingCode(code) {
+  const normalizedCode = code.trim();
+  if (normalizedCode.length <= 4) {
+    return "****";
+  }
+  return `${normalizedCode.slice(0, 4)}...`;
+}
+
 // src/window-host.ts
 var NoopDesktopAgentWindowHost = class {
   #document = null;
@@ -2327,6 +2362,10 @@ function createNoopDesktopAgentWindowHost() {
 }
 
 // src/launch-controller.ts
+var noopLaunchControllerLogger = {
+  warn: () => {
+  }
+};
 function cloneControllerSnapshot(snapshot) {
   return {
     ...snapshot
@@ -2440,6 +2479,7 @@ function projectControllerViewModel(snapshot, viewModel, awaitingSessionInput, a
 var DesktopAgentLaunchControllerImpl = class {
   #host;
   #launchSurface;
+  #logger;
   #awaitingSessionInput = false;
   #mounted = false;
   #started = false;
@@ -2448,9 +2488,11 @@ var DesktopAgentLaunchControllerImpl = class {
   #sessionInputMessage = null;
   #snapshot;
   #surfaceUnsubscribe = null;
+  #pendingPairingCode = null;
   #viewModel;
   constructor(options) {
     this.#host = options.host ?? createNoopDesktopAgentWindowHost();
+    this.#logger = options.logger ?? noopLaunchControllerLogger;
     this.#launchSurface = options.launch_surface ?? createDesktopAgentLaunchSurface({
       agent_id: options.agent_id,
       auth_fetch: options.auth_fetch,
@@ -2476,6 +2518,16 @@ var DesktopAgentLaunchControllerImpl = class {
   }
   getViewModel() {
     return cloneControllerViewModel(this.#viewModel);
+  }
+  async handlePairingCode(code) {
+    this.#pendingPairingCode = code;
+    this.#awaitingSessionInput = true;
+    this.#sessionInputMessage = `Pairing code received, exchanging ${maskDesktopPairingCode(
+      code
+    )}.`;
+    this.#syncFromSurface();
+    await this.#render("update");
+    return this.getSnapshot();
   }
   async invokeAction(actionId) {
     if (actionId === "submit_session") {
@@ -2603,6 +2655,13 @@ var DesktopAgentLaunchControllerImpl = class {
   }
   async #handleSessionSubmit(payload) {
     this.#awaitingSessionInput = true;
+    if (this.#pendingPairingCode) {
+      this.#logger.warn("Desktop pairing code exchange is not implemented yet.");
+      this.#sessionInputMessage = "Pairing code exchange is not available in this build yet.";
+      this.#syncFromSurface();
+      await this.#render("update");
+      return;
+    }
     let normalizedSession;
     try {
       normalizedSession = normalizeDesktopAgentSessionInputPayload(payload);
@@ -2840,6 +2899,82 @@ function isAllowedExternalUrl(url, policy = readAllowedExternalUrlPolicy()) {
   return policy.allowed_domains.some((domain) => matchesAllowedDomain(parsedUrl.hostname, domain));
 }
 
+// src/settings-store.ts
+var import_promises3 = require("node:fs/promises");
+var import_node_path3 = require("node:path");
+var defaultDesktopAgentSettings = {
+  autoStart: true,
+  openWindowOnStart: false,
+  telemetryOptIn: false
+};
+function isNodeErrorWithCode2(error, code) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === code;
+}
+function isRecord5(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function normalizeSettings(value) {
+  if (!isRecord5(value)) {
+    return defaultDesktopAgentSettings;
+  }
+  return {
+    autoStart: typeof value["autoStart"] === "boolean" ? value["autoStart"] : defaultDesktopAgentSettings.autoStart,
+    openWindowOnStart: typeof value["openWindowOnStart"] === "boolean" ? value["openWindowOnStart"] : defaultDesktopAgentSettings.openWindowOnStart,
+    telemetryOptIn: typeof value["telemetryOptIn"] === "boolean" ? value["telemetryOptIn"] : defaultDesktopAgentSettings.telemetryOptIn
+  };
+}
+async function atomicWriteJson(filePath, settings) {
+  const temporaryPath = `${filePath}.${process.pid}.tmp`;
+  await (0, import_promises3.mkdir)((0, import_node_path3.dirname)(filePath), { recursive: true });
+  await (0, import_promises3.writeFile)(temporaryPath, JSON.stringify(settings, null, 2), "utf8");
+  await (0, import_promises3.rename)(temporaryPath, filePath);
+}
+var FileDesktopAgentSettingsStore = class {
+  #filePath;
+  #settings = null;
+  constructor(userDataDirectory) {
+    this.#filePath = (0, import_node_path3.join)(userDataDirectory, "settings.json");
+  }
+  async load() {
+    if (this.#settings) {
+      return { ...this.#settings };
+    }
+    let rawValue;
+    try {
+      rawValue = await (0, import_promises3.readFile)(this.#filePath, "utf8");
+    } catch (error) {
+      if (isNodeErrorWithCode2(error, "ENOENT")) {
+        this.#settings = defaultDesktopAgentSettings;
+        return { ...this.#settings };
+      }
+      throw error;
+    }
+    try {
+      this.#settings = normalizeSettings(JSON.parse(rawValue));
+    } catch {
+      this.#settings = defaultDesktopAgentSettings;
+    }
+    return { ...this.#settings };
+  }
+  async update(patch) {
+    const currentSettings2 = await this.load();
+    const nextSettings = normalizeSettings({
+      ...currentSettings2,
+      ...patch
+    });
+    await atomicWriteJson(this.#filePath, nextSettings);
+    this.#settings = nextSettings;
+    return { ...nextSettings };
+  }
+  async clear() {
+    this.#settings = null;
+    await (0, import_promises3.rm)(this.#filePath, { force: true });
+  }
+};
+function createFileDesktopAgentSettingsStore(userDataDirectory) {
+  return new FileDesktopAgentSettingsStore(userDataDirectory);
+}
+
 // electron/main.ts
 var tray = null;
 var mainWindow = null;
@@ -2847,7 +2982,14 @@ var isQuitting = false;
 var controller = null;
 var configurationErrorMessage = null;
 var insecureStorageWarning = false;
+var gotSingleInstanceLock = import_electron.app.requestSingleInstanceLock();
 var allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
+var startHidden = process.argv.includes("--hidden");
+var currentSettings = {
+  autoStart: true,
+  openWindowOnStart: false,
+  telemetryOptIn: false
+};
 function logBoot(message, data) {
   const payload = data === void 0 ? "" : ` ${JSON.stringify(data)}`;
   console.log(`[boot:${message}]${payload}`);
@@ -2861,6 +3003,7 @@ var userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.tr
 if (userDataDirectoryOverride) {
   import_electron.app.setPath("userData", userDataDirectoryOverride);
 }
+var settingsStore = createFileDesktopAgentSettingsStore(import_electron.app.getPath("userData"));
 import_electron.protocol.registerSchemesAsPrivileged([
   {
     privileges: {
@@ -2872,10 +3015,10 @@ import_electron.protocol.registerSchemesAsPrivileged([
   }
 ]);
 function getAppDir() {
-  return (0, import_node_path3.dirname)(__filename);
+  return (0, import_node_path4.dirname)(__filename);
 }
 function resolvePackagedPath(...segments) {
-  return (0, import_node_path3.join)(getAppDir(), ...segments);
+  return (0, import_node_path4.join)(getAppDir(), ...segments);
 }
 function createFallbackViewModel() {
   return {
@@ -2931,21 +3074,48 @@ function projectViewModelToLegacyShellState(viewModel) {
       };
   }
 }
-function isRecord5(value) {
+function isRecord6(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isDesktopAgentSessionInputPayload(value) {
-  if (!isRecord5(value)) {
+  if (!isRecord6(value)) {
     return false;
   }
   const expiresAt = value.expires_at;
   return typeof value.access_token === "string" && typeof value.refresh_token === "string" && (expiresAt === void 0 || typeof expiresAt === "number") && (value.token_type === void 0 || typeof value.token_type === "string");
 }
 function isShellInvokeActionPayload(value) {
-  if (!isRecord5(value)) {
+  if (!isRecord6(value)) {
     return false;
   }
   return value.actionId === "connect" || value.actionId === "connecting" || value.actionId === "retry" || value.actionId === "sign_in" || value.actionId === "sign_out";
+}
+function isSettingsPatch(value) {
+  if (!isRecord6(value)) {
+    return false;
+  }
+  return (value["autoStart"] === void 0 || typeof value["autoStart"] === "boolean") && (value["openWindowOnStart"] === void 0 || typeof value["openWindowOnStart"] === "boolean") && (value["telemetryOptIn"] === void 0 || typeof value["telemetryOptIn"] === "boolean");
+}
+function applyLoginItemSettings(settings) {
+  import_electron.app.setLoginItemSettings({
+    args: ["--hidden"],
+    openAsHidden: !settings.openWindowOnStart,
+    openAtLogin: settings.autoStart
+  });
+}
+async function updateSettings(patch) {
+  currentSettings = await settingsStore.update(patch);
+  applyLoginItemSettings(currentSettings);
+  createTrayMenu();
+  return currentSettings;
+}
+async function handleDeepLinkArgv(argv) {
+  const payload = findDesktopPairingCodeInArgv(argv);
+  if (!payload || !controller) {
+    return;
+  }
+  showMainWindow();
+  await controller.handlePairingCode(payload.code);
 }
 function resolveRendererAssetPath(requestUrl) {
   let parsedUrl;
@@ -2979,7 +3149,7 @@ function registerRendererProtocol() {
       return new Response("Not found", { status: 404 });
     }
     try {
-      const body = await (0, import_promises3.readFile)(assetPath);
+      const body = await (0, import_promises4.readFile)(assetPath);
       return new Response(body, {
         headers: {
           "content-type": resolveRendererAssetContentType(assetPath)
@@ -3038,6 +3208,7 @@ function createControllerFromEnvironment() {
         mainWindow,
         tray
       }),
+      logger: bootLogger,
       session_storage: sessionStorageSelection.storage
     });
     configurationErrorMessage = null;
@@ -3058,6 +3229,12 @@ function createTray() {
   const iconPath = resolvePackagedPath("../build/icon.png");
   const trayIcon = (0, import_node_fs.existsSync)(iconPath) ? import_electron.nativeImage.createFromPath(iconPath) : import_electron.nativeImage.createEmpty();
   tray = new import_electron.Tray(trayIcon.isEmpty() ? import_electron.nativeImage.createEmpty() : trayIcon);
+  createTrayMenu();
+}
+function createTrayMenu() {
+  if (!tray) {
+    return;
+  }
   tray.setContextMenu(
     import_electron.Menu.buildFromTemplate([
       {
@@ -3083,6 +3260,17 @@ function createTray() {
           void signOutController();
         },
         label: "Sign out"
+      },
+      { type: "separator" },
+      {
+        checked: currentSettings.autoStart,
+        click: () => {
+          void updateSettings({
+            autoStart: !currentSettings.autoStart
+          });
+        },
+        label: "Start with Windows",
+        type: "checkbox"
       },
       { type: "separator" },
       {
@@ -3119,7 +3307,9 @@ function createMainWindow() {
   mainWindow.loadURL("runa-desktop://app/index.html");
   mainWindow.once("ready-to-show", () => {
     logBoot("window:ready-to-show");
-    mainWindow?.show();
+    if (!startHidden) {
+      mainWindow?.show();
+    }
     mainWindow?.webContents.send("shell:viewModel", getViewModel());
     mainWindow?.webContents.send(
       "shell:stateChanged",
@@ -3156,6 +3346,13 @@ function registerIpcHandlers() {
     "session:submit",
     async (_event, payload) => await submitSession(payload)
   );
+  import_electron.ipcMain.handle("settings:get", () => currentSettings);
+  import_electron.ipcMain.handle("settings:update", async (_event, payload) => {
+    if (!isSettingsPatch(payload)) {
+      return currentSettings;
+    }
+    return await updateSettings(payload);
+  });
   import_electron.ipcMain.handle("agent:getStatus", () => projectViewModelToLegacyShellState(getViewModel()));
   import_electron.ipcMain.handle("shell:getState", () => projectViewModelToLegacyShellState(getViewModel()));
   import_electron.ipcMain.handle("shell:connect", async () => await invokeControllerAction("connect"));
@@ -3166,28 +3363,44 @@ function registerIpcHandlers() {
   );
   import_electron.ipcMain.handle("session:signOut", async () => await signOutController());
 }
-import_electron.app.whenReady().then(async () => {
-  logBoot("app-ready");
-  import_electron.session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
-    callback(false);
-  });
-  import_electron.session.defaultSession.setPermissionCheckHandler(() => false);
-  logBoot("electron-version", {
-    electron_version: process.versions.electron
-  });
-  registerRendererProtocol();
-  registerIpcHandlers();
-  createTray();
-  createMainWindow();
-  createControllerFromEnvironment();
-  await controller?.start();
-  logBoot("main-process:boot-complete");
-}).catch((error) => {
-  logBoot("main-process:boot-error", {
-    error: error instanceof Error ? error.message : String(error)
-  });
+if (!gotSingleInstanceLock) {
   import_electron.app.quit();
-});
+} else {
+  import_electron.app.on("second-instance", (_event, argv) => {
+    showMainWindow();
+    void handleDeepLinkArgv(argv);
+  });
+  import_electron.app.on("open-url", (event, url) => {
+    event.preventDefault();
+    void handleDeepLinkArgv([url]);
+  });
+  import_electron.app.whenReady().then(async () => {
+    logBoot("app-ready");
+    currentSettings = await settingsStore.load();
+    applyLoginItemSettings(currentSettings);
+    import_electron.app.setAsDefaultProtocolClient("runa");
+    import_electron.session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+      callback(false);
+    });
+    import_electron.session.defaultSession.setPermissionCheckHandler(() => false);
+    logBoot("electron-version", {
+      electron_version: process.versions.electron
+    });
+    registerRendererProtocol();
+    registerIpcHandlers();
+    createTray();
+    createMainWindow();
+    createControllerFromEnvironment();
+    await handleDeepLinkArgv(process.argv);
+    await controller?.start();
+    logBoot("main-process:boot-complete");
+  }).catch((error) => {
+    logBoot("main-process:boot-error", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    import_electron.app.quit();
+  });
+}
 import_electron.app.on("window-all-closed", () => {
   logBoot("window-all-closed");
 });

@@ -14,3 +14,13 @@ export interface DesktopDevicePresenceSnapshot {
 export interface DesktopDevicePresenceListResponse {
 	readonly devices: readonly DesktopDevicePresenceSnapshot[];
 }
+
+export interface DesktopAgentSettingsStoreState {
+	readonly autoStart: boolean;
+	readonly openWindowOnStart: boolean;
+	readonly telemetryOptIn: boolean;
+}
+
+export interface DesktopAgentPairingCodePayload {
+	readonly code: string;
+}

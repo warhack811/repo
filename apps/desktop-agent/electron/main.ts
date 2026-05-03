@@ -14,6 +14,8 @@ import {
 	session,
 } from 'electron';
 
+import type { DesktopAgentSettingsStoreState } from '@runa/types';
+
 import {
 	type DesktopAgentLaunchController,
 	type DesktopAgentLaunchControllerViewModel,
@@ -21,7 +23,9 @@ import {
 	createDesktopAgentLaunchController,
 	createDesktopAgentSessionStorageForSafeStorage,
 	createElectronDesktopAgentWindowHost,
+	createFileDesktopAgentSettingsStore,
 	createNodeWebSocket,
+	findDesktopPairingCodeInArgv,
 	isAllowedExternalUrl,
 	readAllowedExternalUrlPolicy,
 	readDesktopAgentBootstrapConfigFromEnvironment,
@@ -45,7 +49,14 @@ let isQuitting = false;
 let controller: DesktopAgentLaunchController | null = null;
 let configurationErrorMessage: string | null = null;
 let insecureStorageWarning = false;
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
 const allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
+const startHidden = process.argv.includes('--hidden');
+let currentSettings: DesktopAgentSettingsStoreState = {
+	autoStart: true,
+	openWindowOnStart: false,
+	telemetryOptIn: false,
+};
 
 function logBoot(message: string, data?: unknown): void {
 	const payload = data === undefined ? '' : ` ${JSON.stringify(data)}`;
@@ -62,6 +73,8 @@ const userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.
 if (userDataDirectoryOverride) {
 	app.setPath('userData', userDataDirectoryOverride);
 }
+
+const settingsStore = createFileDesktopAgentSettingsStore(app.getPath('userData'));
 
 protocol.registerSchemesAsPrivileged([
 	{
@@ -174,6 +187,46 @@ function isShellInvokeActionPayload(value: unknown): value is ShellInvokeActionP
 		value.actionId === 'sign_in' ||
 		value.actionId === 'sign_out'
 	);
+}
+
+function isSettingsPatch(value: unknown): value is Partial<DesktopAgentSettingsStoreState> {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	return (
+		(value['autoStart'] === undefined || typeof value['autoStart'] === 'boolean') &&
+		(value['openWindowOnStart'] === undefined || typeof value['openWindowOnStart'] === 'boolean') &&
+		(value['telemetryOptIn'] === undefined || typeof value['telemetryOptIn'] === 'boolean')
+	);
+}
+
+function applyLoginItemSettings(settings: DesktopAgentSettingsStoreState): void {
+	app.setLoginItemSettings({
+		args: ['--hidden'],
+		openAsHidden: !settings.openWindowOnStart,
+		openAtLogin: settings.autoStart,
+	});
+}
+
+async function updateSettings(
+	patch: Partial<DesktopAgentSettingsStoreState>,
+): Promise<DesktopAgentSettingsStoreState> {
+	currentSettings = await settingsStore.update(patch);
+	applyLoginItemSettings(currentSettings);
+	createTrayMenu();
+	return currentSettings;
+}
+
+async function handleDeepLinkArgv(argv: readonly string[]): Promise<void> {
+	const payload = findDesktopPairingCodeInArgv(argv);
+
+	if (!payload || !controller) {
+		return;
+	}
+
+	showMainWindow();
+	await controller.handlePairingCode(payload.code);
 }
 
 function resolveRendererAssetPath(requestUrl: string): string | null {
@@ -290,6 +343,7 @@ function createControllerFromEnvironment(): void {
 				mainWindow,
 				tray,
 			}),
+			logger: bootLogger,
 			session_storage: sessionStorageSelection.storage,
 		});
 		configurationErrorMessage = null;
@@ -315,6 +369,14 @@ function createTray(): void {
 		: nativeImage.createEmpty();
 
 	tray = new Tray(trayIcon.isEmpty() ? nativeImage.createEmpty() : trayIcon);
+	createTrayMenu();
+}
+
+function createTrayMenu(): void {
+	if (!tray) {
+		return;
+	}
+
 	tray.setContextMenu(
 		Menu.buildFromTemplate([
 			{
@@ -340,6 +402,17 @@ function createTray(): void {
 					void signOutController();
 				},
 				label: 'Sign out',
+			},
+			{ type: 'separator' },
+			{
+				checked: currentSettings.autoStart,
+				click: () => {
+					void updateSettings({
+						autoStart: !currentSettings.autoStart,
+					});
+				},
+				label: 'Start with Windows',
+				type: 'checkbox',
 			},
 			{ type: 'separator' },
 			{
@@ -379,7 +452,9 @@ function createMainWindow(): void {
 	mainWindow.loadURL('runa-desktop://app/index.html');
 	mainWindow.once('ready-to-show', () => {
 		logBoot('window:ready-to-show');
-		mainWindow?.show();
+		if (!startHidden) {
+			mainWindow?.show();
+		}
 		mainWindow?.webContents.send('shell:viewModel', getViewModel());
 		mainWindow?.webContents.send(
 			'shell:stateChanged',
@@ -420,6 +495,14 @@ function registerIpcHandlers(): void {
 		'session:submit',
 		async (_event, payload: unknown) => await submitSession(payload),
 	);
+	ipcMain.handle('settings:get', () => currentSettings);
+	ipcMain.handle('settings:update', async (_event, payload: unknown) => {
+		if (!isSettingsPatch(payload)) {
+			return currentSettings;
+		}
+
+		return await updateSettings(payload);
+	});
 
 	// Deprecated compatibility adapter. Remove in desktop IPC v2.
 	ipcMain.handle('agent:getStatus', () => projectViewModelToLegacyShellState(getViewModel()));
@@ -438,31 +521,49 @@ function registerIpcHandlers(): void {
 	ipcMain.handle('session:signOut', async () => await signOutController());
 }
 
-app
-	.whenReady()
-	.then(async () => {
-		logBoot('app-ready');
-		session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
-			callback(false);
-		});
-		session.defaultSession.setPermissionCheckHandler(() => false);
-		logBoot('electron-version', {
-			electron_version: process.versions.electron,
-		});
-		registerRendererProtocol();
-		registerIpcHandlers();
-		createTray();
-		createMainWindow();
-		createControllerFromEnvironment();
-		await controller?.start();
-		logBoot('main-process:boot-complete');
-	})
-	.catch((error: unknown) => {
-		logBoot('main-process:boot-error', {
-			error: error instanceof Error ? error.message : String(error),
-		});
-		app.quit();
+if (!gotSingleInstanceLock) {
+	app.quit();
+} else {
+	app.on('second-instance', (_event, argv) => {
+		showMainWindow();
+		void handleDeepLinkArgv(argv);
 	});
+
+	app.on('open-url', (event, url) => {
+		event.preventDefault();
+		void handleDeepLinkArgv([url]);
+	});
+
+	app
+		.whenReady()
+		.then(async () => {
+			logBoot('app-ready');
+			currentSettings = await settingsStore.load();
+			applyLoginItemSettings(currentSettings);
+			app.setAsDefaultProtocolClient('runa');
+			session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+				callback(false);
+			});
+			session.defaultSession.setPermissionCheckHandler(() => false);
+			logBoot('electron-version', {
+				electron_version: process.versions.electron,
+			});
+			registerRendererProtocol();
+			registerIpcHandlers();
+			createTray();
+			createMainWindow();
+			createControllerFromEnvironment();
+			await handleDeepLinkArgv(process.argv);
+			await controller?.start();
+			logBoot('main-process:boot-complete');
+		})
+		.catch((error: unknown) => {
+			logBoot('main-process:boot-error', {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			app.quit();
+		});
+}
 
 app.on('window-all-closed', () => {
 	logBoot('window-all-closed');
