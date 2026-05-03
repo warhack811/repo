@@ -4074,14 +4074,14 @@ describe('register-ws', () => {
 				throw new Error('Expected final presentation blocks after approval auto-continue.');
 			}
 
-			expect(
-				finalPresentationMessage.payload.blocks.some(
-					(block) =>
-						block.type === 'approval_block' &&
-						block.payload.approval_id === pendingApprovalBlock.payload.approval_id &&
-						block.payload.status === 'approved',
-				),
-			).toBe(true);
+			const finalApprovalBlock = finalPresentationMessage.payload.blocks.find(
+				(block): block is Extract<RenderBlock, { type: 'approval_block' }> =>
+					block.type === 'approval_block' &&
+					block.payload.approval_id === pendingApprovalBlock.payload.approval_id,
+			);
+
+			expect(finalApprovalBlock?.payload.status).toBe('approved');
+			expect(finalApprovalBlock?.payload.tool_name).toBeUndefined();
 			expect(persistRunState.mock.calls).toEqual([
 				[
 					expect.objectContaining({

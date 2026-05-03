@@ -38,4 +38,4 @@ Fix: restricted the function to terminal-failure kinds only. Success paths now k
 
 Follow-up CI evidence showed the same e2e failures after that mapping fix. The downloaded Playwright artifact showed the approved run completed successfully and wrote the proof file, but the final presentation snapshot replaced the standalone approved approval block before the tests could observe `Onaylandı` / `Kabul edildi`.
 
-Second fix: carry resolved approval blocks into the auto-continue final presentation snapshot. This keeps the trust-boundary decision visible after completion without changing frontend merge behavior or replaying tool/trace presentation blocks.
+Second fix: carry sanitized resolved approval blocks into final presentation snapshots for both approved auto-continue and rejected auto-continue paths. This keeps the trust-boundary decision visible after completion without changing frontend merge behavior or replaying tool/trace presentation blocks, while omitting raw tool names from the final user-facing block.

@@ -70,6 +70,37 @@ function createApprovalRejectedErrorMessage(
 		: `Approval rejected${targetLabel}.`;
 }
 
+function isApprovalBlock(
+	block: RenderBlock,
+): block is Extract<RenderBlock, { type: 'approval_block' }> {
+	return block.type === 'approval_block';
+}
+
+function createRetainedResolvedApprovalBlocks(
+	blocks: readonly RenderBlock[],
+): readonly Extract<RenderBlock, { type: 'approval_block' }>[] {
+	const internalTargetLabels = new Set(['desktop.screenshot', 'file.read', 'file.write']);
+
+	return blocks.filter(isApprovalBlock).map((block) => {
+		const {
+			call_id: _callId,
+			target_label: targetLabel,
+			tool_name: _toolName,
+			...payload
+		} = block.payload;
+
+		return {
+			...block,
+			payload: {
+				...payload,
+				...(targetLabel && !internalTargetLabels.has(targetLabel)
+					? { target_label: targetLabel }
+					: {}),
+			},
+		};
+	});
+}
+
 async function finalizeRejectedApprovalRun(
 	socket: WebSocketConnection,
 	pendingApprovalEntry: PendingApprovalEntry,
@@ -80,6 +111,7 @@ async function finalizeRejectedApprovalRun(
 	options: RuntimeWebSocketHandlerOptions & {
 		readonly approvalStore: ApprovalStore;
 	},
+	retainedApprovalBlocks: readonly RenderBlock[] = [],
 ): Promise<void> {
 	const errorMessage = createApprovalRejectedErrorMessage({
 		note: resolvedApprovalResult.approval_resolution.decision.note,
@@ -139,6 +171,7 @@ async function finalizeRejectedApprovalRun(
 			{
 				conversation_id: pendingApprovalEntry.auto_continue_context.payload.conversation_id,
 				persist_live_memory_write: false,
+				retained_presentation_blocks: retainedApprovalBlocks,
 				working_directory: pendingApprovalEntry.auto_continue_context.working_directory,
 			},
 		);
@@ -363,17 +396,18 @@ export async function handleApprovalResolveMessage(
 		}),
 	);
 
+	const retainedApprovalBlocks = createRetainedResolvedApprovalBlocks(blocks);
+
 	if (resolvedApprovalResult.status === 'rejected') {
 		await finalizeRejectedApprovalRun(
 			socket,
 			pendingApprovalEntry,
 			resolvedApprovalResult,
 			options,
+			retainedApprovalBlocks,
 		);
 		return;
 	}
-
-	const retainedApprovalBlocks = blocks.filter((block) => block.type === 'approval_block');
 
 	if (approvalDecision.request.kind === 'auto_continue') {
 		const resumed = await resumeApprovedAutoContinue(socket, pendingApprovalEntry, options, {
