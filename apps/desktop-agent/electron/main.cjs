@@ -169,6 +169,35 @@ async function refreshDesktopAgentSession(input) {
 // src/electron-session-storage.ts
 var import_promises = require("node:fs/promises");
 var import_node_path = require("node:path");
+var noopSessionStorageLogger = {
+  warn: () => {
+  }
+};
+function isNodeErrorWithCode(error, code) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === code;
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function normalizeSessionFromUnknown(value) {
+  if (!isRecord2(value) || typeof value["access_token"] !== "string") {
+    throw new Error("Desktop agent session storage contained an invalid payload.");
+  }
+  return normalizeDesktopAgentPersistedSession({
+    access_token: value["access_token"],
+    expires_at: typeof value["expires_at"] === "number" ? value["expires_at"] : void 0,
+    expires_in: typeof value["expires_in"] === "number" ? value["expires_in"] : void 0,
+    refresh_token: typeof value["refresh_token"] === "string" ? value["refresh_token"] : void 0,
+    token_type: typeof value["token_type"] === "string" ? value["token_type"] : void 0
+  });
+}
+async function atomicWrite(filePath, body) {
+  const directory = (0, import_node_path.dirname)(filePath);
+  const temporaryPath = `${filePath}.${process.pid}.tmp`;
+  await (0, import_promises.mkdir)(directory, { recursive: true });
+  await (0, import_promises.writeFile)(temporaryPath, body);
+  await (0, import_promises.rename)(temporaryPath, filePath);
+}
 var FileDesktopAgentSessionStorage = class {
   #filePath;
   constructor(userDataDirectory) {
@@ -182,25 +211,86 @@ var FileDesktopAgentSessionStorage = class {
     try {
       rawValue = await (0, import_promises.readFile)(this.#filePath, "utf8");
     } catch (error) {
-      if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
+      if (isNodeErrorWithCode(error, "ENOENT")) {
         return null;
       }
       throw error;
     }
-    const parsedValue = JSON.parse(rawValue);
-    return normalizeDesktopAgentPersistedSession(parsedValue);
+    return normalizeSessionFromUnknown(JSON.parse(rawValue));
   }
   async save(session2) {
     const normalizedSession = normalizeDesktopAgentPersistedSession(session2);
-    const directory = (0, import_node_path.dirname)(this.#filePath);
-    const temporaryPath = `${this.#filePath}.${process.pid}.tmp`;
-    await (0, import_promises.mkdir)(directory, { recursive: true });
-    await (0, import_promises.writeFile)(temporaryPath, JSON.stringify(normalizedSession), "utf8");
-    await (0, import_promises.rename)(temporaryPath, this.#filePath);
+    await atomicWrite(this.#filePath, JSON.stringify(normalizedSession));
+  }
+};
+var EncryptedDesktopAgentSessionStorage = class {
+  #encryptedFilePath;
+  #legacyStorage;
+  #legacyFilePath;
+  #logger;
+  #safeStorage;
+  constructor(userDataDirectory, safeStorage2, logger = noopSessionStorageLogger) {
+    this.#encryptedFilePath = (0, import_node_path.join)(userDataDirectory, "desktop-session.bin");
+    this.#legacyFilePath = (0, import_node_path.join)(userDataDirectory, "desktop-session.json");
+    this.#legacyStorage = new FileDesktopAgentSessionStorage(userDataDirectory);
+    this.#logger = logger;
+    this.#safeStorage = safeStorage2;
+  }
+  async clear() {
+    await (0, import_promises.rm)(this.#encryptedFilePath, { force: true });
+    await (0, import_promises.rm)(this.#legacyFilePath, { force: true });
+  }
+  async load() {
+    let encryptedValue;
+    try {
+      encryptedValue = await (0, import_promises.readFile)(this.#encryptedFilePath);
+    } catch (error) {
+      if (isNodeErrorWithCode(error, "ENOENT")) {
+        return await this.#migrateLegacySession();
+      }
+      throw error;
+    }
+    const decryptedValue = this.#safeStorage.decryptString(encryptedValue);
+    return normalizeSessionFromUnknown(JSON.parse(decryptedValue));
+  }
+  async save(session2) {
+    const normalizedSession = normalizeDesktopAgentPersistedSession(session2);
+    const encryptedValue = this.#safeStorage.encryptString(JSON.stringify(normalizedSession));
+    await atomicWrite(this.#encryptedFilePath, encryptedValue);
+  }
+  async #migrateLegacySession() {
+    const legacySession = await this.#legacyStorage.load();
+    if (!legacySession) {
+      return null;
+    }
+    await this.save(legacySession);
+    await (0, import_promises.rm)(this.#legacyFilePath, { force: true });
+    this.#logger.warn("Migrated legacy plaintext desktop session storage.");
+    return legacySession;
   }
 };
 function createFileDesktopAgentSessionStorage(userDataDirectory) {
   return new FileDesktopAgentSessionStorage(userDataDirectory);
+}
+function createEncryptedDesktopAgentSessionStorage(userDataDirectory, safeStorage2, logger) {
+  return new EncryptedDesktopAgentSessionStorage(userDataDirectory, safeStorage2, logger);
+}
+function createDesktopAgentSessionStorageForSafeStorage(input) {
+  if (!input.safeStorage.isEncryptionAvailable()) {
+    input.logger?.warn("OS keychain unavailable; falling back to plaintext storage.");
+    return {
+      insecure_storage: true,
+      storage: createFileDesktopAgentSessionStorage(input.userDataDirectory)
+    };
+  }
+  return {
+    insecure_storage: false,
+    storage: createEncryptedDesktopAgentSessionStorage(
+      input.userDataDirectory,
+      input.safeStorage,
+      input.logger
+    )
+  };
 }
 
 // src/electron-window-host.ts
@@ -292,7 +382,8 @@ var ElectronDesktopAgentWindowHost = class {
       "shell:stateChanged",
       projectLegacyShellState(clonedViewModel)
     );
-    this.#options.tray?.setToolTip(TOOLTIP_BY_STATUS[clonedViewModel.status]);
+    const toolTip = this.#options.insecureStorageWarning ? `${TOOLTIP_BY_STATUS[clonedViewModel.status]} - insecure storage` : TOOLTIP_BY_STATUS[clonedViewModel.status];
+    this.#options.tray?.setToolTip(toolTip);
   }
 };
 function createElectronDesktopAgentWindowHost(options) {
@@ -379,38 +470,38 @@ var desktopAgentRejectCodes = [
 ];
 
 // ../../packages/types/dist/ws-guards.js
-function isRecord2(value) {
+function isRecord3(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isDesktopAgentCapabilityCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isConnectionReadyMessageCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentSessionAcceptedPayloadCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentSessionAcceptedMessageCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentExecutePayloadCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentExecuteMessageCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentHeartbeatPingPayloadCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentHeartbeatPingMessageCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentRejectedPayloadCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentRejectedMessageCandidate(value) {
-  return isRecord2(value);
+  return isRecord3(value);
 }
 function isDesktopAgentToolName(value) {
   return typeof value === "string" && desktopAgentToolNames.includes(value);
@@ -431,7 +522,7 @@ function isDesktopAgentHeartbeatPingServerMessage(value) {
   return isDesktopAgentHeartbeatPingMessageCandidate(value) && value.type === "desktop-agent.heartbeat.ping" && isDesktopAgentHeartbeatPingPayloadCandidate(value.payload) && typeof value.payload.ping_id === "string" && typeof value.payload.sent_at === "string";
 }
 function isDesktopAgentExecuteServerMessage(value) {
-  return isDesktopAgentExecuteMessageCandidate(value) && value.type === "desktop-agent.execute" && isDesktopAgentExecutePayloadCandidate(value.payload) && isRecord2(value.payload.arguments) && typeof value.payload.call_id === "string" && typeof value.payload.request_id === "string" && typeof value.payload.run_id === "string" && isDesktopAgentToolName(value.payload.tool_name) && typeof value.payload.trace_id === "string";
+  return isDesktopAgentExecuteMessageCandidate(value) && value.type === "desktop-agent.execute" && isDesktopAgentExecutePayloadCandidate(value.payload) && isRecord3(value.payload.arguments) && typeof value.payload.call_id === "string" && typeof value.payload.request_id === "string" && typeof value.payload.run_id === "string" && isDesktopAgentToolName(value.payload.tool_name) && typeof value.payload.trace_id === "string";
 }
 function isDesktopAgentRejectedServerMessage(value) {
   return isDesktopAgentRejectedMessageCandidate(value) && value.type === "desktop-agent.rejected" && isDesktopAgentRejectedPayloadCandidate(value.payload) && typeof value.payload.error_message === "string" && typeof value.payload.error_code === "string" && desktopAgentRejectCodes.includes(value.payload.error_code);
@@ -487,14 +578,14 @@ function createSuccessResult(output) {
     status: "success"
   };
 }
-function isRecord3(value) {
+function isRecord4(value) {
   return typeof value === "object" && value !== null;
 }
 function isFiniteInteger(value) {
   return typeof value === "number" && Number.isInteger(value) && Number.isFinite(value);
 }
 function extractErrorCode(error) {
-  if (isRecord3(error)) {
+  if (isRecord4(error)) {
     const candidate = error;
     if (typeof candidate.code === "number" || typeof candidate.code === "string") {
       return candidate.code;
@@ -512,7 +603,7 @@ function toText(value) {
   return "";
 }
 function extractStderr(error) {
-  if (isRecord3(error)) {
+  if (isRecord4(error)) {
     const candidate = error;
     return toText(candidate.stderr);
   }
@@ -2755,11 +2846,17 @@ var mainWindow = null;
 var isQuitting = false;
 var controller = null;
 var configurationErrorMessage = null;
+var insecureStorageWarning = false;
 var allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
 function logBoot(message, data) {
   const payload = data === void 0 ? "" : ` ${JSON.stringify(data)}`;
   console.log(`[boot:${message}]${payload}`);
 }
+var bootLogger = {
+  warn: (message) => {
+    console.warn(`[boot:warn] ${message}`);
+  }
+};
 var userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.trim();
 if (userDataDirectoryOverride) {
   import_electron.app.setPath("userData", userDataDirectoryOverride);
@@ -2834,18 +2931,18 @@ function projectViewModelToLegacyShellState(viewModel) {
       };
   }
 }
-function isRecord4(value) {
+function isRecord5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isDesktopAgentSessionInputPayload(value) {
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return false;
   }
   const expiresAt = value.expires_at;
   return typeof value.access_token === "string" && typeof value.refresh_token === "string" && (expiresAt === void 0 || typeof expiresAt === "number") && (value.token_type === void 0 || typeof value.token_type === "string");
 }
 function isShellInvokeActionPayload(value) {
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return false;
   }
   return value.actionId === "connect" || value.actionId === "connecting" || value.actionId === "retry" || value.actionId === "sign_in" || value.actionId === "sign_out";
@@ -2924,6 +3021,12 @@ async function submitSession(payload) {
 function createControllerFromEnvironment() {
   try {
     const config = readDesktopAgentBootstrapConfigFromEnvironment();
+    const sessionStorageSelection = createDesktopAgentSessionStorageForSafeStorage({
+      logger: bootLogger,
+      safeStorage: import_electron.safeStorage,
+      userDataDirectory: import_electron.app.getPath("userData")
+    });
+    insecureStorageWarning = sessionStorageSelection.insecure_storage;
     controller = createDesktopAgentLaunchController({
       ...config,
       bridge_factory: async (bridgeOptions) => await startDesktopAgentBridge({
@@ -2931,10 +3034,11 @@ function createControllerFromEnvironment() {
         web_socket_factory: createNodeWebSocket
       }),
       host: createElectronDesktopAgentWindowHost({
+        insecureStorageWarning,
         mainWindow,
         tray
       }),
-      session_storage: createFileDesktopAgentSessionStorage(import_electron.app.getPath("userData"))
+      session_storage: sessionStorageSelection.storage
     });
     configurationErrorMessage = null;
     logBoot("runtime:configured", {

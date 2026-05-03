@@ -19,6 +19,7 @@ export interface ElectronWindowHostTray {
 }
 
 export interface ElectronDesktopAgentWindowHostOptions {
+	readonly insecureStorageWarning?: boolean;
 	readonly mainWindow: ElectronWindowHostBrowserWindow | null;
 	readonly tray: ElectronWindowHostTray | null;
 }
@@ -142,7 +143,10 @@ class ElectronDesktopAgentWindowHost implements DesktopAgentWindowHost {
 			'shell:stateChanged',
 			projectLegacyShellState(clonedViewModel),
 		);
-		this.#options.tray?.setToolTip(TOOLTIP_BY_STATUS[clonedViewModel.status]);
+		const toolTip = this.#options.insecureStorageWarning
+			? `${TOOLTIP_BY_STATUS[clonedViewModel.status]} - insecure storage`
+			: TOOLTIP_BY_STATUS[clonedViewModel.status];
+		this.#options.tray?.setToolTip(toolTip);
 	}
 }
 

@@ -10,6 +10,7 @@ import {
 	ipcMain,
 	nativeImage,
 	protocol,
+	safeStorage,
 	session,
 } from 'electron';
 
@@ -18,8 +19,8 @@ import {
 	type DesktopAgentLaunchControllerViewModel,
 	type DesktopAgentSessionInputPayload,
 	createDesktopAgentLaunchController,
+	createDesktopAgentSessionStorageForSafeStorage,
 	createElectronDesktopAgentWindowHost,
-	createFileDesktopAgentSessionStorage,
 	createNodeWebSocket,
 	isAllowedExternalUrl,
 	readAllowedExternalUrlPolicy,
@@ -43,12 +44,19 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let controller: DesktopAgentLaunchController | null = null;
 let configurationErrorMessage: string | null = null;
+let insecureStorageWarning = false;
 const allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
 
 function logBoot(message: string, data?: unknown): void {
 	const payload = data === undefined ? '' : ` ${JSON.stringify(data)}`;
 	console.log(`[boot:${message}]${payload}`);
 }
+
+const bootLogger = {
+	warn: (message: string): void => {
+		console.warn(`[boot:warn] ${message}`);
+	},
+};
 
 const userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.trim();
 if (userDataDirectoryOverride) {
@@ -264,6 +272,12 @@ async function submitSession(payload: unknown): Promise<DesktopAgentLaunchContro
 function createControllerFromEnvironment(): void {
 	try {
 		const config = readDesktopAgentBootstrapConfigFromEnvironment();
+		const sessionStorageSelection = createDesktopAgentSessionStorageForSafeStorage({
+			logger: bootLogger,
+			safeStorage,
+			userDataDirectory: app.getPath('userData'),
+		});
+		insecureStorageWarning = sessionStorageSelection.insecure_storage;
 		controller = createDesktopAgentLaunchController({
 			...config,
 			bridge_factory: async (bridgeOptions) =>
@@ -272,10 +286,11 @@ function createControllerFromEnvironment(): void {
 					web_socket_factory: createNodeWebSocket,
 				}),
 			host: createElectronDesktopAgentWindowHost({
+				insecureStorageWarning,
 				mainWindow,
 				tray,
 			}),
-			session_storage: createFileDesktopAgentSessionStorage(app.getPath('userData')),
+			session_storage: sessionStorageSelection.storage,
 		});
 		configurationErrorMessage = null;
 		logBoot('runtime:configured', {
