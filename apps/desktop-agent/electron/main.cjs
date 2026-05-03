@@ -1,9 +1,2213 @@
 "use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/electron-log-preload.js
+var require_electron_log_preload = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/electron-log-preload.js"(exports2, module2) {
+    "use strict";
+    var electron = {};
+    try {
+      electron = require("electron");
+    } catch (e) {
+    }
+    if (electron.ipcRenderer) {
+      initialize(electron);
+    }
+    if (typeof module2 === "object") {
+      module2.exports = initialize;
+    }
+    function initialize({ contextBridge, ipcRenderer }) {
+      if (!ipcRenderer) {
+        return;
+      }
+      ipcRenderer.on("__ELECTRON_LOG_IPC__", (_, message) => {
+        window.postMessage({ cmd: "message", ...message });
+      });
+      ipcRenderer.invoke("__ELECTRON_LOG__", { cmd: "getOptions" }).catch((e) => console.error(new Error(
+        `electron-log isn't initialized in the main process. Please call log.initialize() before. ${e.message}`
+      )));
+      const electronLog2 = {
+        sendToMain(message) {
+          try {
+            ipcRenderer.send("__ELECTRON_LOG__", message);
+          } catch (e) {
+            console.error("electronLog.sendToMain ", e, "data:", message);
+            ipcRenderer.send("__ELECTRON_LOG__", {
+              cmd: "errorHandler",
+              error: { message: e?.message, stack: e?.stack },
+              errorName: "sendToMain"
+            });
+          }
+        },
+        log(...data) {
+          electronLog2.sendToMain({ data, level: "info" });
+        }
+      };
+      for (const level of ["error", "warn", "info", "verbose", "debug", "silly"]) {
+        electronLog2[level] = (...data) => electronLog2.sendToMain({
+          data,
+          level
+        });
+      }
+      if (contextBridge && process.contextIsolated) {
+        try {
+          contextBridge.exposeInMainWorld("__electronLog", electronLog2);
+        } catch {
+        }
+      }
+      if (typeof window === "object") {
+        window.__electronLog = electronLog2;
+      } else {
+        __electronLog = electronLog2;
+      }
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/core/scope.js
+var require_scope = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/core/scope.js"(exports2, module2) {
+    "use strict";
+    module2.exports = scopeFactory;
+    function scopeFactory(logger) {
+      return Object.defineProperties(scope, {
+        defaultLabel: { value: "", writable: true },
+        labelPadding: { value: true, writable: true },
+        maxLabelLength: { value: 0, writable: true },
+        labelLength: {
+          get() {
+            switch (typeof scope.labelPadding) {
+              case "boolean":
+                return scope.labelPadding ? scope.maxLabelLength : 0;
+              case "number":
+                return scope.labelPadding;
+              default:
+                return 0;
+            }
+          }
+        }
+      });
+      function scope(label) {
+        scope.maxLabelLength = Math.max(scope.maxLabelLength, label.length);
+        const newScope = {};
+        for (const level of [...logger.levels, "log"]) {
+          newScope[level] = (...d) => logger.logData(d, { level, scope: label });
+        }
+        return newScope;
+      }
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/core/Logger.js
+var require_Logger = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/core/Logger.js"(exports2, module2) {
+    "use strict";
+    var scopeFactory = require_scope();
+    var Logger = class _Logger {
+      static instances = {};
+      errorHandler = null;
+      eventLogger = null;
+      functions = {};
+      hooks = [];
+      isDev = false;
+      levels = null;
+      logId = null;
+      scope = null;
+      transports = {};
+      variables = {};
+      constructor({
+        allowUnknownLevel = false,
+        errorHandler,
+        eventLogger,
+        initializeFn,
+        isDev = false,
+        levels = ["error", "warn", "info", "verbose", "debug", "silly"],
+        logId,
+        transportFactories = {},
+        variables
+      } = {}) {
+        this.addLevel = this.addLevel.bind(this);
+        this.create = this.create.bind(this);
+        this.logData = this.logData.bind(this);
+        this.processMessage = this.processMessage.bind(this);
+        this.allowUnknownLevel = allowUnknownLevel;
+        this.initializeFn = initializeFn;
+        this.isDev = isDev;
+        this.levels = levels;
+        this.logId = logId;
+        this.transportFactories = transportFactories;
+        this.variables = variables || {};
+        this.scope = scopeFactory(this);
+        this.addLevel("log", false);
+        for (const name of this.levels) {
+          this.addLevel(name, false);
+        }
+        this.errorHandler = errorHandler;
+        errorHandler?.setOptions({ logFn: this.error });
+        this.eventLogger = eventLogger;
+        eventLogger?.setOptions({ logger: this });
+        for (const [name, factory] of Object.entries(transportFactories)) {
+          this.transports[name] = factory(this);
+        }
+        _Logger.instances[logId] = this;
+      }
+      static getInstance({ logId }) {
+        return this.instances[logId] || this.instances.default;
+      }
+      addLevel(level, index = this.levels.length) {
+        if (index !== false) {
+          this.levels.splice(index, 0, level);
+        }
+        this[level] = (...args) => this.logData(args, { level });
+        this.functions[level] = this[level];
+      }
+      catchErrors(options) {
+        this.processMessage(
+          {
+            data: ["log.catchErrors is deprecated. Use log.errorHandler instead"],
+            level: "warn"
+          },
+          { transports: ["console"] }
+        );
+        return this.errorHandler.startCatching(options);
+      }
+      create(options) {
+        if (typeof options === "string") {
+          options = { logId: options };
+        }
+        return new _Logger({
+          ...options,
+          errorHandler: this.errorHandler,
+          initializeFn: this.initializeFn,
+          isDev: this.isDev,
+          transportFactories: this.transportFactories,
+          variables: { ...this.variables }
+        });
+      }
+      compareLevels(passLevel, checkLevel, levels = this.levels) {
+        const pass = levels.indexOf(passLevel);
+        const check = levels.indexOf(checkLevel);
+        if (check === -1 || pass === -1) {
+          return true;
+        }
+        return check <= pass;
+      }
+      initialize({ preload = true, spyRendererConsole = false } = {}) {
+        this.initializeFn({ logger: this, preload, spyRendererConsole });
+      }
+      logData(data, options = {}) {
+        this.processMessage({ data, ...options });
+      }
+      processMessage(message, { transports = this.transports } = {}) {
+        if (message.cmd === "errorHandler") {
+          this.errorHandler.handle(message.error, {
+            errorName: message.errorName,
+            processType: "renderer",
+            showDialog: Boolean(message.showDialog)
+          });
+          return;
+        }
+        let level = message.level;
+        if (!this.allowUnknownLevel) {
+          level = this.levels.includes(message.level) ? message.level : "info";
+        }
+        const normalizedMessage = {
+          date: /* @__PURE__ */ new Date(),
+          ...message,
+          level,
+          variables: {
+            ...this.variables,
+            ...message.variables
+          }
+        };
+        for (const [transName, transFn] of this.transportEntries(transports)) {
+          if (typeof transFn !== "function" || transFn.level === false) {
+            continue;
+          }
+          if (!this.compareLevels(transFn.level, message.level)) {
+            continue;
+          }
+          try {
+            const transformedMsg = this.hooks.reduce((msg, hook) => {
+              return msg ? hook(msg, transFn, transName) : msg;
+            }, normalizedMessage);
+            if (transformedMsg) {
+              transFn({ ...transformedMsg, data: [...transformedMsg.data] });
+            }
+          } catch (e) {
+            this.processInternalErrorFn(e);
+          }
+        }
+      }
+      processInternalErrorFn(_e) {
+      }
+      transportEntries(transports = this.transports) {
+        const transportArray = Array.isArray(transports) ? transports : Object.entries(transports);
+        return transportArray.map((item) => {
+          switch (typeof item) {
+            case "string":
+              return this.transports[item] ? [item, this.transports[item]] : null;
+            case "function":
+              return [item.name, item];
+            default:
+              return Array.isArray(item) ? item : null;
+          }
+        }).filter(Boolean);
+      }
+    };
+    module2.exports = Logger;
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/lib/RendererErrorHandler.js
+var require_RendererErrorHandler = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/lib/RendererErrorHandler.js"(exports2, module2) {
+    "use strict";
+    var consoleError = console.error;
+    var RendererErrorHandler = class {
+      logFn = null;
+      onError = null;
+      showDialog = false;
+      preventDefault = true;
+      constructor({ logFn = null } = {}) {
+        this.handleError = this.handleError.bind(this);
+        this.handleRejection = this.handleRejection.bind(this);
+        this.startCatching = this.startCatching.bind(this);
+        this.logFn = logFn;
+      }
+      handle(error, {
+        logFn = this.logFn,
+        errorName = "",
+        onError = this.onError,
+        showDialog = this.showDialog
+      } = {}) {
+        try {
+          if (onError?.({ error, errorName, processType: "renderer" }) !== false) {
+            logFn({ error, errorName, showDialog });
+          }
+        } catch {
+          consoleError(error);
+        }
+      }
+      setOptions({ logFn, onError, preventDefault, showDialog }) {
+        if (typeof logFn === "function") {
+          this.logFn = logFn;
+        }
+        if (typeof onError === "function") {
+          this.onError = onError;
+        }
+        if (typeof preventDefault === "boolean") {
+          this.preventDefault = preventDefault;
+        }
+        if (typeof showDialog === "boolean") {
+          this.showDialog = showDialog;
+        }
+      }
+      startCatching({ onError, showDialog } = {}) {
+        if (this.isActive) {
+          return;
+        }
+        this.isActive = true;
+        this.setOptions({ onError, showDialog });
+        window.addEventListener("error", (event) => {
+          this.preventDefault && event.preventDefault?.();
+          this.handleError(event.error || event);
+        });
+        window.addEventListener("unhandledrejection", (event) => {
+          this.preventDefault && event.preventDefault?.();
+          this.handleRejection(event.reason || event);
+        });
+      }
+      handleError(error) {
+        this.handle(error, { errorName: "Unhandled" });
+      }
+      handleRejection(reason) {
+        const error = reason instanceof Error ? reason : new Error(JSON.stringify(reason));
+        this.handle(error, { errorName: "Unhandled rejection" });
+      }
+    };
+    module2.exports = RendererErrorHandler;
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/lib/transports/console.js
+var require_console = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/lib/transports/console.js"(exports2, module2) {
+    "use strict";
+    module2.exports = consoleTransportRendererFactory;
+    var consoleMethods = {
+      error: console.error,
+      warn: console.warn,
+      info: console.info,
+      verbose: console.info,
+      debug: console.debug,
+      silly: console.debug,
+      log: console.log
+    };
+    function consoleTransportRendererFactory(logger) {
+      return Object.assign(transport, {
+        format: "{h}:{i}:{s}.{ms}{scope} \u203A {text}",
+        formatDataFn({
+          data = [],
+          date = /* @__PURE__ */ new Date(),
+          format = transport.format,
+          logId = logger.logId,
+          scope = logger.scopeName,
+          ...message
+        }) {
+          if (typeof format === "function") {
+            return format({ ...message, data, date, logId, scope });
+          }
+          if (typeof format !== "string") {
+            return data;
+          }
+          data.unshift(format);
+          if (typeof data[1] === "string" && data[1].match(/%[1cdfiOos]/)) {
+            data = [`${data[0]} ${data[1]}`, ...data.slice(2)];
+          }
+          data[0] = data[0].replace(/\{(\w+)}/g, (substring, name) => {
+            switch (name) {
+              case "level":
+                return message.level;
+              case "logId":
+                return logId;
+              case "scope":
+                return scope ? ` (${scope})` : "";
+              case "text":
+                return "";
+              case "y":
+                return date.getFullYear().toString(10);
+              case "m":
+                return (date.getMonth() + 1).toString(10).padStart(2, "0");
+              case "d":
+                return date.getDate().toString(10).padStart(2, "0");
+              case "h":
+                return date.getHours().toString(10).padStart(2, "0");
+              case "i":
+                return date.getMinutes().toString(10).padStart(2, "0");
+              case "s":
+                return date.getSeconds().toString(10).padStart(2, "0");
+              case "ms":
+                return date.getMilliseconds().toString(10).padStart(3, "0");
+              case "iso":
+                return date.toISOString();
+              default: {
+                return message.variables?.[name] || substring;
+              }
+            }
+          }).trim();
+          return data;
+        },
+        writeFn({ message: { level, data } }) {
+          const consoleLogFn = consoleMethods[level] || consoleMethods.info;
+          setTimeout(() => consoleLogFn(...data));
+        }
+      });
+      function transport(message) {
+        transport.writeFn({
+          message: { ...message, data: transport.formatDataFn(message) }
+        });
+      }
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/lib/transports/ipc.js
+var require_ipc = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/lib/transports/ipc.js"(exports2, module2) {
+    "use strict";
+    module2.exports = ipcTransportRendererFactory;
+    var RESTRICTED_TYPES = /* @__PURE__ */ new Set([Promise, WeakMap, WeakSet]);
+    function ipcTransportRendererFactory(logger) {
+      return Object.assign(transport, {
+        depth: 5,
+        serializeFn(data, { depth = 5, seen = /* @__PURE__ */ new WeakSet() } = {}) {
+          if (depth < 1) {
+            return `[${typeof data}]`;
+          }
+          if (seen.has(data)) {
+            return data;
+          }
+          if (["function", "symbol"].includes(typeof data)) {
+            return data.toString();
+          }
+          if (Object(data) !== data) {
+            return data;
+          }
+          if (RESTRICTED_TYPES.has(data.constructor)) {
+            return `[${data.constructor.name}]`;
+          }
+          if (Array.isArray(data)) {
+            return data.map((item) => transport.serializeFn(
+              item,
+              { level: depth - 1, seen }
+            ));
+          }
+          if (data instanceof Error) {
+            return data.stack;
+          }
+          if (data instanceof Map) {
+            return new Map(
+              Array.from(data).map(([key, value]) => [
+                transport.serializeFn(key, { level: depth - 1, seen }),
+                transport.serializeFn(value, { level: depth - 1, seen })
+              ])
+            );
+          }
+          if (data instanceof Set) {
+            return new Set(
+              Array.from(data).map(
+                (val) => transport.serializeFn(val, { level: depth - 1, seen })
+              )
+            );
+          }
+          seen.add(data);
+          return Object.fromEntries(
+            Object.entries(data).map(
+              ([key, value]) => [
+                key,
+                transport.serializeFn(value, { level: depth - 1, seen })
+              ]
+            )
+          );
+        }
+      });
+      function transport(message) {
+        if (!window.__electronLog) {
+          logger.processMessage(
+            {
+              data: ["electron-log: logger isn't initialized in the main process"],
+              level: "error"
+            },
+            { transports: ["console"] }
+          );
+          return;
+        }
+        try {
+          __electronLog.sendToMain(transport.serializeFn(message, {
+            depth: transport.depth
+          }));
+        } catch (e) {
+          logger.transports.console({
+            data: ["electronLog.transports.ipc", e, "data:", message.data],
+            level: "error"
+          });
+        }
+      }
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/index.js
+var require_renderer = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/renderer/index.js"(exports2, module2) {
+    "use strict";
+    var Logger = require_Logger();
+    var RendererErrorHandler = require_RendererErrorHandler();
+    var transportConsole = require_console();
+    var transportIpc = require_ipc();
+    module2.exports = createLogger();
+    module2.exports.Logger = Logger;
+    module2.exports.default = module2.exports;
+    function createLogger() {
+      const logger = new Logger({
+        allowUnknownLevel: true,
+        errorHandler: new RendererErrorHandler(),
+        initializeFn: () => {
+        },
+        logId: "default",
+        transportFactories: {
+          console: transportConsole,
+          ipc: transportIpc
+        },
+        variables: {
+          processType: "renderer"
+        }
+      });
+      logger.errorHandler.setOptions({
+        logFn({ error, errorName, showDialog }) {
+          logger.transports.console({
+            data: [errorName, error].filter(Boolean),
+            level: "error"
+          });
+          logger.transports.ipc({
+            cmd: "errorHandler",
+            error: {
+              cause: error?.cause,
+              code: error?.code,
+              name: error?.name,
+              message: error?.message,
+              stack: error?.stack
+            },
+            errorName,
+            logId: logger.logId,
+            showDialog
+          });
+        }
+      });
+      if (typeof window === "object") {
+        window.addEventListener("message", (event) => {
+          const { cmd, logId, ...message } = event.data || {};
+          const instance = Logger.getInstance({ logId });
+          if (cmd === "message") {
+            instance.processMessage(message, { transports: ["console"] });
+          }
+        });
+      }
+      return new Proxy(logger, {
+        get(target, prop) {
+          if (typeof target[prop] !== "undefined") {
+            return target[prop];
+          }
+          return (...data) => logger.logData(data, { level: prop });
+        }
+      });
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/electronApi.js
+var require_electronApi = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/electronApi.js"(exports2, module2) {
+    "use strict";
+    var os = require("os");
+    var path = require("path");
+    var electron;
+    try {
+      electron = require("electron");
+    } catch {
+      electron = null;
+    }
+    module2.exports = {
+      getAppUserDataPath() {
+        return getPath("userData");
+      },
+      getName,
+      getPath,
+      getVersion,
+      getVersions() {
+        return {
+          app: `${getName()} ${getVersion()}`,
+          electron: `Electron ${process.versions.electron}`,
+          os: getOsVersion()
+        };
+      },
+      isDev() {
+        const app2 = getApp();
+        if (app2?.isPackaged !== void 0) {
+          return !app2.isPackaged;
+        }
+        if (typeof process.execPath === "string") {
+          const execFileName = path.basename(process.execPath).toLowerCase();
+          return execFileName.startsWith("electron");
+        }
+        return process.env.NODE_ENV === "development" || process.env.ELECTRON_IS_DEV === "1";
+      },
+      isElectron() {
+        return Boolean(process.versions.electron);
+      },
+      onAppEvent(eventName, handler) {
+        electron?.app?.on(eventName, handler);
+        return () => {
+          electron?.app?.off(eventName, handler);
+        };
+      },
+      onEveryWebContentsEvent(eventName, handler) {
+        electron?.webContents?.getAllWebContents().forEach((webContents) => {
+          webContents.on(eventName, handler);
+        });
+        electron?.app?.on("web-contents-created", onWebContentsCreated);
+        return () => {
+          electron?.webContents?.getAllWebContents().forEach((webContents) => {
+            webContents.off(eventName, handler);
+          });
+          electron?.app?.off("web-contents-created", onWebContentsCreated);
+        };
+        function onWebContentsCreated(_, webContents) {
+          webContents.on(eventName, handler);
+        }
+      },
+      /**
+       * Listen to async messages sent from opposite process
+       * @param {string} channel
+       * @param {function} listener
+       */
+      onIpc(channel, listener) {
+        getIpc()?.on(channel, listener);
+      },
+      onIpcInvoke(channel, listener) {
+        getIpc()?.handle?.(channel, listener);
+      },
+      /**
+       * @param {string} url
+       * @param {Function} [logFunction]
+       */
+      openUrl(url, logFunction = console.error) {
+        getElectronModule("shell")?.openExternal(url).catch(logFunction);
+      },
+      setPreloadFileForSessions({
+        filePath,
+        includeFutureSession = true,
+        sessions = [electron?.session?.defaultSession]
+      }) {
+        for (const session2 of sessions.filter(Boolean)) {
+          setPreload(session2);
+        }
+        if (includeFutureSession) {
+          electron?.app?.on("session-created", (session2) => {
+            setPreload(session2);
+          });
+        }
+        function setPreload(session2) {
+          session2.setPreloads([...session2.getPreloads(), filePath]);
+        }
+      },
+      /**
+       * Sent a message to opposite process
+       * @param {string} channel
+       * @param {any} message
+       */
+      sendIpc(channel, message) {
+        if (process.type === "browser") {
+          sendIpcToRenderer(channel, message);
+        } else if (process.type === "renderer") {
+          sendIpcToMain(channel, message);
+        }
+      },
+      showErrorBox(title, message) {
+        const dialog = getElectronModule("dialog");
+        if (!dialog) return;
+        dialog.showErrorBox(title, message);
+      },
+      whenAppReady() {
+        return electron?.app?.whenReady() || Promise.resolve();
+      }
+    };
+    function getApp() {
+      return getElectronModule("app");
+    }
+    function getName() {
+      const app2 = getApp();
+      if (!app2) return null;
+      return "name" in app2 ? app2.name : app2.getName();
+    }
+    function getElectronModule(name) {
+      return electron?.[name] || null;
+    }
+    function getIpc() {
+      if (process.type === "browser" && electron?.ipcMain) {
+        return electron.ipcMain;
+      }
+      if (process.type === "renderer" && electron?.ipcRenderer) {
+        return electron.ipcRenderer;
+      }
+      return null;
+    }
+    function getVersion() {
+      const app2 = getApp();
+      if (!app2) return null;
+      return "version" in app2 ? app2.version : app2.getVersion();
+    }
+    function getOsVersion() {
+      let osName = os.type().replace("_", " ");
+      let osVersion = os.release();
+      if (osName === "Darwin") {
+        osName = "macOS";
+        osVersion = getMacOsVersion();
+      }
+      return `${osName} ${osVersion}`;
+    }
+    function getMacOsVersion() {
+      const release = Number(os.release().split(".")[0]);
+      if (release <= 19) {
+        return `10.${release - 4}`;
+      }
+      return release - 9;
+    }
+    function getPath(name) {
+      const app2 = getApp();
+      if (!app2) return null;
+      try {
+        return app2.getPath(name);
+      } catch (e) {
+        return null;
+      }
+    }
+    function sendIpcToMain(channel, message) {
+      getIpc()?.send(channel, message);
+    }
+    function sendIpcToRenderer(channel, message) {
+      electron?.BrowserWindow?.getAllWindows().forEach((wnd) => {
+        if (wnd.webContents?.isDestroyed() === false) {
+          wnd.webContents.send(channel, message);
+        }
+      });
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/initialize.js
+var require_initialize = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/initialize.js"(exports2, module2) {
+    "use strict";
+    var fs = require("fs");
+    var os = require("os");
+    var path = require("path");
+    var electronApi = require_electronApi();
+    var preloadInitializeFn = require_electron_log_preload();
+    module2.exports = {
+      initialize({ logger, preload = true, spyRendererConsole = false }) {
+        electronApi.whenAppReady().then(() => {
+          if (preload) {
+            initializePreload(preload);
+          }
+          if (spyRendererConsole) {
+            initializeSpyRendererConsole(logger);
+          }
+        }).catch(logger.warn);
+      }
+    };
+    function initializePreload(preloadOption) {
+      let preloadPath = typeof preloadOption === "string" ? preloadOption : path.resolve(__dirname, "../renderer/electron-log-preload.js");
+      if (!fs.existsSync(preloadPath)) {
+        preloadPath = path.join(
+          electronApi.getAppUserDataPath() || os.tmpdir(),
+          "electron-log-preload.js"
+        );
+        const preloadCode = `
+      try {
+        (${preloadInitializeFn.toString()})(require('electron'));
+      } catch(e) {
+        console.error(e);
+      }
+    `;
+        fs.writeFileSync(preloadPath, preloadCode, "utf8");
+      }
+      electronApi.setPreloadFileForSessions({ filePath: preloadPath });
+    }
+    function initializeSpyRendererConsole(logger) {
+      const levels = ["verbose", "info", "warning", "error"];
+      electronApi.onEveryWebContentsEvent(
+        "console-message",
+        (event, level, message) => {
+          logger.processMessage({
+            data: [message],
+            level: levels[level],
+            variables: { processType: "renderer" }
+          });
+        }
+      );
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/transform.js
+var require_transform = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/transform.js"(exports2, module2) {
+    "use strict";
+    module2.exports = { transform };
+    function transform({
+      logger,
+      message,
+      transport,
+      initialData = message?.data || [],
+      transforms = transport?.transforms
+    }) {
+      return transforms.reduce((data, trans) => {
+        if (typeof trans === "function") {
+          return trans({ data, logger, message, transport });
+        }
+        return data;
+      }, initialData);
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/format.js
+var require_format = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/format.js"(exports2, module2) {
+    "use strict";
+    var { transform } = require_transform();
+    module2.exports = {
+      concatFirstStringElements,
+      formatScope,
+      formatText,
+      formatVariables,
+      timeZoneFromOffset,
+      format({ message, logger, transport, data = message?.data }) {
+        switch (typeof transport.format) {
+          case "string": {
+            return transform({
+              message,
+              logger,
+              transforms: [formatVariables, formatScope, formatText],
+              transport,
+              initialData: [transport.format, ...data]
+            });
+          }
+          case "function": {
+            return transport.format({
+              data,
+              level: message?.level || "info",
+              logger,
+              message,
+              transport
+            });
+          }
+          default: {
+            return data;
+          }
+        }
+      }
+    };
+    function concatFirstStringElements({ data }) {
+      if (typeof data[0] !== "string" || typeof data[1] !== "string") {
+        return data;
+      }
+      if (data[0].match(/%[1cdfiOos]/)) {
+        return data;
+      }
+      return [`${data[0]} ${data[1]}`, ...data.slice(2)];
+    }
+    function timeZoneFromOffset(minutesOffset) {
+      const minutesPositive = Math.abs(minutesOffset);
+      const sign = minutesOffset >= 0 ? "-" : "+";
+      const hours = Math.floor(minutesPositive / 60).toString().padStart(2, "0");
+      const minutes = (minutesPositive % 60).toString().padStart(2, "0");
+      return `${sign}${hours}:${minutes}`;
+    }
+    function formatScope({ data, logger, message }) {
+      const { defaultLabel, labelLength } = logger?.scope || {};
+      const template = data[0];
+      let label = message.scope;
+      if (!label) {
+        label = defaultLabel;
+      }
+      let scopeText;
+      if (label === "") {
+        scopeText = labelLength > 0 ? "".padEnd(labelLength + 3) : "";
+      } else if (typeof label === "string") {
+        scopeText = ` (${label})`.padEnd(labelLength + 3);
+      } else {
+        scopeText = "";
+      }
+      data[0] = template.replace("{scope}", scopeText);
+      return data;
+    }
+    function formatVariables({ data, message }) {
+      let template = data[0];
+      if (typeof template !== "string") {
+        return data;
+      }
+      template = template.replace("{level}]", `${message.level}]`.padEnd(6, " "));
+      const date = message.date || /* @__PURE__ */ new Date();
+      data[0] = template.replace(/\{(\w+)}/g, (substring, name) => {
+        switch (name) {
+          case "level":
+            return message.level || "info";
+          case "logId":
+            return message.logId;
+          case "y":
+            return date.getFullYear().toString(10);
+          case "m":
+            return (date.getMonth() + 1).toString(10).padStart(2, "0");
+          case "d":
+            return date.getDate().toString(10).padStart(2, "0");
+          case "h":
+            return date.getHours().toString(10).padStart(2, "0");
+          case "i":
+            return date.getMinutes().toString(10).padStart(2, "0");
+          case "s":
+            return date.getSeconds().toString(10).padStart(2, "0");
+          case "ms":
+            return date.getMilliseconds().toString(10).padStart(3, "0");
+          case "z":
+            return timeZoneFromOffset(date.getTimezoneOffset());
+          case "iso":
+            return date.toISOString();
+          default: {
+            return message.variables?.[name] || substring;
+          }
+        }
+      }).trim();
+      return data;
+    }
+    function formatText({ data }) {
+      const template = data[0];
+      if (typeof template !== "string") {
+        return data;
+      }
+      const textTplPosition = template.lastIndexOf("{text}");
+      if (textTplPosition === template.length - 6) {
+        data[0] = template.replace(/\s?{text}/, "");
+        if (data[0] === "") {
+          data.shift();
+        }
+        return data;
+      }
+      const templatePieces = template.split("{text}");
+      let result = [];
+      if (templatePieces[0] !== "") {
+        result.push(templatePieces[0]);
+      }
+      result = result.concat(data.slice(1));
+      if (templatePieces[1] !== "") {
+        result.push(templatePieces[1]);
+      }
+      return result;
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/object.js
+var require_object = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/object.js"(exports2, module2) {
+    "use strict";
+    var util = require("util");
+    module2.exports = {
+      serialize,
+      maxDepth({ data, transport, depth = transport?.depth ?? 6 }) {
+        if (!data) {
+          return data;
+        }
+        if (depth < 1) {
+          if (Array.isArray(data)) return "[array]";
+          if (typeof data === "object" && data) return "[object]";
+          return data;
+        }
+        if (Array.isArray(data)) {
+          return data.map((child) => module2.exports.maxDepth({
+            data: child,
+            depth: depth - 1
+          }));
+        }
+        if (typeof data !== "object") {
+          return data;
+        }
+        if (data && typeof data.toISOString === "function") {
+          return data;
+        }
+        if (data === null) {
+          return null;
+        }
+        if (data instanceof Error) {
+          return data;
+        }
+        const newJson = {};
+        for (const i in data) {
+          if (!Object.prototype.hasOwnProperty.call(data, i)) continue;
+          newJson[i] = module2.exports.maxDepth({
+            data: data[i],
+            depth: depth - 1
+          });
+        }
+        return newJson;
+      },
+      toJSON({ data }) {
+        return JSON.parse(JSON.stringify(data, createSerializer()));
+      },
+      toString({ data, transport }) {
+        const inspectOptions = transport?.inspectOptions || {};
+        const simplifiedData = data.map((item) => {
+          if (item === void 0) {
+            return void 0;
+          }
+          try {
+            const str = JSON.stringify(item, createSerializer(), "  ");
+            return str === void 0 ? void 0 : JSON.parse(str);
+          } catch (e) {
+            return item;
+          }
+        });
+        return util.formatWithOptions(inspectOptions, ...simplifiedData);
+      }
+    };
+    function createSerializer(options = {}) {
+      const seen = /* @__PURE__ */ new WeakSet();
+      return function(key, value) {
+        if (typeof value === "object" && value !== null) {
+          if (seen.has(value)) {
+            return void 0;
+          }
+          seen.add(value);
+        }
+        return serialize(key, value, options);
+      };
+    }
+    function serialize(key, value, options = {}) {
+      const serializeMapAndSet = options?.serializeMapAndSet !== false;
+      if (value instanceof Error) {
+        return value.stack;
+      }
+      if (!value) {
+        return value;
+      }
+      if (typeof value === "function") {
+        return `[function] ${value.toString()}`;
+      }
+      if (serializeMapAndSet && value instanceof Map && Object.fromEntries) {
+        return Object.fromEntries(value);
+      }
+      if (serializeMapAndSet && value instanceof Set && Array.from) {
+        return Array.from(value);
+      }
+      return value;
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/style.js
+var require_style = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transforms/style.js"(exports2, module2) {
+    "use strict";
+    module2.exports = {
+      transformStyles,
+      applyAnsiStyles({ data }) {
+        return transformStyles(data, styleToAnsi, resetAnsiStyle);
+      },
+      removeStyles({ data }) {
+        return transformStyles(data, () => "");
+      }
+    };
+    var ANSI_COLORS = {
+      unset: "\x1B[0m",
+      black: "\x1B[30m",
+      red: "\x1B[31m",
+      green: "\x1B[32m",
+      yellow: "\x1B[33m",
+      blue: "\x1B[34m",
+      magenta: "\x1B[35m",
+      cyan: "\x1B[36m",
+      white: "\x1B[37m"
+    };
+    function styleToAnsi(style) {
+      const color = style.replace(/color:\s*(\w+).*/, "$1").toLowerCase();
+      return ANSI_COLORS[color] || "";
+    }
+    function resetAnsiStyle(string) {
+      return string + ANSI_COLORS.unset;
+    }
+    function transformStyles(data, onStyleFound, onStyleApplied) {
+      const foundStyles = {};
+      return data.reduce((result, item, index, array) => {
+        if (foundStyles[index]) {
+          return result;
+        }
+        if (typeof item === "string") {
+          let valueIndex = index;
+          let styleApplied = false;
+          item = item.replace(/%[1cdfiOos]/g, (match) => {
+            valueIndex += 1;
+            if (match !== "%c") {
+              return match;
+            }
+            const style = array[valueIndex];
+            if (typeof style === "string") {
+              foundStyles[valueIndex] = true;
+              styleApplied = true;
+              return onStyleFound(style, item);
+            }
+            return match;
+          });
+          if (styleApplied && onStyleApplied) {
+            item = onStyleApplied(item);
+          }
+        }
+        result.push(item);
+        return result;
+      }, []);
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/console.js
+var require_console2 = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/console.js"(exports2, module2) {
+    "use strict";
+    var { concatFirstStringElements, format } = require_format();
+    var { maxDepth, toJSON } = require_object();
+    var { applyAnsiStyles, removeStyles } = require_style();
+    var { transform } = require_transform();
+    var consoleMethods = {
+      error: console.error,
+      warn: console.warn,
+      info: console.info,
+      verbose: console.info,
+      debug: console.debug,
+      silly: console.debug,
+      log: console.log
+    };
+    module2.exports = consoleTransportFactory;
+    var separator = process.platform === "win32" ? ">" : "\u203A";
+    var DEFAULT_FORMAT = `%c{h}:{i}:{s}.{ms}{scope}%c ${separator} {text}`;
+    Object.assign(consoleTransportFactory, {
+      DEFAULT_FORMAT
+    });
+    function consoleTransportFactory(logger) {
+      return Object.assign(transport, {
+        format: DEFAULT_FORMAT,
+        level: "silly",
+        transforms: [
+          addTemplateColors,
+          format,
+          formatStyles,
+          concatFirstStringElements,
+          maxDepth,
+          toJSON
+        ],
+        useStyles: process.env.FORCE_STYLES,
+        writeFn({ message }) {
+          const consoleLogFn = consoleMethods[message.level] || consoleMethods.info;
+          consoleLogFn(...message.data);
+        }
+      });
+      function transport(message) {
+        const data = transform({ logger, message, transport });
+        transport.writeFn({
+          message: { ...message, data }
+        });
+      }
+    }
+    function addTemplateColors({ data, message, transport }) {
+      if (transport.format !== DEFAULT_FORMAT) {
+        return data;
+      }
+      return [`color:${levelToStyle(message.level)}`, "color:unset", ...data];
+    }
+    function canUseStyles(useStyleValue, level) {
+      if (typeof useStyleValue === "boolean") {
+        return useStyleValue;
+      }
+      const useStderr = level === "error" || level === "warn";
+      const stream = useStderr ? process.stderr : process.stdout;
+      return stream && stream.isTTY;
+    }
+    function formatStyles(args) {
+      const { message, transport } = args;
+      const useStyles = canUseStyles(transport.useStyles, message.level);
+      const nextTransform = useStyles ? applyAnsiStyles : removeStyles;
+      return nextTransform(args);
+    }
+    function levelToStyle(level) {
+      const map = { error: "red", warn: "yellow", info: "cyan", default: "unset" };
+      return map[level] || map.default;
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/File.js
+var require_File = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/File.js"(exports2, module2) {
+    "use strict";
+    var EventEmitter = require("events");
+    var fs = require("fs");
+    var os = require("os");
+    var File = class extends EventEmitter {
+      asyncWriteQueue = [];
+      bytesWritten = 0;
+      hasActiveAsyncWriting = false;
+      path = null;
+      initialSize = void 0;
+      writeOptions = null;
+      writeAsync = false;
+      constructor({
+        path,
+        writeOptions = { encoding: "utf8", flag: "a", mode: 438 },
+        writeAsync = false
+      }) {
+        super();
+        this.path = path;
+        this.writeOptions = writeOptions;
+        this.writeAsync = writeAsync;
+      }
+      get size() {
+        return this.getSize();
+      }
+      clear() {
+        try {
+          fs.writeFileSync(this.path, "", {
+            mode: this.writeOptions.mode,
+            flag: "w"
+          });
+          this.reset();
+          return true;
+        } catch (e) {
+          if (e.code === "ENOENT") {
+            return true;
+          }
+          this.emit("error", e, this);
+          return false;
+        }
+      }
+      crop(bytesAfter) {
+        try {
+          const content = readFileSyncFromEnd(this.path, bytesAfter || 4096);
+          this.clear();
+          this.writeLine(`[log cropped]${os.EOL}${content}`);
+        } catch (e) {
+          this.emit(
+            "error",
+            new Error(`Couldn't crop file ${this.path}. ${e.message}`),
+            this
+          );
+        }
+      }
+      getSize() {
+        if (this.initialSize === void 0) {
+          try {
+            const stats = fs.statSync(this.path);
+            this.initialSize = stats.size;
+          } catch (e) {
+            this.initialSize = 0;
+          }
+        }
+        return this.initialSize + this.bytesWritten;
+      }
+      increaseBytesWrittenCounter(text) {
+        this.bytesWritten += Buffer.byteLength(text, this.writeOptions.encoding);
+      }
+      isNull() {
+        return false;
+      }
+      nextAsyncWrite() {
+        const file = this;
+        if (this.hasActiveAsyncWriting || this.asyncWriteQueue.length === 0) {
+          return;
+        }
+        const text = this.asyncWriteQueue.join("");
+        this.asyncWriteQueue = [];
+        this.hasActiveAsyncWriting = true;
+        fs.writeFile(this.path, text, this.writeOptions, (e) => {
+          file.hasActiveAsyncWriting = false;
+          if (e) {
+            file.emit(
+              "error",
+              new Error(`Couldn't write to ${file.path}. ${e.message}`),
+              this
+            );
+          } else {
+            file.increaseBytesWrittenCounter(text);
+          }
+          file.nextAsyncWrite();
+        });
+      }
+      reset() {
+        this.initialSize = void 0;
+        this.bytesWritten = 0;
+      }
+      toString() {
+        return this.path;
+      }
+      writeLine(text) {
+        text += os.EOL;
+        if (this.writeAsync) {
+          this.asyncWriteQueue.push(text);
+          this.nextAsyncWrite();
+          return;
+        }
+        try {
+          fs.writeFileSync(this.path, text, this.writeOptions);
+          this.increaseBytesWrittenCounter(text);
+        } catch (e) {
+          this.emit(
+            "error",
+            new Error(`Couldn't write to ${this.path}. ${e.message}`),
+            this
+          );
+        }
+      }
+    };
+    module2.exports = File;
+    function readFileSyncFromEnd(filePath, bytesCount) {
+      const buffer = Buffer.alloc(bytesCount);
+      const stats = fs.statSync(filePath);
+      const readLength = Math.min(stats.size, bytesCount);
+      const offset = Math.max(0, stats.size - bytesCount);
+      const fd = fs.openSync(filePath, "r");
+      const totalBytes = fs.readSync(fd, buffer, 0, readLength, offset);
+      fs.closeSync(fd);
+      return buffer.toString("utf8", 0, totalBytes);
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/NullFile.js
+var require_NullFile = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/NullFile.js"(exports2, module2) {
+    "use strict";
+    var File = require_File();
+    var NullFile = class extends File {
+      clear() {
+      }
+      crop() {
+      }
+      getSize() {
+        return 0;
+      }
+      isNull() {
+        return true;
+      }
+      writeLine() {
+      }
+    };
+    module2.exports = NullFile;
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/FileRegistry.js
+var require_FileRegistry = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/FileRegistry.js"(exports2, module2) {
+    "use strict";
+    var EventEmitter = require("events");
+    var fs = require("fs");
+    var path = require("path");
+    var File = require_File();
+    var NullFile = require_NullFile();
+    var FileRegistry = class extends EventEmitter {
+      store = {};
+      constructor() {
+        super();
+        this.emitError = this.emitError.bind(this);
+      }
+      /**
+       * Provide a File object corresponding to the filePath
+       * @param {string} filePath
+       * @param {WriteOptions} [writeOptions]
+       * @param {boolean} [writeAsync]
+       * @return {File}
+       */
+      provide({ filePath, writeOptions, writeAsync = false }) {
+        let file;
+        try {
+          filePath = path.resolve(filePath);
+          if (this.store[filePath]) {
+            return this.store[filePath];
+          }
+          file = this.createFile({ filePath, writeOptions, writeAsync });
+        } catch (e) {
+          file = new NullFile({ path: filePath });
+          this.emitError(e, file);
+        }
+        file.on("error", this.emitError);
+        this.store[filePath] = file;
+        return file;
+      }
+      /**
+       * @param {string} filePath
+       * @param {WriteOptions} writeOptions
+       * @param {boolean} async
+       * @return {File}
+       * @private
+       */
+      createFile({ filePath, writeOptions, writeAsync }) {
+        this.testFileWriting(filePath);
+        return new File({ path: filePath, writeOptions, writeAsync });
+      }
+      /**
+       * @param {Error} error
+       * @param {File} file
+       * @private
+       */
+      emitError(error, file) {
+        this.emit("error", error, file);
+      }
+      /**
+       * @param {string} filePath
+       * @private
+       */
+      testFileWriting(filePath) {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, "", { flag: "a" });
+      }
+    };
+    module2.exports = FileRegistry;
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/packageJson.js
+var require_packageJson = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/packageJson.js"(exports2, module2) {
+    "use strict";
+    var fs = require("fs");
+    var path = require("path");
+    module2.exports = {
+      readPackageJson,
+      tryReadJsonAt
+    };
+    function readPackageJson() {
+      return tryReadJsonAt(require.main && require.main.filename) || tryReadJsonAt(extractPathFromArgs()) || tryReadJsonAt(process.resourcesPath, "app.asar") || tryReadJsonAt(process.resourcesPath, "app") || tryReadJsonAt(process.cwd()) || { name: null, version: null };
+    }
+    function tryReadJsonAt(...searchPaths) {
+      if (!searchPaths[0]) {
+        return null;
+      }
+      try {
+        const searchPath = path.join(...searchPaths);
+        const fileName = findUp("package.json", searchPath);
+        if (!fileName) {
+          return null;
+        }
+        const json = JSON.parse(fs.readFileSync(fileName, "utf8"));
+        const name = json.productName || json.name;
+        if (!name || name.toLowerCase() === "electron") {
+          return null;
+        }
+        if (json.productName || json.name) {
+          return {
+            name,
+            version: json.version
+          };
+        }
+      } catch (e) {
+        return null;
+      }
+    }
+    function findUp(fileName, cwd) {
+      let currentPath = cwd;
+      while (true) {
+        const parsedPath = path.parse(currentPath);
+        const root = parsedPath.root;
+        const dir = parsedPath.dir;
+        if (fs.existsSync(path.join(currentPath, fileName))) {
+          return path.resolve(path.join(currentPath, fileName));
+        }
+        if (currentPath === root) {
+          return null;
+        }
+        currentPath = dir;
+      }
+    }
+    function extractPathFromArgs() {
+      const matchedArgs = process.argv.filter((arg) => {
+        return arg.indexOf("--user-data-dir=") === 0;
+      });
+      if (matchedArgs.length === 0 || typeof matchedArgs[0] !== "string") {
+        return null;
+      }
+      const userDataDir = matchedArgs[0];
+      return userDataDir.replace("--user-data-dir=", "");
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/variables.js
+var require_variables = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/variables.js"(exports2, module2) {
+    "use strict";
+    var os = require("os");
+    var path = require("path");
+    var electronApi = require_electronApi();
+    var packageJson = require_packageJson();
+    module2.exports = {
+      getAppData,
+      getLibraryDefaultDir,
+      getLibraryTemplate,
+      getNameAndVersion,
+      getPathVariables,
+      getUserData
+    };
+    function getAppData(platform) {
+      const appData = electronApi.getPath("appData");
+      if (appData) {
+        return appData;
+      }
+      const home = getHome();
+      switch (platform) {
+        case "darwin": {
+          return path.join(home, "Library/Application Support");
+        }
+        case "win32": {
+          return process.env.APPDATA || path.join(home, "AppData/Roaming");
+        }
+        default: {
+          return process.env.XDG_CONFIG_HOME || path.join(home, ".config");
+        }
+      }
+    }
+    function getHome() {
+      return os.homedir ? os.homedir() : process.env.HOME;
+    }
+    function getLibraryDefaultDir(platform, appName) {
+      if (platform === "darwin") {
+        return path.join(getHome(), "Library/Logs", appName);
+      }
+      return path.join(getUserData(platform, appName), "logs");
+    }
+    function getLibraryTemplate(platform) {
+      if (platform === "darwin") {
+        return path.join(getHome(), "Library/Logs", "{appName}");
+      }
+      return path.join(getAppData(platform), "{appName}", "logs");
+    }
+    function getNameAndVersion() {
+      let name = electronApi.getName() || "";
+      let version = electronApi.getVersion();
+      if (name.toLowerCase() === "electron") {
+        name = "";
+        version = "";
+      }
+      if (name && version) {
+        return { name, version };
+      }
+      const packageValues = packageJson.readPackageJson();
+      if (!name) {
+        name = packageValues.name;
+      }
+      if (!version) {
+        version = packageValues.version;
+      }
+      if (!name) {
+        name = "Electron";
+      }
+      return { name, version };
+    }
+    function getPathVariables(platform) {
+      const nameAndVersion = getNameAndVersion();
+      const appName = nameAndVersion.name;
+      const appVersion = nameAndVersion.version;
+      return {
+        appData: getAppData(platform),
+        appName,
+        appVersion,
+        get electronDefaultDir() {
+          return electronApi.getPath("logs");
+        },
+        home: getHome(),
+        libraryDefaultDir: getLibraryDefaultDir(platform, appName),
+        libraryTemplate: getLibraryTemplate(platform),
+        temp: electronApi.getPath("temp") || os.tmpdir(),
+        userData: getUserData(platform, appName)
+      };
+    }
+    function getUserData(platform, appName) {
+      if (electronApi.getName() !== appName) {
+        return path.join(getAppData(platform), appName);
+      }
+      return electronApi.getPath("userData") || path.join(getAppData(platform), appName);
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/index.js
+var require_file = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/file/index.js"(exports2, module2) {
+    "use strict";
+    var fs = require("fs");
+    var path = require("path");
+    var os = require("os");
+    var FileRegistry = require_FileRegistry();
+    var variables = require_variables();
+    var { transform } = require_transform();
+    var { removeStyles } = require_style();
+    var { format } = require_format();
+    var { toString } = require_object();
+    module2.exports = fileTransportFactory;
+    var globalRegistry = new FileRegistry();
+    function fileTransportFactory(logger, registry = globalRegistry) {
+      let pathVariables;
+      if (registry.listenerCount("error") < 1) {
+        registry.on("error", (e, file) => {
+          logConsole(`Can't write to ${file}`, e);
+        });
+      }
+      return Object.assign(transport, {
+        fileName: getDefaultFileName(logger.variables.processType),
+        format: "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}]{scope} {text}",
+        getFile,
+        inspectOptions: { depth: 5 },
+        level: "silly",
+        maxSize: 1024 ** 2,
+        readAllLogs,
+        sync: true,
+        transforms: [removeStyles, format, toString],
+        writeOptions: { flag: "a", mode: 438, encoding: "utf8" },
+        archiveLogFn(file) {
+          const oldPath = file.toString();
+          const inf = path.parse(oldPath);
+          try {
+            fs.renameSync(oldPath, path.join(inf.dir, `${inf.name}.old${inf.ext}`));
+          } catch (e) {
+            logConsole("Could not rotate log", e);
+            const quarterOfMaxSize = Math.round(transport.maxSize / 4);
+            file.crop(Math.min(quarterOfMaxSize, 256 * 1024));
+          }
+        },
+        resolvePathFn(vars) {
+          return path.join(vars.libraryDefaultDir, vars.fileName);
+        }
+      });
+      function transport(message) {
+        const file = getFile(message);
+        const needLogRotation = transport.maxSize > 0 && file.size > transport.maxSize;
+        if (needLogRotation) {
+          transport.archiveLogFn(file);
+          file.reset();
+        }
+        const content = transform({ logger, message, transport });
+        file.writeLine(content);
+      }
+      function initializeOnFirstAccess() {
+        if (pathVariables) {
+          return;
+        }
+        pathVariables = Object.create(
+          Object.prototype,
+          {
+            ...Object.getOwnPropertyDescriptors(
+              variables.getPathVariables(process.platform)
+            ),
+            fileName: {
+              get() {
+                return transport.fileName;
+              },
+              enumerable: true
+            }
+          }
+        );
+        if (typeof transport.archiveLog === "function") {
+          transport.archiveLogFn = transport.archiveLog;
+          logConsole("archiveLog is deprecated. Use archiveLogFn instead");
+        }
+        if (typeof transport.resolvePath === "function") {
+          transport.resolvePathFn = transport.resolvePath;
+          logConsole("resolvePath is deprecated. Use resolvePathFn instead");
+        }
+      }
+      function logConsole(message, error = null, level = "error") {
+        const data = [`electron-log.transports.file: ${message}`];
+        if (error) {
+          data.push(error);
+        }
+        logger.transports.console({ data, date: /* @__PURE__ */ new Date(), level });
+      }
+      function getFile(msg) {
+        initializeOnFirstAccess();
+        const filePath = transport.resolvePathFn(pathVariables, msg);
+        return registry.provide({
+          filePath,
+          writeAsync: !transport.sync,
+          writeOptions: transport.writeOptions
+        });
+      }
+      function readAllLogs({ fileFilter = (f) => f.endsWith(".log") } = {}) {
+        const logsPath = path.dirname(transport.resolvePathFn(pathVariables));
+        return fs.readdirSync(logsPath).map((fileName) => path.join(logsPath, fileName)).filter(fileFilter).map((logPath) => {
+          try {
+            return {
+              path: logPath,
+              lines: fs.readFileSync(logPath, "utf8").split(os.EOL)
+            };
+          } catch {
+            return null;
+          }
+        }).filter(Boolean);
+      }
+    }
+    function getDefaultFileName(processType = process.type) {
+      switch (processType) {
+        case "renderer":
+          return "renderer.log";
+        case "worker":
+          return "worker.log";
+        default:
+          return "main.log";
+      }
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/remote.js
+var require_remote = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/transports/remote.js"(exports2, module2) {
+    "use strict";
+    var http = require("http");
+    var https = require("https");
+    var { transform } = require_transform();
+    var { removeStyles } = require_style();
+    var { toJSON, maxDepth } = require_object();
+    module2.exports = remoteTransportFactory;
+    function remoteTransportFactory(logger) {
+      return Object.assign(transport, {
+        client: { name: "electron-application" },
+        depth: 6,
+        level: false,
+        requestOptions: {},
+        transforms: [removeStyles, toJSON, maxDepth],
+        makeBodyFn({ message }) {
+          return JSON.stringify({
+            client: transport.client,
+            data: message.data,
+            date: message.date.getTime(),
+            level: message.level,
+            scope: message.scope,
+            variables: message.variables
+          });
+        },
+        processErrorFn({ error }) {
+          logger.processMessage(
+            {
+              data: [`electron-log: can't POST ${transport.url}`, error],
+              level: "warn"
+            },
+            { transports: ["console", "file"] }
+          );
+        },
+        sendRequestFn({ serverUrl, requestOptions, body }) {
+          const httpTransport = serverUrl.startsWith("https:") ? https : http;
+          const request = httpTransport.request(serverUrl, {
+            method: "POST",
+            ...requestOptions,
+            headers: {
+              "Content-Type": "application/json",
+              "Content-Length": body.length,
+              ...requestOptions.headers
+            }
+          });
+          request.write(body);
+          request.end();
+          return request;
+        }
+      });
+      function transport(message) {
+        if (!transport.url) {
+          return;
+        }
+        const body = transport.makeBodyFn({
+          logger,
+          message: { ...message, data: transform({ logger, message, transport }) },
+          transport
+        });
+        const request = transport.sendRequestFn({
+          serverUrl: transport.url,
+          requestOptions: transport.requestOptions,
+          body: Buffer.from(body, "utf8")
+        });
+        request.on("error", (error) => transport.processErrorFn({
+          error,
+          logger,
+          message,
+          request,
+          transport
+        }));
+      }
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/ErrorHandler.js
+var require_ErrorHandler = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/ErrorHandler.js"(exports2, module2) {
+    "use strict";
+    var electronApi = require_electronApi();
+    var ErrorHandler = class {
+      isActive = false;
+      logFn = null;
+      onError = null;
+      showDialog = true;
+      constructor({ logFn = null, onError = null, showDialog = true } = {}) {
+        this.createIssue = this.createIssue.bind(this);
+        this.handleError = this.handleError.bind(this);
+        this.handleRejection = this.handleRejection.bind(this);
+        this.setOptions({ logFn, onError, showDialog });
+        this.startCatching = this.startCatching.bind(this);
+        this.stopCatching = this.stopCatching.bind(this);
+      }
+      handle(error, {
+        logFn = this.logFn,
+        onError = this.onError,
+        processType = "browser",
+        showDialog = this.showDialog,
+        errorName = ""
+      } = {}) {
+        error = normalizeError(error);
+        try {
+          if (typeof onError === "function") {
+            const versions = electronApi.getVersions();
+            const createIssue = this.createIssue;
+            const result = onError({
+              createIssue,
+              error,
+              errorName,
+              processType,
+              versions
+            });
+            if (result === false) {
+              return;
+            }
+          }
+          errorName ? logFn(errorName, error) : logFn(error);
+          if (showDialog && !errorName.includes("rejection")) {
+            electronApi.showErrorBox(
+              `A JavaScript error occurred in the ${processType} process`,
+              error.stack
+            );
+          }
+        } catch {
+          console.error(error);
+        }
+      }
+      setOptions({ logFn, onError, showDialog }) {
+        if (typeof logFn === "function") {
+          this.logFn = logFn;
+        }
+        if (typeof onError === "function") {
+          this.onError = onError;
+        }
+        if (typeof showDialog === "boolean") {
+          this.showDialog = showDialog;
+        }
+      }
+      startCatching({ onError, showDialog } = {}) {
+        if (this.isActive) {
+          return;
+        }
+        this.isActive = true;
+        this.setOptions({ onError, showDialog });
+        process.on("uncaughtException", this.handleError);
+        process.on("unhandledRejection", this.handleRejection);
+      }
+      stopCatching() {
+        this.isActive = false;
+        process.removeListener("uncaughtException", this.handleError);
+        process.removeListener("unhandledRejection", this.handleRejection);
+      }
+      createIssue(pageUrl, queryParams) {
+        electronApi.openUrl(
+          `${pageUrl}?${new URLSearchParams(queryParams).toString()}`
+        );
+      }
+      handleError(error) {
+        this.handle(error, { errorName: "Unhandled" });
+      }
+      handleRejection(reason) {
+        const error = reason instanceof Error ? reason : new Error(JSON.stringify(reason));
+        this.handle(error, { errorName: "Unhandled rejection" });
+      }
+    };
+    function normalizeError(e) {
+      if (e instanceof Error) {
+        return e;
+      }
+      if (e && typeof e === "object") {
+        if (e.message) {
+          return Object.assign(new Error(e.message), e);
+        }
+        try {
+          return new Error(JSON.stringify(e));
+        } catch (serErr) {
+          return new Error(`Couldn't normalize error ${String(e)}: ${serErr}`);
+        }
+      }
+      return new Error(`Can't normalize error ${String(e)}`);
+    }
+    module2.exports = ErrorHandler;
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/EventLogger.js
+var require_EventLogger = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/EventLogger.js"(exports2, module2) {
+    "use strict";
+    var electronApi = require_electronApi();
+    var EventLogger = class {
+      disposers = [];
+      format = "{eventSource}#{eventName}:";
+      formatters = {
+        app: {
+          "certificate-error": ({ args }) => {
+            return this.arrayToObject(args.slice(1, 4), [
+              "url",
+              "error",
+              "certificate"
+            ]);
+          },
+          "child-process-gone": ({ args }) => {
+            return args.length === 1 ? args[0] : args;
+          },
+          "render-process-gone": ({ args: [webContents, details] }) => {
+            return details && typeof details === "object" ? { ...details, ...this.getWebContentsDetails(webContents) } : [];
+          }
+        },
+        webContents: {
+          "console-message": ({ args: [level, message, line, sourceId] }) => {
+            if (level < 3) {
+              return void 0;
+            }
+            return { message, source: `${sourceId}:${line}` };
+          },
+          "did-fail-load": ({ args }) => {
+            return this.arrayToObject(args, [
+              "errorCode",
+              "errorDescription",
+              "validatedURL",
+              "isMainFrame",
+              "frameProcessId",
+              "frameRoutingId"
+            ]);
+          },
+          "did-fail-provisional-load": ({ args }) => {
+            return this.arrayToObject(args, [
+              "errorCode",
+              "errorDescription",
+              "validatedURL",
+              "isMainFrame",
+              "frameProcessId",
+              "frameRoutingId"
+            ]);
+          },
+          "plugin-crashed": ({ args }) => {
+            return this.arrayToObject(args, ["name", "version"]);
+          },
+          "preload-error": ({ args }) => {
+            return this.arrayToObject(args, ["preloadPath", "error"]);
+          }
+        }
+      };
+      events = {
+        app: {
+          "certificate-error": true,
+          "child-process-gone": true,
+          "render-process-gone": true
+        },
+        webContents: {
+          // 'console-message': true,
+          "did-fail-load": true,
+          "did-fail-provisional-load": true,
+          "plugin-crashed": true,
+          "preload-error": true,
+          "unresponsive": true
+        }
+      };
+      level = "error";
+      scope = "";
+      constructor(options = {}) {
+        this.setOptions(options);
+      }
+      setOptions({ events, level, logger, format, formatters, scope }) {
+        if (typeof events === "object") {
+          this.events = events;
+        }
+        if (typeof level === "string") {
+          this.level = level;
+        }
+        if (typeof logger === "object") {
+          this.logger = logger;
+        }
+        if (typeof format === "string" || typeof format === "function") {
+          this.format = format;
+        }
+        if (typeof formatters === "object") {
+          this.formatters = formatters;
+        }
+        if (typeof scope === "string") {
+          this.scope = scope;
+        }
+      }
+      startLogging(options = {}) {
+        this.setOptions(options);
+        this.disposeListeners();
+        for (const eventName of this.getEventNames(this.events.app)) {
+          this.disposers.push(
+            electronApi.onAppEvent(eventName, (...handlerArgs) => {
+              this.handleEvent({ eventSource: "app", eventName, handlerArgs });
+            })
+          );
+        }
+        for (const eventName of this.getEventNames(this.events.webContents)) {
+          this.disposers.push(
+            electronApi.onEveryWebContentsEvent(eventName, (...handlerArgs) => {
+              this.handleEvent(
+                { eventSource: "webContents", eventName, handlerArgs }
+              );
+            })
+          );
+        }
+      }
+      stopLogging() {
+        this.disposeListeners();
+      }
+      arrayToObject(array, fieldNames) {
+        const obj = {};
+        fieldNames.forEach((fieldName, index) => {
+          obj[fieldName] = array[index];
+        });
+        if (array.length > fieldNames.length) {
+          obj.unknownArgs = array.slice(fieldNames.length);
+        }
+        return obj;
+      }
+      disposeListeners() {
+        this.disposers.forEach((disposer) => disposer());
+        this.disposers = [];
+      }
+      formatEventLog({ eventName, eventSource, handlerArgs }) {
+        const [event, ...args] = handlerArgs;
+        if (typeof this.format === "function") {
+          return this.format({ args, event, eventName, eventSource });
+        }
+        const formatter = this.formatters[eventSource]?.[eventName];
+        let formattedArgs = args;
+        if (typeof formatter === "function") {
+          formattedArgs = formatter({ args, event, eventName, eventSource });
+        }
+        if (!formattedArgs) {
+          return void 0;
+        }
+        const eventData = {};
+        if (Array.isArray(formattedArgs)) {
+          eventData.args = formattedArgs;
+        } else if (typeof formattedArgs === "object") {
+          Object.assign(eventData, formattedArgs);
+        }
+        if (eventSource === "webContents") {
+          Object.assign(eventData, this.getWebContentsDetails(event?.sender));
+        }
+        const title = this.format.replace("{eventSource}", eventSource === "app" ? "App" : "WebContents").replace("{eventName}", eventName);
+        return [title, eventData];
+      }
+      getEventNames(eventMap) {
+        if (!eventMap || typeof eventMap !== "object") {
+          return [];
+        }
+        return Object.entries(eventMap).filter(([_, listen]) => listen).map(([eventName]) => eventName);
+      }
+      getWebContentsDetails(webContents) {
+        if (!webContents?.loadURL) {
+          return {};
+        }
+        try {
+          return {
+            webContents: {
+              id: webContents.id,
+              url: webContents.getURL()
+            }
+          };
+        } catch {
+          return {};
+        }
+      }
+      handleEvent({ eventName, eventSource, handlerArgs }) {
+        const log = this.formatEventLog({ eventName, eventSource, handlerArgs });
+        if (log) {
+          const logFns = this.scope ? this.logger.scope(this.scope) : this.logger;
+          logFns?.[this.level]?.(...log);
+        }
+      }
+    };
+    module2.exports = EventLogger;
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/index.js
+var require_main = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/main/index.js"(exports2, module2) {
+    "use strict";
+    var electronApi = require_electronApi();
+    var { initialize } = require_initialize();
+    var transportConsole = require_console2();
+    var transportFile = require_file();
+    var transportRemote = require_remote();
+    var Logger = require_Logger();
+    var ErrorHandler = require_ErrorHandler();
+    var EventLogger = require_EventLogger();
+    var defaultLogger = new Logger({
+      errorHandler: new ErrorHandler(),
+      eventLogger: new EventLogger(),
+      initializeFn: initialize,
+      isDev: electronApi.isDev(),
+      logId: "default",
+      transportFactories: {
+        console: transportConsole,
+        file: transportFile,
+        remote: transportRemote
+      },
+      variables: {
+        processType: "main"
+      }
+    });
+    defaultLogger.processInternalErrorFn = (e) => {
+      defaultLogger.transports.console.writeFn({
+        data: ["Unhandled electron-log error", e],
+        level: "error"
+      });
+    };
+    module2.exports = defaultLogger;
+    module2.exports.Logger = Logger;
+    module2.exports.default = module2.exports;
+    electronApi.onIpc("__ELECTRON_LOG__", (_, message) => {
+      if (message.scope) {
+        Logger.getInstance(message).scope(message.scope);
+      }
+      const date = new Date(message.date);
+      processMessage({
+        ...message,
+        date: date.getTime() ? date : /* @__PURE__ */ new Date()
+      });
+    });
+    electronApi.onIpcInvoke("__ELECTRON_LOG__", (_, { cmd = "", logId }) => {
+      switch (cmd) {
+        case "getOptions": {
+          const logger = Logger.getInstance({ logId });
+          return {
+            levels: logger.levels,
+            logId
+          };
+        }
+        default: {
+          processMessage({ data: [`Unknown cmd '${cmd}'`], level: "error" });
+          return {};
+        }
+      }
+    });
+    function processMessage(message) {
+      Logger.getInstance(message)?.processMessage(message);
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/index.js
+var require_src = __commonJS({
+  "../../node_modules/.pnpm/electron-log@5.0.0/node_modules/electron-log/src/index.js"(exports2, module2) {
+    "use strict";
+    var isRenderer = typeof process === "undefined" || (process.type === "renderer" || process.type === "worker");
+    if (isRenderer) {
+      require_electron_log_preload();
+      module2.exports = require_renderer();
+    } else {
+      module2.exports = require_main();
+    }
+  }
+});
 
 // electron/main.ts
-var import_node_fs = require("node:fs");
-var import_promises4 = require("node:fs/promises");
-var import_node_path4 = require("node:path");
+var import_node_fs2 = require("node:fs");
+var import_promises5 = require("node:fs/promises");
+var import_node_path5 = require("node:path");
 var import_electron = require("electron");
 
 // src/auth.ts
@@ -166,9 +2370,122 @@ async function refreshDesktopAgentSession(input) {
   return normalizeDesktopAgentPersistedSession(payload.session);
 }
 
-// src/electron-session-storage.ts
+// src/diagnostics.ts
 var import_promises = require("node:fs/promises");
+
+// src/logger.ts
+var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
+var import_electron_log = __toESM(require_src(), 1);
+var REDACTED_KEYS = /* @__PURE__ */ new Set([
+  "access_token",
+  "refreshtoken",
+  "refresh_token",
+  "accesstoken",
+  "password",
+  "code",
+  "pairing_code",
+  "authorization",
+  "cookie",
+  "set-cookie",
+  "email",
+  "refresh",
+  "secret",
+  "api_key",
+  "apikey"
+]);
+var BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/giu;
+var JWT_PATTERN = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
+function rotateLogFiles(logFilePath) {
+  const oldestPath = `${logFilePath}.5`;
+  if ((0, import_node_fs.existsSync)(oldestPath)) {
+    (0, import_node_fs.unlinkSync)(oldestPath);
+  }
+  for (let index = 4; index >= 1; index -= 1) {
+    const sourcePath = `${logFilePath}.${index}`;
+    if ((0, import_node_fs.existsSync)(sourcePath)) {
+      (0, import_node_fs.renameSync)(sourcePath, `${logFilePath}.${index + 1}`);
+    }
+  }
+  if ((0, import_node_fs.existsSync)(logFilePath)) {
+    (0, import_node_fs.renameSync)(logFilePath, `${logFilePath}.1`);
+  }
+}
+function normalizeRedactionKey(key) {
+  return key.toLowerCase();
+}
+function shouldRedactKey(key) {
+  return REDACTED_KEYS.has(normalizeRedactionKey(key));
+}
+function redactPii(value) {
+  if (typeof value === "string") {
+    return value.replace(BEARER_TOKEN_PATTERN, "Bearer [REDACTED]").replace(JWT_PATTERN, "[REDACTED_JWT]");
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactPii(item));
+  }
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+  const redactedRecord = {};
+  for (const [key, nestedValue] of Object.entries(value)) {
+    redactedRecord[key] = shouldRedactKey(key) ? "[REDACTED]" : redactPii(nestedValue);
+  }
+  return redactedRecord;
+}
+function createDesktopAgentLogger(options) {
+  const logger = import_electron_log.default;
+  const logFilePath = (0, import_node_path.join)(options.userDataDirectory, "logs", "main.log");
+  (0, import_node_fs.mkdirSync)((0, import_node_path.dirname)(logFilePath), { recursive: true });
+  logger.transports.file.resolvePathFn = () => logFilePath;
+  logger.transports.file.archiveLogFn = () => {
+    rotateLogFiles(logFilePath);
+  };
+  logger.transports.file.level = "info";
+  logger.transports.file.maxSize = 5 * 1024 * 1024;
+  logger.transports.console.level = process.env["NODE_ENV"] === "production" ? "warn" : "debug";
+  logger.hooks.push((message) => {
+    message.data = message.data.map((item) => redactPii(item));
+    return message;
+  });
+  return logger;
+}
+
+// src/diagnostics.ts
+function sanitizeLogLine(line) {
+  const redactedValue = redactPii(line);
+  return typeof redactedValue === "string" ? redactedValue : JSON.stringify(redactedValue);
+}
+async function readLastLogLines(logFilePath, limit = 50) {
+  let logContent;
+  try {
+    logContent = await (0, import_promises.readFile)(logFilePath, "utf8");
+  } catch {
+    return [];
+  }
+  return logContent.split(/\r?\n/u).filter((line) => line.trim().length > 0).slice(-limit).map((line) => sanitizeLogLine(line));
+}
+async function createDesktopAgentDiagnosticsSnapshot(options) {
+  return {
+    app_version: options.appVersion,
+    arch: options.arch,
+    electron_version: options.electronVersion,
+    last_log_lines: await readLastLogLines(options.logFilePath),
+    locale: options.locale,
+    node_version: options.nodeVersion,
+    platform: options.platform,
+    runtime_status: options.runtimeStatus,
+    settings: {
+      autoStart: options.settings.autoStart,
+      openWindowOnStart: options.settings.openWindowOnStart,
+      telemetryOptIn: options.settings.telemetryOptIn
+    }
+  };
+}
+
+// src/electron-session-storage.ts
+var import_promises2 = require("node:fs/promises");
+var import_node_path2 = require("node:path");
 var noopSessionStorageLogger = {
   warn: () => {
   }
@@ -192,24 +2509,24 @@ function normalizeSessionFromUnknown(value) {
   });
 }
 async function atomicWrite(filePath, body) {
-  const directory = (0, import_node_path.dirname)(filePath);
+  const directory = (0, import_node_path2.dirname)(filePath);
   const temporaryPath = `${filePath}.${process.pid}.tmp`;
-  await (0, import_promises.mkdir)(directory, { recursive: true });
-  await (0, import_promises.writeFile)(temporaryPath, body);
-  await (0, import_promises.rename)(temporaryPath, filePath);
+  await (0, import_promises2.mkdir)(directory, { recursive: true });
+  await (0, import_promises2.writeFile)(temporaryPath, body);
+  await (0, import_promises2.rename)(temporaryPath, filePath);
 }
 var FileDesktopAgentSessionStorage = class {
   #filePath;
   constructor(userDataDirectory) {
-    this.#filePath = (0, import_node_path.join)(userDataDirectory, "desktop-session.json");
+    this.#filePath = (0, import_node_path2.join)(userDataDirectory, "desktop-session.json");
   }
   async clear() {
-    await (0, import_promises.rm)(this.#filePath, { force: true });
+    await (0, import_promises2.rm)(this.#filePath, { force: true });
   }
   async load() {
     let rawValue;
     try {
-      rawValue = await (0, import_promises.readFile)(this.#filePath, "utf8");
+      rawValue = await (0, import_promises2.readFile)(this.#filePath, "utf8");
     } catch (error) {
       if (isNodeErrorWithCode(error, "ENOENT")) {
         return null;
@@ -230,20 +2547,20 @@ var EncryptedDesktopAgentSessionStorage = class {
   #logger;
   #safeStorage;
   constructor(userDataDirectory, safeStorage2, logger = noopSessionStorageLogger) {
-    this.#encryptedFilePath = (0, import_node_path.join)(userDataDirectory, "desktop-session.bin");
-    this.#legacyFilePath = (0, import_node_path.join)(userDataDirectory, "desktop-session.json");
+    this.#encryptedFilePath = (0, import_node_path2.join)(userDataDirectory, "desktop-session.bin");
+    this.#legacyFilePath = (0, import_node_path2.join)(userDataDirectory, "desktop-session.json");
     this.#legacyStorage = new FileDesktopAgentSessionStorage(userDataDirectory);
     this.#logger = logger;
     this.#safeStorage = safeStorage2;
   }
   async clear() {
-    await (0, import_promises.rm)(this.#encryptedFilePath, { force: true });
-    await (0, import_promises.rm)(this.#legacyFilePath, { force: true });
+    await (0, import_promises2.rm)(this.#encryptedFilePath, { force: true });
+    await (0, import_promises2.rm)(this.#legacyFilePath, { force: true });
   }
   async load() {
     let encryptedValue;
     try {
-      encryptedValue = await (0, import_promises.readFile)(this.#encryptedFilePath);
+      encryptedValue = await (0, import_promises2.readFile)(this.#encryptedFilePath);
     } catch (error) {
       if (isNodeErrorWithCode(error, "ENOENT")) {
         return await this.#migrateLegacySession();
@@ -264,7 +2581,7 @@ var EncryptedDesktopAgentSessionStorage = class {
       return null;
     }
     await this.save(legacySession);
-    await (0, import_promises.rm)(this.#legacyFilePath, { force: true });
+    await (0, import_promises2.rm)(this.#legacyFilePath, { force: true });
     this.#logger.warn("Migrated legacy plaintext desktop session storage.");
     return legacySession;
   }
@@ -1317,9 +3634,9 @@ async function executeDesktopAgentInput(toolName, argumentsValue, dependencies =
 
 // src/screenshot.ts
 var import_node_child_process2 = require("node:child_process");
-var import_promises2 = require("node:fs/promises");
+var import_promises3 = require("node:fs/promises");
 var import_node_os = require("node:os");
-var import_node_path2 = require("node:path");
+var import_node_path3 = require("node:path");
 var import_node_util = require("node:util");
 var execFileAsync = (0, import_node_util.promisify)(import_node_child_process2.execFile);
 var PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -1373,7 +3690,7 @@ async function captureDesktopScreenshot() {
   if (process.platform !== "win32") {
     throw new Error("Desktop agent screenshot capture is currently supported only on Windows.");
   }
-  const outputPath = (0, import_node_path2.join)((0, import_node_os.tmpdir)(), `runa-desktop-agent-${Date.now()}-${Math.random()}.png`);
+  const outputPath = (0, import_node_path3.join)((0, import_node_os.tmpdir)(), `runa-desktop-agent-${Date.now()}-${Math.random()}.png`);
   try {
     await execFileAsync(
       "powershell.exe",
@@ -1385,7 +3702,7 @@ async function captureDesktopScreenshot() {
         windowsHide: true
       }
     );
-    const screenshotBuffer = await (0, import_promises2.readFile)(outputPath);
+    const screenshotBuffer = await (0, import_promises3.readFile)(outputPath);
     validatePngBuffer(screenshotBuffer);
     return {
       base64_data: screenshotBuffer.toString("base64"),
@@ -1394,7 +3711,7 @@ async function captureDesktopScreenshot() {
       mime_type: "image/png"
     };
   } finally {
-    await (0, import_promises2.rm)(outputPath, {
+    await (0, import_promises3.rm)(outputPath, {
       force: true
     }).catch(() => void 0);
   }
@@ -2900,8 +5217,8 @@ function isAllowedExternalUrl(url, policy = readAllowedExternalUrlPolicy()) {
 }
 
 // src/settings-store.ts
-var import_promises3 = require("node:fs/promises");
-var import_node_path3 = require("node:path");
+var import_promises4 = require("node:fs/promises");
+var import_node_path4 = require("node:path");
 var defaultDesktopAgentSettings = {
   autoStart: true,
   openWindowOnStart: false,
@@ -2925,15 +5242,15 @@ function normalizeSettings(value) {
 }
 async function atomicWriteJson(filePath, settings) {
   const temporaryPath = `${filePath}.${process.pid}.tmp`;
-  await (0, import_promises3.mkdir)((0, import_node_path3.dirname)(filePath), { recursive: true });
-  await (0, import_promises3.writeFile)(temporaryPath, JSON.stringify(settings, null, 2), "utf8");
-  await (0, import_promises3.rename)(temporaryPath, filePath);
+  await (0, import_promises4.mkdir)((0, import_node_path4.dirname)(filePath), { recursive: true });
+  await (0, import_promises4.writeFile)(temporaryPath, JSON.stringify(settings, null, 2), "utf8");
+  await (0, import_promises4.rename)(temporaryPath, filePath);
 }
 var FileDesktopAgentSettingsStore = class {
   #filePath;
   #settings = null;
   constructor(userDataDirectory) {
-    this.#filePath = (0, import_node_path3.join)(userDataDirectory, "settings.json");
+    this.#filePath = (0, import_node_path4.join)(userDataDirectory, "settings.json");
   }
   async load() {
     if (this.#settings) {
@@ -2941,7 +5258,7 @@ var FileDesktopAgentSettingsStore = class {
     }
     let rawValue;
     try {
-      rawValue = await (0, import_promises3.readFile)(this.#filePath, "utf8");
+      rawValue = await (0, import_promises4.readFile)(this.#filePath, "utf8");
     } catch (error) {
       if (isNodeErrorWithCode2(error, "ENOENT")) {
         this.#settings = defaultDesktopAgentSettings;
@@ -2968,7 +5285,7 @@ var FileDesktopAgentSettingsStore = class {
   }
   async clear() {
     this.#settings = null;
-    await (0, import_promises3.rm)(this.#filePath, { force: true });
+    await (0, import_promises4.rm)(this.#filePath, { force: true });
   }
 };
 function createFileDesktopAgentSettingsStore(userDataDirectory) {
@@ -2990,19 +5307,40 @@ var currentSettings = {
   openWindowOnStart: false,
   telemetryOptIn: false
 };
-function logBoot(message, data) {
-  const payload = data === void 0 ? "" : ` ${JSON.stringify(data)}`;
-  console.log(`[boot:${message}]${payload}`);
-}
-var bootLogger = {
-  warn: (message) => {
-    console.warn(`[boot:warn] ${message}`);
-  }
-};
 var userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.trim();
 if (userDataDirectoryOverride) {
   import_electron.app.setPath("userData", userDataDirectoryOverride);
 }
+import_electron.crashReporter.start({
+  companyName: "Runa",
+  ignoreSystemCrashHandler: false,
+  productName: "Runa Desktop",
+  submitURL: process.env["RUNA_CRASH_SUBMIT_URL"] ?? "https://localhost/",
+  uploadToServer: process.env["RUNA_CRASH_UPLOAD"] === "true"
+});
+var desktopLogger = createDesktopAgentLogger({
+  userDataDirectory: import_electron.app.getPath("userData")
+});
+function getMainLogFilePath() {
+  return (0, import_node_path5.join)(import_electron.app.getPath("userData"), "logs", "main.log");
+}
+function getCrashpadDirectoryPath() {
+  return (0, import_node_path5.join)(import_electron.app.getPath("userData"), "Crashpad");
+}
+function logBoot(message, data) {
+  const safeData = data === void 0 ? void 0 : redactPii(data);
+  const payload = safeData === void 0 ? "" : ` ${JSON.stringify(safeData)}`;
+  console.log(`[boot:${message}]${payload}`);
+  desktopLogger.info(`[boot:${message}]`, safeData ?? {});
+}
+var bootLogger = {
+  warn: (message) => {
+    const safeMessage = redactPii(message);
+    const printableMessage = typeof safeMessage === "string" ? safeMessage : JSON.stringify(safeMessage);
+    console.warn(`[boot:warn] ${printableMessage}`);
+    desktopLogger.warn(`[boot:warn] ${printableMessage}`);
+  }
+};
 var settingsStore = createFileDesktopAgentSettingsStore(import_electron.app.getPath("userData"));
 import_electron.protocol.registerSchemesAsPrivileged([
   {
@@ -3015,10 +5353,10 @@ import_electron.protocol.registerSchemesAsPrivileged([
   }
 ]);
 function getAppDir() {
-  return (0, import_node_path4.dirname)(__filename);
+  return (0, import_node_path5.dirname)(__filename);
 }
 function resolvePackagedPath(...segments) {
-  return (0, import_node_path4.join)(getAppDir(), ...segments);
+  return (0, import_node_path5.join)(getAppDir(), ...segments);
 }
 function createFallbackViewModel() {
   return {
@@ -3109,6 +5447,27 @@ async function updateSettings(patch) {
   createTrayMenu();
   return currentSettings;
 }
+async function openLogFolder() {
+  await import_electron.shell.openPath((0, import_node_path5.join)(import_electron.app.getPath("userData"), "logs"));
+}
+async function openCrashFolder() {
+  await import_electron.shell.openPath(getCrashpadDirectoryPath());
+}
+async function copyDiagnosticsSnapshot() {
+  const snapshot = await createDesktopAgentDiagnosticsSnapshot({
+    appVersion: import_electron.app.getVersion(),
+    arch: process.arch,
+    electronVersion: process.versions.electron,
+    locale: import_electron.app.getLocale(),
+    logFilePath: getMainLogFilePath(),
+    nodeVersion: process.versions.node,
+    platform: process.platform,
+    runtimeStatus: getViewModel().status,
+    settings: currentSettings
+  });
+  import_electron.clipboard.writeText(JSON.stringify(snapshot, null, 2));
+  logBoot("diagnostics:copied");
+}
 async function handleDeepLinkArgv(argv) {
   const payload = findDesktopPairingCodeInArgv(argv);
   if (!payload || !controller) {
@@ -3149,7 +5508,7 @@ function registerRendererProtocol() {
       return new Response("Not found", { status: 404 });
     }
     try {
-      const body = await (0, import_promises4.readFile)(assetPath);
+      const body = await (0, import_promises5.readFile)(assetPath);
       return new Response(body, {
         headers: {
           "content-type": resolveRendererAssetContentType(assetPath)
@@ -3227,7 +5586,7 @@ function createControllerFromEnvironment() {
 }
 function createTray() {
   const iconPath = resolvePackagedPath("../build/icon.png");
-  const trayIcon = (0, import_node_fs.existsSync)(iconPath) ? import_electron.nativeImage.createFromPath(iconPath) : import_electron.nativeImage.createEmpty();
+  const trayIcon = (0, import_node_fs2.existsSync)(iconPath) ? import_electron.nativeImage.createFromPath(iconPath) : import_electron.nativeImage.createEmpty();
   tray = new import_electron.Tray(trayIcon.isEmpty() ? import_electron.nativeImage.createEmpty() : trayIcon);
   createTrayMenu();
 }
@@ -3271,6 +5630,25 @@ function createTrayMenu() {
         },
         label: "Start with Windows",
         type: "checkbox"
+      },
+      { type: "separator" },
+      {
+        click: () => {
+          void openLogFolder();
+        },
+        label: "Open log folder"
+      },
+      {
+        click: () => {
+          void openCrashFolder();
+        },
+        label: "Open crash folder"
+      },
+      {
+        click: () => {
+          void copyDiagnosticsSnapshot();
+        },
+        label: "Copy diagnostics"
       },
       { type: "separator" },
       {
@@ -3416,8 +5794,10 @@ process.on("uncaughtException", (error) => {
     error: error.message,
     stack: error.stack
   });
+  desktopLogger.error("uncaught", error);
 });
 process.on("unhandledRejection", (reason) => {
   logBoot("process:unhandled-rejection", { reason: String(reason) });
+  desktopLogger.error("unhandled", reason);
 });
 //# sourceMappingURL=main.cjs.map

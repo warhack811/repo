@@ -6,6 +6,8 @@ import {
 	Menu,
 	Tray,
 	app,
+	clipboard,
+	crashReporter,
 	shell as electronShell,
 	ipcMain,
 	nativeImage,
@@ -19,8 +21,11 @@ import type { DesktopAgentSettingsStoreState } from '@runa/types';
 import {
 	type DesktopAgentLaunchController,
 	type DesktopAgentLaunchControllerViewModel,
+	type DesktopAgentLogger,
 	type DesktopAgentSessionInputPayload,
+	createDesktopAgentDiagnosticsSnapshot,
 	createDesktopAgentLaunchController,
+	createDesktopAgentLogger,
 	createDesktopAgentSessionStorageForSafeStorage,
 	createElectronDesktopAgentWindowHost,
 	createFileDesktopAgentSettingsStore,
@@ -29,6 +34,7 @@ import {
 	isAllowedExternalUrl,
 	readAllowedExternalUrlPolicy,
 	readDesktopAgentBootstrapConfigFromEnvironment,
+	redactPii,
 	startDesktopAgentBridge,
 } from '../src/index.js';
 
@@ -58,21 +64,47 @@ let currentSettings: DesktopAgentSettingsStoreState = {
 	telemetryOptIn: false,
 };
 
-function logBoot(message: string, data?: unknown): void {
-	const payload = data === undefined ? '' : ` ${JSON.stringify(data)}`;
-	console.log(`[boot:${message}]${payload}`);
-}
-
-const bootLogger = {
-	warn: (message: string): void => {
-		console.warn(`[boot:warn] ${message}`);
-	},
-};
-
 const userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.trim();
 if (userDataDirectoryOverride) {
 	app.setPath('userData', userDataDirectoryOverride);
 }
+
+crashReporter.start({
+	companyName: 'Runa',
+	ignoreSystemCrashHandler: false,
+	productName: 'Runa Desktop',
+	submitURL: process.env['RUNA_CRASH_SUBMIT_URL'] ?? 'https://localhost/',
+	uploadToServer: process.env['RUNA_CRASH_UPLOAD'] === 'true',
+});
+
+const desktopLogger = createDesktopAgentLogger({
+	userDataDirectory: app.getPath('userData'),
+});
+
+function getMainLogFilePath(): string {
+	return join(app.getPath('userData'), 'logs', 'main.log');
+}
+
+function getCrashpadDirectoryPath(): string {
+	return join(app.getPath('userData'), 'Crashpad');
+}
+
+function logBoot(message: string, data?: unknown): void {
+	const safeData = data === undefined ? undefined : redactPii(data);
+	const payload = safeData === undefined ? '' : ` ${JSON.stringify(safeData)}`;
+	console.log(`[boot:${message}]${payload}`);
+	desktopLogger.info(`[boot:${message}]`, safeData ?? {});
+}
+
+const bootLogger: Pick<DesktopAgentLogger, 'warn'> = {
+	warn: (message: string): void => {
+		const safeMessage = redactPii(message);
+		const printableMessage =
+			typeof safeMessage === 'string' ? safeMessage : JSON.stringify(safeMessage);
+		console.warn(`[boot:warn] ${printableMessage}`);
+		desktopLogger.warn(`[boot:warn] ${printableMessage}`);
+	},
+};
 
 const settingsStore = createFileDesktopAgentSettingsStore(app.getPath('userData'));
 
@@ -216,6 +248,31 @@ async function updateSettings(
 	applyLoginItemSettings(currentSettings);
 	createTrayMenu();
 	return currentSettings;
+}
+
+async function openLogFolder(): Promise<void> {
+	await electronShell.openPath(join(app.getPath('userData'), 'logs'));
+}
+
+async function openCrashFolder(): Promise<void> {
+	await electronShell.openPath(getCrashpadDirectoryPath());
+}
+
+async function copyDiagnosticsSnapshot(): Promise<void> {
+	const snapshot = await createDesktopAgentDiagnosticsSnapshot({
+		appVersion: app.getVersion(),
+		arch: process.arch,
+		electronVersion: process.versions.electron,
+		locale: app.getLocale(),
+		logFilePath: getMainLogFilePath(),
+		nodeVersion: process.versions.node,
+		platform: process.platform,
+		runtimeStatus: getViewModel().status,
+		settings: currentSettings,
+	});
+
+	clipboard.writeText(JSON.stringify(snapshot, null, 2));
+	logBoot('diagnostics:copied');
 }
 
 async function handleDeepLinkArgv(argv: readonly string[]): Promise<void> {
@@ -416,6 +473,25 @@ function createTrayMenu(): void {
 			},
 			{ type: 'separator' },
 			{
+				click: () => {
+					void openLogFolder();
+				},
+				label: 'Open log folder',
+			},
+			{
+				click: () => {
+					void openCrashFolder();
+				},
+				label: 'Open crash folder',
+			},
+			{
+				click: () => {
+					void copyDiagnosticsSnapshot();
+				},
+				label: 'Copy diagnostics',
+			},
+			{ type: 'separator' },
+			{
 				click: () => app.quit(),
 				label: 'Quit Runa Desktop',
 			},
@@ -582,8 +658,10 @@ process.on('uncaughtException', (error) => {
 		error: error.message,
 		stack: error.stack,
 	});
+	desktopLogger.error('uncaught', error);
 });
 
 process.on('unhandledRejection', (reason) => {
 	logBoot('process:unhandled-rejection', { reason: String(reason) });
+	desktopLogger.error('unhandled', reason);
 });

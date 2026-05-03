@@ -24,3 +24,15 @@ export interface DesktopAgentSettingsStoreState {
 export interface DesktopAgentPairingCodePayload {
 	readonly code: string;
 }
+
+export interface DesktopAgentDiagnosticsSnapshot {
+	readonly app_version: string;
+	readonly arch: string;
+	readonly electron_version: string;
+	readonly last_log_lines: readonly string[];
+	readonly locale?: string;
+	readonly node_version: string;
+	readonly platform: string;
+	readonly runtime_status: string;
+	readonly settings: DesktopAgentSettingsStoreState;
+}
