@@ -13,6 +13,22 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-TOOL-RESULT-PIPELINE - 3 Mayis 2026 (Dalga 1 + Dalga 2)
+
+- Kapsam: tool result feedback pipeline sertlestirildi. Continuation inline preview limiti `8192/16384` sabitlerine tasindi; kucuk tool sonuclari tam gorunur, buyuk sonuclar kontrollu truncate edilir. RunLayer kucuk basarili tool sonuclarinda `inline_output` tasiyor, buyuk sonuclarda `output_truncated:true` ile prompt sismesini engelliyor.
+- Runtime: `AgentLoopSnapshot` terminal `stop_reason` ve recent tool signature bilgisini tasiyor. Terminal hata mesajlari `repeated_tool_call`, `max_turns_reached`, `token_budget_reached`, `stagnation` ve `tool_failure` icin deterministik hale geldi; `run.failed.error_code` runtime termination kind'larindan turetiliyor.
+- Multi-tool continuation: ordered tool result blogu JSON payload tekrarini birakti; artik call_id ve kisa metric referanslariyla tek sentinel blok olarak yenileniyor. Ayni user mesajinda eski blok stack edilmiyor.
+- Recovery: ikinci ayni `tool_name + args_hash` tekrarindan sonra continuation mesajina guclu recovery preamble ekleniyor; `max_repeated_identical_calls=3` safety net olarak korunuyor.
+- `file.read`: opsiyonel `start_line` / `end_line` eklendi. Range validasyonu `INVALID_INPUT` ile typed hata donuyor; CRLF korunuyor; range okumada `line_range` ve donen content byte uzunlugu raporlaniyor. Argumansiz tam okuma geriye donuk uyumlu kaldi.
+- Escalation: `docs/escalation-tool-result-pipeline.md` icinde 12KB RunLayer matrisi ile M2 threshold kuralinin celiskisi kaydedildi; uygulanabilir kontrat olarak M2'nin `8192` inline threshold'u secildi.
+- Register WS follow-up: full-suite sonrasi kalan F1/F2 kirmizilari ayrildi. F2 `web.search` izolasyonda gectigi icin kod/assertion degismedi; F1 `git.diff` izolasyonda base ve branch uzerinde gecti, live tool span dusuk kaldi ve full-suite Windows zamanlama hassasiyeti olarak 15s test timeout'u ile belgelendi.
+- Dogrulama:
+  - `pnpm.cmd biome check --write` PASS (`695` dosya)
+  - `pnpm.cmd lint` PASS (`695` dosya)
+  - `pnpm.cmd -r typecheck` PASS
+  - `pnpm.cmd -r test` PASS (`apps/server`: `138` dosya / `999` test; `apps/web`: `25` dosya / `68` pass + `1` skipped; `packages/db`: `5` dosya / `26` test; `packages/utils`: no tests)
+- Kapsam disi: frontend, provider adapter, artifact spill-to-disk, memory architecture, compactor sub-agent ve repeated-call threshold degisikligi yapilmadi.
+
 ### TASK-RESILIENCE-05 - 2 Mayis 2026 (Tool Call Repair Hardening PR 1)
 
 - Kapsam: `tool-call-candidate` parser'i provider-agnostic tolerant pipeline'a tasindi; strict/sanitized/fence-stripped/trailing-comma/wrapped/empty-default stratejileri ve `repair_strategy` observability alani eklendi. Dogrulama: targeted gateway parser testleri PASS, targeted parser Biome PASS, workspace typecheck PASS; workspace lint/test mevcut `apps/server/src/ws/*` baseline kirleri nedeniyle RED.

@@ -200,4 +200,173 @@ describe('fileReadTool', () => {
 		expect(registry.has('file.read')).toBe(true);
 		expect(registry.get('file.read')).toBe(fileReadTool);
 	});
+
+	it('reads only the requested line range when start_line and end_line are provided', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'runa-file-read-range-'));
+		const targetFile = join(workspace, 'range.txt');
+
+		try {
+			await writeFile(targetFile, 'one\ntwo\nthree\nfour\n', 'utf8');
+
+			const result = await fileReadTool.execute(
+				{
+					arguments: {
+						end_line: 3,
+						path: targetFile,
+						start_line: 2,
+					},
+					call_id: 'call_file_read_range',
+					tool_name: 'file.read',
+				},
+				{
+					run_id: 'run_file_read_range',
+					trace_id: 'trace_file_read_range',
+				},
+			);
+
+			expect(result.status).toBe('success');
+
+			if (result.status !== 'success') {
+				throw new Error('Expected range read to succeed.');
+			}
+
+			expect(result.output.content).toBe('two\nthree\n');
+			expect(result.output.line_range).toEqual({
+				end: 3,
+				start: 2,
+				total_lines: 4,
+			});
+			expect(result.output.size_bytes).toBe(Buffer.byteLength('two\nthree\n', 'utf8'));
+		} finally {
+			await rm(workspace, { force: true, recursive: true });
+		}
+	});
+
+	it('rejects start_line=0 with INVALID_INPUT', async () => {
+		const result = await fileReadTool.execute(
+			{
+				arguments: {
+					path: existingFixturePath,
+					start_line: 0,
+				},
+				call_id: 'call_file_read_start_zero',
+				tool_name: 'file.read',
+			},
+			{
+				run_id: 'run_file_read_start_zero',
+				trace_id: 'trace_file_read_start_zero',
+			},
+		);
+
+		expect(result).toMatchObject({
+			error_code: 'INVALID_INPUT',
+			status: 'error',
+		});
+	});
+
+	it('rejects start_line > end_line with INVALID_INPUT', async () => {
+		const result = await fileReadTool.execute(
+			{
+				arguments: {
+					end_line: 2,
+					path: existingFixturePath,
+					start_line: 3,
+				},
+				call_id: 'call_file_read_reversed_range',
+				tool_name: 'file.read',
+			},
+			{
+				run_id: 'run_file_read_reversed_range',
+				trace_id: 'trace_file_read_reversed_range',
+			},
+		);
+
+		expect(result).toMatchObject({
+			error_code: 'INVALID_INPUT',
+			status: 'error',
+		});
+	});
+
+	it('rejects out-of-range start_line with INVALID_INPUT', async () => {
+		const result = await fileReadTool.execute(
+			{
+				arguments: {
+					path: existingFixturePath,
+					start_line: 100,
+				},
+				call_id: 'call_file_read_range_oob',
+				tool_name: 'file.read',
+			},
+			{
+				run_id: 'run_file_read_range_oob',
+				trace_id: 'trace_file_read_range_oob',
+			},
+		);
+
+		expect(result).toMatchObject({
+			error_code: 'INVALID_INPUT',
+			status: 'error',
+		});
+	});
+
+	it('preserves CRLF line endings within the requested range', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'runa-file-read-crlf-'));
+		const targetFile = join(workspace, 'crlf.txt');
+
+		try {
+			await writeFile(targetFile, 'one\r\ntwo\r\nthree\r\n', 'utf8');
+
+			const result = await fileReadTool.execute(
+				{
+					arguments: {
+						end_line: 2,
+						path: targetFile,
+						start_line: 1,
+					},
+					call_id: 'call_file_read_crlf',
+					tool_name: 'file.read',
+				},
+				{
+					run_id: 'run_file_read_crlf',
+					trace_id: 'trace_file_read_crlf',
+				},
+			);
+
+			expect(result.status).toBe('success');
+
+			if (result.status !== 'success') {
+				throw new Error('Expected CRLF range read to succeed.');
+			}
+
+			expect(result.output.content).toBe('one\r\ntwo\r\n');
+		} finally {
+			await rm(workspace, { force: true, recursive: true });
+		}
+	});
+
+	it('ignores line range parameters when both omitted for backward compatibility', async () => {
+		const result = await fileReadTool.execute(
+			{
+				arguments: {
+					path: existingFixturePath,
+				},
+				call_id: 'call_file_read_no_range',
+				tool_name: 'file.read',
+			},
+			{
+				run_id: 'run_file_read_no_range',
+				trace_id: 'trace_file_read_no_range',
+			},
+		);
+
+		expect(result.status).toBe('success');
+
+		if (result.status !== 'success') {
+			throw new Error('Expected full read to succeed.');
+		}
+
+		const expectedContent = await readFile(existingFixturePath, 'utf8');
+		expect(result.output.content).toBe(expectedContent);
+		expect(result.output.line_range).toBeUndefined();
+	});
 });

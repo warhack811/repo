@@ -3390,10 +3390,20 @@ describe('register-ws', () => {
 		expect(continuationUserMessage).toMatchObject({
 			role: 'user',
 		});
-		expect(continuationUserMessage?.content).toContain('[1] file.read (succeeded)');
-		expect(continuationUserMessage?.content).toContain('[2] web.search (succeeded)');
-		expect(continuationUserMessage?.content.indexOf('[1] file.read')).toBeLessThan(
-			continuationUserMessage?.content.indexOf('[2] web.search') ?? Number.POSITIVE_INFINITY,
+		expect(continuationUserMessage?.content).toContain(
+			'Ordered tool results (full content in run context):',
+		);
+		expect(continuationUserMessage?.content).toContain(
+			'[1] file.read#call_ws_parallel_file_read (succeeded)',
+		);
+		expect(continuationUserMessage?.content).toContain(
+			'[2] web.search#call_ws_parallel_web_search (succeeded)',
+		);
+		expect(
+			continuationUserMessage?.content.indexOf('[1] file.read#call_ws_parallel_file_read'),
+		).toBeLessThan(
+			continuationUserMessage?.content.indexOf('[2] web.search#call_ws_parallel_web_search') ??
+				Number.POSITIVE_INFINITY,
 		);
 	});
 
@@ -4051,6 +4061,27 @@ describe('register-ws', () => {
 				'presentation.blocks',
 				'run.finished',
 			]);
+			const finalPresentationMessage = resumedMessages
+				.filter(
+					(
+						message,
+					): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+						message.type === 'presentation.blocks',
+				)
+				.at(-1);
+
+			if (!finalPresentationMessage) {
+				throw new Error('Expected final presentation blocks after approval auto-continue.');
+			}
+
+			const finalApprovalBlock = finalPresentationMessage.payload.blocks.find(
+				(block): block is Extract<RenderBlock, { type: 'approval_block' }> =>
+					block.type === 'approval_block' &&
+					block.payload.approval_id === pendingApprovalBlock.payload.approval_id,
+			);
+
+			expect(finalApprovalBlock?.payload.status).toBe('approved');
+			expect(finalApprovalBlock?.payload.tool_name).toBeUndefined();
 			expect(persistRunState.mock.calls).toEqual([
 				[
 					expect.objectContaining({
@@ -4261,7 +4292,7 @@ describe('register-ws', () => {
 				).toContain('alpha updated');
 			}
 		});
-	});
+	}, 15_000);
 
 	it('resolves search.codebase from the live default registry and emits tool_result plus search_result_block on run.request', async () => {
 		await withWorkspaceTempDirectory(async (directory) => {

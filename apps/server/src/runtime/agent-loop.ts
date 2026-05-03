@@ -10,6 +10,7 @@ import type {
 	ModelResponse,
 	RuntimeState,
 	StopReason,
+	TerminalStopReason,
 	ToolArguments,
 	ToolExecutionSignal,
 	ToolResult,
@@ -53,6 +54,7 @@ export interface AgentLoopSnapshot {
 	readonly model?: StopConditionModelSignal;
 	readonly model_response?: ModelResponse;
 	readonly pending_tool_call?: PendingApprovalToolCall;
+	readonly recent_tool_calls?: readonly ToolCallSignature[];
 	readonly resolved_model_request?: ModelRequest;
 	readonly run_id: string;
 	readonly state_transitions?: readonly Readonly<{
@@ -65,6 +67,7 @@ export interface AgentLoopSnapshot {
 	readonly tool_results?: readonly ToolResult[];
 	readonly trace_id: string;
 	readonly turn_count: number;
+	readonly stop_reason?: TerminalStopReason;
 }
 
 export interface AgentLoopTurnInput {
@@ -475,6 +478,7 @@ function toFinalResult(snapshot: AgentLoopSnapshot, stopReason: StopReason): Age
 		final_snapshot: {
 			...snapshot,
 			current_loop_state: stopReason.loop_state,
+			stop_reason: stopReason.disposition === 'terminal' ? stopReason : snapshot.stop_reason,
 		},
 		stop_reason: stopReason,
 	};
@@ -692,6 +696,10 @@ export async function* createAgentLoop(
 
 		snapshot = applyTurnResult(snapshot, turnResult);
 		recentToolCalls = updateRecentToolCalls(recentToolCalls, turnStartSnapshot, snapshot);
+		snapshot = {
+			...snapshot,
+			recent_tool_calls: recentToolCalls,
+		};
 
 		for (const progressYield of createTurnProgressYields(
 			snapshot,
@@ -709,6 +717,10 @@ export async function* createAgentLoop(
 		const gatedTurn = await applyContinueGateIfNeeded(input, snapshot, recentToolCalls, turnIndex);
 		snapshot = gatedTurn.gated_snapshot;
 		recentToolCalls = updateRecentToolCalls(recentToolCalls, preGateSnapshot, snapshot);
+		snapshot = {
+			...snapshot,
+			recent_tool_calls: recentToolCalls,
+		};
 
 		for (const progressYield of createTurnProgressYields(
 			snapshot,

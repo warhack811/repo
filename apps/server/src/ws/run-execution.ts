@@ -5,8 +5,10 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelToolCallCandidate,
+	RenderBlock,
 	RuntimeEvent,
 	RuntimeState,
+	RuntimeTerminationCode,
 	ToolDefinition,
 	ToolErrorCode,
 	ToolResult,
@@ -368,9 +370,73 @@ function getNextRuntimeSequenceNo(events: readonly RuntimeEvent[]): number {
 	return (lastEvent?.sequence_no ?? 0) + 1;
 }
 
-function buildTerminalFailureMessage(snapshot: AgentLoopSnapshot): string {
+function formatStopReasonMessage(stopReason: AgentLoopSnapshot['stop_reason']): string | undefined {
+	if (stopReason === undefined) {
+		return undefined;
+	}
+
+	switch (stopReason.kind) {
+		case 'repeated_tool_call':
+			return `Run terminated: tool '${stopReason.tool_name ?? 'unknown'}' was called ${stopReason.consecutive_count} times with identical arguments.`;
+		case 'max_turns_reached':
+			return `Run terminated: reached max_turns limit (${stopReason.max_turns}).`;
+		case 'token_budget_reached':
+			return `Run terminated: ${stopReason.limit_kind} budget reached (${stopReason.observed_usage}/${stopReason.configured_limit}).`;
+		case 'stagnation':
+			return `Run terminated: only ${stopReason.unique_tool_signatures} unique tool calls in last ${stopReason.window_size} turns.`;
+		case 'tool_failure':
+			return `Run terminated: tool '${stopReason.tool_name ?? 'unknown'}' failed (${stopReason.error_code ?? 'UNKNOWN'}).`;
+		case 'failed':
+			return stopReason.error_message ?? 'Run terminated: failed.';
+		case 'cancelled':
+			return `Run terminated: cancelled${stopReason.actor ? ` by ${stopReason.actor}` : ''}.`;
+		case 'completed':
+			return 'Run terminated: completed.';
+		case 'model_stop':
+			return `Run terminated: model stopped with finish_reason '${stopReason.finish_reason}'.`;
+		default:
+			return 'Run terminated: unknown stop reason.';
+	}
+}
+
+export function resolveRuntimeTerminationCode(
+	stopReason: AgentLoopSnapshot['stop_reason'],
+): RuntimeTerminationCode | undefined {
+	if (stopReason === undefined) {
+		return undefined;
+	}
+
+	switch (stopReason.kind) {
+		case 'cancelled':
+		case 'completed':
+		case 'model_stop':
+			return undefined;
+		case 'failed':
+			return 'FAILED';
+		case 'max_turns_reached':
+			return 'MAX_TURNS_REACHED';
+		case 'repeated_tool_call':
+			return 'REPEATED_TOOL_CALL';
+		case 'stagnation':
+			return 'STAGNATION';
+		case 'token_budget_reached':
+			return 'TOKEN_BUDGET_REACHED';
+		case 'tool_failure':
+			return 'TOOL_FAILURE';
+		default:
+			return undefined;
+	}
+}
+
+export function buildTerminalFailureMessage(snapshot: AgentLoopSnapshot): string {
 	if (snapshot.failure?.error_message) {
 		return snapshot.failure.error_message;
+	}
+
+	const stopReasonMessage = formatStopReasonMessage(snapshot.stop_reason);
+
+	if (stopReasonMessage !== undefined) {
+		return stopReasonMessage;
 	}
 
 	if (isErrorToolResult(snapshot.tool_result)) {
@@ -400,6 +466,7 @@ function appendTerminalRuntimeEventsIfNeeded(
 			{
 				error_code:
 					snapshot.failure?.error_code ??
+					resolveRuntimeTerminationCode(snapshot.stop_reason) ??
 					(isErrorToolResult(snapshot.tool_result)
 						? snapshot.tool_result.error_code
 						: 'RUN_TERMINATED'),
@@ -440,6 +507,7 @@ function cloneToolDefinitionWithApprovalRequired(toolDefinition: ToolDefinition)
 interface FinalizeLiveRunResultOptions {
 	readonly conversation_id?: string;
 	readonly persist_live_memory_write: boolean;
+	readonly retained_presentation_blocks?: readonly RenderBlock[];
 	readonly working_directory: string;
 }
 
@@ -785,22 +853,52 @@ async function executePreparedToolCandidate(
 	};
 }
 
-function createOrderedToolResultContinuationText(
+const ORDERED_TOOL_RESULTS_HEADER = 'Ordered tool results (full content in run context):';
+const ORDERED_TOOL_RESULTS_BLOCK_PATTERN =
+	/\n\nOrdered tool results(?: \(full content in run context\))?:\n[\s\S]*$/u;
+
+function getToolResultMetric(toolResult: ToolResult): string | undefined {
+	if (toolResult.status === 'error') {
+		return undefined;
+	}
+
+	const output = toolResult.output;
+
+	if (output === null || typeof output !== 'object') {
+		return undefined;
+	}
+
+	if ('size_bytes' in output && typeof output.size_bytes === 'number') {
+		return `${output.size_bytes} bytes`;
+	}
+
+	if ('exit_code' in output && typeof output.exit_code === 'number') {
+		return `exit ${output.exit_code}`;
+	}
+
+	return undefined;
+}
+
+export function createOrderedToolResultContinuationText(
 	originalUserTurn: string,
 	toolResults: readonly ToolResult[],
 ): string {
 	const renderedResults = toolResults.map((toolResult, index) => {
 		if (toolResult.status === 'success') {
-			return `[${index + 1}] ${toolResult.tool_name} (succeeded): ${JSON.stringify(toolResult.output)}`;
+			const metric = getToolResultMetric(toolResult);
+
+			return `[${index + 1}] ${toolResult.tool_name}#${toolResult.call_id} (succeeded${metric ? `, ${metric}` : ''})`;
 		}
 
-		return `[${index + 1}] ${toolResult.tool_name} (failed with ${toolResult.error_code}): ${toolResult.error_message}`;
+		return `[${index + 1}] ${toolResult.tool_name}#${toolResult.call_id} (failed: ${toolResult.error_code})`;
 	});
 
-	return `${originalUserTurn}\n\nOrdered tool results:\n${renderedResults.join('\n')}`;
+	const cleanedUserTurn = originalUserTurn.replace(ORDERED_TOOL_RESULTS_BLOCK_PATTERN, '');
+
+	return `${cleanedUserTurn}\n\n${ORDERED_TOOL_RESULTS_HEADER}\n${renderedResults.join('\n')}`;
 }
 
-function replaceFinalUserMessage(
+export function replaceFinalUserMessage(
 	messages: readonly ModelMessage[],
 	toolResults: readonly ToolResult[],
 ): readonly ModelMessage[] {
@@ -1763,6 +1861,7 @@ async function executeLiveRun(
 				current_state: input.snapshot.current_runtime_state,
 				latest_tool_result: input.snapshot.tool_result,
 				memoryStore: options.memoryStore,
+				recent_tool_calls: input.snapshot.recent_tool_calls,
 				workspace_layer: workspaceLayer,
 			});
 
@@ -1919,6 +2018,7 @@ async function executeLiveRun(
 				assistant_text: finalSnapshot.assistant_text,
 				error_code:
 					finalSnapshot.failure?.error_code ??
+					resolveRuntimeTerminationCode(finalSnapshot.stop_reason) ??
 					(finalSnapshot.current_loop_state === 'FAILED'
 						? isErrorToolResult(finalSnapshot.tool_result)
 							? finalSnapshot.tool_result.error_code
@@ -2058,14 +2158,17 @@ export async function finalizeLiveRunResult(
 
 	const presentationAdditionalBlocks =
 		payload.include_presentation_blocks === true
-			? await createAdditionalPresentationBlocks({
-					approvalStore: options.approvalStore,
-					automaticApprovalPresentationInputs,
-					approvalPersistenceScope: approvalPersistenceScopeFromAuthContext(options.auth_context),
-					hooks: options,
-					payload,
-					result,
-				})
+			? [
+					...(finalizeOptions.retained_presentation_blocks ?? []),
+					...(await createAdditionalPresentationBlocks({
+						approvalStore: options.approvalStore,
+						automaticApprovalPresentationInputs,
+						approvalPersistenceScope: approvalPersistenceScopeFromAuthContext(options.auth_context),
+						hooks: options,
+						payload,
+						result,
+					})),
+				]
 			: undefined;
 
 	if (presentationAdditionalBlocks) {
@@ -2115,6 +2218,7 @@ export async function resumeApprovedAutoContinue(
 	override?: Readonly<{
 		readonly initial_tool_result?: ToolResult;
 		readonly initial_turn_count?: number;
+		readonly retained_presentation_blocks?: readonly RenderBlock[];
 	}>,
 ): Promise<boolean> {
 	if (pendingApproval.auto_continue_context === undefined) {
@@ -2142,6 +2246,7 @@ export async function resumeApprovedAutoContinue(
 	await finalizeLiveRunResult(_socket, pendingContext.payload, continuationResult, options, {
 		conversation_id: pendingContext.payload.conversation_id,
 		persist_live_memory_write: false,
+		retained_presentation_blocks: override?.retained_presentation_blocks,
 		working_directory: pendingContext.working_directory,
 	});
 

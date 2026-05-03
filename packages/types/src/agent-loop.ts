@@ -157,6 +157,18 @@ export type PausedStopReason = Extract<StopReason, { readonly disposition: 'paus
 
 export type TerminalStopReason = Extract<StopReason, { readonly disposition: 'terminal' }>;
 
+export type RuntimeTerminationCode =
+	| 'CANCELLED'
+	| 'COMPLETED'
+	| 'FAILED'
+	| 'MAX_TURNS_REACHED'
+	| 'MODEL_STOP'
+	| 'REPEATED_TOOL_CALL'
+	| 'RUN_TERMINATED'
+	| 'STAGNATION'
+	| 'TOKEN_BUDGET_REACHED'
+	| 'TOOL_FAILURE';
+
 export type TurnProgressEvent =
 	| ApprovalRuntimeEvent
 	| ModelCompletedEvent
