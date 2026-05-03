@@ -1,4 +1,5 @@
 export type {
+	ApprovalMode,
 	ApprovalResolveClientMessage,
 	ApprovalResolveDecision,
 	ApprovalResolvePayload,

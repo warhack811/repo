@@ -99,7 +99,20 @@ describe('schema scope columns', () => {
 			expect.arrayContaining(['tenant_id', 'workspace_id', 'user_id']),
 		);
 		expect(getColumnNames(policyStateColumns)).toEqual(
-			expect.arrayContaining(['tenant_id', 'workspace_id', 'user_id']),
+			expect.arrayContaining([
+				'approval_mode',
+				'approval_mode_updated_at',
+				'tenant_id',
+				'trusted_session_approved_capability_count',
+				'trusted_session_consumed_turns',
+				'trusted_session_enabled',
+				'trusted_session_enabled_at',
+				'trusted_session_expires_at',
+				'trusted_session_max_approved_capabilities',
+				'trusted_session_max_turns',
+				'user_id',
+				'workspace_id',
+			]),
 		);
 
 		expect(runtimeEventColumns.tenant_id.notNull).toBe(false);
@@ -110,6 +123,9 @@ describe('schema scope columns', () => {
 		expect(memoryColumns.user_id.notNull).toBe(false);
 		expect(checkpointColumns.user_id.notNull).toBe(false);
 		expect(policyStateColumns.user_id.notNull).toBe(false);
+		expect(policyStateColumns.approval_mode.notNull).toBe(false);
+		expect(policyStateColumns.trusted_session_enabled.notNull).toBe(false);
+		expect(policyStateColumns.trusted_session_consumed_turns.notNull).toBe(false);
 	});
 
 	it('stays aligned with rls required scope assumptions', () => {
@@ -158,6 +174,11 @@ describe('schema scope columns', () => {
 				expect.stringContaining('ALTER TABLE approvals'),
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS continuation_context jsonb'),
 				expect.stringContaining('CREATE TABLE IF NOT EXISTS policy_states'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS approval_mode text'),
+				expect.stringContaining('ADD COLUMN IF NOT EXISTS trusted_session_consumed_turns integer'),
+				expect.stringContaining(
+					'ADD COLUMN IF NOT EXISTS trusted_session_approved_capability_count integer',
+				),
 				expect.stringContaining('ALTER TABLE memories'),
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS retrieval_text text'),
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS embedding_metadata jsonb'),

@@ -1,5 +1,6 @@
 import type {
 	ApprovalActionKind,
+	ApprovalMode,
 	ApprovalRequest,
 	ToolCapabilityClass,
 	ToolDefinition,
@@ -62,6 +63,10 @@ export interface WebSocketPolicyWiring {
 			readonly outcome: PermissionOutcomeKind;
 		}>,
 	): Promise<PermissionOutcomeResult>;
+	setApprovalMode(
+		socket: WebSocketConnection,
+		approvalMode: ApprovalMode | string | undefined,
+	): Promise<PermissionEngineState>;
 	rememberApprovalDecision(
 		socket: WebSocketConnection,
 		approval_id: string,
@@ -288,6 +293,15 @@ export function createWebSocketPolicyWiring(
 
 			await setState(socket, result.next_state);
 			return result;
+		},
+		async setApprovalMode(socket, approvalMode) {
+			const nextState = permissionEngine.applyApprovalMode({
+				approval_mode: approvalMode,
+				state: await getOrCreateState(socket),
+			});
+
+			await setState(socket, nextState);
+			return nextState;
 		},
 		rememberApprovalDecision(_socket, _approvalId, _decision) {
 			// Approval decisions are reconstructed from persisted approval metadata when resolved.

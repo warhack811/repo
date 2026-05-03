@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import type { AuthContext } from '@runa/types';
+import type { ApprovalMode, AuthContext } from '@runa/types';
 import { ProfileCard } from '../components/auth/ProfileCard.js';
 import { RunaSkeleton } from '../components/ui/RunaSkeleton.js';
 import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
@@ -37,6 +37,80 @@ const themeOptions: readonly { value: Theme; label: string }[] = [
 	{ value: 'light', label: 'Açık' },
 ];
 
+const runtimeConfigStorageKey = 'runa.developer.runtime_config';
+const approvalModeValues = ['ask-every-time', 'standard', 'trusted-session'] as const;
+const defaultSettingsApprovalMode: ApprovalMode = 'standard';
+
+const approvalModeOptions: readonly {
+	readonly description: string;
+	readonly label: string;
+	readonly value: ApprovalMode;
+}[] = [
+	{
+		description: 'Her tool/capability kullanimi icin acik onay ister.',
+		label: 'Her islemde sor',
+		value: 'ask-every-time',
+	},
+	{
+		description: 'Dusuk riskli okumalar akici kalir; yazma ve riskli islemler onay ister.',
+		label: 'Standart',
+		value: 'standard',
+	},
+	{
+		description:
+			'Oturumla sinirlidir; komut, masaustu kontrolu ve yuksek riskli islemler yine onay ister.',
+		label: 'Guvenilir oturum',
+		value: 'trusted-session',
+	},
+];
+
+function isApprovalMode(value: unknown): value is ApprovalMode {
+	return typeof value === 'string' && approvalModeValues.includes(value as ApprovalMode);
+}
+
+function readStoredApprovalMode(): ApprovalMode {
+	if (typeof window === 'undefined') {
+		return defaultSettingsApprovalMode;
+	}
+
+	try {
+		const rawValue = window.localStorage.getItem(runtimeConfigStorageKey);
+
+		if (rawValue === null) {
+			return defaultSettingsApprovalMode;
+		}
+
+		const parsedValue = JSON.parse(rawValue) as { readonly approvalMode?: unknown };
+
+		return isApprovalMode(parsedValue.approvalMode)
+			? parsedValue.approvalMode
+			: defaultSettingsApprovalMode;
+	} catch {
+		return defaultSettingsApprovalMode;
+	}
+}
+
+function storeApprovalMode(mode: ApprovalMode): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
+
+	try {
+		const rawValue = window.localStorage.getItem(runtimeConfigStorageKey);
+		const parsedValue = rawValue === null ? {} : (JSON.parse(rawValue) as Record<string, unknown>);
+
+		window.localStorage.setItem(
+			runtimeConfigStorageKey,
+			JSON.stringify({
+				...parsedValue,
+				approvalMode: mode,
+			}),
+		);
+	} catch {
+		window.localStorage.setItem(runtimeConfigStorageKey, JSON.stringify({ approvalMode: mode }));
+	}
+}
+
 export function SettingsPage({
 	authContext,
 	authError,
@@ -47,6 +121,7 @@ export function SettingsPage({
 	const [activeTab, setActiveTab] = useState<SettingsTab>(() =>
 		parseSettingsTab(searchParams.get('tab')),
 	);
+	const [approvalMode, setApprovalMode] = useState<ApprovalMode>(() => readStoredApprovalMode());
 	const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 	const {
 		autoReadEnabled,
@@ -66,6 +141,11 @@ export function SettingsPage({
 		setTheme(nextTheme);
 		storeTheme(nextTheme);
 		applyTheme(nextTheme);
+	}
+
+	function selectApprovalMode(nextMode: ApprovalMode): void {
+		setApprovalMode(nextMode);
+		storeApprovalMode(nextMode);
 	}
 
 	function selectTab(nextTab: SettingsTab): void {
@@ -135,6 +215,40 @@ export function SettingsPage({
 										>
 											{option.label}
 										</button>
+									))}
+								</div>
+							</section>
+							<section
+								className="runa-settings-preference-section"
+								aria-labelledby="approval-mode-heading"
+							>
+								<h2 id="approval-mode-heading">Onay modu</h2>
+								<div
+									className="runa-settings-approval-modes"
+									role="radiogroup"
+									aria-label="Onay modu"
+								>
+									{approvalModeOptions.map((option) => (
+										<label
+											key={option.value}
+											className={
+												approvalMode === option.value
+													? 'runa-settings-approval-mode is-active'
+													: 'runa-settings-approval-mode'
+											}
+										>
+											<input
+												type="radio"
+												name="approval-mode"
+												value={option.value}
+												checked={approvalMode === option.value}
+												onChange={() => selectApprovalMode(option.value)}
+											/>
+											<span>
+												<strong>{option.label}</strong>
+												<small>{option.description}</small>
+											</span>
+										</label>
 									))}
 								</div>
 							</section>

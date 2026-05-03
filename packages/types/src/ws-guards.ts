@@ -18,6 +18,7 @@ import type {
 	InspectionRequestPayload,
 	PresentationBlocksServerMessage,
 	RunAcceptedServerMessage,
+	RunApprovalPolicy,
 	RunFinishedServerMessage,
 	RunRejectedServerMessage,
 	RunRequestClientMessage,
@@ -29,6 +30,7 @@ import type {
 	WebSocketServerBridgeMessage,
 } from './ws.js';
 import {
+	approvalModes,
 	desktopAgentProtocolVersion,
 	desktopAgentRejectCodes,
 	desktopAgentToolNames,
@@ -67,7 +69,12 @@ interface RequestCandidate {
 	readonly temperature?: unknown;
 }
 
+interface RunApprovalPolicyCandidate {
+	readonly mode?: unknown;
+}
+
 interface RunRequestPayloadCandidate {
+	readonly approval_policy?: unknown;
 	readonly attachments?: unknown;
 	readonly conversation_id?: unknown;
 	readonly desktop_target_connection_id?: unknown;
@@ -792,6 +799,20 @@ function isGatewayProvider(value: unknown): value is RunRequestPayload['provider
 	);
 }
 
+function isApprovalMode(value: unknown): value is RunApprovalPolicy['mode'] {
+	return typeof value === 'string' && approvalModes.includes(value as RunApprovalPolicy['mode']);
+}
+
+function isRunApprovalPolicy(value: unknown): value is RunApprovalPolicy {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as RunApprovalPolicyCandidate;
+
+	return isApprovalMode(candidate.mode);
+}
+
 export function isProviderConfig(value: unknown): value is RunRequestPayload['provider_config'] {
 	if (!isProviderConfigCandidate(value)) {
 		return false;
@@ -813,6 +834,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 	}
 
 	const {
+		approval_policy: approvalPolicy,
 		attachments,
 		conversation_id: conversationId,
 		desktop_target_connection_id: desktopTargetConnectionId,
@@ -831,6 +853,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 	const { max_output_tokens: maxOutputTokens, messages, metadata, model, temperature } = request;
 
 	return (
+		(approvalPolicy === undefined || isRunApprovalPolicy(approvalPolicy)) &&
 		(attachments === undefined || isAttachmentArray(attachments)) &&
 		(conversationId === undefined || typeof conversationId === 'string') &&
 		(desktopTargetConnectionId === undefined || typeof desktopTargetConnectionId === 'string') &&

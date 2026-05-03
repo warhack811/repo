@@ -347,6 +347,8 @@ const CREATE_POLICY_STATES_TABLE_SQL = `
 		user_id text,
 		tenant_id text,
 		workspace_id text,
+		approval_mode text,
+		approval_mode_updated_at timestamptz,
 		consecutive_denials integer NOT NULL,
 		last_denial_at timestamptz,
 		last_denied_capability_id text,
@@ -354,6 +356,13 @@ const CREATE_POLICY_STATES_TABLE_SQL = `
 		auto_continue_enabled boolean NOT NULL,
 		auto_continue_enabled_at timestamptz,
 		auto_continue_max_consecutive_turns integer,
+		trusted_session_enabled boolean,
+		trusted_session_enabled_at timestamptz,
+		trusted_session_expires_at timestamptz,
+		trusted_session_max_turns integer,
+		trusted_session_consumed_turns integer,
+		trusted_session_max_approved_capabilities integer,
+		trusted_session_approved_capability_count integer,
 		session_pause_active boolean NOT NULL,
 		session_pause_paused_at timestamptz,
 		session_pause_reason text,
@@ -376,6 +385,51 @@ const ALTER_POLICY_STATES_ADD_TENANT_ID_SQL = `
 const ALTER_POLICY_STATES_ADD_WORKSPACE_ID_SQL = `
 	ALTER TABLE policy_states
 	ADD COLUMN IF NOT EXISTS workspace_id text;
+`;
+
+const ALTER_POLICY_STATES_ADD_APPROVAL_MODE_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS approval_mode text;
+`;
+
+const ALTER_POLICY_STATES_ADD_APPROVAL_MODE_UPDATED_AT_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS approval_mode_updated_at timestamptz;
+`;
+
+const ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_ENABLED_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS trusted_session_enabled boolean;
+`;
+
+const ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_ENABLED_AT_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS trusted_session_enabled_at timestamptz;
+`;
+
+const ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_EXPIRES_AT_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS trusted_session_expires_at timestamptz;
+`;
+
+const ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_MAX_TURNS_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS trusted_session_max_turns integer;
+`;
+
+const ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_CONSUMED_TURNS_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS trusted_session_consumed_turns integer;
+`;
+
+const ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_MAX_APPROVED_CAPABILITIES_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS trusted_session_max_approved_capabilities integer;
+`;
+
+const ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_APPROVED_CAPABILITY_COUNT_SQL = `
+	ALTER TABLE policy_states
+	ADD COLUMN IF NOT EXISTS trusted_session_approved_capability_count integer;
 `;
 
 const CREATE_POLICY_STATES_STATUS_INDEX_SQL = `
@@ -589,6 +643,15 @@ export function getDatabaseSchemaBootstrapStatements(): readonly string[] {
 		ALTER_POLICY_STATES_ADD_USER_ID_SQL,
 		ALTER_POLICY_STATES_ADD_TENANT_ID_SQL,
 		ALTER_POLICY_STATES_ADD_WORKSPACE_ID_SQL,
+		ALTER_POLICY_STATES_ADD_APPROVAL_MODE_SQL,
+		ALTER_POLICY_STATES_ADD_APPROVAL_MODE_UPDATED_AT_SQL,
+		ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_ENABLED_SQL,
+		ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_ENABLED_AT_SQL,
+		ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_EXPIRES_AT_SQL,
+		ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_MAX_TURNS_SQL,
+		ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_CONSUMED_TURNS_SQL,
+		ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_MAX_APPROVED_CAPABILITIES_SQL,
+		ALTER_POLICY_STATES_ADD_TRUSTED_SESSION_APPROVED_CAPABILITY_COUNT_SQL,
 		CREATE_POLICY_STATES_STATUS_INDEX_SQL,
 		CREATE_POLICY_STATES_USER_ID_INDEX_SQL,
 		CREATE_MEMORIES_TABLE_SQL,

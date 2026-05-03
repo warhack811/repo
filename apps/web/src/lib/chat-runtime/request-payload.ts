@@ -1,11 +1,12 @@
 import type { ModelAttachment, ModelMessage } from '@runa/types';
 import { uiCopy } from '../../localization/copy.js';
-import type { GatewayProvider, RunRequestPayload } from '../../ws-types.js';
+import type { ApprovalMode, GatewayProvider, RunRequestPayload } from '../../ws-types.js';
 
 export const DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 2048;
 
 export interface CreateRunRequestPayloadInput {
 	readonly apiKey: string;
+	readonly approvalMode?: ApprovalMode;
 	readonly attachments?: readonly ModelAttachment[];
 	readonly conversationId?: string | null;
 	readonly desktopTargetConnectionId?: string | null;
@@ -34,6 +35,9 @@ export function createRunRequestPayload(input: CreateRunRequestPayloadInput): Ru
 	}
 
 	return {
+		approval_policy: {
+			mode: input.approvalMode ?? 'standard',
+		},
 		attachments: attachments.length > 0 ? attachments : undefined,
 		include_presentation_blocks: input.includePresentationBlocks,
 		conversation_id: input.conversationId?.trim() || undefined,

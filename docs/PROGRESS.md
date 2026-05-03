@@ -29,6 +29,28 @@
   - `pnpm.cmd -r test` PASS (`apps/server`: `138` dosya / `999` test; `apps/web`: `25` dosya / `68` pass + `1` skipped; `packages/db`: `5` dosya / `26` test; `packages/utils`: no tests)
 - Kapsam disi: frontend, provider adapter, artifact spill-to-disk, memory architecture, compactor sub-agent ve repeated-call threshold degisikligi yapilmadi.
 
+### TASK-POLICY-APPROVAL-MODES-02 - 3 Mayis 2026
+
+- Kapsam: `policy_states` semasi approval mode ve trusted-session state alanlariyla genisletildi: `approval_mode`, mode timestamp'i, trusted-session enabled/ttl/max-turn/counter alanlari idempotent bootstrap `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` hattina eklendi. DB upsert set'i yeni kolonlari yaziyor.
+- Persistence: server policy-state hydrate/write mapping'i approval mode, trusted-session ttl ve counter state'ini DB-backed hale getirdi. Eski row'lar `standard` + trusted disabled olarak hydrate ediliyor; invalid mode `standard`'a clamp ediliyor; invalid/missing timestamp veya counter state auto-allow uretmeyecek sekilde safe disabled state'e dusuyor.
+- Policy lifecycle: `run.request` approval mode'u server tarafinda normalize ediliyor. Mode degisimi trusted-session ve auto-continue state'ini sifirliyor; ayni trusted-session modunda turn counter persist ediliyor; progressive-trust allow sonrasi approved capability counter persist ediliyor.
+- Security invariants: hard-deny/auth precedence korunuyor. Trusted-session high-risk execution, shell, desktop, write/execute side effect ve secret/env/token benzeri capability'leri auto-allow etmiyor. TTL, max turn ve max approved capability sinirlari persisted/hydrated state sonrasinda da approval boundary uretiyor.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/db typecheck` PASS
+  - `pnpm.cmd --filter @runa/db test` PASS (`6` dosya / `28` test)
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS
+  - `pnpm.cmd --filter @runa/server test -- policy-state-store permission-engine policy-wiring register-ws` PASS (`4` dosya / `94` test)
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web test -- SettingsPage useChatRuntime.approval` PASS (`2` dosya / `3` test)
+  - `pnpm.cmd lint` PASS (`699` dosya)
+  - `pnpm.cmd build` PASS
+  - `$env:DATABASE_TARGET='local'; pnpm.cmd --filter @runa/server run test:persistence-release-proof` PASS; `PERSISTENCE_RELEASE_PROOF_SUMMARY result=PASS`, local DB CRUD PASS, first-run conversation PASS, memory RLS PASS, approval persistence/reconnect PASS, auto-continue restart `run.finished(COMPLETED)`.
+  - `$env:DATABASE_TARGET='cloud'; pnpm.cmd --filter @runa/server run test:persistence-release-proof` PASS; `PERSISTENCE_RELEASE_PROOF_SUMMARY result=PASS`, cloud approval persistence/reconnect PASS, auto-continue restart `run.finished(COMPLETED)`.
+- Browser live QA: `pnpm.cmd exec playwright test e2e/approval-modes-capabilities-e2e.spec.ts --config playwright.config.ts` PASS (`12` Chromium test). Approval mode ve 10+ capability senaryosu canlı tarayıcıda doğrulandı: standard chat, standard `file.list`, ask-every-time `file.read`, trusted-session `file.read`, trusted-session `file.write`, `search.grep`, `search.codebase`, `git.status`, `git.diff`, `shell.exec` approval boundary ve `browser.navigate`. Screenshot kanitlari: `docs/design-audit/screenshots/2026-05-03-approval-modes-capability-live/`.
+- Live QA bulgulari/fixler: ask-every-time modunda safe tool metadata'si approval request'e clone edilmedigi icin approval path fail ediyordu; `run-execution` approval tool definition resolve hattinda duzeltildi ve register-ws regresyon testi eklendi. E2E server'da scenario marker izolasyonu son kullanici prompt'una baglandi; `/desktop/devices` ve conversation members endpoint stub'lari eklenerek tarayici konsolundaki 404 hatalari temizlendi.
+- Kalan risk: Bu turda kalan task-local risk yok. Playwright webServer log'unda service worker'in Playwright tarafindan bloklandigina dair beklenen Vite console.warn logu goruluyor; test icindeki page console/page/response hata assertion'lari temiz.
+
 ### TASK-RESILIENCE-05 - 2 Mayis 2026 (Tool Call Repair Hardening PR 1)
 
 - Kapsam: `tool-call-candidate` parser'i provider-agnostic tolerant pipeline'a tasindi; strict/sanitized/fence-stripped/trailing-comma/wrapped/empty-default stratejileri ve `repair_strategy` observability alani eklendi. Dogrulama: targeted gateway parser testleri PASS, targeted parser Biome PASS, workspace typecheck PASS; workspace lint/test mevcut `apps/server/src/ws/*` baseline kirleri nedeniyle RED.

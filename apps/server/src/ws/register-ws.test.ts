@@ -872,6 +872,86 @@ describe('register-ws', () => {
 		);
 	});
 
+	it('accepts trusted-session mode payloads and persists the server-owned policy state', async () => {
+		const socket = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const policyStateStore = createPolicyStateStore();
+		const policyWiring = createWebSocketPolicyWiring({
+			permission_engine: createPermissionEngine({
+				now: () => '2026-05-03T10:00:00.000Z',
+			}),
+			policy_state_store: policyStateStore.store,
+		});
+		const authContext = createAuthenticatedAuthContext();
+
+		attachRuntimeWebSocketHandler(socket, {
+			auth_context: authContext,
+		});
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () =>
+				createGroqAssistantResponse({
+					content: 'Trusted session accepted.',
+					response_id: 'chatcmpl_ws_trusted_session_mode',
+				}),
+			),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					approval_policy: {
+						mode: 'trusted-session',
+					},
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Hello trusted mode', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_trusted_session_mode_1',
+					trace_id: 'trace_ws_trusted_session_mode_1',
+				},
+				type: 'run.request',
+			}),
+			{
+				auth_context: authContext,
+				persistEvents,
+				policy_wiring: policyWiring,
+			},
+		);
+
+		expect(parseMessages(socket).map((message) => message.type)).toContain('run.finished');
+		expect(policyStateStore.putPolicyStateMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				session_id: 'session_1',
+				tenant_id: 'tenant_1',
+				user_id: 'user_1',
+				workspace_id: 'workspace_1',
+			}),
+			expect.objectContaining({
+				progressive_trust: expect.objectContaining({
+					approval_mode: {
+						mode: 'trusted-session',
+						updated_at: '2026-05-03T10:00:00.000Z',
+					},
+					trusted_session: expect.objectContaining({
+						consumed_turns: 1,
+						enabled: true,
+						enabled_at: '2026-05-03T10:00:00.000Z',
+						max_approved_capabilities: 50,
+						max_turns: 20,
+					}),
+				}),
+			}),
+		);
+	});
+
 	it('rejects viewers from starting a run in a shared conversation', async () => {
 		const socket = new MockSocket();
 
@@ -3728,6 +3808,117 @@ describe('register-ws', () => {
 					),
 			).toEqual(['MODEL_THINKING', 'TOOL_EXECUTING', 'TOOL_RESULT_INGESTING', 'WAITING_APPROVAL']);
 			expect(fetchCallCount).toBe(1);
+		});
+	});
+
+	it('requests approval for safe tools in ask-every-time mode instead of failing the approval path', async () => {
+		await withTempDirectory(async (directory) => {
+			const socket = new MockSocket();
+			const approvalStore = createApprovalStore();
+			const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+			const registry = new ToolRegistry();
+			const filePath = join(directory, 'ask-mode.txt');
+
+			registry.register(fileReadTool);
+			await writeFile(filePath, 'ask mode approval proof\n', 'utf8');
+			attachRuntimeWebSocketHandler(socket);
+
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(
+					async () =>
+						new Response(
+							JSON.stringify({
+								choices: [
+									{
+										finish_reason: 'tool_calls',
+										message: {
+											role: 'assistant',
+											tool_calls: [
+												{
+													function: {
+														arguments: {
+															path: filePath,
+														},
+														name: 'file.read',
+													},
+													id: 'call_ws_ask_mode_read_1',
+													type: 'function',
+												},
+											],
+										},
+									},
+								],
+								id: 'chatcmpl_ws_ask_mode_read_1',
+								model: 'llama-3.3-70b-versatile',
+								usage: {
+									completion_tokens: 12,
+									prompt_tokens: 8,
+									total_tokens: 20,
+								},
+							}),
+							{
+								headers: {
+									'content-type': 'application/json',
+								},
+								status: 200,
+							},
+						),
+				),
+			);
+
+			await handleWebSocketMessage(
+				socket,
+				JSON.stringify({
+					payload: {
+						approval_policy: {
+							mode: 'ask-every-time',
+						},
+						include_presentation_blocks: true,
+						provider: 'groq',
+						provider_config: {
+							apiKey: 'groq-key',
+						},
+						request: {
+							max_output_tokens: 64,
+							messages: [{ content: 'Read the file after approval', role: 'user' }],
+							model: 'llama-3.3-70b-versatile',
+						},
+						run_id: 'run_ws_ask_mode_read_1',
+						trace_id: 'trace_ws_ask_mode_read_1',
+					},
+					type: 'run.request',
+				}),
+				{
+					approvalStore: approvalStore.store,
+					persistEvents,
+					toolRegistry: registry,
+				},
+			);
+
+			const messages = parseMessages(socket);
+			const pendingApproval = approvalStore.persistApprovalRequestMock.mock.calls
+				.map((call): PersistApprovalRequestInput => call[0] as PersistApprovalRequestInput)
+				.find((call) => call.approval_request.tool_name === 'file.read');
+			const approvalMessage = messages
+				.filter(
+					(
+						message,
+					): message is Extract<WebSocketServerBridgeMessage, { type: 'presentation.blocks' }> =>
+						message.type === 'presentation.blocks',
+				)
+				.find((message) =>
+					message.payload.blocks.some(
+						(block) => block.type === 'approval_block' && block.payload.tool_name === 'file.read',
+					),
+				);
+
+			expect(messages.map((message) => message.type)).toContain('run.accepted');
+			expect(messages.map((message) => message.type)).not.toContain('run.finished');
+			expect(messages.map((message) => message.type)).not.toContain('run.failed');
+			expect(approvalStore.persistApprovalRequestMock).toHaveBeenCalledTimes(1);
+			expect(pendingApproval?.approval_request.call_id).toBe('call_ws_ask_mode_read_1');
+			expect(approvalMessage).toBeDefined();
 		});
 	});
 

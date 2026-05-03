@@ -11,6 +11,7 @@ const serverDistRoot = resolve(workspaceRoot, 'apps', 'server', 'dist');
 const serverNodeModulesRoot = resolve(workspaceRoot, 'apps', 'server', 'node_modules');
 const proofDirectory = join(os.tmpdir(), 'runa-e2e-proof');
 const proofFilePath = join(proofDirectory, 'approval-proof.txt');
+const scenarioWriteProofPath = join(proofDirectory, 'scenario-write-proof.txt');
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';
 const DEEPSEEK_CHAT_COMPLETIONS_URL = 'https://api.deepseek.com/chat/completions';
 const envFilePath = resolve(workspaceRoot, '.env');
@@ -18,6 +19,7 @@ const envLocalFilePath = resolve(workspaceRoot, '.env.local');
 
 mkdirSync(proofDirectory, { recursive: true });
 rmSync(proofFilePath, { force: true });
+rmSync(scenarioWriteProofPath, { force: true });
 
 process.env.NODE_ENV ??= 'development';
 process.env.RUNA_DEV_AUTH_ENABLED ??= '1';
@@ -119,15 +121,147 @@ function collectUserMessageText(messages) {
 		.join('\n');
 }
 
+function findScenarioUserMessage(messages) {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		const message = messages[index];
+
+		if (message?.role !== 'user' || typeof message.content !== 'string') {
+			continue;
+		}
+
+		const content = message.content.trim();
+
+		if (content.length <= 240 && content.includes('[runa-e2e:cap-')) {
+			return content;
+		}
+	}
+
+	return '';
+}
+
 function isContinuationRequest(lastUserMessage) {
 	return lastUserMessage.startsWith(
 		'Continue the same user request using the latest ingested tool result from the runtime context.',
 	);
 }
 
+function createToolCall(name, args, callId) {
+	return {
+		function: {
+			arguments: JSON.stringify(args),
+			name,
+		},
+		id: callId,
+		type: 'function',
+	};
+}
+
+function resolveScenarioToolCall(userMessageText) {
+	const normalizedText = userMessageText.toLowerCase();
+
+	if (normalizedText.includes('[runa-e2e:cap-file-list]')) {
+		return createToolCall(
+			'file_list',
+			{
+				include_hidden: false,
+				path: '.',
+			},
+			'call_e2e_file_list',
+		);
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-file-read]')) {
+		return createToolCall(
+			'file_read',
+			{
+				end_line: 8,
+				path: 'README.md',
+				start_line: 1,
+			},
+			'call_e2e_file_read',
+		);
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-search-grep]')) {
+		return createToolCall(
+			'search_grep',
+			{
+				case_sensitive: false,
+				path: 'docs',
+				query: 'Runa',
+			},
+			'call_e2e_search_grep',
+		);
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-search-codebase]')) {
+		return createToolCall(
+			'search_codebase',
+			{
+				include_hidden: false,
+				query: 'createWebSocketPolicyWiring',
+				working_directory: 'apps/server/src/ws',
+			},
+			'call_e2e_search_codebase',
+		);
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-git-status]')) {
+		return createToolCall('git_status', {}, 'call_e2e_git_status');
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-git-diff]')) {
+		return createToolCall(
+			'git_diff',
+			{
+				cached: false,
+			},
+			'call_e2e_git_diff',
+		);
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-file-write]')) {
+		return createToolCall(
+			'file_write',
+			{
+				content: 'scenario write proof\n',
+				overwrite: true,
+				path: scenarioWriteProofPath,
+			},
+			'call_e2e_file_write_scenario',
+		);
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-shell-exec]')) {
+		return createToolCall(
+			'shell_exec',
+			{
+				args: ['-e', "console.log('shell scenario ok')"],
+				command: 'node',
+				timeout_ms: 5_000,
+			},
+			'call_e2e_shell_exec',
+		);
+	}
+
+	if (normalizedText.includes('[runa-e2e:cap-browser-navigate]')) {
+		return createToolCall(
+			'browser_navigate',
+			{
+				url: 'http://127.0.0.1:4173/tests/visual/evidence-sources-fixture.html',
+				wait_until: 'domcontentloaded',
+			},
+			'call_e2e_browser_navigate',
+		);
+	}
+
+	return null;
+}
+
 function createMockDeepSeekResponse(requestBody) {
 	const userMessageText = collectUserMessageText(requestBody.messages);
 	const lastUserMessage = findLastUserMessage(requestBody.messages ?? []);
+	const scenarioUserMessage = findScenarioUserMessage(requestBody.messages ?? []);
 	const model = requestBody.model ?? 'deepseek-v4-flash';
 
 	if (isContinuationRequest(lastUserMessage)) {
@@ -136,7 +270,7 @@ function createMockDeepSeekResponse(requestBody) {
 				{
 					finish_reason: 'stop',
 					message: {
-						content: `Approval flow completed. Proof saved to ${proofFilePath}.`,
+						content: `E2E scenario completed. Proof directory: ${proofDirectory}.`,
 						role: 'assistant',
 					},
 				},
@@ -146,6 +280,30 @@ function createMockDeepSeekResponse(requestBody) {
 			usage: {
 				completion_tokens: 24,
 				prompt_tokens: 42,
+				total_tokens: 66,
+			},
+		});
+	}
+
+	const scenarioToolCall = resolveScenarioToolCall(scenarioUserMessage);
+
+	if (scenarioToolCall) {
+		return createJsonResponse({
+			choices: [
+				{
+					finish_reason: 'tool_calls',
+					message: {
+						content: null,
+						role: 'assistant',
+						tool_calls: [scenarioToolCall],
+					},
+				},
+			],
+			id: 'deepseek_e2e_capability_scenario',
+			model,
+			usage: {
+				completion_tokens: 18,
+				prompt_tokens: 48,
 				total_tokens: 66,
 			},
 		});
@@ -481,6 +639,23 @@ server.get('/conversations/:conversationId/messages', async (request, reply) => 
 			statusCode: 404,
 		});
 	}
+});
+
+server.get('/conversations/:conversationId/members', async (request) => {
+	requireAuthenticatedRequest(request);
+
+	return {
+		conversation_id: request.params.conversationId,
+		members: [],
+	};
+});
+
+server.get('/desktop/devices', async (request) => {
+	requireAuthenticatedRequest(request);
+
+	return {
+		devices: [],
+	};
 });
 
 server.get('/ws', { websocket: true }, async (socket, request) => {

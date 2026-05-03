@@ -35,6 +35,10 @@ import {
 import { persistRuntimeEvents } from '../persistence/event-store.js';
 import { defaultMemoryStore } from '../persistence/memory-store.js';
 import { persistRunState } from '../persistence/run-store.js';
+import {
+	type RequireApprovalPermissionDecision,
+	normalizeApprovalMode,
+} from '../policy/permission-engine.js';
 import { requireUsageRateLimit } from '../policy/usage-quota.js';
 import { adaptModelResponseToTurnOutcome } from '../runtime/adapt-model-response-to-turn-outcome.js';
 import type { AgentLoopSnapshot } from '../runtime/agent-loop.js';
@@ -502,6 +506,20 @@ function cloneToolDefinitionWithApprovalRequired(toolDefinition: ToolDefinition)
 			requires_approval: true,
 		},
 	};
+}
+
+function resolveToolDefinitionForApprovalRequest(
+	toolDefinition: ToolDefinition,
+	decision: RequireApprovalPermissionDecision,
+): ToolDefinition {
+	if (
+		decision.approval_requirement.source === 'capability' &&
+		toolDefinition.metadata.requires_approval
+	) {
+		return toolDefinition;
+	}
+
+	return cloneToolDefinitionWithApprovalRequired(toolDefinition);
 }
 
 interface FinalizeLiveRunResultOptions {
@@ -1342,10 +1360,10 @@ async function runPolicyAwareModelTurn(
 						target_connection_id: options.desktop_target_connection_id,
 						tool_name: primaryToolCallOutcome.tool_name,
 					}),
-					tool_definition:
-						permissionEvaluation.decision.reason === 'approval_required_by_policy'
-							? cloneToolDefinitionWithApprovalRequired(toolDefinition)
-							: toolDefinition,
+					tool_definition: resolveToolDefinitionForApprovalRequest(
+						toolDefinition,
+						permissionEvaluation.decision,
+					),
 					trace_id: input.trace_id,
 				});
 
@@ -1617,10 +1635,10 @@ async function runPolicyAwareModelTurn(
 				target_connection_id: options.desktop_target_connection_id,
 				tool_name: blockedApprovalCandidate.candidate.tool_name,
 			}),
-			tool_definition:
-				approvalDecision.reason === 'approval_required_by_policy'
-					? cloneToolDefinitionWithApprovalRequired(blockedApprovalCandidate.tool_definition)
-					: blockedApprovalCandidate.tool_definition,
+			tool_definition: resolveToolDefinitionForApprovalRequest(
+				blockedApprovalCandidate.tool_definition,
+				approvalDecision,
+			),
 			trace_id: input.trace_id,
 		});
 
@@ -2365,6 +2383,10 @@ export async function handleRunRequestMessage(
 					...payload,
 					conversation_id: resolvedConversation.conversation_id,
 				};
+	const policyWiring = getPolicyWiring(options);
+	const approvalMode = normalizeApprovalMode(resolvedPayload.approval_policy?.mode);
+
+	await policyWiring.setApprovalMode(socket, approvalMode);
 
 	if (conversationStore && extractedUserTurn && resolvedPayload.conversation_id) {
 		await conversationStore.appendConversationMessage({
@@ -2378,6 +2400,7 @@ export async function handleRunRequestMessage(
 	}
 
 	requestLogger.info('run.request.accepted', {
+		approval_mode: approvalMode,
 		conversation_id: resolvedPayload.conversation_id,
 	});
 	sendServerMessage(socket, createAcceptedMessage(resolvedPayload));
@@ -2394,7 +2417,7 @@ export async function handleRunRequestMessage(
 			create_storage_download_url: options.create_storage_download_url,
 			desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 			memoryStore: options.memoryStore,
-			policy_wiring: options.policy_wiring,
+			policy_wiring: policyWiring,
 			registry: toolRegistry,
 			storage_service: options.storage_service,
 			workingDirectory,

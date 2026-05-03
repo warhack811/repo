@@ -1,5 +1,6 @@
 import type {
 	ApprovalActionKind,
+	ApprovalMode,
 	ToolCapabilityClass,
 	ToolDefinition,
 	ToolName,
@@ -12,6 +13,11 @@ import { hasAuthorizationRole, resolveMinimumToolAuthorizationRole } from '../au
 
 const DEFAULT_DENIAL_PAUSE_THRESHOLD = 3;
 const AUTO_CONTINUE_CAPABILITY_ID = 'agent.auto_continue';
+const APPROVAL_MODES = ['ask-every-time', 'standard', 'trusted-session'] as const;
+const DEFAULT_APPROVAL_MODE: ApprovalMode = 'standard';
+const TRUSTED_SESSION_TTL_MS = 60 * 60 * 1000;
+const TRUSTED_SESSION_MAX_TURNS = 20;
+const TRUSTED_SESSION_MAX_ALLOWED_CAPABILITIES = 50;
 
 export const permissionDecisionKinds = ['allow', 'require_approval', 'deny', 'pause'] as const;
 
@@ -35,6 +41,7 @@ export type PermissionSideEffectLevel = ToolSideEffectLevel | 'session_control';
 
 export type PermissionDecisionReason =
 	| 'approval_required_by_capability'
+	| 'approval_required_by_mode'
 	| 'approval_required_by_policy'
 	| 'authorization_role_denied'
 	| 'auto_continue_disabled'
@@ -78,10 +85,23 @@ export interface PermissionDenialTrackingState {
 }
 
 export interface PermissionProgressiveTrustState {
+	readonly approval_mode: {
+		readonly mode: ApprovalMode;
+		readonly updated_at?: string;
+	};
 	readonly auto_continue: {
 		readonly enabled: boolean;
 		readonly enabled_at?: string;
 		readonly max_consecutive_turns?: number;
+	};
+	readonly trusted_session: {
+		readonly approved_capability_count: number;
+		readonly consumed_turns: number;
+		readonly enabled: boolean;
+		readonly enabled_at?: string;
+		readonly expires_at?: string;
+		readonly max_approved_capabilities?: number;
+		readonly max_turns?: number;
 	};
 }
 
@@ -112,7 +132,10 @@ export interface AllowPermissionDecision
 export interface RequireApprovalPermissionDecision
 	extends PermissionDecisionBase<
 		'require_approval',
-		'approval_required_by_capability' | 'approval_required_by_policy' | 'auto_continue_disabled'
+		| 'approval_required_by_capability'
+		| 'approval_required_by_mode'
+		| 'approval_required_by_policy'
+		| 'auto_continue_disabled'
 	> {
 	readonly approval_requirement: {
 		readonly action_kind: PermissionActionKind;
@@ -149,6 +172,11 @@ export interface PermissionEngineInput {
 	readonly state?: PermissionEngineState;
 }
 
+export interface ApplyApprovalModeInput {
+	readonly approval_mode?: ApprovalMode | string;
+	readonly state?: PermissionEngineState;
+}
+
 export interface RecordPermissionOutcomeInput {
 	readonly decision: PermissionDecision;
 	readonly outcome: PermissionOutcomeKind;
@@ -169,6 +197,7 @@ export interface PermissionEngineConfig {
 }
 
 export interface PermissionEngine {
+	applyApprovalMode(input: ApplyApprovalModeInput): PermissionEngineState;
 	createInitialState(): PermissionEngineState;
 	evaluatePermission(input: PermissionEngineInput): PermissionDecision;
 	recordPermissionOutcome(input: RecordPermissionOutcomeInput): PermissionOutcomeResult;
@@ -203,6 +232,37 @@ function createRuleSet(values: readonly string[] | undefined): ReadonlySet<strin
 
 function createNow(now: (() => string) | undefined): () => string {
 	return now ?? (() => new Date().toISOString());
+}
+
+export function normalizeApprovalMode(value: ApprovalMode | string | undefined): ApprovalMode {
+	if (
+		typeof value === 'string' &&
+		APPROVAL_MODES.includes(value as (typeof APPROVAL_MODES)[number])
+	) {
+		return value as ApprovalMode;
+	}
+
+	return DEFAULT_APPROVAL_MODE;
+}
+
+function addMilliseconds(timestamp: string, milliseconds: number): string {
+	return new Date(new Date(timestamp).getTime() + milliseconds).toISOString();
+}
+
+function isValidTimestamp(value: unknown): value is string {
+	return typeof value === 'string' && value.trim().length > 0 && !Number.isNaN(Date.parse(value));
+}
+
+function normalizeOptionalTimestamp(value: unknown): string | undefined {
+	return isValidTimestamp(value) ? value : undefined;
+}
+
+function normalizeNonNegativeInteger(value: unknown): number {
+	return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+function normalizePositiveInteger(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
 function shouldRequireReason(capability: PermissionCapabilityDescriptor): boolean {
@@ -244,7 +304,15 @@ export function createInitialPermissionEngineState(
 			threshold: normalizeThreshold(config.denial_pause_threshold),
 		},
 		progressive_trust: {
+			approval_mode: {
+				mode: DEFAULT_APPROVAL_MODE,
+			},
 			auto_continue: {
+				enabled: false,
+			},
+			trusted_session: {
+				approved_capability_count: 0,
+				consumed_turns: 0,
 				enabled: false,
 			},
 		},
@@ -254,12 +322,94 @@ export function createInitialPermissionEngineState(
 	};
 }
 
+export function normalizePermissionEngineState(
+	state: PermissionEngineState,
+	config: Pick<PermissionEngineConfig, 'denial_pause_threshold'> = {},
+): PermissionEngineState {
+	const fallbackState = createInitialPermissionEngineState(config);
+	const progressiveTrust = state.progressive_trust;
+	const approvalMode = normalizeApprovalMode(progressiveTrust.approval_mode?.mode);
+	const approvalModeUpdatedAt = normalizeOptionalTimestamp(
+		progressiveTrust.approval_mode?.updated_at,
+	);
+	const trustedSession = progressiveTrust.trusted_session;
+	const trustedEnabledAt = normalizeOptionalTimestamp(trustedSession?.enabled_at);
+	const trustedExpiresAt = normalizeOptionalTimestamp(trustedSession?.expires_at);
+	const trustedMaxTurns = normalizePositiveInteger(trustedSession?.max_turns);
+	const trustedMaxApprovedCapabilities = normalizePositiveInteger(
+		trustedSession?.max_approved_capabilities,
+	);
+	const trustedCountersAreValid =
+		typeof trustedSession?.consumed_turns === 'number' &&
+		Number.isInteger(trustedSession.consumed_turns) &&
+		trustedSession.consumed_turns >= 0 &&
+		typeof trustedSession.approved_capability_count === 'number' &&
+		Number.isInteger(trustedSession.approved_capability_count) &&
+		trustedSession.approved_capability_count >= 0;
+	const trustedSessionEnabled =
+		approvalMode === 'trusted-session' &&
+		trustedSession?.enabled === true &&
+		trustedEnabledAt !== undefined &&
+		trustedExpiresAt !== undefined &&
+		trustedMaxTurns !== undefined &&
+		trustedMaxApprovedCapabilities !== undefined &&
+		trustedCountersAreValid;
+	const approvalModeState =
+		approvalModeUpdatedAt === undefined
+			? {
+					mode: approvalMode,
+				}
+			: {
+					mode: approvalMode,
+					updated_at: approvalModeUpdatedAt,
+				};
+	const trustedSessionState = trustedSessionEnabled
+		? {
+				approved_capability_count: normalizeNonNegativeInteger(
+					trustedSession.approved_capability_count,
+				),
+				consumed_turns: normalizeNonNegativeInteger(trustedSession.consumed_turns),
+				enabled: true,
+				enabled_at: trustedEnabledAt,
+				expires_at: trustedExpiresAt,
+				max_approved_capabilities: trustedMaxApprovedCapabilities,
+				max_turns: trustedMaxTurns,
+			}
+		: {
+				approved_capability_count: normalizeNonNegativeInteger(
+					trustedSession?.approved_capability_count,
+				),
+				consumed_turns: normalizeNonNegativeInteger(trustedSession?.consumed_turns),
+				enabled: false,
+			};
+
+	return {
+		denial_tracking: {
+			consecutive_denials: normalizeNonNegativeInteger(state.denial_tracking.consecutive_denials),
+			last_denial_at: normalizeOptionalTimestamp(state.denial_tracking.last_denial_at),
+			last_denied_capability_id: state.denial_tracking.last_denied_capability_id,
+			threshold: normalizeThreshold(
+				state.denial_tracking.threshold ?? config.denial_pause_threshold,
+			),
+		},
+		progressive_trust: {
+			approval_mode: approvalModeState,
+			auto_continue:
+				progressiveTrust.auto_continue ?? fallbackState.progressive_trust.auto_continue,
+			trusted_session: trustedSessionState,
+		},
+		session_pause: createSessionPauseState(state.session_pause),
+	};
+}
+
 function resolveState(
 	state: PermissionEngineState | undefined,
 	threshold: number,
 ): PermissionEngineState {
 	if (state !== undefined) {
-		return state;
+		return normalizePermissionEngineState(state, {
+			denial_pause_threshold: threshold,
+		});
 	}
 
 	return createInitialPermissionEngineState({
@@ -361,15 +511,160 @@ function isAuthorizationRoleAllowed(request: PermissionRequest): boolean {
 	return hasAuthorizationRole(request.capability.actor_role, minimumRole);
 }
 
+function resetTrustedSessionState(): PermissionProgressiveTrustState['trusted_session'] {
+	return {
+		approved_capability_count: 0,
+		consumed_turns: 0,
+		enabled: false,
+	};
+}
+
+function createTrustedSessionState(
+	enabledAt: string,
+): PermissionProgressiveTrustState['trusted_session'] {
+	return {
+		approved_capability_count: 0,
+		consumed_turns: 1,
+		enabled: true,
+		enabled_at: enabledAt,
+		expires_at: addMilliseconds(enabledAt, TRUSTED_SESSION_TTL_MS),
+		max_approved_capabilities: TRUSTED_SESSION_MAX_ALLOWED_CAPABILITIES,
+		max_turns: TRUSTED_SESSION_MAX_TURNS,
+	};
+}
+
+function consumeTrustedSessionTurn(
+	trustedSession: PermissionProgressiveTrustState['trusted_session'],
+): PermissionProgressiveTrustState['trusted_session'] {
+	if (trustedSession.enabled !== true) {
+		return trustedSession;
+	}
+
+	return {
+		...trustedSession,
+		consumed_turns: trustedSession.consumed_turns + 1,
+	};
+}
+
+export function applyApprovalModeToState(
+	input: ApplyApprovalModeInput,
+	config: Pick<PermissionEngineConfig, 'denial_pause_threshold' | 'now'> = {},
+): PermissionEngineState {
+	const threshold = normalizeThreshold(config.denial_pause_threshold);
+	const now = createNow(config.now);
+	const state = resolveState(input.state, threshold);
+	const nextMode = normalizeApprovalMode(input.approval_mode);
+	const currentMode = state.progressive_trust.approval_mode.mode;
+
+	if (currentMode === nextMode) {
+		if (nextMode === 'trusted-session') {
+			return {
+				...state,
+				progressive_trust: {
+					...state.progressive_trust,
+					trusted_session: consumeTrustedSessionTurn(state.progressive_trust.trusted_session),
+				},
+			};
+		}
+
+		return state;
+	}
+
+	const updatedAt = now();
+
+	return {
+		...state,
+		progressive_trust: {
+			approval_mode: {
+				mode: nextMode,
+				updated_at: updatedAt,
+			},
+			auto_continue: {
+				enabled: false,
+			},
+			trusted_session:
+				nextMode === 'trusted-session'
+					? createTrustedSessionState(updatedAt)
+					: resetTrustedSessionState(),
+		},
+	};
+}
+
+function isTrustedSessionActive(state: PermissionEngineState, now: () => string): boolean {
+	const trustedSession = state.progressive_trust.trusted_session;
+
+	if (
+		state.progressive_trust.approval_mode.mode !== 'trusted-session' ||
+		trustedSession.enabled !== true
+	) {
+		return false;
+	}
+
+	const expiresAtMs = Date.parse(trustedSession.expires_at ?? '');
+	const nowMs = Date.parse(now());
+
+	if (Number.isNaN(expiresAtMs) || Number.isNaN(nowMs) || expiresAtMs <= nowMs) {
+		return false;
+	}
+
+	if (
+		trustedSession.max_turns !== undefined &&
+		trustedSession.consumed_turns > trustedSession.max_turns
+	) {
+		return false;
+	}
+
+	if (
+		trustedSession.max_approved_capabilities !== undefined &&
+		trustedSession.approved_capability_count >= trustedSession.max_approved_capabilities
+	) {
+		return false;
+	}
+
+	return true;
+}
+
+function hasSensitiveCapabilityName(capability: PermissionCapabilityDescriptor): boolean {
+	const candidate = [capability.capability_id, capability.tool_name, capability.action_kind].join(
+		' ',
+	);
+
+	return /\b(secret|credential|token|api[_-]?key|password|private[_-]?key|env)\b/i.test(candidate);
+}
+
+function isTrustedSessionAutoAllowEligible(request: PermissionRequest): boolean {
+	if (request.kind !== 'tool_execution') {
+		return false;
+	}
+
+	const capability = request.capability;
+
+	if (
+		capability.risk_level === 'high' ||
+		capability.side_effect_level === 'write' ||
+		capability.side_effect_level === 'execute' ||
+		capability.capability_class === 'desktop' ||
+		capability.capability_class === 'external' ||
+		capability.capability_class === 'shell' ||
+		hasSensitiveCapabilityName(capability)
+	) {
+		return false;
+	}
+
+	return capability.side_effect_level === 'none' || capability.side_effect_level === 'read';
+}
+
 export function evaluatePermission(
 	input: PermissionEngineInput,
 	config: PermissionEngineConfig = {},
 ): PermissionDecision {
 	const threshold = normalizeThreshold(config.denial_pause_threshold);
 	const state = resolveState(input.state, threshold);
+	const now = createNow(config.now);
 	const hardDeniedCapabilities = createRuleSet(config.hard_denied_capability_ids);
 	const approvalRequiredCapabilities = createRuleSet(config.approval_required_capability_ids);
 	const capabilityId = input.request.capability.capability_id;
+	const approvalMode = state.progressive_trust.approval_mode.mode;
 
 	if (isSessionPaused(state)) {
 		return createPauseDecision(input.request, state);
@@ -381,6 +676,18 @@ export function evaluatePermission(
 
 	if (!isAuthorizationRoleAllowed(input.request)) {
 		return createAuthorizationRoleDeniedDecision(input.request);
+	}
+
+	if (approvalMode === 'ask-every-time') {
+		return createApprovalDecision(input.request, 'approval_required_by_mode', 'policy');
+	}
+
+	if (
+		approvalMode === 'trusted-session' &&
+		isTrustedSessionActive(state, now) &&
+		isTrustedSessionAutoAllowEligible(input.request)
+	) {
+		return createAllowDecision(input.request, 'progressive_trust_enabled');
 	}
 
 	if (
@@ -480,10 +787,26 @@ function recordApprovalApproved(
 	};
 }
 
-function recordAllowed(state: PermissionEngineState): PermissionOutcomeResult {
+function recordAllowed(
+	state: PermissionEngineState,
+	decision: AllowPermissionDecision,
+): PermissionOutcomeResult {
+	const trustedSession = state.progressive_trust.trusted_session;
+	const nextTrustedSession =
+		decision.reason === 'progressive_trust_enabled' && decision.request.kind === 'tool_execution'
+			? {
+					...trustedSession,
+					approved_capability_count: trustedSession.approved_capability_count + 1,
+				}
+			: trustedSession;
+
 	return {
 		next_state: {
 			...resetDenialTracking(state),
+			progressive_trust: {
+				...state.progressive_trust,
+				trusted_session: nextTrustedSession,
+			},
 			session_pause: state.session_pause,
 		},
 		outcome: 'allowed',
@@ -558,7 +881,7 @@ export function recordPermissionOutcome(
 
 	switch (input.outcome) {
 		case 'allowed':
-			return recordAllowed(state);
+			return recordAllowed(state, input.decision as AllowPermissionDecision);
 		case 'approval_approved':
 			assertRequireApprovalDecision(input.decision);
 			return recordApprovalApproved(state, input.decision, now);
@@ -574,6 +897,12 @@ export function createPermissionEngine(config: PermissionEngineConfig = {}): Per
 	const threshold = normalizeThreshold(config.denial_pause_threshold);
 
 	return {
+		applyApprovalMode(input) {
+			return applyApprovalModeToState(input, {
+				denial_pause_threshold: threshold,
+				now: config.now,
+			});
+		},
 		createInitialState() {
 			return createInitialPermissionEngineState({
 				denial_pause_threshold: threshold,
@@ -584,6 +913,7 @@ export function createPermissionEngine(config: PermissionEngineConfig = {}): Per
 				approval_required_capability_ids: config.approval_required_capability_ids,
 				denial_pause_threshold: threshold,
 				hard_denied_capability_ids: config.hard_denied_capability_ids,
+				now: config.now,
 			});
 		},
 		recordPermissionOutcome(input) {

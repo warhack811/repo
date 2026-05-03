@@ -9,6 +9,7 @@ import {
 import type { AuthContext } from '@runa/types';
 
 import type { PermissionEngineState } from '../policy/permission-engine.js';
+import { normalizeApprovalMode } from '../policy/permission-engine.js';
 import {
 	hasPersistenceDatabaseConfiguration,
 	resolvePersistenceDatabaseUrl,
@@ -76,14 +77,33 @@ function toStoredStatus(state: PermissionEngineState): 'active' | 'paused' {
 	return state.session_pause.active ? 'paused' : 'active';
 }
 
+function isValidTimestamp(value: unknown): value is string {
+	return typeof value === 'string' && value.trim().length > 0 && !Number.isNaN(Date.parse(value));
+}
+
+function toOptionalTimestamp(value: unknown): string | undefined {
+	return isValidTimestamp(value) ? value : undefined;
+}
+
+function toNonNegativeInteger(value: unknown): number {
+	return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+function toPositiveInteger(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
 function toPolicyStateRow(
 	scope: PolicyStateScope,
 	state: PermissionEngineState,
 	existingCreatedAt?: string,
 ): NewPolicyStateRecord {
 	const now = new Date().toISOString();
+	const trustedSession = state.progressive_trust.trusted_session;
 
 	return {
+		approval_mode: state.progressive_trust.approval_mode.mode,
+		approval_mode_updated_at: state.progressive_trust.approval_mode.updated_at ?? null,
 		auto_continue_enabled: state.progressive_trust.auto_continue.enabled,
 		auto_continue_enabled_at: state.progressive_trust.auto_continue.enabled_at ?? null,
 		auto_continue_max_consecutive_turns:
@@ -99,6 +119,13 @@ function toPolicyStateRow(
 		status: toStoredStatus(state),
 		tenant_id: toNullableScopeValue(scope.tenant_id),
 		threshold: state.denial_tracking.threshold,
+		trusted_session_approved_capability_count: trustedSession.approved_capability_count,
+		trusted_session_consumed_turns: trustedSession.consumed_turns,
+		trusted_session_enabled: trustedSession.enabled,
+		trusted_session_enabled_at: trustedSession.enabled_at ?? null,
+		trusted_session_expires_at: trustedSession.expires_at ?? null,
+		trusted_session_max_approved_capabilities: trustedSession.max_approved_capabilities ?? null,
+		trusted_session_max_turns: trustedSession.max_turns ?? null,
 		updated_at: now,
 		user_id: toNullableScopeValue(scope.user_id),
 		workspace_id: toNullableScopeValue(scope.workspace_id),
@@ -106,6 +133,61 @@ function toPolicyStateRow(
 }
 
 function toPolicyState(row: PolicyStateRecord): PermissionEngineState {
+	const rowCandidate = row as PolicyStateRecord & Record<string, unknown>;
+	const approvalMode = normalizeApprovalMode(
+		typeof rowCandidate.approval_mode === 'string' ? rowCandidate.approval_mode : undefined,
+	);
+	const approvalModeUpdatedAt = toOptionalTimestamp(rowCandidate.approval_mode_updated_at);
+	const trustedEnabledAt = toOptionalTimestamp(rowCandidate.trusted_session_enabled_at);
+	const trustedExpiresAt = toOptionalTimestamp(rowCandidate.trusted_session_expires_at);
+	const trustedMaxTurns = toPositiveInteger(rowCandidate.trusted_session_max_turns);
+	const trustedMaxApprovedCapabilities = toPositiveInteger(
+		rowCandidate.trusted_session_max_approved_capabilities,
+	);
+	const trustedSessionCountersAreValid =
+		typeof rowCandidate.trusted_session_consumed_turns === 'number' &&
+		Number.isInteger(rowCandidate.trusted_session_consumed_turns) &&
+		rowCandidate.trusted_session_consumed_turns >= 0 &&
+		typeof rowCandidate.trusted_session_approved_capability_count === 'number' &&
+		Number.isInteger(rowCandidate.trusted_session_approved_capability_count) &&
+		rowCandidate.trusted_session_approved_capability_count >= 0;
+	const trustedSessionEnabled =
+		approvalMode === 'trusted-session' &&
+		rowCandidate.trusted_session_enabled === true &&
+		trustedEnabledAt !== undefined &&
+		trustedExpiresAt !== undefined &&
+		trustedMaxTurns !== undefined &&
+		trustedMaxApprovedCapabilities !== undefined &&
+		trustedSessionCountersAreValid;
+	const approvalModeState =
+		approvalModeUpdatedAt === undefined
+			? {
+					mode: approvalMode,
+				}
+			: {
+					mode: approvalMode,
+					updated_at: approvalModeUpdatedAt,
+				};
+	const trustedSessionState = trustedSessionEnabled
+		? {
+				approved_capability_count: toNonNegativeInteger(
+					rowCandidate.trusted_session_approved_capability_count,
+				),
+				consumed_turns: toNonNegativeInteger(rowCandidate.trusted_session_consumed_turns),
+				enabled: true,
+				enabled_at: trustedEnabledAt,
+				expires_at: trustedExpiresAt,
+				max_approved_capabilities: trustedMaxApprovedCapabilities,
+				max_turns: trustedMaxTurns,
+			}
+		: {
+				approved_capability_count: toNonNegativeInteger(
+					rowCandidate.trusted_session_approved_capability_count,
+				),
+				consumed_turns: toNonNegativeInteger(rowCandidate.trusted_session_consumed_turns),
+				enabled: false,
+			};
+
 	return {
 		denial_tracking: {
 			consecutive_denials: row.consecutive_denials,
@@ -114,11 +196,13 @@ function toPolicyState(row: PolicyStateRecord): PermissionEngineState {
 			threshold: row.threshold,
 		},
 		progressive_trust: {
+			approval_mode: approvalModeState,
 			auto_continue: {
 				enabled: row.auto_continue_enabled,
 				enabled_at: row.auto_continue_enabled_at ?? undefined,
 				max_consecutive_turns: row.auto_continue_max_consecutive_turns ?? undefined,
 			},
+			trusted_session: trustedSessionState,
 		},
 		session_pause: {
 			active: row.session_pause_active,

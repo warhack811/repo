@@ -51,6 +51,7 @@ import {
 } from '../stores/chat-store.js';
 import type { ChatStore } from '../stores/chat-store.js';
 import type {
+	ApprovalMode,
 	ApprovalResolveDecision,
 	ConnectionStatus,
 	GatewayProvider,
@@ -68,6 +69,7 @@ export interface UseChatRuntimeResult {
 	readonly accessToken?: string | null;
 	readonly attachments: readonly ModelAttachment[];
 	readonly apiKey: string;
+	readonly approvalMode: ApprovalMode;
 	readonly connectionStatus: ConnectionStatus;
 	readonly currentPresentationSurface: PresentationRunSurface | null;
 	readonly currentRunFeedback: RunFeedbackState | null;
@@ -93,6 +95,7 @@ export interface UseChatRuntimeResult {
 	readonly staleInspectionRequestKeys: readonly string[];
 	readonly transportErrorCode: TransportErrorCode | null;
 	setApiKey: (value: string) => void;
+	setApprovalMode: (value: ApprovalMode) => void;
 	setAttachments: (value: readonly ModelAttachment[]) => void;
 	setDesktopTargetConnectionId: (value: string | null) => void;
 	setIncludePresentationBlocks: (value: boolean) => void;
@@ -124,12 +127,15 @@ export interface UseChatRuntimeOptions {
 
 interface StoredRuntimeConfigCandidate {
 	readonly apiKey?: unknown;
+	readonly approvalMode?: unknown;
 	readonly includePresentationBlocks?: unknown;
 	readonly model?: unknown;
 	readonly provider?: unknown;
 }
 
 const RUNTIME_CONFIG_STORAGE_KEY = 'runa.developer.runtime_config';
+const approvalModeValues = ['ask-every-time', 'standard', 'trusted-session'] as const;
+const DEFAULT_APPROVAL_MODE: ApprovalMode = 'standard';
 const DEFAULT_PROVIDER: GatewayProvider = 'deepseek';
 const DEFAULT_MODEL = runtimeDefaultGatewayModels[DEFAULT_PROVIDER];
 const LEGACY_DEFAULT_PROVIDER: GatewayProvider = 'groq';
@@ -142,6 +148,10 @@ function isGatewayProviderValue(value: unknown): value is GatewayProvider {
 	return typeof value === 'string' && gatewayProviders.includes(value as GatewayProvider);
 }
 
+function isApprovalModeValue(value: unknown): value is ApprovalMode {
+	return typeof value === 'string' && approvalModeValues.includes(value as ApprovalMode);
+}
+
 function resolveRuntimeConfigStorage(): Storage | null {
 	if (typeof window === 'undefined') {
 		return null;
@@ -152,12 +162,14 @@ function resolveRuntimeConfigStorage(): Storage | null {
 
 function createDefaultRuntimeConfig(): Readonly<{
 	apiKey: string;
+	approvalMode: ApprovalMode;
 	includePresentationBlocks: boolean;
 	model: string;
 	provider: GatewayProvider;
 }> {
 	return {
 		apiKey: '',
+		approvalMode: DEFAULT_APPROVAL_MODE,
 		includePresentationBlocks: true,
 		model: DEFAULT_MODEL,
 		provider: DEFAULT_PROVIDER,
@@ -184,6 +196,7 @@ function isStoredRuntimeConfigCandidate(value: unknown): value is StoredRuntimeC
 
 function readStoredRuntimeConfig(): Readonly<{
 	apiKey: string;
+	approvalMode: ApprovalMode;
 	includePresentationBlocks: boolean;
 	model: string;
 	provider: GatewayProvider;
@@ -216,6 +229,9 @@ function readStoredRuntimeConfig(): Readonly<{
 				: runtimeDefaultGatewayModels[parsedProvider];
 		const storedConfig = {
 			apiKey: typeof parsedValue.apiKey === 'string' ? parsedValue.apiKey : '',
+			approvalMode: isApprovalModeValue(parsedValue.approvalMode)
+				? parsedValue.approvalMode
+				: DEFAULT_APPROVAL_MODE,
 			includePresentationBlocks:
 				typeof parsedValue.includePresentationBlocks === 'boolean'
 					? parsedValue.includePresentationBlocks
@@ -239,6 +255,7 @@ function readStoredRuntimeConfig(): Readonly<{
 function persistRuntimeConfig(
 	input: Readonly<{
 		apiKey: string;
+		approvalMode: ApprovalMode;
 		includePresentationBlocks: boolean;
 		model: string;
 		provider: GatewayProvider;
@@ -254,6 +271,7 @@ function persistRuntimeConfig(
 		RUNTIME_CONFIG_STORAGE_KEY,
 		JSON.stringify({
 			apiKey: input.apiKey,
+			approvalMode: input.approvalMode,
 			includePresentationBlocks: input.includePresentationBlocks,
 			model: input.model,
 			provider: input.provider,
@@ -362,7 +380,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const connectionState = useChatStoreSelector(chatStore, selectConnectionState);
 	const presentationState = useChatStoreSelector(chatStore, selectPresentationState);
 	const transportState = useChatStoreSelector(chatStore, selectTransportState);
-	const { apiKey, includePresentationBlocks, model, provider } = runtimeConfig;
+	const { apiKey, approvalMode, includePresentationBlocks, model, provider } = runtimeConfig;
 	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
 	const {
 		currentStreamingRunId,
@@ -400,6 +418,16 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
 				...currentRuntimeConfig,
 				apiKey: value,
+			}));
+		},
+		[chatStore],
+	);
+
+	const setApprovalMode = useCallback(
+		(value: ApprovalMode): void => {
+			chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
+				...currentRuntimeConfig,
+				approvalMode: value,
 			}));
 		},
 		[chatStore],
@@ -447,11 +475,12 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	useEffect(() => {
 		persistRuntimeConfig({
 			apiKey,
+			approvalMode,
 			includePresentationBlocks,
 			model,
 			provider,
 		});
-	}, [apiKey, includePresentationBlocks, model, provider]);
+	}, [apiKey, approvalMode, includePresentationBlocks, model, provider]);
 
 	const replacePendingInspectionRequestKeys = useCallback(
 		(nextRequestKeys: Iterable<string>): void => {
@@ -1037,6 +1066,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			try {
 				const payload = createRunRequestPayload({
 					apiKey,
+					approvalMode,
 					attachments,
 					conversationId: activeConversationId,
 					desktopTargetConnectionId: selectedDesktopTargetConnectionId,
@@ -1091,6 +1121,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		},
 		[
 			apiKey,
+			approvalMode,
 			attachments,
 			activeConversationId,
 			selectedDesktopTargetConnectionId,
@@ -1275,6 +1306,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			accessToken,
 			attachments,
 			apiKey,
+			approvalMode,
 			connectionStatus,
 			currentPresentationSurface: presentationSurfaceState.currentPresentationSurface,
 			currentRunFeedback,
@@ -1301,6 +1333,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			runTransportSummaries,
 			store: chatStore,
 			setApiKey,
+			setApprovalMode,
 			setAttachments,
 			setDesktopTargetConnectionId: setSelectedDesktopTargetConnectionId,
 			setIncludePresentationBlocks,
@@ -1316,6 +1349,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			accessToken,
 			attachments,
 			apiKey,
+			approvalMode,
 			connectionStatus,
 			presentationSurfaceState,
 			currentRunFeedback,
@@ -1340,6 +1374,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			runTransportSummaries,
 			chatStore,
 			setApiKey,
+			setApprovalMode,
 			setIncludePresentationBlocks,
 			setModel,
 			setPastRunExpanded,
