@@ -5,6 +5,7 @@ export * from './launch-controller.js';
 export * from './launch-html.js';
 export * from './launch-surface.js';
 export * from './node-websocket.js';
+export * from './security/window-policy.js';
 export * from './shell.js';
 export * from './session.js';
 export * from './screenshot.js';

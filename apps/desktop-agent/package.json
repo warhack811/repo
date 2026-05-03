@@ -10,6 +10,7 @@
 		"build": "node scripts/build-main.mjs",
 		"build:renderer": "node scripts/build-renderer.mjs",
 		"build:sidecar": "node scripts/build-native-input-go.mjs",
+		"check:electron": "node scripts/check-electron-runtime.mjs",
 		"prepare:icons": "node scripts/create-placeholder-icons.mjs",
 		"dist:win": "node scripts/build-windows-installer.mjs",
 		"test:presence-release-proof": "pnpm --filter @runa/types build && pnpm --filter @runa/server build && pnpm run dist:win && node scripts/packaged-runtime-smoke.mjs",
@@ -21,11 +22,12 @@
 		"typecheck:renderer": "tsc -p tsconfig.renderer.json --noEmit"
 	},
 	"devDependencies": {
+		"@electron/fuses": "1.8.0",
+		"@runa/types": "workspace:*",
 		"@types/node": "^25.6.0",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
-		"@runa/types": "workspace:*",
-		"electron": "^33.0.0",
+		"electron": "^38.0.0",
 		"electron-builder": "^26.0.12",
 		"electron-updater": "^6.6.2",
 		"esbuild": "^0.24.0",

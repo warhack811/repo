@@ -2,6 +2,7 @@
 
 // electron/main.ts
 var import_node_fs = require("node:fs");
+var import_promises3 = require("node:fs/promises");
 var import_node_path3 = require("node:path");
 var import_electron = require("electron");
 
@@ -84,18 +85,18 @@ function resolveDesktopAgentHttpUrl(serverUrl, pathname) {
   normalizedUrl.hash = "";
   return normalizedUrl.toString();
 }
-function normalizeDesktopAgentPersistedSession(session, now = /* @__PURE__ */ new Date()) {
-  const accessToken = session.access_token.trim();
+function normalizeDesktopAgentPersistedSession(session2, now = /* @__PURE__ */ new Date()) {
+  const accessToken = session2.access_token.trim();
   if (accessToken.length === 0) {
     throw new Error("Desktop agent session is missing access_token.");
   }
-  const expiresAt = typeof session.expires_at === "number" ? session.expires_at : typeof session.expires_in === "number" ? Math.trunc(now.getTime() / 1e3) + session.expires_in : void 0;
+  const expiresAt = typeof session2.expires_at === "number" ? session2.expires_at : typeof session2.expires_in === "number" ? Math.trunc(now.getTime() / 1e3) + session2.expires_in : void 0;
   return {
     access_token: accessToken,
     expires_at: expiresAt,
-    expires_in: session.expires_in,
-    refresh_token: session.refresh_token?.trim() || void 0,
-    token_type: session.token_type?.trim() || void 0
+    expires_in: session2.expires_in,
+    refresh_token: session2.refresh_token?.trim() || void 0,
+    token_type: session2.token_type?.trim() || void 0
   };
 }
 function normalizeDesktopAgentSessionInputPayload(sessionInput, now = /* @__PURE__ */ new Date()) {
@@ -189,8 +190,8 @@ var FileDesktopAgentSessionStorage = class {
     const parsedValue = JSON.parse(rawValue);
     return normalizeDesktopAgentPersistedSession(parsedValue);
   }
-  async save(session) {
-    const normalizedSession = normalizeDesktopAgentPersistedSession(session);
+  async save(session2) {
+    const normalizedSession = normalizeDesktopAgentPersistedSession(session2);
     const directory = (0, import_node_path.dirname)(this.#filePath);
     const temporaryPath = `${this.#filePath}.${process.pid}.tmp`;
     await (0, import_promises.mkdir)(directory, { recursive: true });
@@ -1551,47 +1552,47 @@ function createBootstrappingSnapshot(config) {
     status: "bootstrapping"
   };
 }
-function createSignedInSnapshot(config, session) {
+function createSignedInSnapshot(config, session2) {
   return {
     agent_id: config.agent_id,
     machine_label: config.machine_label,
-    session,
+    session: session2,
     status: "signed_in"
   };
 }
-function createBridgeConnectingSnapshot(config, session) {
+function createBridgeConnectingSnapshot(config, session2) {
   return {
     agent_id: config.agent_id,
     machine_label: config.machine_label,
-    session,
+    session: session2,
     status: "bridge_connecting"
   };
 }
-function createBridgeConnectedSnapshot(config, session, connectedAt) {
+function createBridgeConnectedSnapshot(config, session2, connectedAt) {
   return {
     agent_id: config.agent_id,
     connected_at: connectedAt,
     machine_label: config.machine_label,
-    session,
+    session: session2,
     status: "bridge_connected"
   };
 }
-function createBridgeErrorSnapshot(config, session, error_message) {
+function createBridgeErrorSnapshot(config, session2, error_message) {
   return {
     agent_id: config.agent_id,
     error_message,
     machine_label: config.machine_label,
-    session,
+    session: session2,
     status: "bridge_error"
   };
 }
-function cloneSession(session) {
+function cloneSession(session2) {
   return {
-    access_token: session.access_token,
-    expires_at: session.expires_at,
-    expires_in: session.expires_in,
-    refresh_token: session.refresh_token,
-    token_type: session.token_type
+    access_token: session2.access_token,
+    expires_at: session2.expires_at,
+    expires_in: session2.expires_in,
+    refresh_token: session2.refresh_token,
+    token_type: session2.token_type
   };
 }
 function cloneSnapshot(snapshot) {
@@ -1608,12 +1609,12 @@ function cloneSnapshot(snapshot) {
 function resolveRuntimeErrorMessage(error, fallback) {
   return error instanceof Error && error.message.trim().length > 0 ? error.message : fallback;
 }
-function shouldRefreshSession(session) {
-  if (typeof session.expires_at !== "number") {
+function shouldRefreshSession(session2) {
+  if (typeof session2.expires_at !== "number") {
     return false;
   }
   const nowSeconds = Math.trunc(Date.now() / 1e3);
-  return session.expires_at <= nowSeconds + SESSION_EXPIRING_WINDOW_SECONDS;
+  return session2.expires_at <= nowSeconds + SESSION_EXPIRING_WINDOW_SECONDS;
 }
 var InMemoryDesktopAgentSessionStorage = class {
   #session;
@@ -1626,8 +1627,8 @@ var InMemoryDesktopAgentSessionStorage = class {
   async load() {
     return this.#session ? cloneSession(this.#session) : null;
   }
-  async save(session) {
-    this.#session = cloneSession(session);
+  async save(session2) {
+    this.#session = cloneSession(session2);
   }
 };
 var DesktopAgentSessionRuntimeImpl = class {
@@ -1710,9 +1711,9 @@ var DesktopAgentSessionRuntimeImpl = class {
       return this.getSnapshot();
     });
   }
-  setSession(session) {
+  setSession(session2) {
     return this.#enqueue(async () => {
-      const normalizedSession = normalizeDesktopAgentPersistedSession(session);
+      const normalizedSession = normalizeDesktopAgentPersistedSession(session2);
       this.#closeBridgeSession(1e3, "Desktop runtime session updated.");
       await this.#options.session_storage.save(normalizedSession);
       this.#activeSession = cloneSession(normalizedSession);
@@ -1786,7 +1787,7 @@ var DesktopAgentSessionRuntimeImpl = class {
       return null;
     }
   }
-  #attachBridgeLifecycle(bridgeSession, session) {
+  #attachBridgeLifecycle(bridgeSession, session2) {
     const handleClose = (event) => {
       if (this.#bridgeSession !== bridgeSession) {
         return;
@@ -1796,7 +1797,7 @@ var DesktopAgentSessionRuntimeImpl = class {
       this.#setSnapshot(
         createBridgeErrorSnapshot(
           this.#options,
-          session,
+          session2,
           event.reason || `Desktop bridge closed with code ${String(event.code)}.`
         )
       );
@@ -1808,7 +1809,7 @@ var DesktopAgentSessionRuntimeImpl = class {
       this.#bridgeSession = null;
       this.#detachBridgeLifecycle();
       this.#setSnapshot(
-        createBridgeErrorSnapshot(this.#options, session, "Desktop bridge socket error.")
+        createBridgeErrorSnapshot(this.#options, session2, "Desktop bridge socket error.")
       );
     };
     bridgeSession.socket.addEventListener("close", handleClose);
@@ -1951,8 +1952,8 @@ var DesktopAgentShellImpl = class {
   stop() {
     return this.#syncFromRuntime(async () => await this.#runtime.stop());
   }
-  submitSession(session) {
-    return this.#syncFromRuntime(async () => await this.#runtime.setSession(session));
+  submitSession(session2) {
+    return this.#syncFromRuntime(async () => await this.#runtime.setSession(session2));
   }
   subscribe(listener) {
     this.#listeners.add(listener);
@@ -2178,8 +2179,8 @@ var DesktopAgentLaunchSurfaceImpl = class {
   stop() {
     return this.#run(async () => await this.#shell.stop());
   }
-  submitSession(session) {
-    return this.#run(async () => await this.#shell.submitSession(session));
+  submitSession(session2) {
+    return this.#run(async () => await this.#shell.submitSession(session2));
   }
   subscribe(listener) {
     this.#listeners.add(listener);
@@ -2441,8 +2442,8 @@ var DesktopAgentLaunchControllerImpl = class {
     this.#started = false;
     return this.getSnapshot();
   }
-  async submitSession(session) {
-    await this.#handleSessionSubmit(session);
+  async submitSession(session2) {
+    await this.#handleSessionSubmit(session2);
     return this.getSnapshot();
   }
   async #handleAction(event) {
@@ -2712,12 +2713,49 @@ function createNodeWebSocket(url) {
   return new NodeWebSocket(url);
 }
 
+// src/security/window-policy.ts
+var DEFAULT_ALLOWED_EXTERNAL_DOMAINS = ["runa.app", "*.runa.app"];
+function normalizeDomain(domain) {
+  const normalized = domain.trim().toLowerCase();
+  if (!normalized || normalized.includes("://") || normalized.includes("/")) {
+    return null;
+  }
+  return normalized;
+}
+function readAllowedExternalUrlPolicy(environment = process.env) {
+  const configuredDomains = environment["RUNA_ALLOWED_EXTERNAL_DOMAINS"]?.split(",").map((domain) => normalizeDomain(domain)).filter((domain) => domain !== null);
+  return {
+    allowed_domains: configuredDomains && configuredDomains.length > 0 ? configuredDomains : DEFAULT_ALLOWED_EXTERNAL_DOMAINS
+  };
+}
+function matchesAllowedDomain(hostname, allowedDomain) {
+  const normalizedHostname = hostname.toLowerCase();
+  if (allowedDomain.startsWith("*.")) {
+    const suffix = allowedDomain.slice(2);
+    return normalizedHostname !== suffix && normalizedHostname.endsWith(`.${suffix}`);
+  }
+  return normalizedHostname === allowedDomain;
+}
+function isAllowedExternalUrl(url, policy = readAllowedExternalUrlPolicy()) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsedUrl.protocol !== "https:") {
+    return false;
+  }
+  return policy.allowed_domains.some((domain) => matchesAllowedDomain(parsedUrl.hostname, domain));
+}
+
 // electron/main.ts
 var tray = null;
 var mainWindow = null;
 var isQuitting = false;
 var controller = null;
 var configurationErrorMessage = null;
+var allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
 function logBoot(message, data) {
   const payload = data === void 0 ? "" : ` ${JSON.stringify(data)}`;
   console.log(`[boot:${message}]${payload}`);
@@ -2726,6 +2764,16 @@ var userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.tr
 if (userDataDirectoryOverride) {
   import_electron.app.setPath("userData", userDataDirectoryOverride);
 }
+import_electron.protocol.registerSchemesAsPrivileged([
+  {
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true
+    },
+    scheme: "runa-desktop"
+  }
+]);
 function getAppDir() {
   return (0, import_node_path3.dirname)(__filename);
 }
@@ -2801,6 +2849,49 @@ function isShellInvokeActionPayload(value) {
     return false;
   }
   return value.actionId === "connect" || value.actionId === "connecting" || value.actionId === "retry" || value.actionId === "sign_in" || value.actionId === "sign_out";
+}
+function resolveRendererAssetPath(requestUrl) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(requestUrl);
+  } catch {
+    return null;
+  }
+  const assetPath = decodeURIComponent(parsedUrl.pathname.replace(/^\/+/u, "")) || "index.html";
+  if (assetPath.split("/").includes("..")) {
+    return null;
+  }
+  return resolvePackagedPath("renderer", assetPath);
+}
+function resolveRendererAssetContentType(filePath) {
+  if (filePath.endsWith(".css")) {
+    return "text/css; charset=utf-8";
+  }
+  if (filePath.endsWith(".js")) {
+    return "text/javascript; charset=utf-8";
+  }
+  if (filePath.endsWith(".html")) {
+    return "text/html; charset=utf-8";
+  }
+  return "application/octet-stream";
+}
+function registerRendererProtocol() {
+  import_electron.protocol.handle("runa-desktop", async (request) => {
+    const assetPath = resolveRendererAssetPath(request.url);
+    if (!assetPath) {
+      return new Response("Not found", { status: 404 });
+    }
+    try {
+      const body = await (0, import_promises3.readFile)(assetPath);
+      return new Response(body, {
+        headers: {
+          "content-type": resolveRendererAssetContentType(assetPath)
+        }
+      });
+    } catch {
+      return new Response("Not found", { status: 404 });
+    }
+  });
 }
 async function invokeControllerAction(actionId) {
   if (!controller) {
@@ -2904,14 +2995,24 @@ function createMainWindow() {
     show: false,
     title: "Runa Desktop",
     webPreferences: {
+      allowRunningInsecureContent: false,
       contextIsolation: true,
+      experimentalFeatures: false,
+      webSecurity: true,
       nodeIntegration: false,
       preload: resolvePackagedPath("preload.cjs"),
-      sandbox: false
+      sandbox: true
     },
     width: 1200
   });
-  mainWindow.loadFile(resolvePackagedPath("renderer/index.html"));
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    event.preventDefault();
+    if (isAllowedExternalUrl(url, allowedExternalUrlPolicy)) {
+      void import_electron.shell.openExternal(url);
+    }
+  });
+  mainWindow.loadURL("runa-desktop://app/index.html");
   mainWindow.once("ready-to-show", () => {
     logBoot("window:ready-to-show");
     mainWindow?.show();
@@ -2963,6 +3064,14 @@ function registerIpcHandlers() {
 }
 import_electron.app.whenReady().then(async () => {
   logBoot("app-ready");
+  import_electron.session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+    callback(false);
+  });
+  import_electron.session.defaultSession.setPermissionCheckHandler(() => false);
+  logBoot("electron-version", {
+    electron_version: process.versions.electron
+  });
+  registerRendererProtocol();
   registerIpcHandlers();
   createTray();
   createMainWindow();

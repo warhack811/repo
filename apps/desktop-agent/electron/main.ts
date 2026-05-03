@@ -1,6 +1,17 @@
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { BrowserWindow, Menu, Tray, app, ipcMain, nativeImage } from 'electron';
+import {
+	BrowserWindow,
+	Menu,
+	Tray,
+	app,
+	shell as electronShell,
+	ipcMain,
+	nativeImage,
+	protocol,
+	session,
+} from 'electron';
 
 import {
 	type DesktopAgentLaunchController,
@@ -10,6 +21,8 @@ import {
 	createElectronDesktopAgentWindowHost,
 	createFileDesktopAgentSessionStorage,
 	createNodeWebSocket,
+	isAllowedExternalUrl,
+	readAllowedExternalUrlPolicy,
 	readDesktopAgentBootstrapConfigFromEnvironment,
 	startDesktopAgentBridge,
 } from '../src/index.js';
@@ -30,6 +43,7 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let controller: DesktopAgentLaunchController | null = null;
 let configurationErrorMessage: string | null = null;
+const allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
 
 function logBoot(message: string, data?: unknown): void {
 	const payload = data === undefined ? '' : ` ${JSON.stringify(data)}`;
@@ -40,6 +54,17 @@ const userDataDirectoryOverride = process.env.RUNA_DESKTOP_AGENT_USER_DATA_DIR?.
 if (userDataDirectoryOverride) {
 	app.setPath('userData', userDataDirectoryOverride);
 }
+
+protocol.registerSchemesAsPrivileged([
+	{
+		privileges: {
+			secure: true,
+			standard: true,
+			supportFetchAPI: true,
+		},
+		scheme: 'runa-desktop',
+	},
+]);
 
 function getAppDir(): string {
 	return dirname(__filename);
@@ -141,6 +166,61 @@ function isShellInvokeActionPayload(value: unknown): value is ShellInvokeActionP
 		value.actionId === 'sign_in' ||
 		value.actionId === 'sign_out'
 	);
+}
+
+function resolveRendererAssetPath(requestUrl: string): string | null {
+	let parsedUrl: URL;
+
+	try {
+		parsedUrl = new URL(requestUrl);
+	} catch {
+		return null;
+	}
+
+	const assetPath = decodeURIComponent(parsedUrl.pathname.replace(/^\/+/u, '')) || 'index.html';
+
+	if (assetPath.split('/').includes('..')) {
+		return null;
+	}
+
+	return resolvePackagedPath('renderer', assetPath);
+}
+
+function resolveRendererAssetContentType(filePath: string): string {
+	if (filePath.endsWith('.css')) {
+		return 'text/css; charset=utf-8';
+	}
+
+	if (filePath.endsWith('.js')) {
+		return 'text/javascript; charset=utf-8';
+	}
+
+	if (filePath.endsWith('.html')) {
+		return 'text/html; charset=utf-8';
+	}
+
+	return 'application/octet-stream';
+}
+
+function registerRendererProtocol(): void {
+	protocol.handle('runa-desktop', async (request) => {
+		const assetPath = resolveRendererAssetPath(request.url);
+
+		if (!assetPath) {
+			return new Response('Not found', { status: 404 });
+		}
+
+		try {
+			const body = await readFile(assetPath);
+			return new Response(body, {
+				headers: {
+					'content-type': resolveRendererAssetContentType(assetPath),
+				},
+			});
+		} catch {
+			return new Response('Not found', { status: 404 });
+		}
+	});
 }
 
 async function invokeControllerAction(
@@ -262,15 +342,26 @@ function createMainWindow(): void {
 		show: false,
 		title: 'Runa Desktop',
 		webPreferences: {
+			allowRunningInsecureContent: false,
 			contextIsolation: true,
+			experimentalFeatures: false,
+			webSecurity: true,
 			nodeIntegration: false,
 			preload: resolvePackagedPath('preload.cjs'),
-			sandbox: false,
+			sandbox: true,
 		},
 		width: 1200,
 	});
 
-	mainWindow.loadFile(resolvePackagedPath('renderer/index.html'));
+	mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+	mainWindow.webContents.on('will-navigate', (event, url) => {
+		event.preventDefault();
+
+		if (isAllowedExternalUrl(url, allowedExternalUrlPolicy)) {
+			void electronShell.openExternal(url);
+		}
+	});
+	mainWindow.loadURL('runa-desktop://app/index.html');
 	mainWindow.once('ready-to-show', () => {
 		logBoot('window:ready-to-show');
 		mainWindow?.show();
@@ -336,6 +427,14 @@ app
 	.whenReady()
 	.then(async () => {
 		logBoot('app-ready');
+		session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+			callback(false);
+		});
+		session.defaultSession.setPermissionCheckHandler(() => false);
+		logBoot('electron-version', {
+			electron_version: process.versions.electron,
+		});
+		registerRendererProtocol();
 		registerIpcHandlers();
 		createTray();
 		createMainWindow();

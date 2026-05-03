@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -374,6 +374,87 @@ async function killProcessTree(child) {
 	child.kill('SIGTERM');
 }
 
+async function verifyAsarIntegrityBlocksTamper(accessToken) {
+	if (process.env.RUNA_DESKTOP_SKIP_ASAR_INTEGRITY_TAMPER === '1') {
+		return 'skipped';
+	}
+
+	const sourceDirectory = path.dirname(packagedExePath);
+	const tamperDirectory = await mkdtemp(path.join(os.tmpdir(), 'runa-desktop-asar-tamper-'));
+	const tamperedAppDirectory = path.join(tamperDirectory, path.basename(sourceDirectory));
+	await cp(sourceDirectory, tamperedAppDirectory, { recursive: true });
+	const tamperedAsarPath = path.join(tamperedAppDirectory, 'resources', 'app.asar');
+	const tamperedAsar = await open(tamperedAsarPath, 'r+');
+	try {
+		const headerByte = Buffer.alloc(1);
+		await tamperedAsar.read(headerByte, 0, 1, 0);
+		headerByte[0] = headerByte[0] ^ 0xff;
+		await tamperedAsar.write(headerByte, 0, 1, 0);
+	} finally {
+		await tamperedAsar.close();
+	}
+
+	const tamperedExePath = path.join(tamperedAppDirectory, path.basename(packagedExePath));
+	const tamperedUserDataDir = await mkdtemp(
+		path.join(os.tmpdir(), 'runa-desktop-tamper-user-data-'),
+	);
+	const child = spawn(tamperedExePath, ['--no-sandbox'], {
+		env: {
+			...process.env,
+			ELECTRON_DISABLE_SECURITY_WARNINGS: '1',
+			RUNA_DESKTOP_AGENT_ACCESS_TOKEN: accessToken,
+			RUNA_DESKTOP_AGENT_ID: `${smokeAgentId}-tampered`,
+			RUNA_DESKTOP_AGENT_MACHINE_LABEL: 'Tampered Packaged Smoke Workstation',
+			RUNA_DESKTOP_AGENT_SERVER_URL: serverBaseUrl,
+			RUNA_DESKTOP_AGENT_USER_DATA_DIR: tamperedUserDataDir,
+		},
+		stdio: ['ignore', 'pipe', 'pipe'],
+		windowsHide: true,
+	});
+
+	const exitResult = await Promise.race([
+		new Promise((resolve) => {
+			child.once('exit', (code, signal) => {
+				resolve({ code, signal });
+			});
+		}),
+		delay(15_000).then(() => null),
+	]);
+
+	if (exitResult === null) {
+		await killProcessTree(child);
+		await rm(tamperDirectory, {
+			force: true,
+			maxRetries: 5,
+			recursive: true,
+			retryDelay: 250,
+		});
+		await rm(tamperedUserDataDir, {
+			force: true,
+			maxRetries: 5,
+			recursive: true,
+			retryDelay: 250,
+		});
+		throw new Error('Tampered ASAR launched without being blocked by Electron fuses.');
+	}
+
+	await killProcessTree(child);
+	await delay(500);
+	await rm(tamperDirectory, {
+		force: true,
+		maxRetries: 5,
+		recursive: true,
+		retryDelay: 250,
+	});
+	await rm(tamperedUserDataDir, {
+		force: true,
+		maxRetries: 5,
+		recursive: true,
+		retryDelay: 250,
+	});
+	return true;
+}
+
 let packagedProcessExit = null;
 let serverBaseUrl = externalServerBaseUrl ?? '';
 
@@ -433,6 +514,7 @@ async function main() {
 	let device;
 	let proof = null;
 	let removedAfterShutdown = false;
+	let asarIntegrityTamperBlocked = false;
 
 	try {
 		device = await withTimeout(waitForDevice(accessToken), 'packaged desktop presence');
@@ -446,9 +528,12 @@ async function main() {
 		await writeFile(logPath, `STDOUT\n${stdout}\n\nSTDERR\n${stderr}\n`);
 	}
 
+	asarIntegrityTamperBlocked = await verifyAsarIntegrityBlocksTamper(accessToken);
+
 	const logPreview = await readFile(logPath, 'utf8');
 	const summary = {
 		agent_id: smokeAgentId,
+		asar_integrity_tamper_blocked: asarIntegrityTamperBlocked,
 		device_online: Boolean(device),
 		device_removed_after_shutdown: removedAfterShutdown,
 		log_path: logPath,
@@ -461,7 +546,12 @@ async function main() {
 
 	console.log(`DESKTOP_PACKAGED_RUNTIME_SMOKE_SUMMARY ${JSON.stringify(summary)}`);
 
-	if (!device || proof?.approval_resolve_sent !== true || proof?.screenshot_succeeded !== true) {
+	if (
+		!device ||
+		proof?.approval_resolve_sent !== true ||
+		proof?.screenshot_succeeded !== true ||
+		asarIntegrityTamperBlocked !== true
+	) {
 		throw new Error('Packaged desktop runtime smoke failed.');
 	}
 
