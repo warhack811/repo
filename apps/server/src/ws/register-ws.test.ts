@@ -26,7 +26,9 @@ import type {
 	PersistApprovalRequestInput,
 } from '../persistence/approval-store.js';
 import type { MemoryStore } from '../persistence/memory-store.js';
+import type { PolicyStateStore } from '../persistence/policy-state-store.js';
 import type { PersistRunStateInput } from '../persistence/run-store.js';
+import type { PermissionEngineState } from '../policy/permission-engine.js';
 import { createPermissionEngine } from '../policy/permission-engine.js';
 import { resetUsageRateLimitStore } from '../policy/usage-quota.js';
 import { mapSearchResultToBlock } from '../presentation/map-search-result.js';
@@ -58,6 +60,7 @@ import {
 	attachRuntimeWebSocketHandler,
 	handleWebSocketMessage,
 } from './register-ws.js';
+import { attachWebSocketTransport } from './transport.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -340,27 +343,75 @@ function createPolicyStateStore() {
 }
 
 async function enableAutoContinueForSocket(
-	socket: MockSocket,
+	_socket: MockSocket,
 ): Promise<ReturnType<typeof createWebSocketPolicyWiring>> {
-	const policyWiring = createWebSocketPolicyWiring();
-	const autoContinueDecision = (
-		await policyWiring.evaluateAutoContinuePermission(socket, {
-			requested_max_consecutive_turns: 4,
-		})
-	).decision;
+	return createWebSocketPolicyWiring();
+}
 
-	if (autoContinueDecision.decision !== 'require_approval') {
-		throw new Error(
-			'Expected auto-continue to require approval before progressive trust is enabled.',
-		);
-	}
-
-	await policyWiring.recordOutcome(socket, {
-		decision: autoContinueDecision,
-		outcome: 'approval_approved',
+function createDisabledAutoContinueWiring(): {
+	readonly authContext: AuthContext;
+	readonly policyWiring: ReturnType<typeof createWebSocketPolicyWiring>;
+	readonly attach: (socket: MockSocket) => void;
+} {
+	const sessionId = 'session_register_ws_disabled_auto_continue';
+	const authContext: AuthContext = {
+		principal: {
+			email: 'register-ws@runa.local',
+			kind: 'authenticated',
+			provider: 'supabase',
+			role: 'authenticated',
+			scope: {
+				tenant_id: 'tenant_register_ws',
+				workspace_id: 'workspace_register_ws',
+			},
+			session_id: sessionId,
+			user_id: 'user_register_ws',
+		},
+		session: {
+			identity_provider: 'email_password',
+			provider: 'supabase',
+			scope: {
+				tenant_id: 'tenant_register_ws',
+				workspace_id: 'workspace_register_ws',
+			},
+			session_id: sessionId,
+			user_id: 'user_register_ws',
+		},
+		transport: 'websocket',
+	};
+	const states = new Map<string, PermissionEngineState>();
+	const policyStateStore: PolicyStateStore = {
+		async getPolicyState(scope) {
+			return states.get(scope.session_id) ?? null;
+		},
+		async putPolicyState(scope, state) {
+			states.set(scope.session_id, state);
+		},
+	};
+	const permissionEngine = createPermissionEngine();
+	const baseState = permissionEngine.createInitialState();
+	states.set(sessionId, {
+		...baseState,
+		progressive_trust: {
+			...baseState.progressive_trust,
+			auto_continue: { enabled: false },
+		},
+	});
+	const policyWiring = createWebSocketPolicyWiring({
+		permission_engine: permissionEngine,
+		policy_state_store: policyStateStore,
 	});
 
-	return policyWiring;
+	return {
+		authContext,
+		policyWiring,
+		attach(socket) {
+			attachWebSocketTransport(socket, {
+				auth_context: authContext,
+				on_message: () => {},
+			});
+		},
+	};
 }
 
 afterEach(() => {
@@ -3702,10 +3753,12 @@ describe('register-ws', () => {
 			const registry = new ToolRegistry();
 			const filePath = join(directory, 'example.ts');
 			let fetchCallCount = 0;
+			const disabledWiring = createDisabledAutoContinueWiring();
 
 			registry.register(fileReadTool);
 			await writeFile(filePath, 'export const value = 1;\n', 'utf8');
 
+			disabledWiring.attach(socket);
 			attachRuntimeWebSocketHandler(socket);
 
 			vi.stubGlobal(
@@ -3779,6 +3832,7 @@ describe('register-ws', () => {
 				{
 					approvalStore: approvalStore.store,
 					persistEvents,
+					policy_wiring: disabledWiring.policyWiring,
 					toolRegistry: registry,
 				},
 			);
@@ -3928,8 +3982,10 @@ describe('register-ws', () => {
 			const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
 			const registry = new ToolRegistry();
 			const missingFilePath = join(directory, 'missing.ts');
+			const disabledWiring = createDisabledAutoContinueWiring();
 
 			registry.register(fileReadTool);
+			disabledWiring.attach(socket);
 			attachRuntimeWebSocketHandler(socket);
 
 			vi.stubGlobal(
@@ -3996,6 +4052,7 @@ describe('register-ws', () => {
 				}),
 				{
 					persistEvents,
+					policy_wiring: disabledWiring.policyWiring,
 					toolRegistry: registry,
 				},
 			);
@@ -4031,7 +4088,7 @@ describe('register-ws', () => {
 		});
 	});
 
-	it('continues a live tool-follow-up turn after approving auto-continue', async () => {
+	it('continues a live tool-follow-up turn after approving explicitly disabled auto-continue', async () => {
 		const environment = process.env as NodeJS.ProcessEnv & {
 			GROQ_API_KEY?: string;
 		};
@@ -4046,10 +4103,13 @@ describe('register-ws', () => {
 			const registry = new ToolRegistry();
 			const filePath = join(directory, 'example.ts');
 			let fetchCallCount = 0;
+			const disabledWiring = createDisabledAutoContinueWiring();
 
 			registry.register(fileReadTool);
 			await writeFile(filePath, 'export const value = 1;\n', 'utf8');
 
+			disabledWiring.attach(socket);
+			disabledWiring.attach(approvalResolveSocket);
 			attachRuntimeWebSocketHandler(socket);
 			attachRuntimeWebSocketHandler(approvalResolveSocket);
 
@@ -4154,6 +4214,7 @@ describe('register-ws', () => {
 					approvalStore: approvalStore.store,
 					persistEvents,
 					persistRunState,
+					policy_wiring: disabledWiring.policyWiring,
 					toolRegistry: registry,
 				},
 			);
@@ -4215,6 +4276,7 @@ describe('register-ws', () => {
 					approvalStore: approvalStore.store,
 					persistEvents,
 					persistRunState,
+					policy_wiring: disabledWiring.policyWiring,
 					toolRegistry: registry,
 				},
 			);
@@ -4242,6 +4304,7 @@ describe('register-ws', () => {
 					),
 			).toEqual(['MODEL_THINKING', 'COMPLETED']);
 			expect(resumedMessages.map((message) => message.type)).toEqual([
+				'connection.ready',
 				'connection.ready',
 				'presentation.blocks',
 				'runtime.event',

@@ -158,7 +158,7 @@ Durust repo notu:
 |---|---|
 | Agentic loop modeli | Async generator + typed stop conditions |
 | max_turns | 200 |
-| Auto-continue | Varsayilan kapali |
+| Auto-continue | Varsayilan acik (max_turns, approval gate ve denial threshold guardrail'lari korunur) |
 | Checkpoint persistence | PostgreSQL metadata + Object Storage blob |
 | Context compaction | Microcompact |
 | Token limit recovery | 413 -> compact + retry |
@@ -167,7 +167,7 @@ Durust repo notu:
 | Cloud DB | Supabase PostgreSQL |
 | Object storage | Supabase Storage |
 | Subscription tiers | Free / Pro / Business |
-| Dev provider | Groq |
+| Dev provider | DeepSeek (deepseek-v4-flash / deepseek-v4-pro); Groq fallback zincirinde |
 | Prod provider | Claude / Gemini (yayin oncesi sabitlenecek) |
 | UI framework | React + Vite |
 | Desktop platform | Windows-first, signed-in desktop companion + local bridge hedefi |

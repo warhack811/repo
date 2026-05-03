@@ -42,16 +42,24 @@ function createGateInput(
 }
 
 describe('createAutoContinuePolicyGate', () => {
-	it('returns an approval boundary when auto-continue is disabled by default', async () => {
+	it('returns an approval boundary when auto-continue is explicitly disabled', async () => {
 		const engine = createPermissionEngine();
 		const rememberApprovalDecision = vi.fn();
 		const recordOutcome = vi.fn();
+		const initialState = engine.createInitialState();
+		const disabledState: typeof initialState = {
+			...initialState,
+			progressive_trust: {
+				...initialState.progressive_trust,
+				auto_continue: { enabled: false },
+			},
+		};
 		const gate = createAutoContinuePolicyGate({
 			evaluate_permission() {
 				return {
 					decision: engine.evaluatePermission({
 						request: createAutoContinuePermissionRequest(),
-						state: engine.createInitialState(),
+						state: disabledState,
 					}),
 				};
 			},
@@ -87,22 +95,29 @@ describe('createAutoContinuePolicyGate', () => {
 	it('allows continuation and records an allowed outcome when progressive trust is enabled', async () => {
 		const engine = createPermissionEngine();
 		const initialState = engine.createInitialState();
+		const disabledState: typeof initialState = {
+			...initialState,
+			progressive_trust: {
+				...initialState.progressive_trust,
+				auto_continue: { enabled: false },
+			},
+		};
 		const request = createAutoContinuePermissionRequest({
 			requested_max_consecutive_turns: 4,
 		});
 		const approvalDecision = engine.evaluatePermission({
 			request,
-			state: initialState,
+			state: disabledState,
 		});
 
 		if (approvalDecision.decision !== 'require_approval') {
-			throw new Error('Expected initial auto-continue decision to require approval.');
+			throw new Error('Expected explicitly-disabled auto-continue decision to require approval.');
 		}
 
 		const approvedState = engine.recordPermissionOutcome({
 			decision: approvalDecision,
 			outcome: 'approval_approved',
-			state: initialState,
+			state: disabledState,
 		}).next_state;
 		const recordOutcome = vi.fn(
 			(input: { decision: typeof approvalDecision; outcome: 'allowed' | 'denied' }) =>

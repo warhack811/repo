@@ -506,7 +506,7 @@ Bu degerler ekip ile birlikte onaylandi:
 | --- | --- | --- |
 | Agentic loop modeli | Async generator + typed stop conditions | Dogrudan control flow, kolay test, cancel/pause |
 | max_turns (hard cap) | 200 | Sonsuz dongu korumasi |
-| Auto-continue | Varsayilan kapali, kullanici tercihi ile acilir | Progressive trust modeli |
+| Auto-continue | Varsayilan acik; kullanici explicit olarak kapatabilir | UX surtunmesi azaltma; max_turns, approval gate ve denial threshold guardrail'lari korunur |
 | Checkpoint persistence | PostgreSQL (metadata) + Object Storage (blob) | Hibrit: hizli query + buyuk veri ayrim |
 | Context compaction | Microcompact (512-1024 token ozet) | Token recovery + baglam koruma dengesi |
 | Token limit recovery | 413 -> otomatik compact + retry | Kullanici mudahalesi olmadan devam |
@@ -516,7 +516,7 @@ Bu degerler ekip ile birlikte onaylandi:
 | Cloud DB | Supabase PostgreSQL | Managed, RLS destekli, auth ile entegre |
 | Object storage | Supabase Storage | Screenshot, tool output blob'lari |
 | Subscription tiers | Free / Pro / Business | Feature gating icin katmanli model |
-| Dev provider | Groq | Sirket politikasi |
+| Dev provider | DeepSeek (deepseek-v4-flash / deepseek-v4-pro); Groq fallback zincirinde | Model router odakli baseline + multi-provider failover |
 | Prod provider | Claude / Gemini (yayin oncesi sabit) | Kalite + guvenilirlik |
 
 ---

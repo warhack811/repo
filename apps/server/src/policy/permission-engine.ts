@@ -308,7 +308,7 @@ export function createInitialPermissionEngineState(
 				mode: DEFAULT_APPROVAL_MODE,
 			},
 			auto_continue: {
-				enabled: false,
+				enabled: true,
 			},
 			trusted_session: {
 				approved_capability_count: 0,

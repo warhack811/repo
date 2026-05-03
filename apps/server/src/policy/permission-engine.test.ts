@@ -627,7 +627,7 @@ describe('permission-engine', () => {
 		});
 	});
 
-	it('keeps auto-continue disabled by default until explicitly approved', () => {
+	it('allows auto-continue by default and records explicit approval when re-enabled from disabled state', () => {
 		const engine = createPermissionEngine({
 			now: () => '2026-04-17T20:10:00.000Z',
 		});
@@ -636,12 +636,31 @@ describe('permission-engine', () => {
 			requested_max_consecutive_turns: 5,
 		});
 
-		const firstDecision = engine.evaluatePermission({
+		const defaultDecision = engine.evaluatePermission({
 			request,
 			state: initialState,
 		});
 
-		expect(firstDecision).toEqual({
+		expect(defaultDecision).toEqual({
+			decision: 'allow',
+			reason: 'progressive_trust_enabled',
+			request,
+		});
+
+		const disabledState: typeof initialState = {
+			...initialState,
+			progressive_trust: {
+				...initialState.progressive_trust,
+				auto_continue: { enabled: false },
+			},
+		};
+
+		const disabledDecision = engine.evaluatePermission({
+			request,
+			state: disabledState,
+		});
+
+		expect(disabledDecision).toEqual({
 			approval_requirement: {
 				action_kind: 'auto_continue',
 				requires_reason: true,
@@ -653,11 +672,11 @@ describe('permission-engine', () => {
 		});
 
 		const approvalOutcome = engine.recordPermissionOutcome({
-			decision: firstDecision,
+			decision: disabledDecision,
 			outcome: 'approval_approved',
-			state: initialState,
+			state: disabledState,
 		});
-		const secondDecision = engine.evaluatePermission({
+		const reEnabledDecision = engine.evaluatePermission({
 			request,
 			state: approvalOutcome.next_state,
 		});
@@ -667,7 +686,7 @@ describe('permission-engine', () => {
 			enabled_at: '2026-04-17T20:10:00.000Z',
 			max_consecutive_turns: 5,
 		});
-		expect(secondDecision).toEqual({
+		expect(reEnabledDecision).toEqual({
 			decision: 'allow',
 			reason: 'progressive_trust_enabled',
 			request,

@@ -266,13 +266,47 @@ describe('websocket policy wiring', () => {
 		});
 	});
 
-	it('enables progressive trust for auto-continue only after explicit approval and tracks rejection state', async () => {
+	it('allows auto-continue by default without approval', async () => {
 		const socket = createSocket();
 		const wiring = createWebSocketPolicyWiring({
 			permission_engine: createPermissionEngine({
 				now: () => '2026-04-17T21:00:00.000Z',
 			}),
 		});
+
+		expect(
+			(await wiring.evaluateAutoContinuePermission(socket, { requested_max_consecutive_turns: 4 }))
+				.decision,
+		).toEqual({
+			decision: 'allow',
+			reason: 'progressive_trust_enabled',
+			request: expect.objectContaining({
+				kind: 'auto_continue',
+			}),
+		});
+	});
+
+	it('tracks rejection and re-enables progressive trust after approval when auto-continue is explicitly disabled', async () => {
+		const authContext = createAuthContext();
+		const socket = createSocket();
+		const policyStateStore = createPolicyStateStore();
+		const permissionEngine = createPermissionEngine({
+			now: () => '2026-04-17T21:00:00.000Z',
+		});
+		const baseState = permissionEngine.createInitialState();
+		policyStateStore.states.set('session_policy', {
+			...baseState,
+			progressive_trust: {
+				...baseState.progressive_trust,
+				auto_continue: { enabled: false },
+			},
+		});
+		const wiring = createWebSocketPolicyWiring({
+			permission_engine: permissionEngine,
+			policy_state_store: policyStateStore.store,
+		});
+
+		attachAuthContext(socket, authContext);
 
 		const firstDecision = (
 			await wiring.evaluateAutoContinuePermission(socket, {
@@ -283,7 +317,7 @@ describe('websocket policy wiring', () => {
 		expect(firstDecision.decision).toBe('require_approval');
 
 		if (firstDecision.decision !== 'require_approval') {
-			throw new Error('Expected auto-continue to require approval by default.');
+			throw new Error('Expected auto-continue to require approval when explicitly disabled.');
 		}
 
 		await wiring.recordOutcome(socket, {
@@ -650,7 +684,7 @@ describe('websocket policy wiring', () => {
 					mode: 'standard',
 				},
 				auto_continue: {
-					enabled: false,
+					enabled: true,
 				},
 				trusted_session: {
 					approved_capability_count: 0,
@@ -684,7 +718,7 @@ describe('websocket policy wiring', () => {
 					mode: 'standard',
 				},
 				auto_continue: {
-					enabled: false,
+					enabled: true,
 				},
 				trusted_session: {
 					approved_capability_count: 0,
@@ -713,6 +747,14 @@ describe('websocket policy wiring', () => {
 		const policyStateStore = createPolicyStateStore();
 		const permissionEngine = createPermissionEngine({
 			now: () => '2026-04-23T13:00:00.000Z',
+		});
+		const baseState = permissionEngine.createInitialState();
+		policyStateStore.states.set('session_policy', {
+			...baseState,
+			progressive_trust: {
+				...baseState.progressive_trust,
+				auto_continue: { enabled: false },
+			},
 		});
 		const firstWiring = createWebSocketPolicyWiring({
 			permission_engine: permissionEngine,
