@@ -2,6 +2,7 @@ import type {
 	AnyRuntimeEvent,
 	ApprovalRequest,
 	AuthContext,
+	RenderBlock,
 	RuntimeEvent,
 	RuntimeState,
 	SubscriptionContext,
@@ -13,6 +14,7 @@ import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
 import type { ApprovalStore, PendingApprovalToolCall } from '../persistence/approval-store.js';
 import type {
 	ConversationMessage,
+	ConversationRunBlocks,
 	ConversationSummary,
 } from '../persistence/conversation-store.js';
 import type { MemoryStore } from '../persistence/memory-store.js';
@@ -44,6 +46,19 @@ export interface ConversationOrchestrationStore {
 		};
 		readonly trace_id?: string;
 	}): Promise<ConversationMessage>;
+	appendConversationRunBlocks?(input: {
+		readonly blocks: readonly RenderBlock[];
+		readonly conversation_id: string;
+		readonly created_at?: string;
+		readonly run_id: string;
+		readonly scope: {
+			readonly session_id?: string;
+			readonly tenant_id?: string;
+			readonly user_id?: string;
+			readonly workspace_id?: string;
+		};
+		readonly trace_id: string;
+	}): Promise<ConversationRunBlocks>;
 	ensureConversation(input: {
 		readonly conversation_id?: string;
 		readonly created_at?: string;

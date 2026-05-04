@@ -69,9 +69,11 @@ export type {
 	ConversationMemberRecord,
 	ConversationMessageRecord,
 	ConversationRecord,
+	ConversationRunBlocksRecord,
 	NewConversationMemberRecord,
 	NewConversationMessageRecord,
 	NewConversationRecord,
+	NewConversationRunBlocksRecord,
 } from './conversations.js';
 export {
 	createConversationDatabaseClient,
@@ -97,10 +99,11 @@ export {
 } from './runtime-events.js';
 export type { NewRunRecord, RunRecord } from './runs.js';
 export {
-	conversationMembersTable,
 	approvalsTable,
 	checkpointsTable,
+	conversationMembersTable,
 	conversationMessagesTable,
+	conversationRunBlocksTable,
 	conversationsTable,
 	memoriesTable,
 	policyStatesTable,

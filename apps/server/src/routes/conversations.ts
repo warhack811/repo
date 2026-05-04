@@ -9,6 +9,7 @@ import {
 	conversationScopeFromAuthContext,
 	listConversationMembers,
 	listConversationMessages,
+	listConversationRunBlocks,
 	listConversations,
 	removeConversationMember,
 	shareConversationWithMember,
@@ -22,6 +23,11 @@ interface ConversationListReply {
 interface ConversationMessagesReply {
 	readonly conversation_id: string;
 	readonly messages: Awaited<ReturnType<typeof listConversationMessages>>;
+}
+
+interface ConversationRunBlocksReply {
+	readonly conversation_id: string;
+	readonly run_surfaces: Awaited<ReturnType<typeof listConversationRunBlocks>>;
 }
 
 interface ConversationMembersReply {
@@ -45,6 +51,7 @@ interface ShareConversationBody {
 export interface RegisterConversationRoutesOptions {
 	readonly list_conversation_members?: typeof listConversationMembers;
 	readonly list_conversation_messages?: typeof listConversationMessages;
+	readonly list_conversation_run_blocks?: typeof listConversationRunBlocks;
 	readonly list_conversations?: typeof listConversations;
 	readonly remove_conversation_member?: typeof removeConversationMember;
 	readonly share_conversation_with_member?: typeof shareConversationWithMember;
@@ -142,6 +149,8 @@ export async function registerConversationRoutes(
 	const listConversationMembersRoute = options.list_conversation_members ?? listConversationMembers;
 	const listConversationMessagesRoute =
 		options.list_conversation_messages ?? listConversationMessages;
+	const listConversationRunBlocksRoute =
+		options.list_conversation_run_blocks ?? listConversationRunBlocks;
 	const listConversationsRoute = options.list_conversations ?? listConversations;
 	const removeConversationMemberRoute =
 		options.remove_conversation_member ?? removeConversationMember;
@@ -182,6 +191,29 @@ export async function registerConversationRoutes(
 				return {
 					conversation_id: conversationId,
 					messages: await listConversationMessagesRoute(
+						conversationId,
+						conversationScopeFromAuthContext(request.auth),
+					),
+				};
+			} catch (error) {
+				if (error instanceof ConversationStoreAccessError) {
+					return replyWithConversationStoreError(reply, error);
+				}
+
+				throw error;
+			}
+		},
+	);
+
+	server.get<{ Params: ConversationParams; Reply: ConversationRunBlocksReply }>(
+		'/conversations/:conversationId/blocks',
+		async (request, reply) => {
+			requireAuthenticatedRequest(request);
+			try {
+				const conversationId = normalizeConversationId(request.params.conversationId);
+				return {
+					conversation_id: conversationId,
+					run_surfaces: await listConversationRunBlocksRoute(
 						conversationId,
 						conversationScopeFromAuthContext(request.auth),
 					),

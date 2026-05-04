@@ -1,4 +1,4 @@
-import type { ModelMessage } from '@runa/types';
+import type { ModelMessage, RenderBlock } from '@runa/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const ACTIVE_CONVERSATION_STORAGE_KEY = 'runa.chat.active_conversation_id';
@@ -27,6 +27,12 @@ export interface ConversationMessage {
 	readonly trace_id?: string;
 }
 
+export interface ConversationRunSurface {
+	readonly blocks: readonly RenderBlock[];
+	readonly run_id: string;
+	readonly trace_id: string;
+}
+
 export interface ConversationMember {
 	readonly added_by_user_id?: string;
 	readonly conversation_id: string;
@@ -40,6 +46,7 @@ export interface UseConversationsResult {
 	readonly activeConversationId: string | null;
 	readonly activeConversationMembers: readonly ConversationMember[];
 	readonly activeConversationMessages: readonly ConversationMessage[];
+	readonly activeConversationRunSurfaces: readonly ConversationRunSurface[];
 	readonly activeConversationSummary: ConversationSummary | null;
 	readonly conversationError: string | null;
 	readonly conversations: readonly ConversationSummary[];
@@ -73,6 +80,17 @@ interface ConversationMembersResponseCandidate {
 interface ConversationMessagesResponseCandidate {
 	readonly conversation_id?: unknown;
 	readonly messages?: unknown;
+}
+
+interface ConversationRunBlocksResponseCandidate {
+	readonly conversation_id?: unknown;
+	readonly run_surfaces?: unknown;
+}
+
+interface ConversationRunSurfaceCandidate {
+	readonly blocks?: unknown;
+	readonly run_id?: unknown;
+	readonly trace_id?: unknown;
 }
 
 type ConversationSummaryCandidate = Record<string, unknown> & {
@@ -233,6 +251,33 @@ function isConversationMessagesResponse(value: unknown): value is {
 	);
 }
 
+function isConversationRunSurfaceCandidate(value: unknown): value is ConversationRunSurface {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as ConversationRunSurfaceCandidate;
+	return (
+		typeof candidate.run_id === 'string' &&
+		typeof candidate.trace_id === 'string' &&
+		Array.isArray(candidate.blocks)
+	);
+}
+
+function isConversationRunBlocksResponse(value: unknown): value is {
+	readonly conversation_id: string;
+	readonly run_surfaces: readonly ConversationRunSurface[];
+} {
+	return (
+		isRecord(value) &&
+		typeof (value as ConversationRunBlocksResponseCandidate).conversation_id === 'string' &&
+		Array.isArray((value as ConversationRunBlocksResponseCandidate).run_surfaces) &&
+		((value as ConversationRunBlocksResponseCandidate).run_surfaces as readonly unknown[]).every(
+			(entry: unknown) => isConversationRunSurfaceCandidate(entry),
+		)
+	);
+}
+
 function isConversationMembersResponse(value: unknown): value is {
 	readonly conversation_id: string;
 	readonly members: readonly ConversationMember[];
@@ -291,6 +336,36 @@ async function fetchConversationList(
 	}
 
 	return parsed.conversations;
+}
+
+async function fetchConversationBlocks(
+	conversationId: string,
+	accessToken?: string | null,
+	signal?: AbortSignal,
+): Promise<readonly ConversationRunSurface[]> {
+	const response = await fetch(`/conversations/${encodeURIComponent(conversationId)}/blocks`, {
+		cache: 'no-store',
+		credentials: 'same-origin',
+		headers: createRequestHeaders(accessToken),
+		method: 'GET',
+		signal,
+	});
+
+	if (!response.ok) {
+		if (response.status === 404 || response.status === 503) {
+			return [];
+		}
+
+		throw new Error(await readErrorMessage(response));
+	}
+
+	const parsed = (await response.json()) as unknown;
+
+	if (!isConversationRunBlocksResponse(parsed)) {
+		return [];
+	}
+
+	return parsed.run_surfaces;
 }
 
 async function fetchConversationMessages(
@@ -361,6 +436,9 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 	const [activeConversationMessages, setActiveConversationMessages] = useState<
 		readonly ConversationMessage[]
 	>([]);
+	const [activeConversationRunSurfaces, setActiveConversationRunSurfaces] = useState<
+		readonly ConversationRunSurface[]
+	>([]);
 	const [activeConversationMembers, setActiveConversationMembers] = useState<
 		readonly ConversationMember[]
 	>([]);
@@ -385,6 +463,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 
 				setConversations(nextConversations);
 				setConversationError(null);
+
 				setActiveConversationId((currentConversationId) => {
 					if (
 						currentConversationId &&
@@ -438,6 +517,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 	useEffect(() => {
 		if (!activeConversationId) {
 			setActiveConversationMessages([]);
+			setActiveConversationRunSurfaces([]);
 			return;
 		}
 
@@ -460,6 +540,20 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 
 				setActiveConversationMessages(nextMessages);
 				setConversationError(null);
+
+				try {
+					const nextSurfaces = await fetchConversationBlocks(
+						activeConversationId,
+						accessToken,
+						controller.signal,
+					);
+
+					if (!isCancelled) {
+						setActiveConversationRunSurfaces(nextSurfaces);
+					}
+				} catch {
+					// Blocks persistence is optional; keep text history usable if it is absent.
+				}
 			} catch (error) {
 				if (isCancelled) {
 					return;
@@ -469,6 +563,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 					error instanceof Error ? error.message : 'Conversation mesajlari yuklenemedi.',
 				);
 				setActiveConversationMessages([]);
+				setActiveConversationRunSurfaces([]);
 			} finally {
 				if (!isCancelled) {
 					setIsConversationLoading(false);
@@ -546,6 +641,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 	const beginDraftConversation = useCallback((): void => {
 		setActiveConversationId(null);
 		setActiveConversationMessages([]);
+		setActiveConversationRunSurfaces([]);
 		setActiveConversationMembers([]);
 		setConversationError(null);
 		setMemberError(null);
@@ -553,6 +649,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 
 	const selectConversation = useCallback((conversationId: string): void => {
 		setActiveConversationId(conversationId);
+		setActiveConversationRunSurfaces([]);
 		setConversationError(null);
 		setMemberError(null);
 	}, []);
@@ -634,15 +731,19 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 
 			void (async () => {
 				try {
-					const [nextConversations, nextMessages, nextMembers] = await Promise.all([
+					const [nextConversations, nextMessages, nextMembers, nextSurfaces] = await Promise.all([
 						fetchConversationList(accessToken),
 						fetchConversationMessages(conversationId, accessToken),
 						fetchConversationMembers(conversationId, accessToken),
+						fetchConversationBlocks(conversationId, accessToken).catch(
+							() => [] as readonly ConversationRunSurface[],
+						),
 					]);
 					setConversations(nextConversations);
 					setActiveConversationId(conversationId);
 					setActiveConversationMessages(nextMessages);
 					setActiveConversationMembers(nextMembers);
+					setActiveConversationRunSurfaces(nextSurfaces);
 					setConversationError(null);
 					setMemberError(null);
 				} catch (error) {
@@ -719,6 +820,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 			activeConversationId,
 			activeConversationMembers,
 			activeConversationMessages,
+			activeConversationRunSurfaces,
 			activeConversationSummary,
 			beginDraftConversation,
 			buildRequestMessages,
@@ -737,6 +839,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 			activeConversationId,
 			activeConversationMembers,
 			activeConversationMessages,
+			activeConversationRunSurfaces,
 			activeConversationSummary,
 			beginDraftConversation,
 			buildRequestMessages,

@@ -5,9 +5,11 @@ import {
 	ConversationStoreAccessError,
 	ConversationStoreConfigurationError,
 	appendConversationMessage,
+	appendConversationRunBlocks,
 	ensureConversation,
 	listConversationMembers,
 	listConversationMessages,
+	listConversationRunBlocks,
 	listConversations,
 	shareConversationWithMember,
 } from './conversation-store.js';
@@ -35,10 +37,16 @@ function createWriter(overrides: Partial<ConversationRecordWriter> = {}): Conver
 		async insertConversationMessage() {
 			throw new Error('not used');
 		},
+		async insertConversationRunBlocks() {
+			throw new Error('not used');
+		},
 		async listConversationMembers() {
 			return [];
 		},
 		async listConversationMessages() {
+			return [];
+		},
+		async listConversationRunBlocks() {
 			return [];
 		},
 		async listConversations() {
@@ -262,6 +270,95 @@ describe('conversation-store', () => {
 				{ writer },
 			),
 		).rejects.toThrowError(ConversationStoreAccessError);
+	});
+
+	it('persists and lists render blocks for conversation runs', async () => {
+		const blocks = [
+			{
+				created_at: '2026-04-22T10:06:00.000Z',
+				id: 'block_1',
+				payload: {
+					level: 'success',
+					message: 'Tool completed',
+				},
+				schema_version: 1,
+				type: 'status',
+			},
+		] as const;
+		const insertConversationRunBlocks: ConversationRecordWriter['insertConversationRunBlocks'] =
+			vi.fn(async (record) => ({
+				...record,
+				tenant_id: record.tenant_id ?? null,
+				user_id: record.user_id ?? null,
+				workspace_id: record.workspace_id ?? null,
+			}));
+		const writer = createWriter({
+			getConversationById: async () => ({
+				conversation_id: 'conversation_1',
+				created_at: '2026-04-22T10:00:00.000Z',
+				last_message_at: '2026-04-22T10:05:00.000Z',
+				last_message_preview: 'Question',
+				session_id: null,
+				tenant_id: null,
+				title: 'Question',
+				updated_at: '2026-04-22T10:05:00.000Z',
+				user_id: 'user_1',
+				workspace_id: null,
+			}),
+			insertConversationRunBlocks,
+			listConversationRunBlocks: async () => [
+				{
+					block_record_id: 'block_record_1',
+					blocks,
+					conversation_id: 'conversation_1',
+					created_at: '2026-04-22T10:06:00.000Z',
+					run_id: 'run_1',
+					tenant_id: null,
+					trace_id: 'trace_1',
+					user_id: 'user_1',
+					workspace_id: null,
+				},
+			],
+		});
+
+		const persisted = await appendConversationRunBlocks(
+			{
+				blocks,
+				conversation_id: 'conversation_1',
+				created_at: '2026-04-22T10:06:00.000Z',
+				run_id: 'run_1',
+				scope: {
+					user_id: 'user_1',
+				},
+				trace_id: 'trace_1',
+			},
+			{ writer },
+		);
+		const listed = await listConversationRunBlocks(
+			'conversation_1',
+			{
+				user_id: 'user_1',
+			},
+			{ writer },
+		);
+
+		expect(insertConversationRunBlocks).toHaveBeenCalledWith(
+			expect.objectContaining({
+				blocks,
+				conversation_id: 'conversation_1',
+				run_id: 'run_1',
+				trace_id: 'trace_1',
+				user_id: 'user_1',
+			}),
+		);
+		expect(persisted.blocks).toEqual(blocks);
+		expect(listed).toEqual([
+			expect.objectContaining({
+				blocks,
+				run_id: 'run_1',
+				trace_id: 'trace_1',
+			}),
+		]);
 	});
 
 	it('shares members and exposes shared conversations in list responses', async () => {

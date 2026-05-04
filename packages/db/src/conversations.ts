@@ -5,6 +5,7 @@ import type { RunaDatabase } from './client.js';
 import {
 	conversationMembersTable,
 	conversationMessagesTable,
+	conversationRunBlocksTable,
 	conversationsTable,
 } from './schema.js';
 
@@ -14,6 +15,8 @@ export type ConversationMessageRecord = InferSelectModel<typeof conversationMess
 export type NewConversationMessageRecord = InferInsertModel<typeof conversationMessagesTable>;
 export type ConversationMemberRecord = InferSelectModel<typeof conversationMembersTable>;
 export type NewConversationMemberRecord = InferInsertModel<typeof conversationMembersTable>;
+export type ConversationRunBlocksRecord = InferSelectModel<typeof conversationRunBlocksTable>;
+export type NewConversationRunBlocksRecord = InferInsertModel<typeof conversationRunBlocksTable>;
 
 export interface ListConversationRowsInput {
 	readonly include_shared_with_user_id?: string;
@@ -44,6 +47,12 @@ export interface ConversationDatabaseClient {
 	upsert_conversation_member_row(
 		row: NewConversationMemberRecord,
 	): Promise<ConversationMemberRecord>;
+	upsert_conversation_run_blocks_row(
+		row: NewConversationRunBlocksRecord,
+	): Promise<ConversationRunBlocksRecord>;
+	list_conversation_run_blocks_rows(
+		conversation_id: string,
+	): Promise<readonly ConversationRunBlocksRecord[]>;
 	upsert_conversation_row(row: NewConversationRecord): Promise<ConversationRecord>;
 }
 
@@ -233,6 +242,36 @@ export function createConversationDatabaseClient(db: RunaDatabase): Conversation
 			}
 
 			return persistedRow;
+		},
+		async upsert_conversation_run_blocks_row(row) {
+			const rows = await db
+				.insert(conversationRunBlocksTable)
+				.values(row)
+				.onConflictDoUpdate({
+					set: {
+						blocks: row.blocks,
+						trace_id: row.trace_id,
+					},
+					target: conversationRunBlocksTable.run_id,
+				})
+				.returning();
+
+			const persistedRow = rows[0];
+
+			if (persistedRow === undefined) {
+				throw new Error(
+					`Conversation run blocks row for run "${row.run_id}" was not returned after upsert.`,
+				);
+			}
+
+			return persistedRow;
+		},
+		async list_conversation_run_blocks_rows(conversation_id) {
+			return db
+				.select()
+				.from(conversationRunBlocksTable)
+				.where(eq(conversationRunBlocksTable.conversation_id, conversation_id))
+				.orderBy(asc(conversationRunBlocksTable.created_at));
 		},
 		async upsert_conversation_row(row) {
 			const rows = await db

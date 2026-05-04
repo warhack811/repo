@@ -16,6 +16,7 @@ import type {
 	MemoryScope,
 	MemorySourceKind,
 	MemoryStatus,
+	RenderBlock,
 	ResumeContext,
 	RuntimeEvent,
 	RuntimeState,
@@ -337,5 +338,26 @@ export const checkpointsTable = pgTable(
 		sessionIdIndex: index('checkpoints_session_id_idx').on(table.session_id),
 		statusIndex: index('checkpoints_status_idx').on(table.status),
 		traceIdIndex: index('checkpoints_trace_id_idx').on(table.trace_id),
+	}),
+);
+
+export const conversationRunBlocksTable = pgTable(
+	'conversation_run_blocks',
+	{
+		block_record_id: text('block_record_id').primaryKey(),
+		blocks: jsonb('blocks').$type<readonly RenderBlock[]>().notNull(),
+		conversation_id: text('conversation_id').notNull(),
+		created_at: timestamp('created_at', { mode: 'string', withTimezone: true }).notNull(),
+		run_id: text('run_id').notNull().unique(),
+		tenant_id: text('tenant_id'),
+		trace_id: text('trace_id').notNull(),
+		user_id: text('user_id'),
+		workspace_id: text('workspace_id'),
+	},
+	(table) => ({
+		conversationIdIndex: index('conversation_run_blocks_conversation_id_idx').on(
+			table.conversation_id,
+		),
+		runIdIndex: index('conversation_run_blocks_run_id_idx').on(table.run_id),
 	}),
 );
