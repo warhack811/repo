@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import type { MotionProps } from 'motion/react';
 import { motion } from 'motion/react';
-import type { CSSProperties, ElementType, JSX } from 'react';
+import type { ElementType, JSX } from 'react';
 import { memo, useMemo } from 'react';
 
 type MotionHTMLProps = MotionProps & Record<string, unknown>;
@@ -48,16 +48,10 @@ const ShimmerComponent = ({
 			className={cn(
 				'relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent',
 				'[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]',
+				'[background-image:var(--bg),linear-gradient(var(--color-muted-foreground),var(--color-muted-foreground))]',
 				className,
 			)}
-			initial={{ backgroundPosition: '100% center' }}
-			style={
-				{
-					'--spread': `${dynamicSpread}px`,
-					backgroundImage:
-						'var(--bg), linear-gradient(var(--color-muted-foreground), var(--color-muted-foreground))',
-				} as CSSProperties
-			}
+			initial={{ '--spread': `${dynamicSpread}px`, backgroundPosition: '100% center' }}
 			transition={{
 				duration,
 				ease: 'linear',

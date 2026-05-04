@@ -19,12 +19,19 @@ export function useConversationBackedChatRuntime(accessToken: string | null) {
 		},
 		[conversations.handleRunFinished],
 	);
+	const onRunFinishing = useCallback(
+		(input: { conversationId: string; runId: string; streamingText: string }) => {
+			conversations.handleRunFinishing(input);
+		},
+		[conversations.handleRunFinishing],
+	);
 	const runtime = useChatRuntime({
 		activeConversationId: conversations.activeConversationId,
 		accessToken,
 		buildRequestMessages: conversations.buildRequestMessages,
 		onRunAccepted,
 		onRunFinished,
+		onRunFinishing,
 	});
 
 	const { activeConversationRunSurfaces } = conversations;

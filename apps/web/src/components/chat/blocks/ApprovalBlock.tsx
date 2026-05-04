@@ -190,7 +190,7 @@ export function ApprovalBlock({
 	const createdAtLabel = new Date(block.created_at).toLocaleString('tr-TR');
 	const decisionCopy = getDecisionCopy(block);
 	const statusLabel = formatStatusLabel(block.payload.status);
-	const summary = isDeveloperMode ? normalizeText(block.payload.summary) : null;
+	const summary = normalizeText(block.payload.summary);
 	const targetLabel = getTargetLabel(block);
 	const approveVariant = getApprovalActionVariant(block);
 
@@ -206,32 +206,47 @@ export function ApprovalBlock({
 			<div className={styles['approvalHeader']}>
 				<div className={styles['headerStack']}>
 					<span className={styles['eyebrow']}>Güven kararı</span>
-					<strong className={styles['approvalTitle']}>Runa şunu yapmak istiyor</strong>
+					<strong className={styles['approvalTitle']}>{decisionCopy.action}</strong>
 				</div>
 				<span className={styles['approvalStatusChip']}>{statusLabel}</span>
 			</div>
 
-			<div className={styles['approvalDecision']}>
-				<span className={styles['metaLabel']}>Eylem</span>
-				<strong>{decisionCopy.action}</strong>
-				{summary ? <p>{summary}</p> : null}
-			</div>
-
-			<div className={styles['approvalDecisionGrid']}>
-				<div className={styles['metaBox']}>
+			{targetLabel ? (
+				<div className={styles['approvalInlineTarget']}>
 					<span className={styles['metaLabel']}>{getTargetHeading(block.payload.target_kind)}</span>
 					<span className={styles['approvalValue']}>{targetLabel}</span>
+					<span className={styles['approvalRisk']}>{decisionCopy.risk}</span>
 				</div>
-				<div className={styles['metaBox']}>
-					<span className={styles['metaLabel']}>Dikkat</span>
-					<span className={styles['approvalValue']}>{decisionCopy.risk}</span>
-				</div>
-			</div>
+			) : (
+				<p className={styles['approvalRisk']}>{decisionCopy.risk}</p>
+			)}
 
-			<output aria-live="polite" className={styles['approvalStateFeedback']}>
-				<span>{getStateMessage(block.payload.status)}</span>
-				<span>{decisionCopy.outcome}</span>
-			</output>
+			<RunaDisclosure title="Detaylar">
+				<div className={styles['metaGrid']}>
+					<div className={styles['metaBox']}>
+						<span className={styles['metaLabel']}>Sonuç</span>
+						<span>{decisionCopy.outcome}</span>
+					</div>
+					{summary ? (
+						<div className={styles['metaBox']}>
+							<span className={styles['metaLabel']}>Özet</span>
+							<p>{summary}</p>
+						</div>
+					) : null}
+					{isDeveloperMode && block.payload.tool_name ? (
+						<div className={styles['metaBox']}>
+							<span className={styles['metaLabel']}>Araç</span>
+							<code>{block.payload.tool_name}</code>
+						</div>
+					) : null}
+					{isDeveloperMode && block.payload.call_id ? (
+						<div className={styles['metaBox']}>
+							<span className={styles['metaLabel']}>{uiCopy.approval.callId}</span>
+							<code>{block.payload.call_id}</code>
+						</div>
+					) : null}
+				</div>
+			</RunaDisclosure>
 
 			{isPending && onResolveApproval ? (
 				<div className={styles['approvalActions']}>
@@ -241,7 +256,7 @@ export function ApprovalBlock({
 						onClick={() => onResolveApproval(block.payload.approval_id, 'approved')}
 						variant={approveVariant}
 					>
-						<Check size={18} />
+						<Check size={16} />
 						{uiCopy.approval.approve}
 					</RunaButton>
 					<RunaButton
@@ -250,7 +265,7 @@ export function ApprovalBlock({
 						onClick={() => onResolveApproval(block.payload.approval_id, 'rejected')}
 						variant="secondary"
 					>
-						<X size={18} />
+						<X size={16} />
 						{uiCopy.approval.reject}
 					</RunaButton>
 				</div>

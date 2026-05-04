@@ -2,6 +2,7 @@ import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import { RunaCard } from '../../ui/RunaCard.js';
 import type { ActiveTaskQueueItem, CapabilityStatus, CapabilityTone } from './types.js';
+import styles from './ActiveTaskQueue.module.css';
 
 export type ActiveTaskQueueProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
@@ -41,26 +42,26 @@ export function ActiveTaskQueue({
 			{...queueProps}
 			className={[
 				['runa-active-task-queue', className].filter(Boolean).join(' '),
-				'runa-migrated-components-chat-capability-activetaskqueue-1',
+				styles['root'],
 			]
 				.filter(Boolean)
 				.join(' ')}
 			tone="subtle"
 		>
-			<div className="runa-migrated-components-chat-capability-activetaskqueue-2">
-				<h3 className="runa-migrated-components-chat-capability-activetaskqueue-3">{title}</h3>
-				<ul className="runa-migrated-components-chat-capability-activetaskqueue-4">
+			<div className={styles['content']}>
+				<h3 className={styles['title']}>{title}</h3>
+				<ul className={styles['taskList']}>
 					{items.map((item) => (
 						<li
 							key={item.id}
-							className="runa-migrated-components-chat-capability-activetaskqueue-5"
+							className={styles['taskItem']}
 						>
 							<div>
-								<div className="runa-migrated-components-chat-capability-activetaskqueue-6">
+								<div className={styles['taskTitle']}>
 									{item.title}
 								</div>
 								{item.description ? (
-									<div className="runa-migrated-components-chat-capability-activetaskqueue-7">
+									<div className={styles['taskDescription']}>
 										{item.description}
 									</div>
 								) : null}

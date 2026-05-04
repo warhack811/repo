@@ -63,6 +63,7 @@ function createConversations(
 		],
 		handleRunAccepted: () => undefined,
 		handleRunFinished: () => undefined,
+		handleRunFinishing: () => undefined,
 		isConversationLoading: false,
 		isMemberLoading: false,
 		memberError: null,

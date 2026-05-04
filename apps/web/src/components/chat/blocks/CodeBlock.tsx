@@ -15,7 +15,7 @@ type CodeBlockProps = Readonly<{
 
 type CopyState = 'copied' | 'failed' | 'idle';
 
-const COLLAPSED_LINE_LIMIT = 20;
+const COLLAPSED_LINE_LIMIT = 8;
 
 function getCopyButtonLabel(copyState: CopyState): string {
 	switch (copyState) {

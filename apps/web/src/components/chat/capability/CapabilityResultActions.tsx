@@ -1,6 +1,7 @@
 import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaButton } from '../../ui/RunaButton.js';
 import type { CapabilityResultAction, CapabilityResultActionTone } from './types.js';
+import styles from './CapabilityResultActions.module.css';
 
 export type CapabilityResultActionsProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
@@ -36,7 +37,7 @@ export function CapabilityResultActions({
 			{...rowProps}
 			className={[
 				['runa-capability-result-actions', className].filter(Boolean).join(' '),
-				'runa-migrated-components-chat-capability-capabilityresultactions-1',
+				styles['actions'],
 			]
 				.filter(Boolean)
 				.join(' ')}

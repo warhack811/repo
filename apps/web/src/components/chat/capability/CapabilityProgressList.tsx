@@ -1,6 +1,7 @@
 import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import type { CapabilityProgressStep, CapabilityStatus, CapabilityTone } from './types.js';
+import styles from './CapabilityProgressList.module.css';
 
 export type CapabilityProgressListProps = Readonly<
 	Omit<HTMLAttributes<HTMLOListElement>, 'children'> & {
@@ -42,7 +43,7 @@ export function CapabilityProgressList({
 			{...listProps}
 			className={[
 				['runa-capability-progress-list', className].filter(Boolean).join(' '),
-				'runa-migrated-components-chat-capability-capabilityprogresslist-1',
+				styles['list'],
 			]
 				.filter(Boolean)
 				.join(' ')}
@@ -50,14 +51,14 @@ export function CapabilityProgressList({
 			{steps.map((step) => (
 				<li
 					key={step.id}
-					className="runa-migrated-components-chat-capability-capabilityprogresslist-2"
+					className={styles['item']}
 				>
 					<div>
-						<div className="runa-migrated-components-chat-capability-capabilityprogresslist-3">
+						<div className={styles['label']}>
 							{step.label}
 						</div>
 						{step.description ? (
-							<div className="runa-migrated-components-chat-capability-capabilityprogresslist-4">
+							<div className={styles['description']}>
 								{step.description}
 							</div>
 						) : null}

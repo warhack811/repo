@@ -74,7 +74,8 @@ describe('UI Phase 5 surfaces', () => {
 
 		expect(thinkingMarkup).toContain('Runa çalışıyor');
 		expect(thinkingMarkup).not.toContain('chain-of-thought');
-		expect(activityMarkup).toContain('completed');
+		expect(activityMarkup).toContain('Tamamlandı');
+		expect(activityMarkup).not.toContain('completed');
 	});
 
 	it('keeps current run tool activity labels user-facing outside developer mode', () => {

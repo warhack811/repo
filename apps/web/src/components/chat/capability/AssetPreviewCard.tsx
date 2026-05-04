@@ -2,6 +2,7 @@ import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import { RunaCard } from '../../ui/RunaCard.js';
 import type { AssetPreviewKind } from './types.js';
+import styles from './AssetPreviewCard.module.css';
 
 export type AssetPreviewCardProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'> & {
@@ -47,30 +48,30 @@ export function AssetPreviewCard({
 			{...cardProps}
 			className={[
 				['runa-asset-preview-card', className].filter(Boolean).join(' '),
-				'runa-migrated-components-chat-capability-assetpreviewcard-1',
+				styles['root'],
 			]
 				.filter(Boolean)
 				.join(' ')}
 			tone="subtle"
 		>
-			<div className="runa-migrated-components-chat-capability-assetpreviewcard-2">
+			<div className={styles['previewArea']}>
 				{shouldRenderImage(kind, previewUrl) ? (
 					<img
 						alt={alt ?? ''}
 						src={previewUrl}
-						className="runa-migrated-components-chat-capability-assetpreviewcard-3"
+						className={styles['previewImage']}
 					/>
 				) : (
-					<div className="runa-migrated-components-chat-capability-assetpreviewcard-4">
+					<div className={styles['previewPlaceholder']}>
 						{previewUrl ? 'Preview is available for this asset.' : 'Preview will appear here.'}
 					</div>
 				)}
 			</div>
-			<div className="runa-migrated-components-chat-capability-assetpreviewcard-5">
-				<div className="runa-migrated-components-chat-capability-assetpreviewcard-6">
-					<div className="runa-migrated-components-chat-capability-assetpreviewcard-7">{title}</div>
+			<div className={styles['infoRow']}>
+				<div className={styles['titleGroup']}>
+					<div className={styles['title']}>{title}</div>
 					{subtitle ? (
-						<div className="runa-migrated-components-chat-capability-assetpreviewcard-8">
+						<div className={styles['subtitle']}>
 							{subtitle}
 						</div>
 					) : null}
@@ -78,7 +79,7 @@ export function AssetPreviewCard({
 				<RunaBadge tone="neutral">{formatKindLabel(kind)}</RunaBadge>
 			</div>
 			{metaSlot ? (
-				<div className="runa-migrated-components-chat-capability-assetpreviewcard-9">
+				<div className={styles['metaSlot']}>
 					{metaSlot}
 				</div>
 			) : null}

@@ -4,6 +4,7 @@ import { RunaBadge } from '../../ui/RunaBadge.js';
 import { RunaButton } from '../../ui/RunaButton.js';
 import { CapabilityResultActions } from './CapabilityResultActions.js';
 import type { AssetPreviewItem, CapabilityResultAction } from './types.js';
+import styles from './AssetModal.module.css';
 
 export type AssetModalProps = Readonly<
 	Omit<DialogHTMLAttributes<HTMLDialogElement>, 'children' | 'open'> & {
@@ -41,7 +42,7 @@ export function AssetModal({
 
 	return (
 		<div
-			className="runa-asset-modal-overlay runa-migrated-components-chat-capability-assetmodal-1"
+			className={`runa-asset-modal-overlay ${styles['overlay']}`}
 			onMouseDown={handleOverlayMouseDown}
 		>
 			<dialog
@@ -50,19 +51,19 @@ export function AssetModal({
 				aria-modal="true"
 				className={[
 					['runa-asset-modal', className].filter(Boolean).join(' '),
-					'runa-migrated-components-chat-capability-assetmodal-2',
+					styles['dialog'],
 				]
 					.filter(Boolean)
 					.join(' ')}
 				open={true}
 			>
-				<div className="runa-migrated-components-chat-capability-assetmodal-3">
-					<div className="runa-migrated-components-chat-capability-assetmodal-4">
-						<h2 id={titleId} className="runa-migrated-components-chat-capability-assetmodal-5">
+				<div className={styles['header']}>
+					<div className={styles['headerContent']}>
+						<h2 id={titleId} className={styles['title']}>
 							{asset.title}
 						</h2>
 						{asset.subtitle ? (
-							<p className="runa-migrated-components-chat-capability-assetmodal-6">
+							<p className={styles['subtitle']}>
 								{asset.subtitle}
 							</p>
 						) : null}
@@ -71,22 +72,22 @@ export function AssetModal({
 						Close
 					</RunaButton>
 				</div>
-				<div className="runa-migrated-components-chat-capability-assetmodal-7">
+				<div className={styles['body']}>
 					{canRenderLargeImage(asset) ? (
 						<img
 							alt={asset.alt ?? ''}
 							src={asset.previewUrl}
-							className="runa-migrated-components-chat-capability-assetmodal-8"
+							className={styles['previewImage']}
 						/>
 					) : (
-						<div className="runa-migrated-components-chat-capability-assetmodal-9">
+						<div className={styles['previewPlaceholder']}>
 							{asset.previewUrl
 								? 'This asset can be opened from its source when wired to storage.'
 								: 'Preview will appear here when an asset URL is available.'}
 						</div>
 					)}
 				</div>
-				<div className="runa-migrated-components-chat-capability-assetmodal-10">
+				<div className={styles['footer']}>
 					<RunaBadge tone="neutral">{asset.kind}</RunaBadge>
 					<CapabilityResultActions actions={actions} />
 				</div>

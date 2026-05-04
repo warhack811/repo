@@ -1,20 +1,35 @@
 .root {
+	backdrop-filter: blur(12px);
+	display: grid;
+	min-width: 0px;
+	overflow: hidden;
+	position: relative;
 }
 
 .header {
+	align-items: flex-start;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	min-width: 0px;
 }
 
 .titleGroup {
-}
-
-.eyebrow {
+	display: grid;
+	min-width: 0px;
 }
 
 .title {
+	font-size: 16px;
+	line-height: 1.4;
+	margin: 0px;
 }
 
 .description {
+	margin: 0px;
 }
 
 .content {
+	display: grid;
+	min-width: 0px;
 }

@@ -136,6 +136,30 @@ export function selectPresentationState(state: ChatStoreState): PresentationStor
 	return state.presentation;
 }
 
+export function selectStreamingState(state: ChatStoreState) {
+	return {
+		currentStreamingRunId: state.presentation.currentStreamingRunId,
+		currentStreamingText: state.presentation.currentStreamingText,
+	};
+}
+
+export function selectPresentationSurfaces(state: ChatStoreState) {
+	return {
+		expandedPastRunIds: state.presentation.expandedPastRunIds,
+		presentationRunId: state.presentation.presentationRunId,
+		presentationRunSurfaces: state.presentation.presentationRunSurfaces,
+		pendingInspectionRequestKeys: state.presentation.pendingInspectionRequestKeys,
+		staleInspectionRequestKeys: state.presentation.staleInspectionRequestKeys,
+	};
+}
+
+export function selectSubmissionState(state: ChatStoreState) {
+	return {
+		isSubmitting: state.connection.isSubmitting,
+		connectionStatus: state.connection.connectionStatus,
+	};
+}
+
 export function selectRuntimeConfigState(state: ChatStoreState): RuntimeConfigState {
 	return state.runtimeConfig;
 }

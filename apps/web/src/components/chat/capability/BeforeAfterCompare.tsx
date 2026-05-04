@@ -2,6 +2,7 @@ import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import { AssetPreviewCard } from './AssetPreviewCard.js';
 import type { AssetPreviewItem } from './types.js';
+import styles from './BeforeAfterCompare.module.css';
 
 export type BeforeAfterCompareProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
@@ -12,7 +13,7 @@ export type BeforeAfterCompareProps = Readonly<
 
 function renderAssetPanel(label: 'After' | 'Before', asset: AssetPreviewItem): ReactElement {
 	return (
-		<div className="runa-migrated-components-chat-capability-beforeaftercompare-1">
+		<div className={styles['panel']}>
 			<RunaBadge tone={label === 'After' ? 'success' : 'neutral'}>{label}</RunaBadge>
 			<AssetPreviewCard
 				alt={asset.alt}
@@ -38,7 +39,7 @@ export function BeforeAfterCompare({
 			{...compareProps}
 			className={[
 				['runa-before-after-compare', className].filter(Boolean).join(' '),
-				'runa-migrated-components-chat-capability-beforeaftercompare-2',
+				styles['container'],
 			]
 				.filter(Boolean)
 				.join(' ')}

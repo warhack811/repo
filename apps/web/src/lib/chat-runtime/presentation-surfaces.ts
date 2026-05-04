@@ -16,7 +16,7 @@ import {
 
 export interface PresentationBlocksUpdateInput {
 	readonly expandedPastRunIds: ReadonlySet<string>;
-	readonly expectedRunId: string | null;
+	readonly expectedRunIds: ReadonlySet<string>;
 	readonly inspectionAnchorIdsByDetailId: ReadonlyMap<string, string | undefined>;
 	readonly inspectionRequestKeysByDetailId: ReadonlyMap<string, string>;
 	readonly pendingInspectionRequestKeys: ReadonlySet<string>;
@@ -28,7 +28,7 @@ export interface PresentationBlocksUpdateInput {
 export interface PresentationBlocksUpdate {
 	readonly detailBlockIds: readonly string[];
 	readonly expandedPastRunIds: ReadonlySet<string>;
-	readonly expectedRunId: string | null;
+	readonly expectedRunIds: ReadonlySet<string>;
 	readonly inspectionAnchorIdsByDetailId: ReadonlyMap<string, string | undefined>;
 	readonly inspectionRequestKeysByDetailId: ReadonlyMap<string, string>;
 	readonly pendingInspectionRequestKeys: ReadonlySet<string>;
@@ -47,14 +47,14 @@ export interface PresentationSurfaceState {
 export function shouldHydratePresentationRun(
 	messageRunId: string,
 	trackedRunIds: ReadonlySet<string>,
-	expectedRunId: string | null,
+	expectedRunIds: ReadonlySet<string>,
 ): boolean {
 	if (trackedRunIds.has(messageRunId)) {
 		return true;
 	}
 
-	if (expectedRunId !== null) {
-		return messageRunId === expectedRunId;
+	if (expectedRunIds.size > 0) {
+		return expectedRunIds.has(messageRunId);
 	}
 
 	return false;
@@ -63,13 +63,13 @@ export function shouldHydratePresentationRun(
 export function matchesTrackedRun(
 	messageRunId: string | undefined,
 	currentRunId: string | null,
-	expectedRunId: string | null,
+	expectedRunIds: ReadonlySet<string>,
 ): boolean {
 	if (!messageRunId) {
 		return false;
 	}
 
-	return messageRunId === currentRunId || messageRunId === expectedRunId;
+	return messageRunId === currentRunId || expectedRunIds.has(messageRunId);
 }
 
 export function findPresentationRunSurface(
@@ -393,7 +393,7 @@ export function derivePresentationBlocksUpdate(
 	const messageRunId = message.payload.run_id;
 	const trackedRunIds = new Set(input.presentationRunSurfaces.map((surface) => surface.run_id));
 
-	if (!shouldHydratePresentationRun(messageRunId, trackedRunIds, input.expectedRunId)) {
+	if (!shouldHydratePresentationRun(messageRunId, trackedRunIds, input.expectedRunIds)) {
 		return null;
 	}
 
@@ -452,7 +452,7 @@ export function derivePresentationBlocksUpdate(
 	const shouldMakeCurrentRun =
 		input.presentationRunId === null ||
 		input.presentationRunId === messageRunId ||
-		input.expectedRunId === messageRunId;
+		input.expectedRunIds.has(messageRunId);
 	const nextRunSurfaces = upsertPresentationRunSurface(
 		input.presentationRunSurfaces,
 		{
@@ -508,10 +508,14 @@ export function derivePresentationBlocksUpdate(
 		nextExpandedPastRunIds.add(messageRunId);
 	}
 
+	const nextExpectedRunIds = shouldMakeCurrentRun
+		? new Set([...input.expectedRunIds, messageRunId])
+		: input.expectedRunIds;
+
 	return {
 		detailBlockIds,
 		expandedPastRunIds: nextExpandedPastRunIds,
-		expectedRunId: shouldMakeCurrentRun ? messageRunId : input.expectedRunId,
+		expectedRunIds: nextExpectedRunIds,
 		inspectionAnchorIdsByDetailId,
 		inspectionRequestKeysByDetailId,
 		pendingInspectionRequestKeys: nextInteractionTracking.pendingRequestKeys,
@@ -522,7 +526,7 @@ export function derivePresentationBlocksUpdate(
 }
 
 export function derivePresentationSurfaceState(input: {
-	readonly expectedRunId: string | null;
+	readonly expectedRunIds: ReadonlySet<string>;
 	readonly presentationRunId: string | null;
 	readonly presentationRunSurfaces: readonly PresentationRunSurface[];
 }): PresentationSurfaceState {
@@ -530,8 +534,9 @@ export function derivePresentationSurfaceState(input: {
 		findPresentationRunSurface(input.presentationRunSurfaces, input.presentationRunId) ??
 		input.presentationRunSurfaces[0] ??
 		null;
+	const expectedRunId = input.expectedRunIds.values().next().value ?? null;
 	const activeRunId =
-		input.expectedRunId ?? currentPresentationSurface?.run_id ?? input.presentationRunId ?? null;
+		expectedRunId ?? currentPresentationSurface?.run_id ?? input.presentationRunId ?? null;
 
 	return {
 		activeRunId,

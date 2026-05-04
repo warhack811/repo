@@ -9,6 +9,7 @@ import type {
 	CapabilityResultAction,
 	CapabilityTone,
 } from './types.js';
+import styles from './ActionDetailModal.module.css';
 
 export type ActionDetailModalProps = Readonly<
 	Omit<DialogHTMLAttributes<HTMLDialogElement>, 'children' | 'open' | 'title'> & {
@@ -52,7 +53,7 @@ export function ActionDetailModal({
 
 	return (
 		<div
-			className="runa-action-detail-modal-overlay runa-migrated-components-chat-capability-actiondetailmodal-1"
+			className={`runa-action-detail-modal-overlay ${styles['overlay']}`}
 			onMouseDown={handleOverlayMouseDown}
 		>
 			<dialog
@@ -62,18 +63,17 @@ export function ActionDetailModal({
 				aria-modal="true"
 				className={[
 					['runa-action-detail-modal', className].filter(Boolean).join(' '),
-					'runa-migrated-components-chat-capability-actiondetailmodal-2',
+					styles['dialog'],
 				]
 					.filter(Boolean)
 					.join(' ')}
 				open={true}
 			>
-				<div className="runa-migrated-components-chat-capability-actiondetailmodal-3">
-					<div className="runa-migrated-components-chat-capability-actiondetailmodal-4">
-						<div className="runa-migrated-components-chat-capability-actiondetailmodal-5">
+				<div className={styles['header']}>
+					<div className={styles['titleGroup']}>
+						<div className={styles['title']}>
 							<h2
 								id={titleId}
-								className="runa-migrated-components-chat-capability-actiondetailmodal-6"
 							>
 								{title}
 							</h2>
@@ -82,7 +82,7 @@ export function ActionDetailModal({
 						{description ? (
 							<p
 								id={descriptionId}
-								className="runa-migrated-components-chat-capability-actiondetailmodal-7"
+								className={styles['description']}
 							>
 								{description}
 							</p>
@@ -93,16 +93,16 @@ export function ActionDetailModal({
 					</RunaButton>
 				</div>
 				{details.length > 0 ? (
-					<dl className="runa-migrated-components-chat-capability-actiondetailmodal-8">
+					<dl className={styles['detailsList']}>
 						{details.map((detail) => (
 							<div
 								key={detail.id}
-								className="runa-migrated-components-chat-capability-actiondetailmodal-9"
+								className={styles['detailItem']}
 							>
-								<dt className="runa-migrated-components-chat-capability-actiondetailmodal-10">
+								<dt className={styles['detailKey']}>
 									{detail.label}
 								</dt>
-								<dd className="runa-migrated-components-chat-capability-actiondetailmodal-11">
+								<dd className={styles['detailValue']}>
 									{detail.value}
 								</dd>
 							</div>
@@ -111,7 +111,7 @@ export function ActionDetailModal({
 				) : null}
 				{children}
 				{hasActions ? (
-					<div className="runa-migrated-components-chat-capability-actiondetailmodal-12">
+					<div className={styles['actions']}>
 						<RunaButton onClick={onClose} type="button" variant="ghost">
 							Dismiss
 						</RunaButton>

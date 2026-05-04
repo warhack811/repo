@@ -1,6 +1,7 @@
 import type { HTMLAttributes, KeyboardEvent, ReactElement } from 'react';
 import { AssetPreviewCard } from './AssetPreviewCard.js';
 import type { AssetPreviewItem } from './types.js';
+import styles from './AssetGrid.module.css';
 
 export type AssetGridProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'onSelect'> & {
@@ -33,7 +34,7 @@ export function AssetGrid({
 }: AssetGridProps): ReactElement | null {
 	if (items.length === 0) {
 		return emptyLabel ? (
-			<div className="runa-migrated-components-chat-capability-assetgrid-1">{emptyLabel}</div>
+			<div className={styles['empty']}>{emptyLabel}</div>
 		) : null;
 	}
 
@@ -42,7 +43,7 @@ export function AssetGrid({
 			{...gridProps}
 			className={[
 				['runa-asset-grid', className].filter(Boolean).join(' '),
-				'runa-migrated-components-chat-capability-assetgrid-2',
+				styles['grid'],
 			]
 				.filter(Boolean)
 				.join(' ')}
@@ -63,7 +64,7 @@ export function AssetGrid({
 						}
 						previewUrl={item.previewUrl}
 						role={isSelectable ? 'button' : undefined}
-						className="runa-migrated-components-chat-capability-assetgrid-3"
+						className={styles['gridItem']}
 						subtitle={item.subtitle}
 						tabIndex={isSelectable ? 0 : undefined}
 						title={item.title}

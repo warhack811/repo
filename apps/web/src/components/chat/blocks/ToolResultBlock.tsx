@@ -14,6 +14,24 @@ type ToolResultBlockProps = Readonly<{
 	isDeveloperMode?: boolean;
 }>;
 
+function getFriendlyToolTitle(toolName: string | undefined): string {
+	if (!toolName) return 'İşlem tamamlandı';
+	const map: Record<string, string> = {
+		'file.read': 'Dosya okundu',
+		'file.write': 'Dosya güncellendi',
+		'file.list': 'Dizin listelendi',
+		'file.delete': 'Dosya silindi',
+		'web.search': 'Web araması yapıldı',
+		'web.fetch': 'Sayfa getirildi',
+		'shell.exec': 'Komut çalıştı',
+		'search.codebase': 'Kod tarandı',
+		'desktop.screenshot': 'Ekran görüntüsü alındı',
+		'memory.write': 'Bilgi kaydedildi',
+		'memory.read': 'Bellek okundu',
+	};
+	return map[toolName] ?? `${toolName.replace(/\./gu, ' ')} tamamlandı`;
+}
+
 function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{
 	readonly summary: string;
 	readonly title: string;
@@ -21,7 +39,7 @@ function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{
 	if (block.payload.status === 'success') {
 		return {
 			summary: 'Sonuç sohbet akışına eklendi.',
-			title: 'İşlem tamamlandı',
+			title: getFriendlyToolTitle(block.payload.tool_name),
 		};
 	}
 

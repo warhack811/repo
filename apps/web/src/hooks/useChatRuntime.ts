@@ -44,8 +44,10 @@ import { uiCopy } from '../localization/copy.js';
 import {
 	createChatStore,
 	selectConnectionState,
-	selectPresentationState,
+	selectPresentationSurfaces,
 	selectRuntimeConfigState,
+	selectStreamingState,
+	selectSubmissionState,
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
@@ -122,6 +124,11 @@ export interface UseChatRuntimeOptions {
 	readonly onRunFinished?: (input: {
 		readonly conversationId?: string;
 		readonly runId: string;
+	}) => void;
+	readonly onRunFinishing?: (input: {
+		readonly conversationId: string;
+		readonly runId: string;
+		readonly streamingText: string;
 	}) => void;
 }
 
@@ -314,6 +321,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		desktopTargetConnectionId,
 		onRunAccepted,
 		onRunFinished,
+		onRunFinishing,
 	} = options;
 	const chatStoreRef = useRef<ChatStore | null>(null);
 
@@ -353,7 +361,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const reconnectTimerRef = useRef<number | null>(null);
 	const socketRef = useRef<WebSocket | null>(null);
 	const reconnectNowRef = useRef<() => void>(() => undefined);
-	const expectedPresentationRunIdRef = useRef<string | null>(null);
+	const expectedPresentationRunIdsRef = useRef<Set<string>>(new Set());
 	const expandedPastRunIdsRef = useRef<Set<string>>(new Set());
 	const inspectionAnchorIdsByDetailIdRef = useRef<Map<string, string | undefined>>(new Map());
 	const inspectionRequestKeysByDetailIdRef = useRef<Map<string, string>>(new Map());
@@ -365,6 +373,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const activeConversationIdRef = useRef(activeConversationId);
 	const onRunAcceptedRef = useRef(onRunAccepted);
 	const onRunFinishedRef = useRef(onRunFinished);
+	const onRunFinishingRef = useRef(onRunFinishing);
 	const submittedPromptByRunIdRef = useRef<Map<string, string>>(new Map());
 	const firstTokenSeenRunIdsRef = useRef<Set<string>>(new Set());
 	const reportedSearchRunIdsRef = useRef<Set<string>>(new Set());
@@ -378,19 +387,23 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 
 	const runtimeConfig = useChatStoreSelector(chatStore, selectRuntimeConfigState);
 	const connectionState = useChatStoreSelector(chatStore, selectConnectionState);
-	const presentationState = useChatStoreSelector(chatStore, selectPresentationState);
+	const streamingState = useChatStoreSelector(chatStore, selectStreamingState);
+	const presentationSurfaces = useChatStoreSelector(chatStore, selectPresentationSurfaces);
+	const submissionState = useChatStoreSelector(chatStore, selectSubmissionState);
 	const transportState = useChatStoreSelector(chatStore, selectTransportState);
 	const { apiKey, approvalMode, includePresentationBlocks, model, provider } = runtimeConfig;
-	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
+	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = {
+		...connectionState,
+		...submissionState,
+	};
+	const { currentStreamingRunId, currentStreamingText } = streamingState;
 	const {
-		currentStreamingRunId,
-		currentStreamingText,
 		expandedPastRunIds,
 		pendingInspectionRequestKeys,
 		presentationRunId,
 		presentationRunSurfaces,
 		staleInspectionRequestKeys,
-	} = presentationState;
+	} = presentationSurfaces;
 	const { latestRunRequestIncludesPresentationBlocks, messages, runTransportSummaries } =
 		transportState;
 	const isRuntimeConfigReady = model.trim().length > 0;
@@ -406,6 +419,10 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	useEffect(() => {
 		onRunFinishedRef.current = onRunFinished;
 	}, [onRunFinished]);
+
+	useEffect(() => {
+		onRunFinishingRef.current = onRunFinishing;
+	}, [onRunFinishing]);
 
 	useEffect(() => {
 		setSelectedDesktopTargetConnectionId(
@@ -730,69 +747,17 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 											});
 										}
 									}
-
-									if (
-										(block.type === 'web_search_result_block' ||
-											(block.type === 'tool_result' && block.payload.tool_name === 'web.search')) &&
-										!reportedSearchRunIdsRef.current.has(parsedMessage.payload.run_id)
-									) {
-										reportedSearchRunIdsRef.current.add(parsedMessage.payload.run_id);
-										reportTelemetryEvent(
-											'search_evidence_latency',
-											performance.now() - runStartedAt,
-											{ run_id: parsedMessage.payload.run_id },
-										);
-									}
 								}
 							}
 
-							const nextPresentationState = derivePresentationBlocksUpdate(parsedMessage, {
-								expandedPastRunIds: expandedPastRunIdsRef.current,
-								expectedRunId: expectedPresentationRunIdRef.current,
-								inspectionAnchorIdsByDetailId: inspectionAnchorIdsByDetailIdRef.current,
-								inspectionRequestKeysByDetailId: inspectionRequestKeysByDetailIdRef.current,
-								pendingInspectionRequestKeys: pendingInspectionRequestKeysRef.current,
-								presentationRunId: presentationRunIdRef.current,
-								presentationRunSurfaces: presentationRunSurfacesRef.current,
-								staleInspectionRequestKeys: staleInspectionRequestKeysRef.current,
-							});
-
-							if (!nextPresentationState) {
+							if (
+								!matchesTrackedRun(
+									parsedMessage.payload.run_id,
+									presentationRunIdRef.current,
+									expectedPresentationRunIdsRef.current,
+								)
+							) {
 								return;
-							}
-
-							commitPendingInspectionRequestKeys(
-								nextPresentationState.pendingInspectionRequestKeys,
-							);
-							commitStaleInspectionRequestKeys(nextPresentationState.staleInspectionRequestKeys);
-							commitExpandedPastRunIds(nextPresentationState.expandedPastRunIds);
-
-							inspectionAnchorIdsByDetailIdRef.current = new Map(
-								nextPresentationState.inspectionAnchorIdsByDetailId,
-							);
-							inspectionRequestKeysByDetailIdRef.current = new Map(
-								nextPresentationState.inspectionRequestKeysByDetailId,
-							);
-							expectedPresentationRunIdRef.current = nextPresentationState.expectedRunId;
-							presentationRunIdRef.current = nextPresentationState.presentationRunId;
-							presentationRunSurfacesRef.current = nextPresentationState.presentationRunSurfaces;
-							chatStore.setPresentationState((currentPresentationState) => ({
-								...currentPresentationState,
-								presentationRunId: nextPresentationState.presentationRunId,
-								presentationRunSurfaces: nextPresentationState.presentationRunSurfaces,
-							}));
-
-							if (nextPresentationState.detailBlockIds.length > 0) {
-								window.requestAnimationFrame(() => {
-									const latestDetailBlockId =
-										nextPresentationState.detailBlockIds[
-											nextPresentationState.detailBlockIds.length - 1
-										];
-
-									if (latestDetailBlockId) {
-										scrollToPresentationBlock(latestDetailBlockId);
-									}
-								});
 							}
 						}
 
@@ -801,7 +766,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								!matchesTrackedRun(
 									parsedMessage.payload.run_id,
 									presentationRunIdRef.current,
-									expectedPresentationRunIdRef.current,
+									expectedPresentationRunIdsRef.current,
 								)
 							) {
 								return;
@@ -832,7 +797,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								!matchesTrackedRun(
 									parsedMessage.payload.run_id,
 									presentationRunIdRef.current,
-									expectedPresentationRunIdRef.current,
+									expectedPresentationRunIdsRef.current,
 								)
 							) {
 								return;
@@ -852,7 +817,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								matchesTrackedRun(
 									parsedMessage.payload.run_id,
 									presentationRunIdRef.current,
-									expectedPresentationRunIdRef.current,
+									expectedPresentationRunIdsRef.current,
 								)
 							) {
 								chatStore.setConnectionState((currentConnectionState) => ({
@@ -865,8 +830,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 									currentStreamingText: '',
 								}));
 
-								if (parsedMessage.payload.run_id === expectedPresentationRunIdRef.current) {
-									expectedPresentationRunIdRef.current = presentationRunIdRef.current;
+								if (
+									parsedMessage.payload.run_id &&
+									expectedPresentationRunIdsRef.current.has(parsedMessage.payload.run_id)
+								) {
+									expectedPresentationRunIdsRef.current.delete(parsedMessage.payload.run_id);
 								}
 							}
 
@@ -903,7 +871,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 									matchesTrackedRun(
 										parsedMessage.payload.run_id,
 										presentationRunIdRef.current,
-										expectedPresentationRunIdRef.current,
+										expectedPresentationRunIdsRef.current,
 									));
 
 							if (shouldNotifyConversationSync) {
@@ -913,11 +881,23 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								});
 							}
 
+							if (conversationId !== undefined) {
+								const streamingTextSnapshot =
+									chatStore.getState().presentation.currentStreamingText;
+								if (streamingTextSnapshot.trim().length > 0) {
+									onRunFinishingRef.current?.({
+										conversationId,
+										runId: parsedMessage.payload.run_id,
+										streamingText: streamingTextSnapshot,
+									});
+								}
+							}
+
 							if (
 								!matchesTrackedRun(
 									parsedMessage.payload.run_id,
 									presentationRunIdRef.current,
-									expectedPresentationRunIdRef.current,
+									expectedPresentationRunIdsRef.current,
 								)
 							) {
 								return;
@@ -936,6 +916,18 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								currentStreamingRunId: null,
 								currentStreamingText: '',
 							}));
+
+							if (
+								(parsedMessage.payload as { memory_write_status?: string }).memory_write_status ===
+									'failed' ||
+								(parsedMessage.payload as { memory_write_status?: string }).memory_write_status ===
+									'partial'
+							) {
+								chatStore.setConnectionState((s) => ({
+									...s,
+									lastError: 'Bilgi kaydedilemedi — hafıza güncellemesi başarısız oldu.',
+								}));
+							}
 						}
 
 						if (parsedMessage.type === 'run.accepted') {
@@ -981,6 +973,32 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			socketRef.current = null;
 			socketToClose?.close();
 			connectSocket();
+
+			const isSubmittingNow = chatStore.getState().connection.isSubmitting;
+			if (isSubmittingNow) {
+				const zombieCheckTimer = window.setTimeout(() => {
+					if (isDisposed) return;
+					const stillSubmitting = chatStore.getState().connection.isSubmitting;
+					if (stillSubmitting) {
+						chatStore.setConnectionState((s) => ({
+							...s,
+							isSubmitting: false,
+							lastError: 'Bağlantı kesildi — çalışma tamamlanamadı. Lütfen tekrar deneyin.',
+						}));
+						chatStore.setPresentationState((s) => ({
+							...s,
+							currentStreamingRunId: null,
+							currentStreamingText: '',
+						}));
+					}
+				}, 12_000);
+
+				const originalCleanup = reconnectTimerRef.current;
+				reconnectTimerRef.current = zombieCheckTimer;
+				if (originalCleanup !== null) {
+					window.clearTimeout(originalCleanup);
+				}
+			}
 		};
 
 		function handleBrowserOffline(): void {
@@ -1020,15 +1038,15 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		};
 	}, [accessToken, chatStore]);
 
-	const expectedPresentationRunId = expectedPresentationRunIdRef.current;
+	const expectedPresentationRunIds = expectedPresentationRunIdsRef.current;
 	const presentationSurfaceState = useMemo(
 		() =>
 			derivePresentationSurfaceState({
-				expectedRunId: expectedPresentationRunId,
+				expectedRunIds: expectedPresentationRunIds,
 				presentationRunId,
 				presentationRunSurfaces,
 			}),
-		[expectedPresentationRunId, presentationRunId, presentationRunSurfaces],
+		[expectedPresentationRunIds, presentationRunId, presentationRunSurfaces],
 	);
 	const currentRunSummary = presentationSurfaceState.activeRunId
 		? runTransportSummaries.get(presentationSurfaceState.activeRunId)
@@ -1102,7 +1120,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 					currentStreamingRunId: payload.run_id,
 					currentStreamingText: '',
 				}));
-				expectedPresentationRunIdRef.current = payload.run_id;
+				expectedPresentationRunIdsRef.current.add(payload.run_id);
 				conversationIdByRunIdRef.current.set(payload.run_id, payload.conversation_id);
 				submittedPromptByRunIdRef.current.set(payload.run_id, prompt);
 				runSubmittedAtRef.current.set(payload.run_id, performance.now());
@@ -1310,8 +1328,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			connectionStatus,
 			currentPresentationSurface: presentationSurfaceState.currentPresentationSurface,
 			currentRunFeedback,
-			currentStreamingRunId,
-			currentStreamingText,
+			currentStreamingRunId: chatStore.getState().presentation.currentStreamingRunId,
+			currentStreamingText: chatStore.getState().presentation.currentStreamingText,
 			desktopTargetConnectionId: selectedDesktopTargetConnectionId,
 			expandedPastRunIds,
 			includePresentationBlocks,
@@ -1353,8 +1371,6 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			connectionStatus,
 			presentationSurfaceState,
 			currentRunFeedback,
-			currentStreamingRunId,
-			currentStreamingText,
 			selectedDesktopTargetConnectionId,
 			expandedPastRunIds,
 			includePresentationBlocks,

@@ -60,6 +60,11 @@ export interface UseConversationsResult {
 		readonly prompt: string;
 	}) => void;
 	handleRunFinished: (input: { readonly conversationId?: string }) => void;
+	handleRunFinishing: (input: {
+		readonly conversationId: string;
+		readonly runId: string;
+		readonly streamingText: string;
+	}) => void;
 	removeConversationMember: (memberUserId: string) => Promise<void>;
 	selectConversation: (conversationId: string) => void;
 	shareConversationMember: (
@@ -756,6 +761,34 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 		[accessToken, activeConversationId],
 	);
 
+	const handleRunFinishing = useCallback(
+		(input: {
+			readonly conversationId: string;
+			readonly runId: string;
+			readonly streamingText: string;
+		}): void => {
+			const now = new Date().toISOString();
+			setActiveConversationMessages((currentMessages) => {
+				if (currentMessages.some((m) => m.run_id === input.runId && m.role === 'assistant')) {
+					return currentMessages;
+				}
+				return [
+					...currentMessages,
+					{
+						content: input.streamingText.trim(),
+						conversation_id: input.conversationId,
+						created_at: now,
+						message_id: `optimistic:assistant:${input.runId}`,
+						role: 'assistant' as const,
+						run_id: input.runId,
+						sequence_no: currentMessages.length + 1,
+					},
+				];
+			});
+		},
+		[],
+	);
+
 	const shareConversationMember = useCallback(
 		async (memberUserId: string, role: Exclude<ConversationAccessRole, 'owner'>): Promise<void> => {
 			if (!activeConversationId) {
@@ -828,6 +861,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 			conversations,
 			handleRunAccepted,
 			handleRunFinished,
+			handleRunFinishing,
 			isConversationLoading,
 			isMemberLoading,
 			memberError,
@@ -847,6 +881,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 			conversations,
 			handleRunAccepted,
 			handleRunFinished,
+			handleRunFinishing,
 			isConversationLoading,
 			isMemberLoading,
 			memberError,
