@@ -4,14 +4,16 @@ import {
 	type ConversationMemberRecord as DatabaseConversationMemberRecord,
 	type ConversationMessageRecord as DatabaseConversationMessageRecord,
 	type ConversationRecord as DatabaseConversationRecord,
+	type ConversationRunBlocksRecord as DatabaseConversationRunBlocksRecord,
 	type NewConversationMemberRecord,
 	type NewConversationMessageRecord,
 	type NewConversationRecord,
+	type NewConversationRunBlocksRecord,
 	createConversationDatabaseClient,
 	createDatabaseConnection,
 	ensureDatabaseSchema,
 } from '@runa/db';
-import type { AuthContext, ModelMessageRole } from '@runa/types';
+import type { AuthContext, ModelMessageRole, RenderBlock } from '@runa/types';
 
 import {
 	hasPersistenceDatabaseConfiguration,
@@ -40,6 +42,15 @@ export interface ConversationMessage {
 	readonly run_id?: string;
 	readonly sequence_no: number;
 	readonly trace_id?: string;
+}
+
+export interface ConversationRunBlocks {
+	readonly block_record_id: string;
+	readonly blocks: readonly RenderBlock[];
+	readonly conversation_id: string;
+	readonly created_at: string;
+	readonly run_id: string;
+	readonly trace_id: string;
 }
 
 export interface ConversationMember {
@@ -75,6 +86,15 @@ export interface AppendConversationMessageInput {
 	readonly trace_id?: string;
 }
 
+export interface AppendConversationRunBlocksInput {
+	readonly blocks: readonly RenderBlock[];
+	readonly conversation_id: string;
+	readonly created_at?: string;
+	readonly run_id: string;
+	readonly scope: ConversationOwnershipScope;
+	readonly trace_id: string;
+}
+
 export interface ConversationRecordWriter {
 	deleteConversationMember(conversation_id: string, member_user_id: string): Promise<void>;
 	getConversationById(conversation_id: string): Promise<DatabaseConversationRecord | null>;
@@ -85,12 +105,18 @@ export interface ConversationRecordWriter {
 	insertConversationMessage(
 		record: NewConversationMessageRecord,
 	): Promise<DatabaseConversationMessageRecord>;
+	insertConversationRunBlocks(
+		record: NewConversationRunBlocksRecord,
+	): Promise<DatabaseConversationRunBlocksRecord>;
 	listConversationMembers(
 		conversation_id: string,
 	): Promise<readonly DatabaseConversationMemberRecord[]>;
 	listConversationMessages(
 		conversation_id: string,
 	): Promise<readonly DatabaseConversationMessageRecord[]>;
+	listConversationRunBlocks(
+		conversation_id: string,
+	): Promise<readonly DatabaseConversationRunBlocksRecord[]>;
 	listConversations(
 		scope: ConversationOwnershipScope,
 	): Promise<readonly DatabaseConversationRecord[]>;
@@ -139,6 +165,13 @@ class DatabaseConversationRecordWriter implements ConversationRecordWriter {
 		return this.#client.insert_conversation_message_row(record);
 	}
 
+	async insertConversationRunBlocks(
+		record: NewConversationRunBlocksRecord,
+	): Promise<DatabaseConversationRunBlocksRecord> {
+		await this.#ready;
+		return this.#client.upsert_conversation_run_blocks_row(record);
+	}
+
 	async listConversationMembers(
 		conversation_id: string,
 	): Promise<readonly DatabaseConversationMemberRecord[]> {
@@ -151,6 +184,13 @@ class DatabaseConversationRecordWriter implements ConversationRecordWriter {
 	): Promise<readonly DatabaseConversationMessageRecord[]> {
 		await this.#ready;
 		return this.#client.list_conversation_message_rows(conversation_id);
+	}
+
+	async listConversationRunBlocks(
+		conversation_id: string,
+	): Promise<readonly DatabaseConversationRunBlocksRecord[]> {
+		await this.#ready;
+		return this.#client.list_conversation_run_blocks_rows(conversation_id);
 	}
 
 	async listConversations(
@@ -246,6 +286,19 @@ function toConversationSummary(
 		owner_user_id: record.user_id ?? undefined,
 		title: record.title,
 		updated_at: record.updated_at,
+	};
+}
+
+function toConversationRunBlocks(
+	record: DatabaseConversationRunBlocksRecord,
+): ConversationRunBlocks {
+	return {
+		block_record_id: record.block_record_id,
+		blocks: record.blocks,
+		conversation_id: record.conversation_id,
+		created_at: record.created_at,
+		run_id: record.run_id,
+		trace_id: record.trace_id,
 	};
 }
 
@@ -369,6 +422,29 @@ function toConversationRecord(
 		updated_at: input.last_message_at,
 		user_id: input.scope.user_id ?? input.existing?.user_id ?? null,
 		workspace_id: input.scope.workspace_id ?? input.existing?.workspace_id ?? null,
+	};
+}
+
+function toConversationRunBlocksRecord(
+	input: Readonly<{
+		readonly blocks: readonly RenderBlock[];
+		readonly conversation_id: string;
+		readonly created_at: string;
+		readonly run_id: string;
+		readonly scope: ConversationOwnershipScope;
+		readonly trace_id: string;
+	}>,
+): NewConversationRunBlocksRecord {
+	return {
+		block_record_id: randomUUID(),
+		blocks: input.blocks,
+		conversation_id: input.conversation_id,
+		created_at: input.created_at,
+		run_id: input.run_id,
+		tenant_id: input.scope.tenant_id ?? null,
+		trace_id: input.trace_id,
+		user_id: input.scope.user_id ?? null,
+		workspace_id: input.scope.workspace_id ?? null,
 	};
 }
 
@@ -533,6 +609,41 @@ export async function ensureConversation(
 	}
 }
 
+export async function appendConversationRunBlocks(
+	input: AppendConversationRunBlocksInput,
+	options: PersistOptions = {},
+): Promise<ConversationRunBlocks> {
+	const writer = options.writer ?? (await getDefaultWriter());
+	const createdAt = input.created_at ?? new Date().toISOString();
+
+	try {
+		await requireConversationRole(writer, input.conversation_id, input.scope, 'editor');
+		const persisted = await writer.insertConversationRunBlocks(
+			toConversationRunBlocksRecord({
+				blocks: input.blocks,
+				conversation_id: input.conversation_id,
+				created_at: createdAt,
+				run_id: input.run_id,
+				scope: input.scope,
+				trace_id: input.trace_id,
+			}),
+		);
+		return toConversationRunBlocks(persisted);
+	} catch (error) {
+		if (
+			error instanceof ConversationStoreAccessError ||
+			error instanceof ConversationStoreConfigurationError ||
+			error instanceof ConversationStoreWriteError
+		) {
+			throw error;
+		}
+
+		throw new ConversationStoreWriteError('Failed to append conversation run blocks.', {
+			cause: error,
+		});
+	}
+}
+
 export async function appendConversationMessage(
 	input: AppendConversationMessageInput,
 	options: PersistOptions = {},
@@ -640,6 +751,31 @@ export async function listConversationMessages(
 		}
 
 		throw new ConversationStoreReadError('Failed to list conversation messages.', {
+			cause: error,
+		});
+	}
+}
+
+export async function listConversationRunBlocks(
+	conversation_id: string,
+	scope: ConversationOwnershipScope,
+	options: PersistOptions = {},
+): Promise<readonly ConversationRunBlocks[]> {
+	try {
+		const writer = options.writer ?? (await getDefaultWriter());
+		await requireConversationRole(writer, conversation_id, scope, 'viewer');
+		const records = await writer.listConversationRunBlocks(conversation_id);
+		return records.map(toConversationRunBlocks);
+	} catch (error) {
+		if (
+			error instanceof ConversationStoreAccessError ||
+			error instanceof ConversationStoreConfigurationError ||
+			error instanceof ConversationStoreReadError
+		) {
+			throw error;
+		}
+
+		throw new ConversationStoreReadError('Failed to list conversation run blocks.', {
 			cause: error,
 		});
 	}

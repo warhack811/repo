@@ -28,6 +28,7 @@ import {
 } from '../persistence/approval-store.js';
 import {
 	appendConversationMessage,
+	appendConversationRunBlocks,
 	conversationScopeFromAuthContext,
 	ensureConversation,
 	hasConversationStoreConfiguration,
@@ -2118,7 +2119,10 @@ export async function finalizeLiveRunResult(
 	});
 	const persistEvents = options.persistEvents ?? persistRuntimeEvents;
 	const persistRunStateRecord = options.persistRunState ?? persistRunState;
-	const conversationStore = options.conversationStore ?? { appendConversationMessage };
+	const conversationStore = options.conversationStore ?? {
+		appendConversationMessage,
+		appendConversationRunBlocks,
+	};
 
 	if (finalizeOptions.persist_live_memory_write) {
 		await persistLiveMemoryWrite(
@@ -2212,6 +2216,21 @@ export async function finalizeLiveRunResult(
 				trace_id: payload.trace_id,
 			}),
 		);
+
+		if (
+			presentationAdditionalBlocks.length > 0 &&
+			finalizeOptions.conversation_id &&
+			conversationStore?.appendConversationRunBlocks
+		) {
+			await conversationStore.appendConversationRunBlocks({
+				blocks: presentationAdditionalBlocks,
+				conversation_id: finalizeOptions.conversation_id,
+				created_at: result.runtime_events.at(-1)?.timestamp,
+				run_id: payload.run_id,
+				scope: conversationScopeFromAuthContext(options.auth_context),
+				trace_id: payload.trace_id,
+			});
+		}
 	}
 
 	const finishedMessage = createFinishedMessage(payload, result);
@@ -2363,6 +2382,7 @@ export async function handleRunRequestMessage(
 		(hasConversationStoreConfiguration()
 			? {
 					appendConversationMessage,
+					appendConversationRunBlocks,
 					ensureConversation,
 				}
 			: undefined);

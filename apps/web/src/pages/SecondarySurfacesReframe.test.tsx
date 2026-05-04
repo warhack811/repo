@@ -45,6 +45,7 @@ function createConversations(
 		activeConversationId: 'conversation_1',
 		activeConversationMembers: [],
 		activeConversationMessages: [],
+		activeConversationRunSurfaces: [],
 		activeConversationSummary: null,
 		beginDraftConversation: () => undefined,
 		buildRequestMessages: () => [],

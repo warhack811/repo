@@ -250,6 +250,30 @@ const CREATE_CONVERSATION_MEMBERS_MEMBER_USER_ID_INDEX_SQL = `
 	ON conversation_members (member_user_id);
 `;
 
+const CREATE_CONVERSATION_RUN_BLOCKS_TABLE_SQL = `
+	CREATE TABLE IF NOT EXISTS conversation_run_blocks (
+		block_record_id text PRIMARY KEY,
+		blocks jsonb NOT NULL,
+		conversation_id text NOT NULL,
+		created_at timestamptz NOT NULL,
+		run_id text NOT NULL UNIQUE,
+		tenant_id text,
+		trace_id text NOT NULL,
+		user_id text,
+		workspace_id text
+	);
+`;
+
+const CREATE_CONVERSATION_RUN_BLOCKS_CONVERSATION_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversation_run_blocks_conversation_id_idx
+	ON conversation_run_blocks (conversation_id);
+`;
+
+const CREATE_CONVERSATION_RUN_BLOCKS_RUN_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS conversation_run_blocks_run_id_idx
+	ON conversation_run_blocks (run_id);
+`;
+
 const CREATE_APPROVALS_TABLE_SQL = `
 	CREATE TABLE IF NOT EXISTS approvals (
 		approval_id text PRIMARY KEY,
@@ -626,6 +650,9 @@ export function getDatabaseSchemaBootstrapStatements(): readonly string[] {
 		CREATE_CONVERSATION_MEMBERS_TABLE_SQL,
 		CREATE_CONVERSATION_MEMBERS_CONVERSATION_ID_INDEX_SQL,
 		CREATE_CONVERSATION_MEMBERS_MEMBER_USER_ID_INDEX_SQL,
+		CREATE_CONVERSATION_RUN_BLOCKS_TABLE_SQL,
+		CREATE_CONVERSATION_RUN_BLOCKS_CONVERSATION_ID_INDEX_SQL,
+		CREATE_CONVERSATION_RUN_BLOCKS_RUN_ID_INDEX_SQL,
 		CREATE_APPROVALS_TABLE_SQL,
 		ALTER_APPROVALS_ADD_TOOL_INPUT_SQL,
 		ALTER_APPROVALS_ADD_WORKING_DIRECTORY_SQL,

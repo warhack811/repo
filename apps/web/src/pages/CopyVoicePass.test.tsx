@@ -70,6 +70,7 @@ function createConversations(): UseConversationsResult {
 		activeConversationId: null,
 		activeConversationMembers: [],
 		activeConversationMessages: [],
+		activeConversationRunSurfaces: [],
 		activeConversationSummary: null,
 		beginDraftConversation: () => undefined,
 		buildRequestMessages: () => [],
