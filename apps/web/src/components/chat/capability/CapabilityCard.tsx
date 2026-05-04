@@ -2,6 +2,7 @@ import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { useId } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import type { CapabilityStatus, CapabilityTone } from './types.js';
+import styles from './CapabilityCard.module.css';
 
 export type CapabilityCardElement = 'article' | 'div';
 
@@ -67,28 +68,28 @@ export function CapabilityCard({
 				['runa-ui-card', 'runa-ui-card--subtle', 'runa-capability-card', className]
 					.filter(Boolean)
 					.join(' '),
-				'runa-migrated-components-chat-capability-capabilitycard-1',
+				styles['root'],
 			]
 				.filter(Boolean)
 				.join(' ')}
 		>
-			<div className="runa-migrated-components-chat-capability-capabilitycard-2">
-				<div className="runa-migrated-components-chat-capability-capabilitycard-3">
+			<div className={styles['header']}>
+				<div className={styles['titleGroup']}>
 					{eyebrow ? (
-						<div className="runa-migrated-components-chat-capability-capabilitycard-4">
+						<div className={styles['eyebrow']}>
 							{eyebrow}
 						</div>
 					) : null}
 					{title ? (
 						<h3
 							id={headingId}
-							className="runa-migrated-components-chat-capability-capabilitycard-5"
+							className={styles['title']}
 						>
 							{title}
 						</h3>
 					) : null}
 					{description ? (
-						<p className="runa-migrated-components-chat-capability-capabilitycard-6">
+						<p className={styles['description']}>
 							{description}
 						</p>
 					) : null}
@@ -97,7 +98,7 @@ export function CapabilityCard({
 					(status ? <RunaBadge tone={statusTone}>{formatStatusLabel(status)}</RunaBadge> : null)}
 			</div>
 			{children ? (
-				<div className="runa-migrated-components-chat-capability-capabilitycard-7">{children}</div>
+				<div className={styles['content']}>{children}</div>
 			) : null}
 		</CardElement>
 	);

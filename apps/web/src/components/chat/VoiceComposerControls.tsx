@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 
+import styles from './VoiceComposerControls.module.css';
+
 type VoiceComposerControlsProps = Readonly<{
 	canReadLatestResponse: boolean;
 	isListening: boolean;
@@ -24,8 +26,8 @@ export function VoiceComposerControls({
 	voiceStatusMessage,
 }: VoiceComposerControlsProps): ReactElement {
 	return (
-		<div className="runa-migrated-components-chat-voicecomposercontrols-1">
-			<div className="runa-migrated-components-chat-voicecomposercontrols-2">
+		<div className={styles['root']}>
+			<div className={styles['buttons']}>
 				<button
 					type="button"
 					onClick={onToggleListening}
@@ -34,7 +36,7 @@ export function VoiceComposerControls({
 						`runa-button runa-button--secondary${
 							isListening ? ' runa-voice-button--listening' : ''
 						}`,
-						'runa-migrated-components-chat-voicecomposercontrols-3',
+						styles['toggleButton'],
 					]
 						.filter(Boolean)
 						.join(' ')}
@@ -47,13 +49,13 @@ export function VoiceComposerControls({
 					type="button"
 					onClick={isSpeaking ? onStopSpeaking : onReadLatestResponse}
 					disabled={!canReadLatestResponse || !isSpeechPlaybackSupported}
-					className="runa-button runa-button--secondary runa-migrated-components-chat-voicecomposercontrols-4"
+					className={`runa-button runa-button--secondary ${styles['speakButton']}`}
 				>
 					{isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
 				</button>
 			</div>
 
-			<div className="runa-migrated-components-chat-voicecomposercontrols-5" aria-live="polite">
+			<div className={styles['status']} aria-live="polite">
 				{voiceStatusMessage ??
 					(isVoiceSupported
 						? 'Mikrofonu açıp kısa bir not söyleyebilir veya son yanıtı sesli okutabilirsin.'

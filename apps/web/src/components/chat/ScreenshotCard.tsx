@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 import { useState } from 'react';
 
+import styles from './ScreenshotCard.module.css';
+
 type ScreenshotCardProps = Readonly<{
 	caption?: string;
 	imageUrl: string;
@@ -16,36 +18,36 @@ export function ScreenshotCard({
 	const alt = caption ?? 'Screenshot preview';
 
 	return (
-		<article className="runa-migrated-components-chat-screenshotcard-1">
+		<article className={styles['root']}>
 			<button
 				type="button"
 				onClick={() => setIsOpen(true)}
-				className="runa-migrated-components-chat-screenshotcard-2"
+				className={styles['thumbnail']}
 			>
 				<img
 					alt={alt}
 					loading="lazy"
 					src={imageUrl}
-					className="runa-migrated-components-chat-screenshotcard-3"
+					className={styles['image']}
 				/>
 			</button>
 			{caption || timestamp ? (
-				<div className="runa-migrated-components-chat-screenshotcard-4">
+				<div className={styles['caption']}>
 					{caption ? <div>{caption}</div> : null}
 					{timestamp ? <time dateTime={timestamp}>{timestamp}</time> : null}
 				</div>
 			) : null}
 			{isOpen ? (
-				<dialog open className="runa-migrated-components-chat-screenshotcard-5">
+				<dialog open className={styles['modal']}>
 					<img
 						alt={alt}
 						src={imageUrl}
-						className="runa-migrated-components-chat-screenshotcard-6"
+						className={styles['modalImage']}
 					/>
 					<button
 						type="button"
 						onClick={() => setIsOpen(false)}
-						className="runa-migrated-components-chat-screenshotcard-7"
+						className={styles['closeButton']}
 					>
 						Close
 					</button>

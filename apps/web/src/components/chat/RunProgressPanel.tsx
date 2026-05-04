@@ -7,6 +7,7 @@ import { ThinkingBlock } from './ThinkingBlock.js';
 import type { ThinkingStep, ThinkingStepStatus } from './ThinkingBlock.js';
 import { ToolActivityIndicator } from './ToolActivityIndicator.js';
 import type { ToolActivityItem } from './ToolActivityIndicator.js';
+import styles from './RunProgressPanel.module.css';
 
 type RunProgressPanelProps = Readonly<{
 	feedbackBanner?: ReactNode;
@@ -141,16 +142,22 @@ export function RunProgressPanel({
 	const toolActivityItems = createToolActivityItems(progress);
 
 	if (!isDeveloperMode) {
+		const thinkingSteps = createThinkingSteps(progress);
 		return (
 			<section
 				aria-labelledby="current-run-progress-heading"
-				className="runa-run-activity-line runa-migrated-components-chat-runprogresspanel-1"
+				className={`runa-run-activity-line ${styles['root']}`}
 			>
 				<span className="runa-run-activity-line__pulse" aria-hidden="true" />
 				<div className="runa-run-activity-line__copy">
 					<h3 id="current-run-progress-heading">{progress.headline}</h3>
 					<p>{progress.detail}</p>
-					{toolActivityItems.length > 0 ? (
+					{thinkingSteps.length > 0 ? (
+						<ThinkingBlock
+							isActive={progress.status_tone === 'info' || progress.status_tone === 'warning'}
+							steps={thinkingSteps}
+						/>
+					) : toolActivityItems.length > 0 ? (
 						<ToolActivityIndicator items={toolActivityItems.slice(0, 3)} />
 					) : null}
 				</div>
@@ -161,21 +168,21 @@ export function RunProgressPanel({
 	return (
 		<section
 			aria-labelledby="current-run-progress-heading"
-			className="runa-migrated-components-chat-runprogresspanel-1"
+			className={styles['root']}
 		>
-			<div className="runa-migrated-components-chat-runprogresspanel-2">
-				<div className="runa-migrated-components-chat-runprogresspanel-3">
+			<div className={styles['headerSection']}>
+				<div className={styles['eyebrow']}>
 					{uiCopy.run.currentRunProgress}
 				</div>
-				<div className="runa-migrated-components-chat-runprogresspanel-4">
-					<div className="runa-migrated-components-chat-runprogresspanel-5">
+				<div className={styles['contentRow']}>
+					<div className={styles['progressDetails']}>
 						<h3
 							id="current-run-progress-heading"
-							className="runa-migrated-components-chat-runprogresspanel-6"
+							className={styles['headline']}
 						>
 							{progress.headline}
 						</h3>
-						<div className="runa-migrated-components-chat-runprogresspanel-7">
+						<div className={styles['detail']}>
 							{progress.detail}
 						</div>
 					</div>
@@ -186,15 +193,15 @@ export function RunProgressPanel({
 
 			{shouldShowDiagnostics ? (
 				<>
-					<div className="runa-migrated-components-chat-runprogresspanel-8">
-						<div className="runa-migrated-components-chat-runprogresspanel-9">
+					<div className={styles['diagnosticsSection']}>
+						<div className={styles['diagnosticsEyebrow']}>
 							{uiCopy.run.runtimePhases}
 						</div>
 						<RunStatusChips ariaLabel="Current work phases" items={progress.phase_items} />
 					</div>
 
-					<div className="runa-migrated-components-chat-runprogresspanel-10">
-						<div className="runa-migrated-components-chat-runprogresspanel-11">
+					<div className={styles['contextSection']}>
+						<div className={styles['contextEyebrow']}>
 							{uiCopy.run.currentSurfaceContext}
 						</div>
 						<RunStatusChips ariaLabel="Current work context" items={progress.meta_items} />
@@ -203,22 +210,22 @@ export function RunProgressPanel({
 			) : null}
 
 			{shouldShowDiagnostics && progress.approval_block?.payload.target_label ? (
-				<div className="runa-migrated-components-chat-runprogresspanel-12">
-					<div className="runa-migrated-components-chat-runprogresspanel-13">Hedef cihaz</div>
-					<div className="runa-migrated-components-chat-runprogresspanel-14">
+				<div className={styles['targetSection']}>
+					<div className={styles['targetEyebrow']}>Hedef cihaz</div>
+					<div className={styles['targetLabel']}>
 						{progress.approval_block.payload.target_label}
 					</div>
 				</div>
 			) : null}
 
 			{shouldShowDiagnostics && progress.step_items.length > 0 ? (
-				<div className="runa-migrated-components-chat-runprogresspanel-15">
-					<div className="runa-migrated-components-chat-runprogresspanel-16">
-						<div className="runa-migrated-components-chat-runprogresspanel-17">
+				<div className={styles['stepsSection']}>
+					<div className={styles['stepsHeader']}>
+						<div className={styles['stepsEyebrow']}>
 							{uiCopy.run.observedSteps}
 						</div>
 						{progress.hidden_step_count > 0 ? (
-							<div className="runa-migrated-components-chat-runprogresspanel-18">
+							<div className={styles['stepsCount']}>
 								{uiCopy.run.showingLatestSteps.replace(
 									'{count}',
 									progress.step_items.length.toString(),
@@ -235,7 +242,7 @@ export function RunProgressPanel({
 			) : null}
 
 			{shouldShowDiagnostics && progress.approval_block ? (
-				<div className="runa-migrated-components-chat-runprogresspanel-19">
+				<div className={styles['approvalBoundary']}>
 					{uiCopy.run.approvalBoundary}: {progress.approval_block.payload.title}
 				</div>
 			) : null}

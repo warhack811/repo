@@ -1,0 +1,47 @@
+.root {
+	display: grid;
+	gap: 10px;
+}
+
+.buttons {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.toggleButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 10px 14px;
+	border-radius: var(--radius-soft);
+	border: 1px solid rgba(148, 163, 184, 0.22);
+	background: rgba(10, 15, 27, 0.86);
+	color: #e5e7eb;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.speakButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 10px 14px;
+	border-radius: var(--radius-soft);
+	border: 1px solid rgba(148, 163, 184, 0.22);
+	background: rgba(10, 15, 27, 0.86);
+	color: #e5e7eb;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.status {
+	font-size: 14px;
+	line-height: 1.5;
+	color: #94a3b8;
+}

@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 
 import type { PresentationRunSurface, RunTransportSummary } from '../../lib/chat-runtime/types.js';
+import styles from './PresentationRunSurfaceCard.module.css';
 import type { ApprovalResolveDecision, InspectionTargetKind, RenderBlock } from '../../ws-types.js';
 import type {
 	GetInspectionActionState,
@@ -65,7 +66,7 @@ export function PresentationRunSurfaceCard({
 	const getInspectionActionStateForRun: GetInspectionActionState = (targetKind, targetId) =>
 		getInspectionActionState(surface.run_id, surface.blocks, targetKind, targetId);
 	const blockList = (
-		<div className="runa-migrated-components-chat-presentationrunsurfacecard-1">
+		<div className={styles['blockList']}>
 			{surface.blocks.map((block) =>
 				renderPresentationBlock(
 					block,
@@ -82,27 +83,27 @@ export function PresentationRunSurfaceCard({
 
 	const metaChips =
 		surfaceMeta || surfaceStatusChip || surfacePendingDetailCount > 0 ? (
-			<div className="runa-migrated-components-chat-presentationrunsurfacecard-2">
+			<div className={styles['metaChips']}>
 				{surfaceStatusChip ? (
-					<code className="runa-migrated-components-chat-presentationrunsurfacecard-3">
+					<code className={styles['statusChip']}>
 						{surfaceStatusChip.label}
 					</code>
 				) : null}
 				{surfacePendingDetailCount > 0 ? (
-					<code className="runa-migrated-components-chat-presentationrunsurfacecard-4">
+					<code className={styles['pendingChip']}>
 						{createPendingDetailLabel(surfacePendingDetailCount)}
 					</code>
 				) : null}
 				{surfaceMeta && isDeveloperMode ? (
 					<>
-						<code className="runa-migrated-components-chat-presentationrunsurfacecard-5">
+						<code className={styles['summaryChip']}>
 							{createInspectionCountLabel(
 								surfaceMeta.summary_count,
 								'summary card',
 								'summary cards',
 							)}
 						</code>
-						<code className="runa-migrated-components-chat-presentationrunsurfacecard-6">
+						<code className={styles['detailChip']}>
 							{createInspectionCountLabel(surfaceMeta.detail_count, 'detail card', 'detail cards')}
 						</code>
 					</>
@@ -115,7 +116,7 @@ export function PresentationRunSurfaceCard({
 			return (
 				<div
 					key={surface.run_id}
-					className="runa-presentation-run-surface runa-presentation-run-surface--current runa-migrated-components-chat-presentationrunsurfacecard-7"
+					className={`runa-presentation-run-surface runa-presentation-run-surface--current ${styles['card']}`}
 				>
 					{blockList}
 				</div>
@@ -125,26 +126,26 @@ export function PresentationRunSurfaceCard({
 		return (
 			<div
 				key={surface.run_id}
-				className="runa-migrated-components-chat-presentationrunsurfacecard-7"
+				className={styles['card']}
 			>
-				<div className="runa-migrated-components-chat-presentationrunsurfacecard-8">
-					<div className="runa-migrated-components-chat-presentationrunsurfacecard-9">
-						<div className="runa-migrated-components-chat-presentationrunsurfacecard-10">
+				<div className={styles['summary']}>
+					<div className={styles['summaryContent']}>
+						<div className={styles['eyebrow']}>
 							mevcut çalışma
 						</div>
-						<div className="runa-migrated-components-chat-presentationrunsurfacecard-11">
-							<strong className="runa-migrated-components-chat-presentationrunsurfacecard-12">
+						<div className={styles['row']}>
+							<strong className={styles['title']}>
 								Canlı çalışma
 							</strong>
-							<code className="runa-migrated-components-chat-presentationrunsurfacecard-13">
+							<code className={styles['correlationChip']}>
 								ana akış
 							</code>
 						</div>
-						<div className="runa-migrated-components-chat-presentationrunsurfacecard-14">
+						<div className={styles['description']}>
 							Sonuçlar ve gereken onaylar sohbetten kopmadan ilerler.
 						</div>
 						{visibleCorrelationLabel ? (
-							<code className="runa-migrated-components-chat-presentationrunsurfacecard-15">
+							<code className={styles['correlationChip']}>
 								{visibleCorrelationLabel}
 							</code>
 						) : null}
@@ -161,25 +162,25 @@ export function PresentationRunSurfaceCard({
 			key={surface.run_id}
 			open={expanded}
 			onToggle={(event) => onToggleExpanded?.(surface.run_id, event.currentTarget.open)}
-			className="runa-migrated-components-chat-presentationrunsurfacecard-16"
+			className={styles['pastCard']}
 		>
-			<summary className="runa-migrated-components-chat-presentationrunsurfacecard-17">
-				<div className="runa-migrated-components-chat-presentationrunsurfacecard-18">
-					<div className="runa-migrated-components-chat-presentationrunsurfacecard-19">
-						<div className="runa-migrated-components-chat-presentationrunsurfacecard-20">
+			<summary className={styles['summary']}>
+				<div className={styles['summaryContent']}>
+					<div className={styles['pastCardContent']}>
+						<div className={styles['pastEyebrow']}>
 							geçmiş çalışma
 						</div>
-						<div className="runa-migrated-components-chat-presentationrunsurfacecard-21">
-							<strong className="runa-migrated-components-chat-presentationrunsurfacecard-22">
+						<div className={styles['pastRow']}>
+							<strong className={styles['pastTitle']}>
 								Önceki çalışma özeti
 							</strong>
 							{visibleCorrelationLabel ? (
-								<code className="runa-migrated-components-chat-presentationrunsurfacecard-23">
+								<code className={styles['pastCorrelationChip']}>
 									{visibleCorrelationLabel}
 								</code>
 							) : null}
 						</div>
-						<div className="runa-migrated-components-chat-presentationrunsurfacecard-24">
+						<div className={styles['pastDescription']}>
 							Canlı akış önde kalır. Eski özetleri gerektiğinde açabilirsin.
 						</div>
 					</div>

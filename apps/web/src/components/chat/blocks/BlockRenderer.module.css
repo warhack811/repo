@@ -383,6 +383,22 @@
 	gap: 10px;
 }
 
+.approvalInlineTarget {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 8px;
+	font-size: 0.85rem;
+	padding: 0 0 8px;
+}
+
+.approvalRisk {
+	color: hsl(var(--color-text-muted));
+	font-size: 0.85rem;
+	margin: 0;
+	padding: 0 0 8px;
+}
+
 .approvalValue {
 	color: hsl(var(--color-text));
 	line-height: 1.5;

@@ -1,0 +1,122 @@
+.root {
+	box-shadow: none;
+	display: grid;
+}
+
+.intro {
+	display: grid;
+}
+
+.eyebrow {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.title {
+	margin: 0px;
+	font-size: 20px;
+}
+
+.alert {
+	align-items: center;
+	display: flex;
+	font-size: 14px;
+}
+
+.alertBadge {
+	color: #f59e0b;
+}
+
+.outputAlert {
+	display: grid;
+}
+
+.alertText {
+	font-weight: 600;
+}
+
+.form {
+	display: grid;
+}
+
+.inputLabel {
+	display: grid;
+}
+
+.visuallyHidden {
+	color: #e5e7eb;
+	font-weight: 600;
+}
+
+.actions {
+	display: grid;
+}
+
+.actionsLeft {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+
+.attachmentsList {
+	border-radius: var(--radius-panel);
+	background: rgba(9, 14, 25, 0.68);
+	display: grid;
+	padding: 12px 14px;
+}
+
+.attachmentCard {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+
+.attachmentInfo {
+	display: grid;
+}
+
+.attachmentInfoInner {
+}
+
+.attachmentName {
+	font-weight: 600;
+}
+
+.removeButton {
+	padding: 8px 12px;
+}
+
+.imagePreview {
+	max-width: min(220px, 100%);
+}
+
+.textPreview {
+	color: #cbd5e1;
+	font-size: 14px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+.documentPreview {
+	color: #cbd5e1;
+	font-size: 14px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+.errorAlert {
+	line-height: 1.5;
+}
+
+.status {
+	color: #94a3b8;
+	font-size: 14px;
+}
+
+.sendButton {
+	width: min(220px, 100%);
+}

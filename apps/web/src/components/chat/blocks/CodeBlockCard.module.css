@@ -1,0 +1,120 @@
+.root {
+	border-radius: var(--radius-soft);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	padding: 16px;
+	min-width: 0;
+	box-shadow: none;
+	background: hsl(var(--color-surface) / 0.72);
+	border-color: rgba(56, 189, 248, 0.28);
+}
+
+.header {
+	align-items: flex-start;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+
+.titleRow {
+	display: grid;
+	gap: 4px;
+	min-width: 0px;
+}
+
+.eyebrow {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.title {
+	color: #f8fafc;
+	font-size: 16px;
+	overflow-wrap: anywhere;
+}
+
+.actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.language {
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	padding: 4px 10px;
+	text-transform: uppercase;
+}
+
+.diffKind {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.copyButton {
+	font-size: 12px;
+	color: hsl(var(--color-text-muted));
+	background: rgba(10, 16, 28, 0.76);
+	padding: 5px 10px;
+	border-radius: 999px;
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	cursor: pointer;
+}
+
+.summary {
+	color: hsl(var(--color-text-muted));
+	line-height: 1.6;
+	margin-bottom: 10px;
+}
+
+.pathRow {
+	margin-bottom: 10px;
+}
+
+.pathLabel {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.pathValue {
+	color: #93c5fd;
+	line-height: 1.6;
+	margin-top: 4px;
+	overflow-wrap: anywhere;
+}
+
+.codeContainer {
+	margin-top: 10px;
+	padding: 14px;
+	border-radius: var(--radius-panel);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	background: hsl(var(--color-surface) / 0.72);
+	max-width: 100%;
+	overflow-x: auto;
+	box-shadow: none;
+}
+
+.codePre {
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.codeLine {
+}
+
+.lineNumber {
+}

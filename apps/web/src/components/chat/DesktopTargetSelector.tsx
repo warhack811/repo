@@ -1,6 +1,8 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import type { ReactElement } from 'react';
 
+import styles from './DesktopTargetSelector.module.css';
+
 type DesktopTargetSelectorProps = Readonly<{
 	devices: readonly DesktopDevicePresenceSnapshot[];
 	errorMessage?: string | null;
@@ -45,25 +47,25 @@ export function DesktopTargetSelector({
 	}
 
 	return (
-		<div className="runa-migrated-components-chat-desktoptargetselector-1">
-			<div className="runa-migrated-components-chat-desktoptargetselector-2">
-				<div className="runa-migrated-components-chat-desktoptargetselector-3">Masaüstü hedefi</div>
-				<div className="runa-migrated-components-chat-desktoptargetselector-4">
+		<div className={styles['root']}>
+			<div className={styles['header']}>
+				<div className={styles['eyebrow']}>Masaüstü hedefi</div>
+				<div className={styles['description']}>
 					İstersen sonraki isteği açık bir bilgisayara yönlendirebilirsin.
 				</div>
 			</div>
 
 			{devices.length > 0 ? (
-				<div className="runa-migrated-components-chat-desktoptargetselector-5">
+				<div className={styles['buttons']}>
 					<button
 						type="button"
 						onClick={onClear}
-						className="runa-migrated-components-chat-desktoptargetselector-6"
+						className={styles['clearButton']}
 					>
-						<span className="runa-migrated-components-chat-desktoptargetselector-7">
+						<span className={styles['clearLabel']}>
 							Masaüstü seçilmedi
 						</span>
-						<span className="runa-migrated-components-chat-desktoptargetselector-8">
+						<span className={styles['clearDescription']}>
 							Sonraki istek normal sohbet akışında ilerlesin.
 						</span>
 					</button>
@@ -73,12 +75,12 @@ export function DesktopTargetSelector({
 								key={device.connection_id}
 								type="button"
 								onClick={() => onSelect(device.connection_id)}
-								className="runa-migrated-components-chat-desktoptargetselector-9"
+								className={styles['deviceButton']}
 							>
-								<span className="runa-migrated-components-chat-desktoptargetselector-10">
+								<span className={styles['deviceLabel']}>
 									{getDeviceLabel(device)}
 								</span>
-								<span className="runa-migrated-components-chat-desktoptargetselector-11">
+								<span className={styles['deviceMeta']}>
 									{formatConnectedAt(device.connected_at)}
 								</span>
 							</button>
@@ -88,21 +90,21 @@ export function DesktopTargetSelector({
 			) : null}
 
 			{isLoading ? (
-				<div className="runa-migrated-components-chat-desktoptargetselector-12">
+				<div className={styles['loading']}>
 					Açık bir masaüstü aranıyor...
 				</div>
 			) : null}
 
 			{errorMessage ? (
-				<div className="runa-migrated-components-chat-desktoptargetselector-13">
-					<div className="runa-migrated-components-chat-desktoptargetselector-14">
+				<div className={styles['errorRow']}>
+					<div className={styles['errorText']}>
 						Masaüstü listesi şimdilik yenilenemedi. Sohbet etkilenmeden devam eder.
 					</div>
 					{typeof onRetry === 'function' ? (
 						<button
 							type="button"
 							onClick={onRetry}
-							className="runa-migrated-components-chat-desktoptargetselector-15"
+							className={styles['retryButton']}
 						>
 							Tekrar dene
 						</button>

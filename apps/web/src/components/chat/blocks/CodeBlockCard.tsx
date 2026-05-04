@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { useState } from 'react';
 import type { RenderBlock } from '../../../ws-types.js';
 import { getCodeBlockAccent } from '../PresentationBlockRenderer.js';
+import styles from './CodeBlockCard.module.css';
 
 type CodeBlockCardProps = Readonly<{
 	block:
@@ -57,50 +58,50 @@ export function CodeBlockCard({ block }: CodeBlockCardProps): ReactElement {
 	}
 
 	return (
-		<article key={block.id} className="runa-migrated-components-chat-blocks-codeblockcard-1">
-			<div className="runa-migrated-components-chat-blocks-codeblockcard-2">
-				<div className="runa-migrated-components-chat-blocks-codeblockcard-3">
-					<span className="runa-migrated-components-chat-blocks-codeblockcard-4">code block</span>
-					<strong className="runa-migrated-components-chat-blocks-codeblockcard-5">
+		<article key={block.id} className={styles['root']}>
+			<div className={styles['header']}>
+				<div className={styles['titleRow']}>
+					<span className={styles['eyebrow']}>code block</span>
+					<strong className={styles['title']}>
 						{displayTitle}
 					</strong>
 				</div>
-				<div className="runa-migrated-components-chat-blocks-codeblockcard-6">
-					<span className="runa-migrated-components-chat-blocks-codeblockcard-7">
+				<div className={styles['actions']}>
+					<span className={styles['language']}>
 						{block.payload.language}
 					</span>
 					{diffKind ? (
-						<span className="runa-migrated-components-chat-blocks-codeblockcard-8">{diffKind}</span>
+						<span className={styles['diffKind']}>{diffKind}</span>
 					) : null}
 					<button
 						type="button"
 						onClick={handleCopy}
 						aria-live="polite"
-						className="runa-migrated-components-chat-blocks-codeblockcard-9"
+						className={styles['copyButton']}
 					>
 						{getCopyButtonLabel(copyState)}
 					</button>
 				</div>
 			</div>
 			{block.type === 'code_block' && block.payload.summary ? (
-				<div className="runa-migrated-components-chat-blocks-codeblockcard-10">
+				<div className={styles['summary']}>
 					{block.payload.summary}
 				</div>
 			) : null}
 			{displayPath ? (
-				<div className="runa-migrated-components-chat-blocks-codeblockcard-11">
-					<span className="runa-migrated-components-chat-blocks-codeblockcard-12">path</span>
-					<div className="runa-migrated-components-chat-blocks-codeblockcard-13">{displayPath}</div>
+				<div className={styles['pathRow']}>
+					<span className={styles['pathLabel']}>path</span>
+					<div className={styles['pathValue']}>{displayPath}</div>
 				</div>
 			) : null}
-			<div className="runa-migrated-components-chat-blocks-codeblockcard-14">
-				<pre className="runa-migrated-components-chat-blocks-codeblockcard-15">
+			<div className={styles['codeContainer']}>
+				<pre className={styles['codePre']}>
 					{codeLines.map((line, index) => (
 						<span
 							key={`${block.id}:line:${index}`}
-							className="runa-migrated-components-chat-blocks-codeblockcard-16"
+							className={styles['codeLine']}
 						>
-							<span className="runa-migrated-components-chat-blocks-codeblockcard-17">
+							<span className={styles['lineNumber']}>
 								{index + 1}
 							</span>
 							<span>{line || ' '}</span>

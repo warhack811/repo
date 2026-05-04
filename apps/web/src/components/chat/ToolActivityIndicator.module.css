@@ -1,0 +1,28 @@
+.container {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.item {
+	align-items: center;
+	background: rgba(15, 23, 42, 0.72);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	border-radius: 999px;
+	color: #cbd5e1;
+	display: inline-flex;
+	font-size: 12px;
+	gap: 6px;
+	min-width: 0px;
+	padding: 5px 10px;
+}
+
+.statusLabel {
+	font-weight: 600;
+}
+
+.toolLabel {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

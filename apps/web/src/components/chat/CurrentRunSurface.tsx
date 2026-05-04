@@ -5,6 +5,7 @@ import type { ConversationMessage } from '../../hooks/useConversations.js';
 import { RunaSkeleton } from '../ui/RunaSkeleton.js';
 import { PersistedTranscript } from './PersistedTranscript.js';
 import { StreamingMessageSurface } from './StreamingMessageSurface.js';
+import styles from './CurrentRunSurface.module.css';
 
 type CurrentRunSurfaceProps = Readonly<{
 	activeConversationId: string | null;
@@ -43,16 +44,16 @@ export function CurrentRunSurface({
 
 	return (
 		<ThreadPrimitive.Root
-			className={`runa-current-run-surface runa-chat-transcript runa-migrated-components-chat-currentrunsurface-1${
+			className={`runa-current-run-surface runa-chat-transcript ${styles['root']}${
 				shouldShowEmptyState ? ' runa-current-run-surface--empty' : ''
 			}`}
 			aria-labelledby="chat-conversation-surface-heading"
 			aria-busy={isBusy}
 		>
-			<div className="runa-chat-visually-hidden runa-migrated-components-chat-currentrunsurface-2">
+			<div className={`runa-chat-visually-hidden ${styles['visuallyHidden']}`}>
 				<h2
 					id="chat-conversation-surface-heading"
-					className="runa-migrated-components-chat-currentrunsurface-4"
+					className={styles['title']}
 				>
 					Sohbet
 				</h2>

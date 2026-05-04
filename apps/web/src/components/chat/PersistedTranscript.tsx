@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
 import { StreamdownMessage } from '../../lib/streamdown/StreamdownMessage.js';
+import styles from './PersistedTranscript.module.css';
 
 type PersistedTranscriptProps = Readonly<{
 	activeConversationId: string | null;
@@ -33,19 +34,24 @@ export function PersistedTranscript({
 	}
 
 	return (
-		<div className="runa-migrated-components-chat-persistedtranscript-1" aria-live="polite">
+		<div className={styles['root']} aria-live="polite">
 			{activeConversationMessages.map((message) => (
 				<div
 					key={message.message_id}
-					className={`runa-transcript-message runa-transcript-message--${message.role} runa-migrated-components-chat-persistedtranscript-3`}
+					className={`runa-transcript-message runa-transcript-message--${message.role}`}
+					data-role={message.role}
 				>
-					<div className="runa-migrated-components-chat-persistedtranscript-4">
-						<strong className="runa-migrated-components-chat-persistedtranscript-5">
-							{getRoleLabel(message.role)}
-						</strong>
-						<span>{new Date(message.created_at).toLocaleString('tr-TR')}</span>
+					<div className={styles['bubble']}>
+						<StreamdownMessage>{message.content}</StreamdownMessage>
 					</div>
-					<StreamdownMessage>{message.content}</StreamdownMessage>
+					<div className={styles['metaRow']}>
+						<span className={styles['roleLabel']}>
+							{getRoleLabel(message.role)}
+						</span>
+						<span className={styles['time']}>
+							{new Date(message.created_at).toLocaleString('tr-TR')}
+						</span>
+					</div>
 				</div>
 			))}
 		</div>

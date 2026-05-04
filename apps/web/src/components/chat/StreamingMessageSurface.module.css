@@ -1,0 +1,7 @@
+.root {
+	background: hsl(var(--color-surface) / 0.72);
+	border-radius: var(--radius-panel);
+	box-shadow: none;
+	display: grid;
+	padding: 16px 18px;
+}

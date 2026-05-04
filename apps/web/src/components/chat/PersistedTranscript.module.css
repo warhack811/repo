@@ -1,0 +1,36 @@
+.root {
+	display: grid;
+}
+
+.eyebrow {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.meta {
+	color: #94a3b8;
+	display: flex;
+	flex-wrap: wrap;
+	font-size: 12px;
+	justify-content: space-between;
+}
+
+.roleLabel {
+	color: #e5e7eb;
+}
+
+.bubble {
+}
+
+.metaRow {
+	color: #94a3b8;
+	display: flex;
+	flex-wrap: wrap;
+	font-size: 12px;
+	justify-content: space-between;
+}
+
+.time {
+}

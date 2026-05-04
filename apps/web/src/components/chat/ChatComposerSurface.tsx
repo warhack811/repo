@@ -10,6 +10,7 @@ import { RunaTextarea } from '../ui/RunaTextarea.js';
 import { DesktopTargetSelector } from './DesktopTargetSelector.js';
 import { FileUploadButton } from './FileUploadButton.js';
 import { VoiceComposerControls } from './VoiceComposerControls.js';
+import styles from './ChatComposerSurface.module.css';
 
 type ChatComposerSurfaceProps = Readonly<{
 	accessToken?: string | null;
@@ -156,17 +157,17 @@ export function ChatComposerSurface({
 
 	return (
 		<section
-			className={`runa-chat-composer-surface runa-chat-surface runa-migrated-components-chat-chatcomposersurface-1${
+			className={`runa-chat-composer-surface runa-chat-surface ${styles['root']}${
 				showEmptyIntro ? ' runa-chat-composer-surface--empty' : ''
 			}`}
 			aria-label={showEmptyIntro ? undefined : 'Mesaj yaz'}
 			aria-labelledby={showEmptyIntro ? 'chat-composer-heading' : undefined}
 		>
-			<div className="runa-chat-composer-surface__intro runa-migrated-components-chat-chatcomposersurface-2">
-				<div className="runa-migrated-components-chat-chatcomposersurface-3">Sohbet</div>
+			<div className={`runa-chat-composer-surface__intro ${styles['intro']}`}>
+				<div className={styles['eyebrow']}>Sohbet</div>
 				<h2
 					id="chat-composer-heading"
-					className="runa-migrated-components-chat-chatcomposersurface-4"
+					className={styles['title']}
 				>
 					Neyi ilerletmek istiyorsun?
 				</h2>
@@ -177,8 +178,8 @@ export function ChatComposerSurface({
 			</div>
 
 			{showDeveloperControls && !apiKey.trim() && isRuntimeConfigReady ? (
-				<div className="runa-alert runa-alert--warning runa-migrated-components-chat-chatcomposersurface-5">
-					<span className="runa-migrated-components-chat-chatcomposersurface-6">Bağlantı</span>
+				<div className={`runa-alert runa-alert--warning ${styles['alert']}`}>
+					<span className={styles['alertBadge']}>Bağlantı</span>
 					Varsayılan bağlantı kullanılacak.
 				</div>
 			) : null}
@@ -186,9 +187,9 @@ export function ChatComposerSurface({
 			{!isRuntimeConfigReady ? (
 				<output
 					aria-live="polite"
-					className="runa-alert runa-alert--warning runa-migrated-components-chat-chatcomposersurface-7"
+					className={`runa-alert runa-alert--warning ${styles['outputAlert']}`}
 				>
-					<div className="runa-migrated-components-chat-chatcomposersurface-8">
+					<div className={styles['alertText']}>
 						Runa şu anda mesaj göndermeye hazır değil.
 					</div>
 					<div className="runa-subtle-copy">Bağlantı hazır olduğunda yeniden deneyebilirsin.</div>
@@ -197,13 +198,13 @@ export function ChatComposerSurface({
 
 			<form
 				onSubmit={onSubmit}
-				className="runa-chat-composer-form runa-migrated-components-chat-chatcomposersurface-12"
+				className={`runa-chat-composer-form ${styles['form']}`}
 			>
 				<label
 					htmlFor={promptTextareaId}
-					className="runa-chat-composer-input runa-migrated-components-chat-chatcomposersurface-13"
+					className={`runa-chat-composer-input ${styles['inputLabel']}`}
 				>
-					<span className="runa-chat-visually-hidden runa-migrated-components-chat-chatcomposersurface-14">
+					<span className={`runa-chat-visually-hidden ${styles['visuallyHidden']}`}>
 						Mesaj
 					</span>
 					<RunaTextarea
@@ -217,8 +218,8 @@ export function ChatComposerSurface({
 					/>
 				</label>
 
-				<div className="runa-chat-composer-actions runa-migrated-components-chat-chatcomposersurface-15">
-					<div className="runa-chat-composer-actions__left runa-migrated-components-chat-chatcomposersurface-16">
+				<div className={`runa-chat-composer-actions ${styles['actions']}`}>
+					<div className={`runa-chat-composer-actions__left ${styles['actionsLeft']}`}>
 						<FileUploadButton
 							accessToken={accessToken}
 							disabled={!isRuntimeConfigReady || isSubmitting}
@@ -264,7 +265,7 @@ export function ChatComposerSurface({
 						</details>
 						<RunaButton
 							aria-label={submitButtonLabel}
-							className="runa-button runa-button--primary runa-chat-send-button runa-migrated-components-chat-chatcomposersurface-30"
+							className={`runa-button runa-button--primary runa-chat-send-button ${styles['sendButton']}`}
 							disabled={isSubmitDisabled}
 							type="submit"
 							variant="primary"
@@ -276,16 +277,16 @@ export function ChatComposerSurface({
 
 				<div className="runa-chat-composer-attachments">
 					{attachments.length > 0 ? (
-						<div className="runa-migrated-components-chat-chatcomposersurface-18">
+						<div className={styles['attachmentsList']}>
 							{attachments.map((attachment) => (
 								<RunaCard
 									key={attachment.blob_id}
-									className="runa-migrated-components-chat-chatcomposersurface-19"
+									className={styles['attachmentCard']}
 									tone="subtle"
 								>
-									<div className="runa-migrated-components-chat-chatcomposersurface-20">
-										<div className="runa-migrated-components-chat-chatcomposersurface-21">
-											<strong className="runa-migrated-components-chat-chatcomposersurface-22">
+									<div className={styles['attachmentInfo']}>
+										<div className={styles['attachmentInfoInner']}>
+											<strong className={styles['attachmentName']}>
 												{attachment.filename ?? attachment.blob_id}
 											</strong>
 											<div className="runa-subtle-copy">
@@ -293,7 +294,7 @@ export function ChatComposerSurface({
 											</div>
 										</div>
 										<RunaButton
-											className="runa-button runa-button--secondary runa-migrated-components-chat-chatcomposersurface-23"
+											className={`runa-button runa-button--secondary ${styles['removeButton']}`}
 											onClick={() =>
 												onAttachmentsChange(
 													attachments.filter(
@@ -310,14 +311,14 @@ export function ChatComposerSurface({
 										<img
 											alt={attachment.filename ?? 'Ek dosya önizlemesi'}
 											src={attachment.data_url}
-											className="runa-migrated-components-chat-chatcomposersurface-24"
+											className={styles['imagePreview']}
 										/>
 									) : attachment.kind === 'text' ? (
-										<div className="runa-migrated-components-chat-chatcomposersurface-25">
+										<div className={styles['textPreview']}>
 											{attachment.text_content}
 										</div>
 									) : (
-										<div className="runa-migrated-components-chat-chatcomposersurface-26">
+										<div className={styles['documentPreview']}>
 											{attachment.text_preview ?? 'Doküman eklendi'}
 										</div>
 									)}
@@ -335,13 +336,13 @@ export function ChatComposerSurface({
 				{lastError ? (
 					<div
 						role="alert"
-						className="runa-alert runa-alert--danger runa-migrated-components-chat-chatcomposersurface-27"
+						className={`runa-alert runa-alert--danger ${styles['errorAlert']}`}
 					>
 						<strong>Runa bu isteği başlatamadı. </strong>
 						{lastError}
 					</div>
 				) : null}
-				<div className="runa-chat-composer-status runa-migrated-components-chat-chatcomposersurface-29">
+				<div className={`runa-chat-composer-status ${styles['status']}`}>
 					{statusLabel}
 				</div>
 			</form>

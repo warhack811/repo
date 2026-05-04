@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { StreamdownMessage } from '../../lib/streamdown/StreamdownMessage.js';
+import styles from './StreamingMessageSurface.module.css';
 
 type StreamingMessageSurfaceProps = Readonly<{
 	currentRunId?: string;
@@ -23,7 +24,7 @@ export function StreamingMessageSurface({
 
 	return (
 		<div
-			className="runa-streaming-message runa-migrated-components-chat-streamingmessagesurface-1"
+			className={`runa-streaming-message ${styles['root']}`}
 			aria-live="polite"
 		>
 			<span className="runa-chat-visually-hidden">Canlı yanıt</span>

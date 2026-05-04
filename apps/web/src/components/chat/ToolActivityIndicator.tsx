@@ -1,4 +1,7 @@
+import { Check, Loader2, XCircle } from 'lucide-react';
 import type { ReactElement } from 'react';
+
+import styles from './ToolActivityIndicator.module.css';
 
 export type ToolActivityItem = Readonly<{
 	detail?: string;
@@ -11,14 +14,43 @@ type ToolActivityIndicatorProps = Readonly<{
 	items: readonly ToolActivityItem[];
 }>;
 
-function getStatusColor(status: ToolActivityItem['status']): string {
+function getStatusIcon(status: ToolActivityItem['status']): ReactElement {
 	switch (status) {
 		case 'active':
-			return '#93c5fd';
+			return (
+				<Loader2
+					aria-hidden="true"
+					className="runa-tool-activity-icon runa-tool-activity-icon--spin"
+					size={13}
+				/>
+			);
 		case 'completed':
-			return '#86efac';
+			return (
+				<Check
+					aria-hidden="true"
+					className="runa-tool-activity-icon runa-tool-activity-icon--done"
+					size={13}
+				/>
+			);
 		case 'failed':
-			return '#fca5a5';
+			return (
+				<XCircle
+					aria-hidden="true"
+					className="runa-tool-activity-icon runa-tool-activity-icon--fail"
+					size={13}
+				/>
+			);
+	}
+}
+
+function getStatusLabel(status: ToolActivityItem['status']): string {
+	switch (status) {
+		case 'active':
+			return 'Çalışıyor';
+		case 'completed':
+			return 'Tamamlandı';
+		case 'failed':
+			return 'Başarısız';
 	}
 }
 
@@ -29,19 +61,20 @@ export function ToolActivityIndicator({ items }: ToolActivityIndicatorProps): Re
 
 	return (
 		<div
-			aria-label="Tool activity"
-			className="runa-migrated-components-chat-toolactivityindicator-1"
+			aria-label="Araç etkinliği"
+			className={styles['container']}
 		>
 			{items.map((item) => (
 				<div
 					key={item.id}
 					title={item.detail}
-					className="runa-migrated-components-chat-toolactivityindicator-2"
+					className={styles['item']}
 				>
-					<span className="runa-migrated-components-chat-toolactivityindicator-3">
-						{item.status}
+					<span className={styles['statusLabel']}>
+						{getStatusIcon(item.status)}
+						<span>{getStatusLabel(item.status)}</span>
 					</span>
-					<span className="runa-migrated-components-chat-toolactivityindicator-4">
+					<span className={styles['toolLabel']}>
 						{item.label}
 					</span>
 				</div>

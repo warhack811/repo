@@ -8,6 +8,7 @@ import type {
 	ConversationSummary,
 } from '../../hooks/useConversations.js';
 import { RunaSkeleton } from '../ui/RunaSkeleton.js';
+import styles from './ConversationSidebar.module.css';
 
 type ConversationSidebarProps = Readonly<{
 	activeConversationId: string | null;
@@ -138,7 +139,7 @@ function SkeletonRows(): ReactElement {
 		<output
 			aria-busy="true"
 			aria-label="Sohbet listesi yükleniyor"
-			className="runa-migrated-components-chat-conversationsidebar-1"
+			className={styles['loading']}
 		>
 			{['one', 'two', 'three'].map((key) => (
 				<RunaSkeleton key={key} className="runa-conversation-skeleton" variant="rect" />
@@ -266,21 +267,21 @@ export function ConversationSidebar({
 				aria-label="Sohbet geçmişi"
 			>
 				<div className="runa-conversation-sidebar__header">
-					<div className="runa-migrated-components-chat-conversationsidebar-2">
-						<div className="runa-migrated-components-chat-conversationsidebar-3">Runa</div>
-						<h2 className="runa-migrated-components-chat-conversationsidebar-4">Sohbetler</h2>
+<div className={styles['headerGroup']}>
+						<div className={styles['logo']}>Runa</div>
+						<h2 className={styles['title']}>Sohbetler</h2>
 					</div>
 					<button
 						type="button"
 						onClick={startNewConversation}
-						className="runa-button runa-button--secondary runa-migrated-components-chat-conversationsidebar-5"
+						className={`runa-button runa-button--secondary ${styles['newButton']}`}
 					>
 						Yeni sohbet
 					</button>
 				</div>
 
-				<label className="runa-migrated-components-chat-conversationsidebar-6">
-					<span className="runa-migrated-components-chat-conversationsidebar-7">Ara</span>
+				<label className={styles['searchLabel']}>
+					<span className={styles['searchIcon']}>Ara</span>
 					<input
 						type="search"
 						className="runa-input"
@@ -296,19 +297,19 @@ export function ConversationSidebar({
 					</div>
 				) : null}
 
-				<div className="runa-migrated-components-chat-conversationsidebar-8">
+				<div className={styles['conversationList']}>
 					{isLoading && conversations.length === 0 ? <SkeletonRows /> : null}
 
 					{!isLoading && conversations.length === 0 ? (
 						<div className="runa-empty-state">
 							<strong>Henüz sohbet yok.</strong>
-							<div className="runa-migrated-components-chat-conversationsidebar-9">
+							<div className={styles['emptyHint']}>
 								İlk mesajından sonra sohbetlerin listelenir.
 							</div>
 							<button
 								type="button"
 								onClick={startNewConversation}
-								className="runa-button runa-button--secondary runa-migrated-components-chat-conversationsidebar-10"
+								className={`runa-button runa-button--secondary ${styles['newButtonAlt']}`}
 							>
 								Yeni sohbet
 							</button>
@@ -322,7 +323,7 @@ export function ConversationSidebar({
 					{groupedConversations.map((group) => (
 						<section key={group.label} className="runa-conversation-group">
 							<div className="runa-conversation-group__label">{group.label}</div>
-							<div className="runa-migrated-components-chat-conversationsidebar-11">
+							<div className={styles['groupItems']}>
 								{group.items.map((conversation) => {
 									const isActive = conversation.conversation_id === activeConversationId;
 
@@ -359,7 +360,7 @@ export function ConversationSidebar({
 					<details className="runa-conversation-members">
 						<summary>Üyeler - {roleLabel(activeConversationSummary.access_role)}</summary>
 
-						<div className="runa-migrated-components-chat-conversationsidebar-12">
+						<div className={styles['membersList']}>
 							{memberError ? (
 								<div className="runa-alert runa-alert--danger" role="alert">
 									{getFriendlyErrorMessage(memberError)}
@@ -373,7 +374,7 @@ export function ConversationSidebar({
 							) : null}
 
 							{canManageMembers ? (
-								<div className="runa-migrated-components-chat-conversationsidebar-13">
+								<div className={styles['addMember']}>
 									<input
 										type="text"
 										value={memberUserId}
@@ -399,7 +400,7 @@ export function ConversationSidebar({
 											void handleShareSubmit();
 										}}
 										disabled={isSavingMember}
-										className="runa-button runa-button--secondary runa-migrated-components-chat-conversationsidebar-14"
+										className={`runa-button runa-button--secondary ${styles['saveMemberButton']}`}
 									>
 										{isSavingMember ? 'Üye kaydediliyor...' : 'Üye ekle veya güncelle'}
 									</button>
@@ -411,7 +412,7 @@ export function ConversationSidebar({
 								</div>
 							)}
 
-							<div className="runa-migrated-components-chat-conversationsidebar-15">
+							<div className={styles['memberItems']}>
 								{isMemberLoading ? (
 									<MemberSkeleton />
 								) : activeConversationMembers.length === 0 ? (
@@ -419,7 +420,7 @@ export function ConversationSidebar({
 								) : (
 									activeConversationMembers.map((member) => (
 										<div key={member.member_user_id} className="runa-conversation-member">
-											<div className="runa-migrated-components-chat-conversationsidebar-16">
+											<div className={styles['memberInfo']}>
 												<strong>{member.member_user_id}</strong>
 												<div className="runa-subtle-copy">Rol: {roleLabel(member.member_role)}</div>
 											</div>

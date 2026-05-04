@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
 import { RunaSurface } from '../ui/RunaSurface.js';
+import styles from './ChatShell.module.css';
 
 type ChatShellProps = Readonly<{
 	children: ReactNode;
@@ -12,7 +13,7 @@ export function ChatShell({ children, embedded = false }: ChatShellProps): React
 			<RunaSurface
 				as="main"
 				id="chat-workspace-content"
-				className="runa-shell-frame runa-shell-frame--chat runa-migrated-components-chat-chatshell-1"
+				className={`runa-shell-frame runa-shell-frame--chat ${styles['embedded']}`}
 				tone="plain"
 			>
 				{children}
@@ -25,7 +26,7 @@ export function ChatShell({ children, embedded = false }: ChatShellProps): React
 			<RunaSurface
 				as="main"
 				id="chat-workspace-content"
-				className="runa-shell-frame runa-shell-frame--chat runa-migrated-components-chat-chatshell-2"
+				className={`runa-shell-frame runa-shell-frame--chat ${styles['standard']}`}
 				tone="plain"
 			>
 				{children}

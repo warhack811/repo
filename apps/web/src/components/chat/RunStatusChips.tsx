@@ -4,6 +4,7 @@ import type {
 	RunStatusChipItem,
 	RunStatusChipTone,
 } from '../../lib/chat-runtime/current-run-progress.js';
+import styles from './RunStatusChips.module.css';
 
 type RunStatusChipsProps = Readonly<{
 	ariaLabel?: string;
@@ -64,17 +65,17 @@ export function RunStatusChips({
 	}
 
 	return (
-		<ul aria-label={ariaLabel} className="runa-migrated-components-chat-runstatuschips-1">
+		<ul aria-label={ariaLabel} className={styles['list']}>
 			{items.map((item) => {
 				const palette = getChipPalette(item.tone);
 
 				return (
 					<li
 						key={`${item.label}:${item.value}`}
-						className="runa-migrated-components-chat-runstatuschips-2"
+						className={styles['chip']}
 					>
-						<span className="runa-migrated-components-chat-runstatuschips-3">{item.label}</span>
-						<span className="runa-migrated-components-chat-runstatuschips-4">{item.value}</span>
+						<span className={styles['label']}>{item.label}</span>
+						<span className={styles['value']}>{item.value}</span>
 					</li>
 				);
 			})}

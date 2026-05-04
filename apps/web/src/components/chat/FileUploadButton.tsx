@@ -3,6 +3,7 @@ import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import { useId, useRef, useState } from 'react';
 
 import type { ModelAttachment } from '../../ws-types.js';
+import styles from './FileUploadButton.module.css';
 
 export const UPLOAD_ACCEPT =
 	'image/*,text/*,application/json,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
@@ -237,13 +238,13 @@ export function FileUploadButton({
 				onChange={(event) => {
 					void handleFileSelection(event);
 				}}
-				className="runa-migrated-components-chat-fileuploadbutton-1"
+				className={styles['input']}
 				type="file"
 			/>
 			<label
 				aria-disabled={disabled || isUploading}
 				htmlFor={inputId}
-				className="runa-migrated-components-chat-fileuploadbutton-2"
+				className={styles['label']}
 			>
 				{icon}
 				<span className="runa-chat-visually-hidden">

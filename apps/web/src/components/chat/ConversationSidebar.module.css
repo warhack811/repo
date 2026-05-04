@@ -1,0 +1,110 @@
+.root {
+}
+
+.loading {
+}
+
+.header {
+}
+
+.headerGroup {
+	display: grid;
+	gap: 5px;
+	min-width: 0px;
+}
+
+.logo {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.title {
+	margin: 0px;
+	font-size: 20px;
+}
+
+.newButton {
+}
+
+.newButtonAlt {
+}
+
+.searchLabel {
+	display: grid;
+	gap: 8px;
+}
+
+.searchIcon {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: hsl(var(--color-text-soft));
+}
+
+.searchResults {
+}
+
+.conversationList {
+	margin-top: 8px;
+}
+
+.conversationItem {
+}
+
+.emptyHint {
+	margin-top: 12px;
+}
+
+.groupItems {
+	display: grid;
+	gap: 12px;
+	padding-top: 12px;
+}
+
+.membersList {
+	display: grid;
+	gap: 12px;
+	padding-top: 12px;
+}
+
+.addMember {
+	display: grid;
+	gap: 8px;
+}
+
+.saveMemberButton {
+}
+
+.memberItems {
+	display: grid;
+	gap: 8px;
+}
+
+.memberInfo {
+	display: grid;
+	gap: 4px;
+	min-width: 0px;
+}
+
+.conversationButton {
+}
+
+.conversationTitle {
+}
+
+.conversationMeta {
+}
+
+.conversationActions {
+}
+
+.deleteButton {
+}
+
+.conversationTime {
+}
+
+.loadMore {
+}
