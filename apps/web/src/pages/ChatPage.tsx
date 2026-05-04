@@ -34,7 +34,6 @@ import {
 	selectConnectionState,
 	selectPresentationState,
 	selectRuntimeConfigState,
-	selectStreamingState,
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
@@ -64,15 +63,12 @@ export function ChatPage({
 	const connectionState = useChatStoreSelector(runtime.store, selectConnectionState);
 	const presentationState = useChatStoreSelector(runtime.store, selectPresentationState);
 	const transportState = useChatStoreSelector(runtime.store, selectTransportState);
-	const streamingState = useChatStoreSelector(runtime.store, selectStreamingState);
 	const currentPresentationSurface = runtime.currentPresentationSurface;
 	const currentRunFeedback = runtime.currentRunFeedback;
 	const pastPresentationSurfaces = runtime.pastPresentationSurfaces;
 	const {
 		currentStreamingRunId,
 		currentStreamingText,
-	} = streamingState;
-	const {
 		expandedPastRunIds,
 		pendingInspectionRequestKeys,
 		presentationRunSurfaces,

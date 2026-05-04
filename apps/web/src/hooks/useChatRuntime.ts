@@ -44,10 +44,8 @@ import { uiCopy } from '../localization/copy.js';
 import {
 	createChatStore,
 	selectConnectionState,
-	selectPresentationSurfaces,
+	selectPresentationState,
 	selectRuntimeConfigState,
-	selectStreamingState,
-	selectSubmissionState,
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
@@ -387,23 +385,18 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 
 	const runtimeConfig = useChatStoreSelector(chatStore, selectRuntimeConfigState);
 	const connectionState = useChatStoreSelector(chatStore, selectConnectionState);
-	const streamingState = useChatStoreSelector(chatStore, selectStreamingState);
-	const presentationSurfaces = useChatStoreSelector(chatStore, selectPresentationSurfaces);
-	const submissionState = useChatStoreSelector(chatStore, selectSubmissionState);
+	const presentationState = useChatStoreSelector(chatStore, selectPresentationState);
 	const transportState = useChatStoreSelector(chatStore, selectTransportState);
 	const { apiKey, approvalMode, includePresentationBlocks, model, provider } = runtimeConfig;
-	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = {
-		...connectionState,
-		...submissionState,
-	};
-	const { currentStreamingRunId, currentStreamingText } = streamingState;
+	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
+	const { currentStreamingRunId, currentStreamingText } = presentationState;
 	const {
 		expandedPastRunIds,
 		pendingInspectionRequestKeys,
 		presentationRunId,
 		presentationRunSurfaces,
 		staleInspectionRequestKeys,
-	} = presentationSurfaces;
+	} = presentationState;
 	const { latestRunRequestIncludesPresentationBlocks, messages, runTransportSummaries } =
 		transportState;
 	const isRuntimeConfigReady = model.trim().length > 0;
