@@ -1,4 +1,6 @@
+export * from './app-launcher.js';
 export * from './auth.js';
+export * from './clipboard.js';
 export * from './diagnostics.js';
 export * from './electron-session-storage.js';
 export * from './electron-window-host.js';

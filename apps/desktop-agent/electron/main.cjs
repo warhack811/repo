@@ -2210,6 +2210,267 @@ var import_promises5 = require("node:fs/promises");
 var import_node_path5 = require("node:path");
 var import_electron = require("electron");
 
+// src/app-launcher.ts
+var import_node_child_process = require("node:child_process");
+var MAX_EXEC_BUFFER_BYTES = 8192;
+var LAUNCH_WHITELIST = [
+  "calc",
+  "chrome",
+  "code",
+  "edge",
+  "explorer",
+  "firefox",
+  "notepad"
+];
+function buildSafeEnvironment() {
+  const allowedKeys = [
+    "COMSPEC",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "PATHEXT",
+    "PSModulePath",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR"
+  ];
+  const safeEnvironment = {};
+  for (const key of allowedKeys) {
+    const value = process.env[key];
+    if (value !== void 0) {
+      safeEnvironment[key] = value;
+    }
+  }
+  return safeEnvironment;
+}
+function createErrorResult(error_code, error_message, details, retryable) {
+  return {
+    details,
+    error_code,
+    error_message,
+    retryable,
+    status: "error"
+  };
+}
+function isRecord(value) {
+  return typeof value === "object" && value !== null;
+}
+function extractErrorCode(error) {
+  if (!isRecord(error)) {
+    return void 0;
+  }
+  const candidate = error;
+  return typeof candidate.code === "number" || typeof candidate.code === "string" ? candidate.code : void 0;
+}
+function toText(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Buffer.isBuffer(value)) {
+    return value.toString("utf8");
+  }
+  return "";
+}
+function extractStderr(error) {
+  if (!isRecord(error)) {
+    return "";
+  }
+  const candidate = error;
+  return toText(candidate.stderr);
+}
+function isLaunchAppName(value) {
+  return LAUNCH_WHITELIST.includes(value);
+}
+function normalizeAppName(value) {
+  return value.trim().toLowerCase();
+}
+function toPowerShellSingleQuoted(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+function validateLaunchArguments(argumentsValue) {
+  const allowedKeys = /* @__PURE__ */ new Set(["app_name"]);
+  for (const key of Object.keys(argumentsValue)) {
+    if (!allowedKeys.has(key)) {
+      return createErrorResult(
+        "INVALID_INPUT",
+        `desktop.launch does not accept the "${key}" argument.`,
+        {
+          argument: key,
+          reason: "unexpected_argument"
+        },
+        false
+      );
+    }
+  }
+  const { app_name: appName } = argumentsValue;
+  if (typeof appName !== "string" || appName.trim().length === 0) {
+    return createErrorResult(
+      "INVALID_INPUT",
+      "desktop.launch requires an app_name string.",
+      {
+        argument: "app_name",
+        reason: "invalid_app_name"
+      },
+      false
+    );
+  }
+  const normalizedAppName = normalizeAppName(appName);
+  if (!isLaunchAppName(normalizedAppName)) {
+    return createErrorResult(
+      "PERMISSION_DENIED",
+      `desktop.launch does not allow launching "${normalizedAppName}".`,
+      {
+        allowed_apps: LAUNCH_WHITELIST,
+        app_name: normalizedAppName,
+        reason: "app_not_whitelisted"
+      },
+      false
+    );
+  }
+  return normalizedAppName;
+}
+function resolveExecutableName(appName) {
+  const executableMap = {
+    calc: "calc.exe",
+    chrome: "chrome.exe",
+    code: "code.cmd",
+    edge: "msedge.exe",
+    explorer: "explorer.exe",
+    firefox: "firefox.exe",
+    notepad: "notepad.exe"
+  };
+  return executableMap[appName];
+}
+function buildLaunchScript(appName) {
+  const executableName = resolveExecutableName(appName);
+  return [
+    `$process = Start-Process -FilePath ${toPowerShellSingleQuoted(executableName)} -PassThru`,
+    "[Console]::Out.Write(($process.Id).ToString())"
+  ].join("\n");
+}
+function runPowerShell(dependencies, script) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    dependencies.execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      {
+        encoding: "utf8",
+        env: buildSafeEnvironment(),
+        maxBuffer: MAX_EXEC_BUFFER_BYTES,
+        windowsHide: true
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const enrichedError = error;
+          enrichedError.stdout = stdout;
+          enrichedError.stderr = stderr;
+          rejectPromise(enrichedError);
+          return;
+        }
+        resolvePromise(toText(stdout));
+      }
+    );
+  });
+}
+function toLaunchErrorResult(appName, error) {
+  const errorCode = extractErrorCode(error);
+  const stderr = extractStderr(error).trim();
+  if (errorCode === "ENOENT") {
+    return createErrorResult(
+      "NOT_FOUND",
+      "PowerShell is not available on this host.",
+      {
+        reason: "powershell_not_found"
+      },
+      false
+    );
+  }
+  if (errorCode === "EACCES" || errorCode === "EPERM" || stderr.includes("Access is denied") || stderr.includes("This command cannot be run")) {
+    return createErrorResult(
+      "PERMISSION_DENIED",
+      `Permission denied while launching ${appName}.`,
+      {
+        app_name: appName,
+        reason: "desktop_launch_permission_denied"
+      },
+      false
+    );
+  }
+  if (stderr.includes("cannot find") || stderr.includes("The system cannot find")) {
+    return createErrorResult(
+      "NOT_FOUND",
+      `Whitelisted app "${appName}" was not found on this host.`,
+      {
+        app_name: appName,
+        executable: resolveExecutableName(appName),
+        reason: "desktop_launch_app_not_found"
+      },
+      false
+    );
+  }
+  if (error instanceof Error) {
+    return createErrorResult(
+      "EXECUTION_FAILED",
+      `Failed to launch ${appName}: ${stderr || error.message}`,
+      {
+        app_name: appName,
+        reason: "desktop_launch_failed"
+      },
+      false
+    );
+  }
+  return createErrorResult(
+    "UNKNOWN",
+    `Failed to launch ${appName}.`,
+    {
+      app_name: appName,
+      reason: "desktop_launch_unknown_failure"
+    },
+    false
+  );
+}
+function createUnsupportedPlatformError(platform) {
+  return createErrorResult(
+    "EXECUTION_FAILED",
+    "Desktop app launch bridge is currently supported only on Windows hosts.",
+    {
+      platform,
+      reason: "unsupported_platform"
+    },
+    false
+  );
+}
+async function executeDesktopAgentLaunch(argumentsValue, dependencies = {}) {
+  const appName = validateLaunchArguments(argumentsValue);
+  if (typeof appName !== "string") {
+    return appName;
+  }
+  const resolvedDependencies = {
+    execFile: dependencies.execFile ?? import_node_child_process.execFile,
+    platform: dependencies.platform ?? process.platform
+  };
+  if (resolvedDependencies.platform !== "win32") {
+    return createUnsupportedPlatformError(resolvedDependencies.platform);
+  }
+  try {
+    const pidText = await runPowerShell(resolvedDependencies, buildLaunchScript(appName));
+    const parsedPid = Number.parseInt(pidText.trim(), 10);
+    return {
+      output: {
+        launched: true,
+        ...Number.isInteger(parsedPid) && parsedPid > 0 ? { pid: parsedPid } : {},
+        process_name: appName
+      },
+      status: "success"
+    };
+  } catch (error) {
+    return toLaunchErrorResult(appName, error);
+  }
+}
+
 // src/auth.ts
 function readRequiredValue(value, key) {
   const normalized = value?.trim();
@@ -2218,15 +2479,15 @@ function readRequiredValue(value, key) {
   }
   return normalized;
 }
-function isRecord(value) {
+function isRecord2(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isAuthenticatedActionResponse(value) {
-  if (!isRecord(value)) {
+  if (!isRecord2(value)) {
     return false;
   }
   const candidate = value;
-  if (candidate.outcome !== "authenticated" || !isRecord(candidate.session)) {
+  if (candidate.outcome !== "authenticated" || !isRecord2(candidate.session)) {
     return false;
   }
   const sessionCandidate = candidate.session;
@@ -2248,7 +2509,7 @@ function readErrorMessage(payload, status) {
   if (typeof payload === "string" && payload.trim().length > 0) {
     return payload;
   }
-  if (isRecord(payload)) {
+  if (isRecord2(payload)) {
     const errorPayload = payload;
     const message = errorPayload.message;
     if (typeof message === "string" && message.trim().length > 0) {
@@ -2368,6 +2629,284 @@ async function refreshDesktopAgentSession(input) {
     throw new Error("Desktop agent session refresh returned an unsupported payload shape.");
   }
   return normalizeDesktopAgentPersistedSession(payload.session);
+}
+
+// src/clipboard.ts
+var import_node_child_process2 = require("node:child_process");
+var MAX_EXEC_BUFFER_BYTES2 = 32 * 1024;
+var MAX_CLIPBOARD_BYTES = 10 * 1024;
+var REDACTED_PLACEHOLDER = "[redacted-sensitive-clipboard-content]";
+function buildSafeEnvironment2() {
+  const allowedKeys = [
+    "COMSPEC",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "PATHEXT",
+    "PSModulePath",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR"
+  ];
+  const safeEnvironment = {};
+  for (const key of allowedKeys) {
+    const value = process.env[key];
+    if (value !== void 0) {
+      safeEnvironment[key] = value;
+    }
+  }
+  return safeEnvironment;
+}
+function createErrorResult2(error_code, error_message, details, retryable) {
+  return {
+    details,
+    error_code,
+    error_message,
+    retryable,
+    status: "error"
+  };
+}
+function isRecord3(value) {
+  return typeof value === "object" && value !== null;
+}
+function extractErrorCode2(error) {
+  if (!isRecord3(error)) {
+    return void 0;
+  }
+  const candidate = error;
+  return typeof candidate.code === "number" || typeof candidate.code === "string" ? candidate.code : void 0;
+}
+function toText2(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Buffer.isBuffer(value)) {
+    return value.toString("utf8");
+  }
+  return "";
+}
+function extractStderr2(error) {
+  if (!isRecord3(error)) {
+    return "";
+  }
+  const candidate = error;
+  return toText2(candidate.stderr);
+}
+function toPowerShellSingleQuoted2(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+function runPowerShell2(dependencies, script) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    dependencies.execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-STA", "-Command", script],
+      {
+        encoding: "utf8",
+        env: buildSafeEnvironment2(),
+        maxBuffer: MAX_EXEC_BUFFER_BYTES2,
+        windowsHide: true
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const enrichedError = error;
+          enrichedError.stdout = stdout;
+          enrichedError.stderr = stderr;
+          rejectPromise(enrichedError);
+          return;
+        }
+        resolvePromise(toText2(stdout));
+      }
+    );
+  });
+}
+function toClipboardErrorResult(operation, error) {
+  const errorCode = extractErrorCode2(error);
+  const stderr = extractStderr2(error).trim();
+  if (errorCode === "ENOENT") {
+    return createErrorResult2(
+      "NOT_FOUND",
+      "PowerShell is not available on this host.",
+      {
+        reason: "powershell_not_found"
+      },
+      false
+    );
+  }
+  if (errorCode === "EACCES" || errorCode === "EPERM" || stderr.includes("Access is denied")) {
+    return createErrorResult2(
+      "PERMISSION_DENIED",
+      `Permission denied while attempting to ${operation} the desktop clipboard.`,
+      {
+        reason: `desktop_clipboard_${operation}_permission_denied`
+      },
+      false
+    );
+  }
+  if (error instanceof Error) {
+    return createErrorResult2(
+      "EXECUTION_FAILED",
+      `Failed to ${operation} desktop clipboard: ${stderr || error.message}`,
+      {
+        reason: `desktop_clipboard_${operation}_failed`
+      },
+      false
+    );
+  }
+  return createErrorResult2(
+    "UNKNOWN",
+    `Failed to ${operation} desktop clipboard.`,
+    {
+      reason: `desktop_clipboard_${operation}_unknown_failure`
+    },
+    false
+  );
+}
+function hasSensitiveClipboardPattern(content) {
+  const sensitivePatterns = [
+    /\b(?:api[_-]?key|secret|token|password|passwd|pwd)\s*[:=]\s*\S+/iu,
+    /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}\b/u,
+    /\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/u,
+    /\b(?:sk|pk|rk|ghp|github_pat)_[A-Za-z0-9_]{12,}\b/u
+  ];
+  return sensitivePatterns.some((pattern) => pattern.test(content));
+}
+function normalizeClipboardReadOutput(rawContent) {
+  const normalizedContent = rawContent.replace(/\r\n/gu, "\n");
+  const byteLength = Buffer.byteLength(normalizedContent, "utf8");
+  const isRedacted = hasSensitiveClipboardPattern(normalizedContent);
+  const isTruncated = byteLength > MAX_CLIPBOARD_BYTES;
+  let content = isRedacted ? REDACTED_PLACEHOLDER : normalizedContent;
+  if (!isRedacted && isTruncated) {
+    content = Buffer.from(content, "utf8").subarray(0, MAX_CLIPBOARD_BYTES).toString("utf8");
+  }
+  return {
+    byte_length: byteLength,
+    character_count: normalizedContent.length,
+    content,
+    is_redacted: isRedacted,
+    is_truncated: isTruncated
+  };
+}
+function validateReadArguments(argumentsValue) {
+  const keys = Object.keys(argumentsValue);
+  if (keys.length === 0) {
+    return void 0;
+  }
+  return createErrorResult2(
+    "INVALID_INPUT",
+    "desktop.clipboard.read does not accept any arguments.",
+    {
+      argument: keys[0],
+      reason: "unexpected_argument"
+    },
+    false
+  );
+}
+function validateWriteArguments(argumentsValue) {
+  const allowedKeys = /* @__PURE__ */ new Set(["text"]);
+  for (const key of Object.keys(argumentsValue)) {
+    if (!allowedKeys.has(key)) {
+      return createErrorResult2(
+        "INVALID_INPUT",
+        `desktop.clipboard.write does not accept the "${key}" argument.`,
+        {
+          argument: key,
+          reason: "unexpected_argument"
+        },
+        false
+      );
+    }
+  }
+  const { text } = argumentsValue;
+  if (typeof text !== "string") {
+    return createErrorResult2(
+      "INVALID_INPUT",
+      "desktop.clipboard.write requires a text string.",
+      {
+        argument: "text",
+        reason: "invalid_text"
+      },
+      false
+    );
+  }
+  if (Buffer.byteLength(text, "utf8") > MAX_CLIPBOARD_BYTES) {
+    return createErrorResult2(
+      "INVALID_INPUT",
+      "desktop.clipboard.write text must be 10KB or smaller.",
+      {
+        argument: "text",
+        max_bytes: MAX_CLIPBOARD_BYTES,
+        reason: "text_too_large"
+      },
+      false
+    );
+  }
+  return text;
+}
+function createUnsupportedPlatformError2(platform) {
+  return createErrorResult2(
+    "EXECUTION_FAILED",
+    "Desktop clipboard bridge is currently supported only on Windows hosts.",
+    {
+      platform,
+      reason: "unsupported_platform"
+    },
+    false
+  );
+}
+async function executeDesktopAgentClipboardRead(argumentsValue, dependencies = {}) {
+  const invalidArguments = validateReadArguments(argumentsValue);
+  if (invalidArguments) {
+    return invalidArguments;
+  }
+  const resolvedDependencies = {
+    execFile: dependencies.execFile ?? import_node_child_process2.execFile,
+    platform: dependencies.platform ?? process.platform
+  };
+  if (resolvedDependencies.platform !== "win32") {
+    return createUnsupportedPlatformError2(resolvedDependencies.platform);
+  }
+  try {
+    const rawContent = await runPowerShell2(resolvedDependencies, "Get-Clipboard -Raw -Format Text");
+    return {
+      output: normalizeClipboardReadOutput(rawContent),
+      status: "success"
+    };
+  } catch (error) {
+    return toClipboardErrorResult("read", error);
+  }
+}
+async function executeDesktopAgentClipboardWrite(argumentsValue, dependencies = {}) {
+  const text = validateWriteArguments(argumentsValue);
+  if (typeof text !== "string") {
+    return text;
+  }
+  const resolvedDependencies = {
+    execFile: dependencies.execFile ?? import_node_child_process2.execFile,
+    platform: dependencies.platform ?? process.platform
+  };
+  if (resolvedDependencies.platform !== "win32") {
+    return createUnsupportedPlatformError2(resolvedDependencies.platform);
+  }
+  try {
+    await runPowerShell2(
+      resolvedDependencies,
+      `Set-Clipboard -Value ${toPowerShellSingleQuoted2(text)}`
+    );
+    return {
+      output: {
+        byte_length: Buffer.byteLength(text, "utf8"),
+        character_count: text.length,
+        written: true
+      },
+      status: "success"
+    };
+  } catch (error) {
+    return toClipboardErrorResult("write", error);
+  }
 }
 
 // src/diagnostics.ts
@@ -2493,11 +3032,11 @@ var noopSessionStorageLogger = {
 function isNodeErrorWithCode(error, code) {
   return typeof error === "object" && error !== null && "code" in error && error.code === code;
 }
-function isRecord2(value) {
+function isRecord4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function normalizeSessionFromUnknown(value) {
-  if (!isRecord2(value) || typeof value["access_token"] !== "string") {
+  if (!isRecord4(value) || typeof value["access_token"] !== "string") {
     throw new Error("Desktop agent session storage contained an invalid payload.");
   }
   return normalizeDesktopAgentPersistedSession({
@@ -2787,38 +3326,38 @@ var desktopAgentRejectCodes = [
 ];
 
 // ../../packages/types/dist/ws-guards.js
-function isRecord3(value) {
+function isRecord5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isDesktopAgentCapabilityCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isConnectionReadyMessageCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentSessionAcceptedPayloadCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentSessionAcceptedMessageCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentExecutePayloadCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentExecuteMessageCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentHeartbeatPingPayloadCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentHeartbeatPingMessageCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentRejectedPayloadCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentRejectedMessageCandidate(value) {
-  return isRecord3(value);
+  return isRecord5(value);
 }
 function isDesktopAgentToolName(value) {
   return typeof value === "string" && desktopAgentToolNames.includes(value);
@@ -2839,7 +3378,7 @@ function isDesktopAgentHeartbeatPingServerMessage(value) {
   return isDesktopAgentHeartbeatPingMessageCandidate(value) && value.type === "desktop-agent.heartbeat.ping" && isDesktopAgentHeartbeatPingPayloadCandidate(value.payload) && typeof value.payload.ping_id === "string" && typeof value.payload.sent_at === "string";
 }
 function isDesktopAgentExecuteServerMessage(value) {
-  return isDesktopAgentExecuteMessageCandidate(value) && value.type === "desktop-agent.execute" && isDesktopAgentExecutePayloadCandidate(value.payload) && isRecord3(value.payload.arguments) && typeof value.payload.call_id === "string" && typeof value.payload.request_id === "string" && typeof value.payload.run_id === "string" && isDesktopAgentToolName(value.payload.tool_name) && typeof value.payload.trace_id === "string";
+  return isDesktopAgentExecuteMessageCandidate(value) && value.type === "desktop-agent.execute" && isDesktopAgentExecutePayloadCandidate(value.payload) && isRecord5(value.payload.arguments) && typeof value.payload.call_id === "string" && typeof value.payload.request_id === "string" && typeof value.payload.run_id === "string" && isDesktopAgentToolName(value.payload.tool_name) && typeof value.payload.trace_id === "string";
 }
 function isDesktopAgentRejectedServerMessage(value) {
   return isDesktopAgentRejectedMessageCandidate(value) && value.type === "desktop-agent.rejected" && isDesktopAgentRejectedPayloadCandidate(value.payload) && typeof value.payload.error_message === "string" && typeof value.payload.error_code === "string" && desktopAgentRejectCodes.includes(value.payload.error_code);
@@ -2849,15 +3388,15 @@ function isDesktopAgentServerMessage(value) {
 }
 
 // src/input.ts
-var import_node_child_process = require("node:child_process");
-var MAX_EXEC_BUFFER_BYTES = 8192;
+var import_node_child_process3 = require("node:child_process");
+var MAX_EXEC_BUFFER_BYTES3 = 8192;
 var MAX_CLICK_COUNT = 3;
 var MAX_DELAY_MS = 1e3;
 var MAX_SCREEN_COORDINATE = 65535;
 var MAX_SCROLL_DELTA = 12e3;
 var MAX_TEXT_LENGTH = 2e3;
 var ALLOWED_MODIFIERS = /* @__PURE__ */ new Set(["alt", "ctrl", "shift"]);
-function buildSafeEnvironment() {
+function buildSafeEnvironment3() {
   const allowedKeys = [
     "COMSPEC",
     "HOME",
@@ -2880,7 +3419,7 @@ function buildSafeEnvironment() {
   }
   return safeEnvironment;
 }
-function createErrorResult(error_code, error_message, details, retryable) {
+function createErrorResult3(error_code, error_message, details, retryable) {
   return {
     details,
     error_code,
@@ -2895,14 +3434,14 @@ function createSuccessResult(output) {
     status: "success"
   };
 }
-function isRecord4(value) {
+function isRecord6(value) {
   return typeof value === "object" && value !== null;
 }
 function isFiniteInteger(value) {
   return typeof value === "number" && Number.isInteger(value) && Number.isFinite(value);
 }
-function extractErrorCode(error) {
-  if (isRecord4(error)) {
+function extractErrorCode3(error) {
+  if (isRecord6(error)) {
     const candidate = error;
     if (typeof candidate.code === "number" || typeof candidate.code === "string") {
       return candidate.code;
@@ -2910,7 +3449,7 @@ function extractErrorCode(error) {
   }
   return void 0;
 }
-function toText(value) {
+function toText3(value) {
   if (typeof value === "string") {
     return value;
   }
@@ -2919,25 +3458,25 @@ function toText(value) {
   }
   return "";
 }
-function extractStderr(error) {
-  if (isRecord4(error)) {
+function extractStderr3(error) {
+  if (isRecord6(error)) {
     const candidate = error;
-    return toText(candidate.stderr);
+    return toText3(candidate.stderr);
   }
   return "";
 }
-function toPowerShellSingleQuoted(value) {
+function toPowerShellSingleQuoted3(value) {
   return `'${value.replaceAll("'", "''")}'`;
 }
-function runPowerShell(dependencies, script) {
+function runPowerShell3(dependencies, script) {
   return new Promise((resolvePromise, rejectPromise) => {
     dependencies.execFile(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-STA", "-Command", script],
       {
         encoding: "utf8",
-        env: buildSafeEnvironment(),
-        maxBuffer: MAX_EXEC_BUFFER_BYTES,
+        env: buildSafeEnvironment3(),
+        maxBuffer: MAX_EXEC_BUFFER_BYTES3,
         windowsHide: true
       },
       (error, stdout, stderr) => {
@@ -2953,8 +3492,8 @@ function runPowerShell(dependencies, script) {
     );
   });
 }
-function createUnsupportedPlatformError(toolName, platform) {
-  return createErrorResult(
+function createUnsupportedPlatformError3(toolName, platform) {
+  return createErrorResult3(
     "EXECUTION_FAILED",
     `${toolName} is currently supported only on Windows hosts.`,
     {
@@ -2968,7 +3507,7 @@ function validateDesktopClickArguments(argumentsValue) {
   const allowedKeys = /* @__PURE__ */ new Set(["button", "click_count", "x", "y"]);
   for (const key of Object.keys(argumentsValue)) {
     if (!allowedKeys.has(key)) {
-      return createErrorResult(
+      return createErrorResult3(
         "INVALID_INPUT",
         `desktop.click does not accept the "${key}" argument.`,
         {
@@ -2981,7 +3520,7 @@ function validateDesktopClickArguments(argumentsValue) {
   }
   const { button = "left", click_count = 1, x, y } = argumentsValue;
   if (!isFiniteInteger(x) || x < 0 || x > MAX_SCREEN_COORDINATE) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.click requires an integer x coordinate between 0 and 65535.",
       {
@@ -2992,7 +3531,7 @@ function validateDesktopClickArguments(argumentsValue) {
     );
   }
   if (!isFiniteInteger(y) || y < 0 || y > MAX_SCREEN_COORDINATE) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.click requires an integer y coordinate between 0 and 65535.",
       {
@@ -3003,7 +3542,7 @@ function validateDesktopClickArguments(argumentsValue) {
     );
   }
   if (button !== "left" && button !== "middle" && button !== "right") {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.click button must be one of: left, right, middle.",
       {
@@ -3014,7 +3553,7 @@ function validateDesktopClickArguments(argumentsValue) {
     );
   }
   if (!isFiniteInteger(click_count) || click_count < 1 || click_count > MAX_CLICK_COUNT) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.click click_count must be an integer between 1 and 3.",
       {
@@ -3068,10 +3607,10 @@ function buildDesktopClickScript(input) {
   ].join("\n");
 }
 function toDesktopClickErrorResult(error) {
-  const errorCode = extractErrorCode(error);
-  const stderr = extractStderr(error).trim();
+  const errorCode = extractErrorCode3(error);
+  const stderr = extractStderr3(error).trim();
   if (errorCode === "ENOENT") {
-    return createErrorResult(
+    return createErrorResult3(
       "NOT_FOUND",
       "PowerShell is not available on this host.",
       {
@@ -3081,7 +3620,7 @@ function toDesktopClickErrorResult(error) {
     );
   }
   if (errorCode === "EACCES" || errorCode === "EPERM" || stderr.includes("Access is denied")) {
-    return createErrorResult(
+    return createErrorResult3(
       "PERMISSION_DENIED",
       "Permission denied while injecting desktop click input.",
       {
@@ -3091,7 +3630,7 @@ function toDesktopClickErrorResult(error) {
     );
   }
   if (error instanceof Error) {
-    return createErrorResult(
+    return createErrorResult3(
       "EXECUTION_FAILED",
       `Failed to execute desktop click: ${stderr || error.message}`,
       {
@@ -3100,7 +3639,7 @@ function toDesktopClickErrorResult(error) {
       false
     );
   }
-  return createErrorResult(
+  return createErrorResult3(
     "UNKNOWN",
     "Failed to execute desktop click.",
     {
@@ -3115,10 +3654,10 @@ async function executeDesktopClick(dependencies, argumentsValue) {
     return validatedArguments;
   }
   if (dependencies.platform !== "win32") {
-    return createUnsupportedPlatformError("desktop.click", dependencies.platform);
+    return createUnsupportedPlatformError3("desktop.click", dependencies.platform);
   }
   try {
-    await runPowerShell(dependencies, buildDesktopClickScript(validatedArguments));
+    await runPowerShell3(dependencies, buildDesktopClickScript(validatedArguments));
     return createSuccessResult({
       button: validatedArguments.button,
       click_count: validatedArguments.click_count,
@@ -3165,7 +3704,7 @@ function validateDesktopTypeArguments(argumentsValue) {
   const allowedKeys = /* @__PURE__ */ new Set(["delay_ms", "text"]);
   for (const key of Object.keys(argumentsValue)) {
     if (!allowedKeys.has(key)) {
-      return createErrorResult(
+      return createErrorResult3(
         "INVALID_INPUT",
         `desktop.type does not accept the "${key}" argument.`,
         {
@@ -3178,7 +3717,7 @@ function validateDesktopTypeArguments(argumentsValue) {
   }
   const { delay_ms = 0, text } = argumentsValue;
   if (typeof text !== "string" || text.length === 0 || text.length > MAX_TEXT_LENGTH) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.type requires a non-empty text string up to 2000 characters.",
       {
@@ -3189,7 +3728,7 @@ function validateDesktopTypeArguments(argumentsValue) {
     );
   }
   if (!isFiniteInteger(delay_ms) || delay_ms < 0 || delay_ms > MAX_DELAY_MS) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.type delay_ms must be an integer between 0 and 1000.",
       {
@@ -3207,7 +3746,7 @@ function validateDesktopTypeArguments(argumentsValue) {
   };
 }
 function buildDesktopTypeScript(input) {
-  const serializedTokens = input.tokens.map((token) => toPowerShellSingleQuoted(token)).join(", ");
+  const serializedTokens = input.tokens.map((token) => toPowerShellSingleQuoted3(token)).join(", ");
   return [
     "Add-Type -AssemblyName System.Windows.Forms",
     `$tokens = @(${serializedTokens})`,
@@ -3219,10 +3758,10 @@ function buildDesktopTypeScript(input) {
   ].join("\n");
 }
 function toDesktopTypeErrorResult(error) {
-  const errorCode = extractErrorCode(error);
-  const stderr = extractStderr(error).trim();
+  const errorCode = extractErrorCode3(error);
+  const stderr = extractStderr3(error).trim();
   if (errorCode === "ENOENT") {
-    return createErrorResult(
+    return createErrorResult3(
       "NOT_FOUND",
       "PowerShell is not available on this host.",
       {
@@ -3232,7 +3771,7 @@ function toDesktopTypeErrorResult(error) {
     );
   }
   if (errorCode === "EACCES" || errorCode === "EPERM" || stderr.includes("Access is denied")) {
-    return createErrorResult(
+    return createErrorResult3(
       "PERMISSION_DENIED",
       "Permission denied while injecting desktop typing input.",
       {
@@ -3242,7 +3781,7 @@ function toDesktopTypeErrorResult(error) {
     );
   }
   if (error instanceof Error) {
-    return createErrorResult(
+    return createErrorResult3(
       "EXECUTION_FAILED",
       `Failed to execute desktop typing: ${stderr || error.message}`,
       {
@@ -3251,7 +3790,7 @@ function toDesktopTypeErrorResult(error) {
       false
     );
   }
-  return createErrorResult(
+  return createErrorResult3(
     "UNKNOWN",
     "Failed to execute desktop typing.",
     {
@@ -3266,10 +3805,10 @@ async function executeDesktopType(dependencies, argumentsValue) {
     return validatedArguments;
   }
   if (dependencies.platform !== "win32") {
-    return createUnsupportedPlatformError("desktop.type", dependencies.platform);
+    return createUnsupportedPlatformError3("desktop.type", dependencies.platform);
   }
   try {
-    await runPowerShell(dependencies, buildDesktopTypeScript(validatedArguments));
+    await runPowerShell3(dependencies, buildDesktopTypeScript(validatedArguments));
     return createSuccessResult({
       character_count: validatedArguments.text.length,
       delay_ms: validatedArguments.delay_ms
@@ -3322,7 +3861,7 @@ function validateDesktopKeypressArguments(argumentsValue) {
   const allowedKeys = /* @__PURE__ */ new Set(["key", "modifiers"]);
   for (const key2 of Object.keys(argumentsValue)) {
     if (!allowedKeys.has(key2)) {
-      return createErrorResult(
+      return createErrorResult3(
         "INVALID_INPUT",
         `desktop.keypress does not accept the "${key2}" argument.`,
         {
@@ -3335,7 +3874,7 @@ function validateDesktopKeypressArguments(argumentsValue) {
   }
   const { key, modifiers = [] } = argumentsValue;
   if (typeof key !== "string" || key.trim().length === 0) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.keypress requires a non-empty key string.",
       {
@@ -3346,7 +3885,7 @@ function validateDesktopKeypressArguments(argumentsValue) {
     );
   }
   if (!Array.isArray(modifiers)) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.keypress modifiers must be an array when provided.",
       {
@@ -3359,7 +3898,7 @@ function validateDesktopKeypressArguments(argumentsValue) {
   const normalizedModifiers = [];
   for (const modifier of modifiers) {
     if (typeof modifier !== "string") {
-      return createErrorResult(
+      return createErrorResult3(
         "INVALID_INPUT",
         "desktop.keypress modifiers must contain only strings.",
         {
@@ -3371,7 +3910,7 @@ function validateDesktopKeypressArguments(argumentsValue) {
     }
     const normalizedModifier = modifier.trim().toLowerCase();
     if (!ALLOWED_MODIFIERS.has(normalizedModifier)) {
-      return createErrorResult(
+      return createErrorResult3(
         "INVALID_INPUT",
         "desktop.keypress modifiers must be chosen from ctrl, alt, shift.",
         {
@@ -3387,7 +3926,7 @@ function validateDesktopKeypressArguments(argumentsValue) {
   }
   const keyToken = toSendKeysKeyToken(key);
   if (!keyToken) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.keypress key must be a supported named key, letter, or digit.",
       {
@@ -3416,14 +3955,14 @@ function validateDesktopKeypressArguments(argumentsValue) {
 function buildDesktopKeypressScript(input) {
   return [
     "Add-Type -AssemblyName System.Windows.Forms",
-    `[System.Windows.Forms.SendKeys]::SendWait(${toPowerShellSingleQuoted(input.sequence)})`
+    `[System.Windows.Forms.SendKeys]::SendWait(${toPowerShellSingleQuoted3(input.sequence)})`
   ].join("\n");
 }
 function toDesktopKeypressErrorResult(error) {
-  const errorCode = extractErrorCode(error);
-  const stderr = extractStderr(error).trim();
+  const errorCode = extractErrorCode3(error);
+  const stderr = extractStderr3(error).trim();
   if (errorCode === "ENOENT") {
-    return createErrorResult(
+    return createErrorResult3(
       "NOT_FOUND",
       "PowerShell is not available on this host.",
       {
@@ -3433,7 +3972,7 @@ function toDesktopKeypressErrorResult(error) {
     );
   }
   if (errorCode === "EACCES" || errorCode === "EPERM" || stderr.includes("Access is denied")) {
-    return createErrorResult(
+    return createErrorResult3(
       "PERMISSION_DENIED",
       "Permission denied while injecting desktop keypress input.",
       {
@@ -3443,7 +3982,7 @@ function toDesktopKeypressErrorResult(error) {
     );
   }
   if (error instanceof Error) {
-    return createErrorResult(
+    return createErrorResult3(
       "EXECUTION_FAILED",
       `Failed to execute desktop keypress: ${stderr || error.message}`,
       {
@@ -3452,7 +3991,7 @@ function toDesktopKeypressErrorResult(error) {
       false
     );
   }
-  return createErrorResult(
+  return createErrorResult3(
     "UNKNOWN",
     "Failed to execute desktop keypress.",
     {
@@ -3467,10 +4006,10 @@ async function executeDesktopKeypress(dependencies, argumentsValue) {
     return validatedArguments;
   }
   if (dependencies.platform !== "win32") {
-    return createUnsupportedPlatformError("desktop.keypress", dependencies.platform);
+    return createUnsupportedPlatformError3("desktop.keypress", dependencies.platform);
   }
   try {
-    await runPowerShell(dependencies, buildDesktopKeypressScript(validatedArguments));
+    await runPowerShell3(dependencies, buildDesktopKeypressScript(validatedArguments));
     return createSuccessResult({
       key: validatedArguments.key,
       modifiers: validatedArguments.modifiers
@@ -3483,7 +4022,7 @@ function validateDesktopScrollArguments(argumentsValue) {
   const allowedKeys = /* @__PURE__ */ new Set(["delta_x", "delta_y"]);
   for (const key of Object.keys(argumentsValue)) {
     if (!allowedKeys.has(key)) {
-      return createErrorResult(
+      return createErrorResult3(
         "INVALID_INPUT",
         `desktop.scroll does not accept the "${key}" argument.`,
         {
@@ -3496,7 +4035,7 @@ function validateDesktopScrollArguments(argumentsValue) {
   }
   const { delta_x = 0, delta_y = 0 } = argumentsValue;
   if (!isFiniteInteger(delta_x) || Math.abs(delta_x) > MAX_SCROLL_DELTA) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.scroll delta_x must be an integer between -12000 and 12000.",
       {
@@ -3507,7 +4046,7 @@ function validateDesktopScrollArguments(argumentsValue) {
     );
   }
   if (!isFiniteInteger(delta_y) || Math.abs(delta_y) > MAX_SCROLL_DELTA) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.scroll delta_y must be an integer between -12000 and 12000.",
       {
@@ -3518,7 +4057,7 @@ function validateDesktopScrollArguments(argumentsValue) {
     );
   }
   if (delta_x === 0 && delta_y === 0) {
-    return createErrorResult(
+    return createErrorResult3(
       "INVALID_INPUT",
       "desktop.scroll requires at least one non-zero delta.",
       {
@@ -3539,18 +4078,18 @@ function buildDesktopScrollScript(input) {
     "using System.Runtime.InteropServices;",
     "public static class DesktopScrollNative {",
     '	[DllImport("user32.dll", SetLastError = true)]',
-    "	public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);",
+    "	public static extern void mouse_event(uint dwFlags, int dx, int dy, int dwData, UIntPtr dwExtraInfo);",
     "}",
     '"@',
-    `if (${String(input.delta_y)} -ne 0) { [DesktopScrollNative]::mouse_event(0x0800, 0, 0, [uint32]${String(input.delta_y)}, [UIntPtr]::Zero) }`,
-    `if (${String(input.delta_x)} -ne 0) { [DesktopScrollNative]::mouse_event(0x01000, 0, 0, [uint32]${String(input.delta_x)}, [UIntPtr]::Zero) }`
+    `if (${String(input.delta_y)} -ne 0) { [DesktopScrollNative]::mouse_event(0x0800, 0, 0, ${String(input.delta_y)}, [UIntPtr]::Zero) }`,
+    `if (${String(input.delta_x)} -ne 0) { [DesktopScrollNative]::mouse_event(0x01000, 0, 0, ${String(input.delta_x)}, [UIntPtr]::Zero) }`
   ].join("\n");
 }
 function toDesktopScrollErrorResult(error) {
-  const errorCode = extractErrorCode(error);
-  const stderr = extractStderr(error).trim();
+  const errorCode = extractErrorCode3(error);
+  const stderr = extractStderr3(error).trim();
   if (errorCode === "ENOENT") {
-    return createErrorResult(
+    return createErrorResult3(
       "NOT_FOUND",
       "PowerShell is not available on this host.",
       {
@@ -3560,7 +4099,7 @@ function toDesktopScrollErrorResult(error) {
     );
   }
   if (errorCode === "EACCES" || errorCode === "EPERM" || stderr.includes("Access is denied")) {
-    return createErrorResult(
+    return createErrorResult3(
       "PERMISSION_DENIED",
       "Permission denied while injecting desktop scroll input.",
       {
@@ -3570,7 +4109,7 @@ function toDesktopScrollErrorResult(error) {
     );
   }
   if (error instanceof Error) {
-    return createErrorResult(
+    return createErrorResult3(
       "EXECUTION_FAILED",
       `Failed to execute desktop scroll: ${stderr || error.message}`,
       {
@@ -3579,7 +4118,7 @@ function toDesktopScrollErrorResult(error) {
       false
     );
   }
-  return createErrorResult(
+  return createErrorResult3(
     "UNKNOWN",
     "Failed to execute desktop scroll.",
     {
@@ -3594,10 +4133,10 @@ async function executeDesktopScroll(dependencies, argumentsValue) {
     return validatedArguments;
   }
   if (dependencies.platform !== "win32") {
-    return createUnsupportedPlatformError("desktop.scroll", dependencies.platform);
+    return createUnsupportedPlatformError3("desktop.scroll", dependencies.platform);
   }
   try {
-    await runPowerShell(dependencies, buildDesktopScrollScript(validatedArguments));
+    await runPowerShell3(dependencies, buildDesktopScrollScript(validatedArguments));
     return createSuccessResult({
       delta_x: validatedArguments.delta_x,
       delta_y: validatedArguments.delta_y
@@ -3608,7 +4147,7 @@ async function executeDesktopScroll(dependencies, argumentsValue) {
 }
 async function executeDesktopAgentInput(toolName, argumentsValue, dependencies = {}) {
   const resolvedDependencies = {
-    execFile: dependencies.execFile ?? import_node_child_process.execFile,
+    execFile: dependencies.execFile ?? import_node_child_process3.execFile,
     platform: dependencies.platform ?? process.platform
   };
   switch (toolName) {
@@ -3621,7 +4160,7 @@ async function executeDesktopAgentInput(toolName, argumentsValue, dependencies =
     case "desktop.scroll":
       return await executeDesktopScroll(resolvedDependencies, argumentsValue);
     default:
-      return createErrorResult(
+      return createErrorResult3(
         "INVALID_INPUT",
         `Desktop agent has not implemented ${toolName} yet.`,
         {
@@ -3633,14 +4172,14 @@ async function executeDesktopAgentInput(toolName, argumentsValue, dependencies =
 }
 
 // src/screenshot.ts
-var import_node_child_process2 = require("node:child_process");
+var import_node_child_process4 = require("node:child_process");
 var import_promises3 = require("node:fs/promises");
 var import_node_os = require("node:os");
 var import_node_path3 = require("node:path");
 var import_node_util = require("node:util");
-var execFileAsync = (0, import_node_util.promisify)(import_node_child_process2.execFile);
+var execFileAsync = (0, import_node_util.promisify)(import_node_child_process4.execFile);
 var PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
-function buildSafeEnvironment2() {
+function buildSafeEnvironment4() {
   const allowedKeys = [
     "COMSPEC",
     "HOME",
@@ -3697,7 +4236,7 @@ async function captureDesktopScreenshot() {
       ["-NoProfile", "-NonInteractive", "-STA", "-Command", buildCaptureScript(outputPath)],
       {
         encoding: "utf8",
-        env: buildSafeEnvironment2(),
+        env: buildSafeEnvironment4(),
         maxBuffer: 16384,
         windowsHide: true
       }
@@ -3719,6 +4258,9 @@ async function captureDesktopScreenshot() {
 
 // src/ws-bridge.ts
 var DESKTOP_AGENT_HANDSHAKE_TIMEOUT_MS = 15e3;
+var desktopAgentImplementedCapabilities = desktopAgentToolNames.map((toolName) => ({
+  tool_name: toolName
+}));
 function sendClientMessage(socket, message) {
   socket.send(JSON.stringify(message));
 }
@@ -3726,23 +4268,7 @@ function createHelloMessage(options) {
   return {
     payload: {
       agent_id: options.agent_id,
-      capabilities: [
-        {
-          tool_name: "desktop.click"
-        },
-        {
-          tool_name: "desktop.keypress"
-        },
-        {
-          tool_name: "desktop.scroll"
-        },
-        {
-          tool_name: "desktop.screenshot"
-        },
-        {
-          tool_name: "desktop.type"
-        }
-      ],
+      capabilities: desktopAgentImplementedCapabilities,
       machine_label: options.machine_label,
       protocol_version: desktopAgentProtocolVersion
     },
@@ -3839,6 +4365,45 @@ async function handleExecuteMessage(socket, message, captureScreenshot) {
           message.payload.tool_name,
           message.payload.arguments
         );
+        sendClientMessage(
+          socket,
+          createResultMessage(
+            message.payload.request_id,
+            message.payload.call_id,
+            message.payload.tool_name,
+            result
+          )
+        );
+        return;
+      }
+      case "desktop.clipboard.read": {
+        const result = await executeDesktopAgentClipboardRead(message.payload.arguments);
+        sendClientMessage(
+          socket,
+          createResultMessage(
+            message.payload.request_id,
+            message.payload.call_id,
+            message.payload.tool_name,
+            result
+          )
+        );
+        return;
+      }
+      case "desktop.clipboard.write": {
+        const result = await executeDesktopAgentClipboardWrite(message.payload.arguments);
+        sendClientMessage(
+          socket,
+          createResultMessage(
+            message.payload.request_id,
+            message.payload.call_id,
+            message.payload.tool_name,
+            result
+          )
+        );
+        return;
+      }
+      case "desktop.launch": {
+        const result = await executeDesktopAgentLaunch(message.payload.arguments);
         sendClientMessage(
           socket,
           createResultMessage(
@@ -5227,11 +5792,11 @@ var defaultDesktopAgentSettings = {
 function isNodeErrorWithCode2(error, code) {
   return typeof error === "object" && error !== null && "code" in error && error.code === code;
 }
-function isRecord5(value) {
+function isRecord7(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function normalizeSettings(value) {
-  if (!isRecord5(value)) {
+  if (!isRecord7(value)) {
     return defaultDesktopAgentSettings;
   }
   return {
@@ -5412,24 +5977,24 @@ function projectViewModelToLegacyShellState(viewModel) {
       };
   }
 }
-function isRecord6(value) {
+function isRecord8(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isDesktopAgentSessionInputPayload(value) {
-  if (!isRecord6(value)) {
+  if (!isRecord8(value)) {
     return false;
   }
   const expiresAt = value.expires_at;
   return typeof value.access_token === "string" && typeof value.refresh_token === "string" && (expiresAt === void 0 || typeof expiresAt === "number") && (value.token_type === void 0 || typeof value.token_type === "string");
 }
 function isShellInvokeActionPayload(value) {
-  if (!isRecord6(value)) {
+  if (!isRecord8(value)) {
     return false;
   }
   return value.actionId === "connect" || value.actionId === "connecting" || value.actionId === "retry" || value.actionId === "sign_in" || value.actionId === "sign_out";
 }
 function isSettingsPatch(value) {
-  if (!isRecord6(value)) {
+  if (!isRecord8(value)) {
     return false;
   }
   return (value["autoStart"] === void 0 || typeof value["autoStart"] === "boolean") && (value["openWindowOnStart"] === void 0 || typeof value["openWindowOnStart"] === "boolean") && (value["telemetryOptIn"] === void 0 || typeof value["telemetryOptIn"] === "boolean");

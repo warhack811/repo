@@ -1,6 +1,7 @@
 import type {
 	AnyRuntimeEvent,
 	ApprovalTarget,
+	GatewayProvider,
 	ModelMessage,
 	ModelRequest,
 	ModelResponse,
@@ -550,6 +551,7 @@ interface ExecuteLiveRunOptions {
 function createRuntimeToolRegistry(
 	baseRegistry: ToolRegistry,
 	options: Readonly<{
+		readonly enableDesktopVisionTools: boolean;
 		readonly memoryStore?: MemoryOrchestrationStore;
 		readonly modelGateway: Pick<ReturnType<typeof createModelGateway>, 'generate'>;
 		readonly resolveToolResult: (callId: string) => ToolResult | undefined;
@@ -573,20 +575,26 @@ function createRuntimeToolRegistry(
 		);
 	}
 
-	runtimeRegistry.register(
-		createDesktopVisionAnalyzeTool({
-			model_gateway: options.modelGateway,
-			resolve_tool_result: options.resolveToolResult,
-		}),
-	);
-	runtimeRegistry.register(
-		createDesktopVerifyStateTool({
-			model_gateway: options.modelGateway,
-			resolve_tool_result: options.resolveToolResult,
-		}),
-	);
+	if (options.enableDesktopVisionTools) {
+		runtimeRegistry.register(
+			createDesktopVisionAnalyzeTool({
+				model_gateway: options.modelGateway,
+				resolve_tool_result: options.resolveToolResult,
+			}),
+		);
+		runtimeRegistry.register(
+			createDesktopVerifyStateTool({
+				model_gateway: options.modelGateway,
+				resolve_tool_result: options.resolveToolResult,
+			}),
+		);
+	}
 
 	return runtimeRegistry;
+}
+
+export function supportsDesktopVisionProvider(provider: GatewayProvider): boolean {
+	return provider !== 'deepseek' && provider !== 'sambanova';
 }
 
 function createRunModelTurnFailureResult(
@@ -1839,6 +1847,7 @@ async function executeLiveRun(
 	rememberToolResult(options.initial_tool_result);
 
 	const runtimeRegistry = createRuntimeToolRegistry(options.registry, {
+		enableDesktopVisionTools: supportsDesktopVisionProvider(payload.provider),
 		memoryStore: options.memoryStore,
 		modelGateway: gateway,
 		resolveToolResult: (callId) => toolResultsByCallId.get(callId),

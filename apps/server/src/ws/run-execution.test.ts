@@ -10,6 +10,7 @@ import {
 	createOrderedToolResultContinuationText,
 	replaceFinalUserMessage,
 	resolveRuntimeTerminationCode,
+	supportsDesktopVisionProvider,
 } from './run-execution.js';
 
 function createSnapshot(overrides: Partial<AgentLoopSnapshot>): AgentLoopSnapshot {
@@ -48,6 +49,15 @@ function createRunRequestPayload(): RunRequestPayload {
 }
 
 describe('run-execution tool result pipeline helpers', () => {
+	it('only enables desktop vision helpers for image-capable providers', () => {
+		expect(supportsDesktopVisionProvider('claude')).toBe(true);
+		expect(supportsDesktopVisionProvider('gemini')).toBe(true);
+		expect(supportsDesktopVisionProvider('groq')).toBe(true);
+		expect(supportsDesktopVisionProvider('openai')).toBe(true);
+		expect(supportsDesktopVisionProvider('deepseek')).toBe(false);
+		expect(supportsDesktopVisionProvider('sambanova')).toBe(false);
+	});
+
 	it('resolveRuntimeTerminationCode returns undefined for completed stop_reason', () => {
 		expect(
 			resolveRuntimeTerminationCode({

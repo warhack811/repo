@@ -72,6 +72,8 @@ describe('desktopScrollTool', () => {
 			tool_name: 'desktop.scroll',
 		});
 		expect(execFileMock.mock.calls[0]?.[1]?.[4]).toContain('0x0800');
+		expect(execFileMock.mock.calls[0]?.[1]?.[4]).toContain('int dwData');
+		expect(execFileMock.mock.calls[0]?.[1]?.[4]).not.toContain('[uint32]-120');
 		expect(desktopScrollTool.metadata).toMatchObject({
 			capability_class: 'desktop',
 			requires_approval: true,

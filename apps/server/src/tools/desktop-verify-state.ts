@@ -276,7 +276,7 @@ function toVisionModelUnavailableResult(
 			reason: 'vision_model_unavailable',
 			source_error: error instanceof Error ? error.message : undefined,
 		},
-		true,
+		false,
 	);
 }
 

@@ -10,6 +10,7 @@ import {
 	type DesktopAgentServerMessage,
 	type DesktopAgentSessionAcceptedServerMessage,
 	desktopAgentProtocolVersion,
+	desktopAgentToolNames,
 	isDesktopAgentConnectionReadyServerMessage,
 	isDesktopAgentExecuteServerMessage,
 	isDesktopAgentHeartbeatPingServerMessage,
@@ -18,11 +19,20 @@ import {
 	isDesktopAgentSessionAcceptedServerMessage,
 } from '@runa/types';
 
+import { executeDesktopAgentLaunch } from './app-launcher.js';
 import type { DesktopAgentConfig } from './auth.js';
+import {
+	executeDesktopAgentClipboardRead,
+	executeDesktopAgentClipboardWrite,
+} from './clipboard.js';
 import { executeDesktopAgentInput } from './input.js';
 import { type DesktopAgentScreenshotPayload, captureDesktopScreenshot } from './screenshot.js';
 
 const DESKTOP_AGENT_HANDSHAKE_TIMEOUT_MS = 15_000;
+
+export const desktopAgentImplementedCapabilities = desktopAgentToolNames.map((toolName) => ({
+	tool_name: toolName,
+}));
 
 export interface DesktopAgentBridgeOptions extends DesktopAgentConfig {
 	readonly capture_screenshot?: () => Promise<DesktopAgentScreenshotPayload>;
@@ -42,23 +52,7 @@ function createHelloMessage(options: DesktopAgentBridgeOptions): DesktopAgentHel
 	return {
 		payload: {
 			agent_id: options.agent_id,
-			capabilities: [
-				{
-					tool_name: 'desktop.click',
-				},
-				{
-					tool_name: 'desktop.keypress',
-				},
-				{
-					tool_name: 'desktop.scroll',
-				},
-				{
-					tool_name: 'desktop.screenshot',
-				},
-				{
-					tool_name: 'desktop.type',
-				},
-			],
+			capabilities: desktopAgentImplementedCapabilities,
 			machine_label: options.machine_label,
 			protocol_version: desktopAgentProtocolVersion,
 		},
@@ -200,6 +194,45 @@ async function handleExecuteMessage(
 					message.payload.tool_name,
 					message.payload.arguments,
 				);
+				sendClientMessage(
+					socket,
+					createResultMessage(
+						message.payload.request_id,
+						message.payload.call_id,
+						message.payload.tool_name,
+						result,
+					),
+				);
+				return;
+			}
+			case 'desktop.clipboard.read': {
+				const result = await executeDesktopAgentClipboardRead(message.payload.arguments);
+				sendClientMessage(
+					socket,
+					createResultMessage(
+						message.payload.request_id,
+						message.payload.call_id,
+						message.payload.tool_name,
+						result,
+					),
+				);
+				return;
+			}
+			case 'desktop.clipboard.write': {
+				const result = await executeDesktopAgentClipboardWrite(message.payload.arguments);
+				sendClientMessage(
+					socket,
+					createResultMessage(
+						message.payload.request_id,
+						message.payload.call_id,
+						message.payload.tool_name,
+						result,
+					),
+				);
+				return;
+			}
+			case 'desktop.launch': {
+				const result = await executeDesktopAgentLaunch(message.payload.arguments);
 				sendClientMessage(
 					socket,
 					createResultMessage(

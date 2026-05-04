@@ -246,11 +246,11 @@ function buildDesktopScrollScript(input: DesktopScrollParams): string {
 		'using System.Runtime.InteropServices;',
 		'public static class DesktopScrollNative {',
 		'\t[DllImport("user32.dll", SetLastError = true)]',
-		'\tpublic static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);',
+		'\tpublic static extern void mouse_event(uint dwFlags, int dx, int dy, int dwData, UIntPtr dwExtraInfo);',
 		'}',
 		'"@',
-		`if (${String(input.delta_y)} -ne 0) { [DesktopScrollNative]::mouse_event(0x0800, 0, 0, [uint32]${String(input.delta_y)}, [UIntPtr]::Zero) }`,
-		`if (${String(input.delta_x)} -ne 0) { [DesktopScrollNative]::mouse_event(0x01000, 0, 0, [uint32]${String(input.delta_x)}, [UIntPtr]::Zero) }`,
+		`if (${String(input.delta_y)} -ne 0) { [DesktopScrollNative]::mouse_event(0x0800, 0, 0, ${String(input.delta_y)}, [UIntPtr]::Zero) }`,
+		`if (${String(input.delta_x)} -ne 0) { [DesktopScrollNative]::mouse_event(0x01000, 0, 0, ${String(input.delta_x)}, [UIntPtr]::Zero) }`,
 	].join('\n');
 }
 
