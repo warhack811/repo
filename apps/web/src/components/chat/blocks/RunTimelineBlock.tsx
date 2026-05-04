@@ -13,13 +13,43 @@ import {
 
 type RunTimelineBlockProps = BlockComponentProps<
 	Extract<RenderBlock, { type: 'run_timeline_block' }>
->;
+> &
+	Readonly<{
+		isDeveloperMode?: boolean;
+	}>;
 
 const technicalToolLabels = new Map<string, string>([
-	['desktop.screenshot', 'Ekran goruntusu'],
+	['agent.delegate', 'Alt görev'],
+	['browser.click', 'Tarayıcı tıklaması'],
+	['browser.extract', 'Sayfa okuma'],
+	['browser.fill', 'Form doldurma'],
+	['browser.navigate', 'Tarayıcı gezintisi'],
+	['desktop.click', 'Masaüstü tıklaması'],
+	['desktop.clipboard.read', 'Pano okuma'],
+	['desktop.clipboard.write', 'Pano yazma'],
+	['desktop.keypress', 'Klavye kısayolu'],
+	['desktop.launch', 'Uygulama başlatma'],
+	['desktop.scroll', 'Masaüstü kaydırma'],
+	['desktop.screenshot', 'Ekran görüntüsü'],
+	['desktop.type', 'Masaüstüne yazma'],
+	['desktop.verify_state', 'Masaüstü doğrulama'],
+	['desktop.vision_analyze', 'Ekran analizi'],
+	['edit.patch', 'Kod değişikliği'],
+	['file.list', 'Dosya listeleme'],
 	['file.read', 'Dosya okuma'],
 	['file.write', 'Dosya yazma'],
+	['file.share', 'Dosya paylaşımı'],
+	['file.watch', 'Dosya takibi'],
+	['git.diff', 'Değişiklik inceleme'],
+	['git.status', 'Git durum kontrolü'],
+	['memory.delete', 'Bellek silme'],
+	['memory.list', 'Bellek listeleme'],
+	['memory.save', 'Belleğe kaydetme'],
+	['memory.search', 'Bellek araması'],
 	['search.codebase', 'Kod arama'],
+	['search.grep', 'Dosya arama'],
+	['search.memory', 'Bellek araması'],
+	['shell.exec', 'Terminal komutu'],
 	['web.search', 'Web arama'],
 ]);
 
@@ -37,9 +67,33 @@ function formatTimelineDetail(detail: string): string {
 	return formattedDetail;
 }
 
+function formatTimelineState(state: string): string {
+	switch (state) {
+		case 'active':
+			return 'sürüyor';
+		case 'approved':
+			return 'onaylandı';
+		case 'completed':
+		case 'success':
+			return 'tamamlandı';
+		case 'error':
+		case 'failed':
+			return 'hata';
+		case 'pending':
+			return 'bekliyor';
+		case 'rejected':
+			return 'reddedildi';
+		case 'requested':
+			return 'isteniyor';
+		default:
+			return state;
+	}
+}
+
 export function RunTimelineBlock({
 	block,
 	getInspectionActionState,
+	isDeveloperMode = false,
 	onRequestInspection,
 	presentationCorrelationLabel,
 }: RunTimelineBlockProps): ReactElement {
@@ -53,23 +107,34 @@ export function RunTimelineBlock({
 		>
 			<div className={styles['header']}>
 				<div className={styles['headerStack']}>
-					<span className={styles['eyebrow']}>Timeline summary</span>
+					<span className={styles['eyebrow']}>Canlı çalışma notları</span>
 					<h3 className={styles['title']} id={getPresentationBlockTitleDomId(block.id)}>
 						{block.payload.title}
 					</h3>
 				</div>
-				{renderInspectionAction(block, 'timeline', onRequestInspection, getInspectionActionState)}
+				{isDeveloperMode
+					? renderInspectionAction(
+							block,
+							'timeline',
+							onRequestInspection,
+							getInspectionActionState,
+						)
+					: null}
 			</div>
 			<p className={styles['summary']} id={getPresentationBlockSummaryDomId(block.id)}>
 				{block.payload.summary}
 			</p>
-			{renderInspectionCorrelationContext(presentationCorrelationLabel ?? null)}
+			{isDeveloperMode
+				? renderInspectionCorrelationContext(presentationCorrelationLabel ?? null)
+				: null}
 			<div className={styles['grid']}>
 				{block.payload.items.map((item, index) => (
 					<div className={styles['metaBox']} key={`${block.id}:${index}:${item.kind}`}>
 						<div className={styles['header']}>
 							<strong>{item.label}</strong>
-							{item.state ? <span className={styles['chip']}>{item.state}</span> : null}
+							{item.state ? (
+								<span className={styles['chip']}>{formatTimelineState(item.state)}</span>
+							) : null}
 						</div>
 						{item.detail ? (
 							<p className={styles['summary']}>{formatTimelineDetail(item.detail)}</p>
@@ -78,7 +143,9 @@ export function RunTimelineBlock({
 							{item.tool_name ? (
 								<span className={styles['chip']}>{formatTimelineToolLabel(item.tool_name)}</span>
 							) : null}
-							{item.call_id ? <code className={styles['chip']}>{item.call_id}</code> : null}
+							{isDeveloperMode && item.call_id ? (
+								<code className={styles['chip']}>{item.call_id}</code>
+							) : null}
 						</div>
 					</div>
 				))}

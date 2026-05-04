@@ -10,7 +10,7 @@ import type {
 
 const MAX_TIMELINE_DETAIL_LENGTH = 160;
 const MAX_TIMELINE_ITEMS = 10;
-const RUN_TIMELINE_BLOCK_TITLE = 'Run Timeline';
+const RUN_TIMELINE_BLOCK_TITLE = 'Çalışma akışı';
 
 interface MapRunTimelineInput {
 	readonly blocks?: readonly RenderBlock[];
@@ -65,6 +65,10 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
 		: normalizedValue;
 }
 
+function capitalizeSentence(value: string): string {
+	return value.length === 0 ? value : `${value.charAt(0).toLocaleUpperCase('tr-TR')}${value.slice(1)}`;
+}
+
 function createCandidate(
 	key: string,
 	item: RunTimelineBlockItem,
@@ -113,71 +117,198 @@ function getToolTimelineCopy(toolName: ToolName): Readonly<{
 	readonly requested_label: string;
 }> {
 	switch (toolName) {
+		case 'agent.delegate':
+			return {
+				completed_label: 'Alt görev tamamlandı',
+				failed_label: 'Alt görev başlatılamadı',
+				requested_label: 'Alt görev hazırlanıyor',
+			};
+		case 'browser.click':
+			return {
+				completed_label: 'Tarayıcıda tıklama yapıldı',
+				failed_label: 'Tarayıcı tıklaması tamamlanamadı',
+				requested_label: 'Tarayıcıda tıklama hazırlanıyor',
+			};
+		case 'browser.extract':
+			return {
+				completed_label: 'Sayfa bilgisi çıkarıldı',
+				failed_label: 'Sayfa bilgisi çıkarılamadı',
+				requested_label: 'Sayfa bilgisi okunuyor',
+			};
+		case 'browser.fill':
+			return {
+				completed_label: 'Tarayıcı formu dolduruldu',
+				failed_label: 'Tarayıcı formu doldurulamadı',
+				requested_label: 'Tarayıcı formu hazırlanıyor',
+			};
+		case 'browser.navigate':
+			return {
+				completed_label: 'Tarayıcı sayfası açıldı',
+				failed_label: 'Tarayıcı sayfası açılamadı',
+				requested_label: 'Tarayıcı sayfası açılıyor',
+			};
+		case 'desktop.click':
+			return {
+				completed_label: 'Masaüstünde tıklama yapıldı',
+				failed_label: 'Masaüstü tıklaması tamamlanamadı',
+				requested_label: 'Masaüstünde tıklama hazırlanıyor',
+			};
+		case 'desktop.clipboard.read':
+			return {
+				completed_label: 'Pano içeriği okundu',
+				failed_label: 'Pano okunamadı',
+				requested_label: 'Pano içeriği okunuyor',
+			};
+		case 'desktop.clipboard.write':
+			return {
+				completed_label: 'Pano güncellendi',
+				failed_label: 'Pano güncellenemedi',
+				requested_label: 'Pano güncellemesi hazırlanıyor',
+			};
+		case 'desktop.keypress':
+			return {
+				completed_label: 'Klavye kısayolu gönderildi',
+				failed_label: 'Klavye kısayolu gönderilemedi',
+				requested_label: 'Klavye kısayolu hazırlanıyor',
+			};
+		case 'desktop.launch':
+			return {
+				completed_label: 'Uygulama başlatıldı',
+				failed_label: 'Uygulama başlatılamadı',
+				requested_label: 'Uygulama başlatılıyor',
+			};
+		case 'desktop.scroll':
+			return {
+				completed_label: 'Masaüstünde kaydırma yapıldı',
+				failed_label: 'Masaüstü kaydırması tamamlanamadı',
+				requested_label: 'Masaüstünde kaydırma hazırlanıyor',
+			};
+		case 'desktop.screenshot':
+			return {
+				completed_label: 'Ekran görüntüsü alındı',
+				failed_label: 'Ekran görüntüsü alınamadı',
+				requested_label: 'Ekran görüntüsü isteniyor',
+			};
+		case 'desktop.type':
+			return {
+				completed_label: 'Masaüstüne metin yazıldı',
+				failed_label: 'Masaüstüne metin yazılamadı',
+				requested_label: 'Masaüstüne yazma hazırlanıyor',
+			};
+		case 'desktop.verify_state':
+			return {
+				completed_label: 'Masaüstü durumu doğrulandı',
+				failed_label: 'Masaüstü durumu doğrulanamadı',
+				requested_label: 'Masaüstü durumu kontrol ediliyor',
+			};
+		case 'desktop.vision_analyze':
+			return {
+				completed_label: 'Ekran görsel olarak incelendi',
+				failed_label: 'Ekran görsel olarak incelenemedi',
+				requested_label: 'Ekran görsel olarak inceleniyor',
+			};
 		case 'edit.patch':
 			return {
-				completed_label: 'Prepared patch changes',
-				failed_label: 'Patch update failed',
-				requested_label: 'Requested patch update',
+				completed_label: 'Kod değişikliği hazırlandı',
+				failed_label: 'Kod değişikliği hazırlanamadı',
+				requested_label: 'Kod değişikliği hazırlanıyor',
 			};
 		case 'file.list':
 			return {
-				completed_label: 'Listed workspace files',
-				failed_label: 'File listing failed',
-				requested_label: 'Requested file listing',
+				completed_label: 'Dosyalar listelendi',
+				failed_label: 'Dosyalar listelenemedi',
+				requested_label: 'Dosya listesi alınıyor',
 			};
 		case 'file.read':
 			return {
-				completed_label: 'Read file contents',
-				failed_label: 'File read failed',
-				requested_label: 'Requested file read',
+				completed_label: 'Dosya okundu',
+				failed_label: 'Dosya okunamadı',
+				requested_label: 'Dosya okunuyor',
 			};
 		case 'file.write':
 			return {
-				completed_label: 'Wrote file changes',
-				failed_label: 'File write failed',
-				requested_label: 'Requested file write',
+				completed_label: 'Dosya güncellendi',
+				failed_label: 'Dosya güncellenemedi',
+				requested_label: 'Dosya güncellemesi hazırlanıyor',
+			};
+		case 'file.share':
+			return {
+				completed_label: 'Dosya paylaşımı hazırlandı',
+				failed_label: 'Dosya paylaşımı hazırlanamadı',
+				requested_label: 'Dosya paylaşımı hazırlanıyor',
+			};
+		case 'file.watch':
+			return {
+				completed_label: 'Dosya takibi kuruldu',
+				failed_label: 'Dosya takibi kurulamadı',
+				requested_label: 'Dosya takibi hazırlanıyor',
 			};
 		case 'git.diff':
 			return {
-				completed_label: 'Inspected the git diff',
-				failed_label: 'Git diff inspection failed',
-				requested_label: 'Requested git diff',
+				completed_label: 'Değişiklikler incelendi',
+				failed_label: 'Değişiklikler incelenemedi',
+				requested_label: 'Değişiklikler inceleniyor',
 			};
 		case 'git.status':
 			return {
-				completed_label: 'Checked git status',
-				failed_label: 'Git status check failed',
-				requested_label: 'Requested git status',
+				completed_label: 'Git durumu kontrol edildi',
+				failed_label: 'Git durumu kontrol edilemedi',
+				requested_label: 'Git durumu kontrol ediliyor',
+			};
+		case 'memory.delete':
+			return {
+				completed_label: 'Bellek kaydı silindi',
+				failed_label: 'Bellek kaydı silinemedi',
+				requested_label: 'Bellek silme adımı hazırlanıyor',
+			};
+		case 'memory.list':
+			return {
+				completed_label: 'Bellek kayıtları listelendi',
+				failed_label: 'Bellek kayıtları listelenemedi',
+				requested_label: 'Bellek kayıtları listeleniyor',
+			};
+		case 'memory.save':
+			return {
+				completed_label: 'Bilgi belleğe kaydedildi',
+				failed_label: 'Bilgi belleğe kaydedilemedi',
+				requested_label: 'Belleğe kaydetme hazırlanıyor',
+			};
+		case 'memory.search':
+		case 'search.memory':
+			return {
+				completed_label: 'Bellekte arama yapıldı',
+				failed_label: 'Bellek araması tamamlanamadı',
+				requested_label: 'Bellekte arama yapılıyor',
 			};
 		case 'search.codebase':
 			return {
-				completed_label: 'Searched the codebase',
-				failed_label: 'Codebase search failed',
-				requested_label: 'Requested codebase search',
+				completed_label: 'Kod tabanında arama yapıldı',
+				failed_label: 'Kod araması tamamlanamadı',
+				requested_label: 'Kod tabanında arama yapılıyor',
 			};
 		case 'search.grep':
 			return {
-				completed_label: 'Searched files with grep',
-				failed_label: 'Grep search failed',
-				requested_label: 'Requested grep search',
+				completed_label: 'Dosyalarda arama yapıldı',
+				failed_label: 'Dosya araması tamamlanamadı',
+				requested_label: 'Dosyalarda arama yapılıyor',
 			};
 		case 'web.search':
 			return {
-				completed_label: 'Searched the public web',
-				failed_label: 'Public web search failed',
-				requested_label: 'Requested public web search',
+				completed_label: 'Web araması yapıldı',
+				failed_label: 'Web araması tamamlanamadı',
+				requested_label: 'Web araması yapılıyor',
 			};
 		case 'shell.exec':
 			return {
-				completed_label: 'Ran shell command',
-				failed_label: 'Shell command failed',
-				requested_label: 'Requested shell command',
+				completed_label: 'Terminal komutu çalıştı',
+				failed_label: 'Terminal komutu tamamlanamadı',
+				requested_label: 'Terminal komutu hazırlanıyor',
 			};
 		default:
 			return {
-				completed_label: `Completed tool ${toolName}`,
-				failed_label: `Tool failed: ${toolName}`,
-				requested_label: `Requested tool ${toolName}`,
+				completed_label: `${toolName.replace(/\./gu, ' ')} tamamlandı`,
+				failed_label: `${toolName.replace(/\./gu, ' ')} tamamlanamadı`,
+				requested_label: `${toolName.replace(/\./gu, ' ')} hazırlanıyor`,
 			};
 	}
 }
@@ -230,37 +361,92 @@ function createToolTimelineCandidate(
 }
 
 function buildApprovalLabel(status: string, toolName?: ToolName): string {
+	const actionPhrase = toolName ? getToolSummaryPhrase(toolName) : 'işlem';
+
 	if (!toolName) {
-		return status === 'pending' ? 'Approval requested' : `Approval ${status}`;
+		return status === 'pending' ? 'Onay bekleniyor' : 'Onay kararı işlendi';
 	}
 
-	return status === 'pending'
-		? `Approval requested for ${toolName}`
-		: `Approval ${status} for ${toolName}`;
+	if (status === 'pending') {
+		return capitalizeSentence(`${actionPhrase} için onay bekleniyor`);
+	}
+
+	if (status === 'approved') {
+		return capitalizeSentence(`${actionPhrase} onaylandı`);
+	}
+
+	if (status === 'rejected') {
+		return capitalizeSentence(`${actionPhrase} reddedildi`);
+	}
+
+	return capitalizeSentence(`${actionPhrase} onayı kapandı`);
 }
 
 function getToolSummaryPhrase(toolName: ToolName): string {
 	switch (toolName) {
+		case 'agent.delegate':
+			return 'alt görev';
+		case 'browser.click':
+			return 'tarayıcı tıklaması';
+		case 'browser.extract':
+			return 'sayfa okuma';
+		case 'browser.fill':
+			return 'tarayıcı formu';
+		case 'browser.navigate':
+			return 'tarayıcı gezinmesi';
+		case 'desktop.click':
+			return 'masaüstü tıklaması';
+		case 'desktop.clipboard.read':
+			return 'pano okuma';
+		case 'desktop.clipboard.write':
+			return 'pano yazma';
+		case 'desktop.keypress':
+			return 'klavye kısayolu';
+		case 'desktop.launch':
+			return 'uygulama başlatma';
+		case 'desktop.scroll':
+			return 'masaüstü kaydırması';
+		case 'desktop.screenshot':
+			return 'ekran görüntüsü';
+		case 'desktop.type':
+			return 'masaüstüne yazma';
+		case 'desktop.verify_state':
+			return 'masaüstü doğrulaması';
+		case 'desktop.vision_analyze':
+			return 'ekran analizi';
 		case 'edit.patch':
-			return 'patch update';
+			return 'kod değişikliği';
 		case 'file.list':
-			return 'file listing';
+			return 'dosya listeleme';
 		case 'file.read':
-			return 'file read';
+			return 'dosya okuma';
 		case 'file.write':
-			return 'file write';
+			return 'dosya yazma';
+		case 'file.share':
+			return 'dosya paylaşımı';
+		case 'file.watch':
+			return 'dosya takibi';
 		case 'git.diff':
-			return 'git diff inspection';
+			return 'değişiklik inceleme';
 		case 'git.status':
-			return 'git status check';
+			return 'git durum kontrolü';
+		case 'memory.delete':
+			return 'bellek silme';
+		case 'memory.list':
+			return 'bellek listeleme';
+		case 'memory.save':
+			return 'belleğe kaydetme';
+		case 'memory.search':
+		case 'search.memory':
+			return 'bellek araması';
 		case 'search.codebase':
-			return 'codebase search';
+			return 'kod araması';
 		case 'search.grep':
-			return 'grep search';
+			return 'dosya araması';
 		case 'web.search':
-			return 'public web search';
+			return 'web araması';
 		case 'shell.exec':
-			return 'shell command';
+			return 'terminal komutu';
 		default:
 			return toolName.replace(/\./gu, ' ');
 	}
@@ -287,14 +473,14 @@ function getSearchInspectionPhrase(
 		(blocks ?? []).some((block) => block.type === 'web_search_result_block');
 
 	if (hasCodebaseSearch && hasWebSearch) {
-		return 'codebase search and public web search';
+		return 'kod araması ve web araması';
 	}
 
 	if (hasWebSearch) {
-		return 'public web search';
+		return 'web araması';
 	}
 
-	return 'codebase search';
+	return 'kod araması';
 }
 
 function getApprovalSummaryPhrase(
@@ -305,11 +491,11 @@ function getApprovalSummaryPhrase(
 
 	switch (status) {
 		case 'pending':
-			return toolName ? `approval wait for ${actionPhrase}` : 'approval wait';
+			return toolName ? `${actionPhrase} için onay bekleyişi` : 'onay bekleyişi';
 		case 'approved':
-			return toolName ? `approval resolution for ${actionPhrase}` : 'approval resolution';
+			return toolName ? `${actionPhrase} onayı` : 'onay kararı';
 		case 'rejected':
-			return toolName ? `approval rejection for ${actionPhrase}` : 'approval rejection';
+			return toolName ? `${actionPhrase} reddi` : 'onay reddi';
 	}
 }
 
@@ -360,21 +546,20 @@ function mapRuntimeEventToTimelineCandidate(
 		case 'run.started':
 			return createCandidate('run_started', {
 				kind: 'run_started',
-				label: 'Run started',
+				label: 'Runa işi başlattı',
 			});
 		case 'state.entered':
 			return event.payload.state === 'MODEL_THINKING'
 				? createCandidate('model_thinking', {
 						kind: 'model_thinking',
-						label: 'Model is thinking',
+						label: 'Runa sonraki adımı değerlendiriyor',
 						state: 'active',
 					})
 				: undefined;
 		case 'model.completed':
 			return createCandidate('model_completed', {
-				detail: normalizeOptionalText(`${event.payload.provider} / ${event.payload.model}`),
 				kind: 'model_completed',
-				label: 'Model planned the next step',
+				label: 'Sonraki adım belirlendi',
 				state: 'completed',
 			});
 		case 'tool.call.started':
@@ -421,14 +606,14 @@ function mapRuntimeEventToTimelineCandidate(
 		case 'run.completed':
 			return createCandidate('assistant_completed', {
 				kind: 'assistant_completed',
-				label: 'Assistant finished the turn',
+				label: 'Yanıt tamamlandı',
 				state: 'completed',
 			});
 		case 'run.failed':
 			return createCandidate('run_failed', {
 				detail: normalizeOptionalText(event.payload.error_message),
 				kind: 'run_failed',
-				label: 'Run failed',
+				label: 'Çalışma tamamlanamadı',
 				state: 'failed',
 			});
 		default:
@@ -678,68 +863,68 @@ function buildTimelineSummary(
 		: undefined;
 	const genericToolSummary =
 		latestToolPhrase && items.filter((item) => item.kind.startsWith('tool_')).length > 1
-			? 'tool activity'
+			? 'araç kullanımı'
 			: latestToolPhrase;
 
 	let summary: string;
 
 	if (hasRunFailed) {
 		summary = hasRejectedApproval
-			? `Timeline shows ${getApprovalSummaryPhrase('rejected', rejectedApprovalToolName)} before run failure.`
+			? `Runa, çalışma durmadan önce ${getApprovalSummaryPhrase('rejected', rejectedApprovalToolName)} aldı.`
 			: latestFailedToolPhrase
-				? `Timeline shows ${latestFailedToolPhrase} failure before run failure.`
+				? `Runa, çalışma durmadan önce ${latestFailedToolPhrase} adımında sorunla karşılaştı.`
 				: hasToolFailure
-					? 'Timeline shows tool failure before run failure.'
-					: 'Timeline shows run failure.';
+					? 'Runa, çalışma durmadan önce bir araç adımında sorunla karşılaştı.'
+					: 'Runa bu çalışmayı tamamlayamadı.';
 	} else if (hasAssistantCompleted) {
 		summary =
 			hasSearchInspection && hasDiffInspection
-				? `Timeline shows ${searchInspectionPhrase}, git diff inspection, then assistant completion.`
+				? `Runa ${searchInspectionPhrase} yaptı, değişiklikleri inceledi ve yanıtı tamamladı.`
 				: hasApprovedApproval
 					? hasToolActivity
 						? latestToolPhrase
-							? `Timeline shows ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)}, then ${latestToolPhrase}, then assistant completion.`
-							: 'Timeline shows approval and tool activity before assistant completion.'
-						: `Timeline shows ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)}, then assistant completion.`
+							? `Runa ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)} aldı, ${latestToolPhrase} adımını tamamladı ve yanıtı bitirdi.`
+							: 'Runa onaylı bir araç adımından sonra yanıtı tamamladı.'
+						: `Runa ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)} aldı ve yanıtı tamamladı.`
 					: hasSearchInspection
-						? `Timeline shows ${searchInspectionPhrase} before assistant completion.`
+						? `Runa ${searchInspectionPhrase} yaptı ve yanıtı tamamladı.`
 						: hasDiffInspection
-							? 'Timeline shows git diff inspection before assistant completion.'
+							? 'Runa değişiklikleri inceledi ve yanıtı tamamladı.'
 							: genericToolSummary
-								? `Timeline shows ${genericToolSummary} before assistant completion.`
-								: 'Timeline shows a direct assistant completion.';
+								? `Runa ${genericToolSummary} adımını tamamladı ve yanıtı bitirdi.`
+								: 'Runa yanıtı doğrudan tamamladı.';
 	} else if (hasPendingApproval(input.candidates)) {
 		summary =
 			hasSearchInspection && hasDiffInspection
-				? `Timeline shows ${searchInspectionPhrase}, git diff inspection, then ${getApprovalSummaryPhrase('pending', pendingApprovalToolName)}.`
+				? `Runa ${searchInspectionPhrase} yaptı, değişiklikleri inceledi ve şimdi ${getApprovalSummaryPhrase('pending', pendingApprovalToolName)} var.`
 				: genericToolSummary
-					? `Timeline shows ${genericToolSummary}, then ${getApprovalSummaryPhrase('pending', pendingApprovalToolName)}.`
-					: `Timeline shows ${getApprovalSummaryPhrase('pending', pendingApprovalToolName)}.`;
+					? `Runa ${genericToolSummary} adımından sonra ${getApprovalSummaryPhrase('pending', pendingApprovalToolName)} durumunda.`
+					: `Runa ${getApprovalSummaryPhrase('pending', pendingApprovalToolName)} durumunda.`;
 	} else if (hasRejectedApproval) {
-		summary = `Timeline shows ${getApprovalSummaryPhrase('rejected', rejectedApprovalToolName)}.`;
+		summary = `Runa ${getApprovalSummaryPhrase('rejected', rejectedApprovalToolName)} aldı.`;
 	} else if (hasApprovedApproval && hasToolActivity) {
 		summary =
 			hasSearchInspection && hasDiffInspection
-				? `Timeline shows ${searchInspectionPhrase}, git diff inspection, and ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)}.`
+				? `Runa ${searchInspectionPhrase} yaptı, değişiklikleri inceledi ve ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)} aldı.`
 				: genericToolSummary
-					? `Timeline shows ${genericToolSummary} and ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)}.`
-					: `Timeline shows ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)}.`;
+					? `Runa ${genericToolSummary} adımını yürüttü ve ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)} aldı.`
+					: `Runa ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)} aldı.`;
 	} else if (hasApprovedApproval) {
-		summary = `Timeline shows ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)}.`;
+		summary = `Runa ${getApprovalSummaryPhrase('approved', approvedApprovalToolName)} aldı.`;
 	} else if (hasSearchInspection && hasDiffInspection) {
-		summary = `Timeline shows ${searchInspectionPhrase} and git diff inspection.`;
+		summary = `Runa ${searchInspectionPhrase} yaptı ve değişiklikleri inceledi.`;
 	} else if (hasSearchInspection) {
-		summary = `Timeline shows ${searchInspectionPhrase}.`;
+		summary = `Runa ${searchInspectionPhrase} yaptı.`;
 	} else if (hasDiffInspection) {
-		summary = 'Timeline shows git diff inspection.';
+		summary = 'Runa değişiklikleri inceledi.';
 	} else if (genericToolSummary) {
-		summary = `Timeline shows ${genericToolSummary}.`;
+		summary = `Runa ${genericToolSummary} adımını yürüttü.`;
 	} else {
-		summary = 'Timeline shows early run setup.';
+		summary = 'Runa çalışmayı hazırlıyor.';
 	}
 
 	return input.candidates.length > input.visible_item_count
-		? `${summary} Showing ${input.visible_item_count} of ${input.candidates.length} steps.`
+		? `${summary} Son ${input.visible_item_count}/${input.candidates.length} adım gösteriliyor.`
 		: summary;
 }
 

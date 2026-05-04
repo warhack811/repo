@@ -87,14 +87,15 @@ export function BlockRenderer({
 		case 'plan':
 			return <PlanBlock block={block} />;
 		case 'run_timeline_block':
-			return isDeveloperMode ? (
+			return (
 				<RunTimelineBlock
 					block={block}
 					getInspectionActionState={getInspectionActionState}
+					isDeveloperMode={isDeveloperMode}
 					onRequestInspection={onRequestInspection}
 					presentationCorrelationLabel={presentationCorrelationLabel}
 				/>
-			) : null;
+			);
 		case 'search_result_block':
 			return (
 				<SearchResultBlock

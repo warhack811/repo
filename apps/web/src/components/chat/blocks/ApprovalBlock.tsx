@@ -221,32 +221,9 @@ export function ApprovalBlock({
 				<p className={styles['approvalRisk']}>{decisionCopy.risk}</p>
 			)}
 
-			<RunaDisclosure title="Detaylar">
-				<div className={styles['metaGrid']}>
-					<div className={styles['metaBox']}>
-						<span className={styles['metaLabel']}>Sonuç</span>
-						<span>{decisionCopy.outcome}</span>
-					</div>
-					{summary ? (
-						<div className={styles['metaBox']}>
-							<span className={styles['metaLabel']}>Özet</span>
-							<p>{summary}</p>
-						</div>
-					) : null}
-					{isDeveloperMode && block.payload.tool_name ? (
-						<div className={styles['metaBox']}>
-							<span className={styles['metaLabel']}>Araç</span>
-							<code>{block.payload.tool_name}</code>
-						</div>
-					) : null}
-					{isDeveloperMode && block.payload.call_id ? (
-						<div className={styles['metaBox']}>
-							<span className={styles['metaLabel']}>{uiCopy.approval.callId}</span>
-							<code>{block.payload.call_id}</code>
-						</div>
-					) : null}
-				</div>
-			</RunaDisclosure>
+			<output aria-live="polite" className={styles['approvalStateFeedback']}>
+				{getStateMessage(block.payload.status)}
+			</output>
 
 			{isPending && onResolveApproval ? (
 				<div className={styles['approvalActions']}>
@@ -281,6 +258,16 @@ export function ApprovalBlock({
 							<div className={styles['metaBox']}>
 								<span className={styles['metaLabel']}>Orijinal istek</span>
 								<span>{block.payload.title}</span>
+							</div>
+						) : null}
+						<div className={styles['metaBox']}>
+							<span className={styles['metaLabel']}>Sonuç</span>
+							<span>{decisionCopy.outcome}</span>
+						</div>
+						{summary ? (
+							<div className={styles['metaBox']}>
+								<span className={styles['metaLabel']}>Özet</span>
+								<p>{summary}</p>
 							</div>
 						) : null}
 						<div className={styles['metaBox']}>

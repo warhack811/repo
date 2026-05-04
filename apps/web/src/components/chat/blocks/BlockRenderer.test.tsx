@@ -117,9 +117,9 @@ const sampleBlocks: readonly RenderBlock[] = [
 		created_at: createdAt,
 		id: 'timeline:block',
 		payload: {
-			items: [{ kind: 'run_started', label: 'Run started', state: 'active' }],
+			items: [{ kind: 'run_started', label: 'Runa işi başlattı', state: 'active' }],
 			summary: 'Runa started the work.',
-			title: 'Run timeline',
+			title: 'Çalışma akışı',
 		},
 		schema_version: 1,
 		type: 'run_timeline_block',
@@ -295,7 +295,9 @@ describe('BlockRenderer', () => {
 		expect(BlockRenderer({ block: eventBlock })).toEqual(null);
 		expect(BlockRenderer({ block: statusBlock })).toEqual(null);
 		expect(BlockRenderer({ block: traceBlock })).toEqual(null);
-		expect(BlockRenderer({ block: timelineBlock })).toEqual(null);
+		expect(renderToStaticMarkup(<BlockRenderer block={timelineBlock} />)).toContain(
+			'Canlı çalışma notları',
+		);
 		expect(BlockRenderer({ block: workspaceBlock })).toEqual(null);
 	});
 
@@ -341,13 +343,13 @@ describe('BlockRenderer', () => {
 						call_id: 'call_file_write',
 						detail: 'file.write completed successfully.',
 						kind: 'tool_completed',
-						label: 'Wrote file changes',
+						label: 'Dosya güncellendi',
 						state: 'success',
 						tool_name: 'file.write',
 					},
 				],
-				summary: 'Timeline shows approval resolution for file write.',
-				title: 'Run timeline',
+				summary: 'Runa dosya yazma onayı aldı.',
+				title: 'Çalışma akışı',
 			},
 			schema_version: 1,
 			type: 'run_timeline_block',
@@ -370,7 +372,7 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Runa şunu yapmak istiyor');
+		expect(markup).toContain('Güven kararı');
 		expect(markup).toContain('Dosyaya yazma isteği');
 		expect(markup).toContain('Bu onayda net hedef bilgisi gönderilmedi.');
 		expect(markup).not.toContain('Ayrıntılar');
@@ -382,7 +384,6 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} isDeveloperMode onResolveApproval={() => undefined} />,
 		);
 		expect(developerMarkup).toContain('Ayrıntılar');
-		expect(developerMarkup).toContain('Approve file write.');
 	});
 
 	it('announces resolved approval state without pending actions', () => {
