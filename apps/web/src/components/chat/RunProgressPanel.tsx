@@ -146,12 +146,14 @@ export function RunProgressPanel({
 		return (
 			<section
 				aria-labelledby="current-run-progress-heading"
-				className={`runa-run-activity-line ${styles['root']}`}
+				className={styles['activityLine']}
 			>
-				<span className="runa-run-activity-line__pulse" aria-hidden="true" />
-				<div className="runa-run-activity-line__copy">
-					<h3 id="current-run-progress-heading">{progress.headline}</h3>
-					<p>{progress.detail}</p>
+				<span className={styles['activityPulse']} aria-hidden="true" />
+				<div className={styles['activityCopy']}>
+					<h3 id="current-run-progress-heading" className={styles['activityHeadline']}>
+						{progress.headline}
+					</h3>
+					<p className={styles['activityDetail']}>{progress.detail}</p>
 					{thinkingSteps.length > 0 ? (
 						<ThinkingBlock
 							isActive={progress.status_tone === 'info' || progress.status_tone === 'warning'}

@@ -1,5 +1,8 @@
 .root {
-	display: grid;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 8px 0;
 }
 
 .eyebrow {
@@ -19,9 +22,22 @@
 
 .roleLabel {
 	color: #e5e7eb;
+	font-weight: 500;
 }
 
 .bubble {
+	background: hsl(var(--color-surface) / 0.6);
+	border: 1px solid hsl(var(--color-border-soft) / 0.4);
+	border-radius: 14px;
+	font-size: 0.9rem;
+	line-height: 1.6;
+	max-width: min(680px, 88%);
+	padding: 10px 14px;
+}
+
+:global(.runa-transcript-message--user) .bubble {
+	background: rgba(37, 99, 235, 0.14);
+	border-color: rgba(59, 130, 246, 0.22);
 }
 
 .metaRow {
@@ -30,7 +46,10 @@
 	flex-wrap: wrap;
 	font-size: 12px;
 	justify-content: space-between;
+	padding: 0 4px;
 }
 
 .time {
+	color: hsl(var(--color-text-soft));
+	font-size: 0.72rem;
 }

@@ -1983,6 +1983,82 @@ pre {
 	}
 }
 
+/* ─── Visually hidden (accessibility utility) ────────────────── */
+.runa-chat-visually-hidden {
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	white-space: nowrap;
+	width: 1px;
+}
+
+/* ─── CurrentRunSurface: semantic global hooks ───────────────── */
+.runa-current-run-surface {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-height: 0;
+}
+
+.runa-current-run-surface__viewport {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 16px;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+/* ─── StreamingMessageSurface: semantic global hook ──────────── */
+.runa-streaming-message {
+	animation: runa-message-arrival 200ms var(--ease-emphasized, ease) both;
+}
+
+/* ─── ToolActivityIndicator: icon utilities ──────────────────── */
+.runa-tool-activity-icon {
+	display: inline-block;
+	flex-shrink: 0;
+	vertical-align: middle;
+}
+
+.runa-tool-activity-icon--spin {
+	animation: runa-spin 1s linear infinite;
+	color: #60a5fa;
+}
+
+.runa-tool-activity-icon--done {
+	color: #4ade80;
+}
+
+.runa-tool-activity-icon--fail {
+	color: #f87171;
+}
+
+/* ─── PersistedTranscript: message alignment ─────────────────── */
+.runa-transcript-message {
+	align-items: flex-start;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.runa-transcript-message--user {
+	align-items: flex-end;
+}
+
+.runa-transcript-message--assistant {
+	align-items: flex-start;
+}
+
+.runa-transcript-message--system {
+	align-items: center;
+	opacity: 0.75;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
