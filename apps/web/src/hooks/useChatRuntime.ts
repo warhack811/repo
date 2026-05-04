@@ -743,15 +743,61 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								}
 							}
 
-							if (
-								!matchesTrackedRun(
-									parsedMessage.payload.run_id,
-									presentationRunIdRef.current,
-									expectedPresentationRunIdsRef.current,
-								)
-							) {
+							const nextPresentationUpdate = derivePresentationBlocksUpdate(parsedMessage, {
+								expandedPastRunIds: expandedPastRunIdsRef.current,
+								expectedRunIds: expectedPresentationRunIdsRef.current,
+								inspectionAnchorIdsByDetailId: inspectionAnchorIdsByDetailIdRef.current,
+								inspectionRequestKeysByDetailId: inspectionRequestKeysByDetailIdRef.current,
+								pendingInspectionRequestKeys: pendingInspectionRequestKeysRef.current,
+								presentationRunId: presentationRunIdRef.current,
+								presentationRunSurfaces: presentationRunSurfacesRef.current,
+								staleInspectionRequestKeys: staleInspectionRequestKeysRef.current,
+							});
+
+							if (!nextPresentationUpdate) {
 								return;
 							}
+
+							commitPendingInspectionRequestKeys(
+								nextPresentationUpdate.pendingInspectionRequestKeys,
+							);
+							commitStaleInspectionRequestKeys(
+								nextPresentationUpdate.staleInspectionRequestKeys,
+							);
+							commitExpandedPastRunIds(nextPresentationUpdate.expandedPastRunIds);
+
+							inspectionAnchorIdsByDetailIdRef.current = new Map(
+								nextPresentationUpdate.inspectionAnchorIdsByDetailId,
+							);
+							inspectionRequestKeysByDetailIdRef.current = new Map(
+								nextPresentationUpdate.inspectionRequestKeysByDetailId,
+							);
+							expectedPresentationRunIdsRef.current = new Set(
+								nextPresentationUpdate.expectedRunIds,
+							);
+							presentationRunIdRef.current = nextPresentationUpdate.presentationRunId;
+							presentationRunSurfacesRef.current =
+								nextPresentationUpdate.presentationRunSurfaces;
+							chatStore.setPresentationState((currentPresentationState) => ({
+								...currentPresentationState,
+								presentationRunId: nextPresentationUpdate.presentationRunId,
+								presentationRunSurfaces: nextPresentationUpdate.presentationRunSurfaces,
+							}));
+
+							if (nextPresentationUpdate.detailBlockIds.length > 0) {
+								window.requestAnimationFrame(() => {
+									const latestDetailBlockId =
+										nextPresentationUpdate.detailBlockIds[
+											nextPresentationUpdate.detailBlockIds.length - 1
+										];
+
+									if (latestDetailBlockId) {
+										scrollToPresentationBlock(latestDetailBlockId);
+									}
+								});
+							}
+
+							return;
 						}
 
 						if (parsedMessage.type === 'text.delta') {
