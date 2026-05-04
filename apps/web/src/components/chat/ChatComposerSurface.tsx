@@ -7,10 +7,10 @@ import type { ModelAttachment } from '../../ws-types.js';
 import { RunaButton } from '../ui/RunaButton.js';
 import { RunaCard } from '../ui/RunaCard.js';
 import { RunaTextarea } from '../ui/RunaTextarea.js';
+import styles from './ChatComposerSurface.module.css';
 import { DesktopTargetSelector } from './DesktopTargetSelector.js';
 import { FileUploadButton } from './FileUploadButton.js';
 import { VoiceComposerControls } from './VoiceComposerControls.js';
-import styles from './ChatComposerSurface.module.css';
 
 type ChatComposerSurfaceProps = Readonly<{
 	accessToken?: string | null;
@@ -165,10 +165,7 @@ export function ChatComposerSurface({
 		>
 			<div className={`runa-chat-composer-surface__intro ${styles['intro']}`}>
 				<div className={styles['eyebrow']}>Sohbet</div>
-				<h2
-					id="chat-composer-heading"
-					className={styles['title']}
-				>
+				<h2 id="chat-composer-heading" className={styles['title']}>
 					Neyi ilerletmek istiyorsun?
 				</h2>
 				<div className="runa-subtle-copy">
@@ -189,24 +186,17 @@ export function ChatComposerSurface({
 					aria-live="polite"
 					className={`runa-alert runa-alert--warning ${styles['outputAlert']}`}
 				>
-					<div className={styles['alertText']}>
-						Runa şu anda mesaj göndermeye hazır değil.
-					</div>
+					<div className={styles['alertText']}>Runa şu anda mesaj göndermeye hazır değil.</div>
 					<div className="runa-subtle-copy">Bağlantı hazır olduğunda yeniden deneyebilirsin.</div>
 				</output>
 			) : null}
 
-			<form
-				onSubmit={onSubmit}
-				className={`runa-chat-composer-form ${styles['form']}`}
-			>
+			<form onSubmit={onSubmit} className={`runa-chat-composer-form ${styles['form']}`}>
 				<label
 					htmlFor={promptTextareaId}
 					className={`runa-chat-composer-input ${styles['inputLabel']}`}
 				>
-					<span className={`runa-chat-visually-hidden ${styles['visuallyHidden']}`}>
-						Mesaj
-					</span>
+					<span className={`runa-chat-visually-hidden ${styles['visuallyHidden']}`}>Mesaj</span>
 					<RunaTextarea
 						className="runa-input runa-input--textarea"
 						id={promptTextareaId}
@@ -231,16 +221,20 @@ export function ChatComposerSurface({
 							onUploadStateChange={onAttachmentUploadStateChange}
 						/>
 					</div>
-					<div className="runa-chat-composer-actions__right">
+					<div className={`runa-chat-composer-actions__right ${styles['actionsRight']}`}>
 						<details
-							className="runa-chat-composer-more"
+							className={`runa-chat-composer-more ${styles['moreTools']}`}
 							onKeyDown={handleMoreToolsKeyDown}
 							ref={moreDetailsRef}
 						>
-							<summary aria-label="Diğer sohbet araçları" title="Diğer sohbet araçları">
+							<summary
+								className={styles['moreSummary']}
+								aria-label="Diğer sohbet araçları"
+								title="Diğer sohbet araçları"
+							>
 								<SlidersHorizontal aria-hidden="true" size={18} />
 							</summary>
-							<div className="runa-chat-composer-more__content">
+							<div className={`runa-chat-composer-more__content ${styles['moreContent']}`}>
 								<DesktopTargetSelector
 									devices={desktopDevices}
 									errorMessage={desktopDeviceError}
@@ -314,9 +308,7 @@ export function ChatComposerSurface({
 											className={styles['imagePreview']}
 										/>
 									) : attachment.kind === 'text' ? (
-										<div className={styles['textPreview']}>
-											{attachment.text_content}
-										</div>
+										<div className={styles['textPreview']}>{attachment.text_content}</div>
 									) : (
 										<div className={styles['documentPreview']}>
 											{attachment.text_preview ?? 'Doküman eklendi'}
@@ -334,17 +326,12 @@ export function ChatComposerSurface({
 				</div>
 
 				{lastError ? (
-					<div
-						role="alert"
-						className={`runa-alert runa-alert--danger ${styles['errorAlert']}`}
-					>
+					<div role="alert" className={`runa-alert runa-alert--danger ${styles['errorAlert']}`}>
 						<strong>Runa bu isteği başlatamadı. </strong>
 						{lastError}
 					</div>
 				) : null}
-				<div className={`runa-chat-composer-status ${styles['status']}`}>
-					{statusLabel}
-				</div>
+				<div className={`runa-chat-composer-status ${styles['status']}`}>{statusLabel}</div>
 			</form>
 			{emptySuggestions}
 		</section>
