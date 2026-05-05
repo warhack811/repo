@@ -133,6 +133,16 @@ function hasTimelineToolCompletion(items: readonly RunTimelineItem[]): boolean {
 	return items.some((item) => item.kind === 'tool_completed' || item.kind === 'tool_failed');
 }
 
+function hasTimelineRunCompletion(items: readonly RunTimelineItem[]): boolean {
+	return items.some(
+		(item) => item.kind === 'assistant_completed' || item.kind === 'model_completed',
+	);
+}
+
+function hasTimelineRunFailure(items: readonly RunTimelineItem[]): boolean {
+	return items.some((item) => item.kind === 'run_failed');
+}
+
 function hasModelProgress(
 	items: readonly RunTimelineItem[],
 	runSummary: RunTransportSummary | undefined,
@@ -272,6 +282,8 @@ function createPhaseItems(
 	const latestState = input.run_summary?.latest_runtime_state;
 	const hasToolActivity = hasTimelineToolActivity(input.step_items);
 	const hasToolCompletion = hasTimelineToolCompletion(input.step_items);
+	const hasRunCompletion = hasTimelineRunCompletion(input.step_items);
+	const hasRunFailure = hasTimelineRunFailure(input.step_items);
 	const hasApproval = input.approval_block !== null;
 
 	return [
@@ -313,9 +325,9 @@ function createPhaseItems(
 								value: humanizeApprovalStatus(input.approval_block.payload.status),
 							}
 						: { label: 'Approval', tone: 'neutral', value: 'Not needed' },
-		finalState === 'COMPLETED'
+		finalState === 'COMPLETED' || hasRunCompletion
 			? { label: 'Outcome', tone: 'success', value: 'Completed' }
-			: finalState === 'FAILED' || input.feedback?.tone === 'error'
+			: finalState === 'FAILED' || hasRunFailure || input.feedback?.tone === 'error'
 				? { label: 'Outcome', tone: 'error', value: 'Failed' }
 				: { label: 'Outcome', tone: 'neutral', value: 'In progress' },
 	];
@@ -325,12 +337,21 @@ function getStatusTone(
 	feedback: RunFeedbackState | null,
 	approvalBlock: ApprovalBlock | null,
 	runSummary: RunTransportSummary | undefined,
+	stepItems: readonly RunTimelineItem[],
 ): RunStatusChipTone {
+	if (runSummary?.final_state === 'FAILED' || hasTimelineRunFailure(stepItems)) {
+		return 'error';
+	}
+
 	if (
 		approvalBlock?.payload.status === 'pending' ||
 		runSummary?.latest_runtime_state === 'WAITING_APPROVAL'
 	) {
 		return 'warning';
+	}
+
+	if (runSummary?.final_state === 'COMPLETED' || hasTimelineRunCompletion(stepItems)) {
+		return 'success';
 	}
 
 	switch (feedback?.tone) {
@@ -493,7 +514,12 @@ export function deriveCurrentRunProgressSurface(
 			step_items: stepItems,
 		}),
 		run_id: runId,
-		status_tone: getStatusTone(input.current_run_feedback, approvalBlock, input.run_summary),
+		status_tone: getStatusTone(
+			input.current_run_feedback,
+			approvalBlock,
+			input.run_summary,
+			stepItems,
+		),
 		step_items: visibleStepItems,
 	};
 }

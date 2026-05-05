@@ -409,6 +409,21 @@ describe('BlockRenderer', () => {
 		expect(developerMarkup).toContain('Ayrıntılar');
 	});
 
+	it('does not offer actions for historical pending approval cards', () => {
+		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
+
+		if (!approvalBlock) {
+			throw new Error('Expected approval fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={approvalBlock} />);
+
+		expect(markup).toContain('geçmiş çalışma kaydından geldi');
+		expect(markup).not.toContain('Onayla</button>');
+		expect(markup).not.toContain('Reddet</button>');
+		expect(markup).not.toContain('aria-busy="true"');
+	});
+
 	it('announces resolved approval state without pending actions', () => {
 		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
 

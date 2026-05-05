@@ -131,7 +131,7 @@ function getStatusClassName(status: ApprovalStatus): string | undefined {
 	}
 }
 
-function getStateMessage(status: ApprovalStatus): string {
+function getStateMessage(status: ApprovalStatus, canResolvePendingApproval: boolean): string {
 	switch (status) {
 		case 'approved':
 			return 'İzin verildi. Akış devam ediyor.';
@@ -142,7 +142,9 @@ function getStateMessage(status: ApprovalStatus): string {
 		case 'expired':
 			return 'Bu onayın süresi doldu; yeniden istek gerekebilir.';
 		case 'pending':
-			return 'Devam etmek için kararın bekleniyor.';
+			return canResolvePendingApproval
+				? 'Devam etmek için kararın bekleniyor.'
+				: 'Bu onay geçmiş çalışma kaydından geldi; devam etmek için isteği yeniden çalıştırman gerekebilir.';
 	}
 }
 
@@ -193,10 +195,12 @@ export function ApprovalBlock({
 	const summary = normalizeText(block.payload.summary);
 	const targetLabel = getTargetLabel(block);
 	const approveVariant = getApprovalActionVariant(block);
+	const resolvePendingApproval = isPending ? onResolveApproval : undefined;
+	const canResolvePendingApproval = Boolean(resolvePendingApproval);
 
 	return (
 		<article
-			aria-busy={isPending}
+			aria-busy={canResolvePendingApproval}
 			className={cx(
 				styles['block'],
 				styles['approvalCard'],
@@ -222,15 +226,15 @@ export function ApprovalBlock({
 			)}
 
 			<output aria-live="polite" className={styles['approvalStateFeedback']}>
-				{getStateMessage(block.payload.status)}
+				{getStateMessage(block.payload.status, canResolvePendingApproval)}
 			</output>
 
-			{isPending && onResolveApproval ? (
+			{resolvePendingApproval ? (
 				<div className={styles['approvalActions']}>
 					<RunaButton
 						aria-label={`Onayla: ${decisionCopy.action}`}
 						className={styles['approvalActionButton']}
-						onClick={() => onResolveApproval(block.payload.approval_id, 'approved')}
+						onClick={() => resolvePendingApproval(block.payload.approval_id, 'approved')}
 						variant={approveVariant}
 					>
 						<Check size={16} />
@@ -239,7 +243,7 @@ export function ApprovalBlock({
 					<RunaButton
 						aria-label={`Reddet: ${decisionCopy.action}`}
 						className={styles['approvalActionButton']}
-						onClick={() => onResolveApproval(block.payload.approval_id, 'rejected')}
+						onClick={() => resolvePendingApproval(block.payload.approval_id, 'rejected')}
 						variant="secondary"
 					>
 						<X size={16} />

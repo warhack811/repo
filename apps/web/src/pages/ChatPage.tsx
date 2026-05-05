@@ -179,6 +179,9 @@ export function ChatPage({
 		const activeRunId = currentRunFeedback?.run_id ?? visibleCurrentPresentationSurface?.run_id;
 		return activeRunId ? runTransportSummaries.get(activeRunId) : undefined;
 	}, [visibleCurrentPresentationSurface, currentRunFeedback, runTransportSummaries]);
+	const canResolveCurrentApproval = Boolean(
+		currentRunSummary?.has_accepted && currentRunSummary.final_state === undefined,
+	);
 
 	const currentRunProgress = useMemo(
 		() =>
@@ -215,7 +218,7 @@ export function ChatPage({
 			isCurrent
 			isDeveloperMode={isDeveloperMode}
 			onRequestInspection={requestInspection}
-			onResolveApproval={resolveApproval}
+			onResolveApproval={canResolveCurrentApproval ? resolveApproval : undefined}
 			pendingInspectionRequestKeys={pendingInspectionRequestKeys}
 			runTransportSummaries={runTransportSummaries}
 			surface={visibleCurrentPresentationSurface}
@@ -229,7 +232,6 @@ export function ChatPage({
 			inspectionAnchorIdsByDetailId={inspectionAnchorIdsByDetailId}
 			isDeveloperMode={isDeveloperMode}
 			onRequestInspection={requestInspection}
-			onResolveApproval={resolveApproval}
 			onToggleExpanded={setPastRunExpanded}
 			pastPresentationSurfaces={pastPresentationSurfaces}
 			pendingInspectionRequestKeys={pendingInspectionRequestKeys}
