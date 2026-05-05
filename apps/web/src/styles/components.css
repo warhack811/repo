@@ -1833,6 +1833,40 @@ pre {
 		display: contents;
 	}
 
+	.runa-conversation-sidebar-trigger {
+		display: block;
+	}
+
+	.runa-sidebar-backdrop {
+		background: rgba(2, 6, 23, 0.62);
+		border: 0;
+		display: block;
+		inset: 0;
+		position: fixed;
+		z-index: 35;
+	}
+
+	.runa-conversation-sidebar {
+		animation: none;
+		bottom: calc(var(--safe-area-bottom) + 10px);
+		left: 10px;
+		max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 20px);
+		opacity: 0;
+		overflow: auto;
+		pointer-events: none;
+		position: fixed;
+		right: 10px;
+		top: calc(var(--safe-area-top) + 10px);
+		transform: translateY(16px);
+		z-index: 40;
+	}
+
+	.runa-conversation-sidebar--open {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
+	}
+
 	.runa-app-shell-header__top {
 		gap: 14px;
 	}
@@ -1904,7 +1938,7 @@ pre {
 	.runa-chat-layout__composer {
 		order: 2;
 		position: sticky;
-		bottom: calc(var(--safe-area-bottom) + 8px);
+		bottom: calc(var(--safe-area-bottom) + 78px);
 	}
 
 	.runa-chat-layout__insights {
@@ -1915,9 +1949,13 @@ pre {
 		order: 1;
 	}
 
+	.runa-chat-composer-surface--empty .runa-chat-suggestion-grid {
+		padding-bottom: calc(72px + var(--safe-area-bottom));
+	}
+
 	.runa-page--chat-product,
 	.runa-page--app-shell {
-		padding-bottom: calc(84px + var(--safe-area-bottom));
+		padding-bottom: calc(148px + var(--safe-area-bottom));
 	}
 
 	.runa-app-nav {
@@ -1925,10 +1963,12 @@ pre {
 		left: calc(10px + var(--safe-area-left));
 		right: calc(10px + var(--safe-area-right));
 		bottom: calc(8px + var(--safe-area-bottom));
+		width: auto;
 		z-index: 60;
 	}
 
 	.runa-app-nav__items {
+		box-sizing: border-box;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 6px;
 		padding: 6px;
@@ -1990,6 +2030,10 @@ pre {
 
 	.runa-input {
 		font-size: 16px;
+	}
+
+	.runa-chat-composer-surface--empty .runa-input--textarea {
+		min-height: 108px;
 	}
 
 	.runa-chat-icon-button,

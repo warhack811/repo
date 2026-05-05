@@ -120,6 +120,10 @@
 	z-index: 20;
 }
 
+.moreTools:not([open]) .moreContent {
+	display: none;
+}
+
 .attachmentsList {
 	border-radius: var(--radius-panel);
 	background: rgba(9, 14, 25, 0.68);
@@ -136,9 +140,6 @@
 
 .attachmentInfo {
 	display: grid;
-}
-
-.attachmentInfoInner {
 }
 
 .attachmentName {
@@ -190,5 +191,15 @@
 
 	.actionsRight {
 		margin-left: auto;
+	}
+
+	.moreContent {
+		position: fixed;
+		right: calc(10px + var(--safe-area-right));
+		bottom: calc(84px + var(--safe-area-bottom));
+		left: calc(10px + var(--safe-area-left));
+		top: auto;
+		width: auto;
+		max-width: none;
 	}
 }
