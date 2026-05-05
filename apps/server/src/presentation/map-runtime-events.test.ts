@@ -344,7 +344,7 @@ describe('map-runtime-events', () => {
 		];
 		const [block] = getWorkNarrationBlocks(mapRuntimeEventsToRenderBlocks(events));
 
-		expect(block).toMatchObject({
+		expect(block).toEqual({
 			created_at: '2026-05-05T09:00:00.000Z',
 			id: 'nar_1',
 			payload: {
@@ -356,6 +356,7 @@ describe('map-runtime-events', () => {
 				text: 'package.json kontrol ediyorum.',
 				turn_index: 2,
 			},
+			schema_version: 1,
 			type: 'work_narration',
 		});
 	});

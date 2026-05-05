@@ -530,7 +530,8 @@ describe('finalizeLiveRunResult presentation persistence', () => {
 		const narrationBlocks = persistedBlocks.filter((block) => block.type === 'work_narration');
 
 		expect(narrationBlocks).toHaveLength(1);
-		expect(narrationBlocks[0]).toMatchObject({
+		expect(narrationBlocks[0]).toEqual({
+			created_at: '2026-05-05T11:00:02.000Z',
 			id: 'nar_1',
 			payload: {
 				linked_tool_call_id: 'call_1',
@@ -541,6 +542,7 @@ describe('finalizeLiveRunResult presentation persistence', () => {
 				text: 'package.json kontrol ediyorum.',
 				turn_index: 1,
 			},
+			schema_version: 1,
 			type: 'work_narration',
 		});
 		expect(persistedBlocks.map((block) => block.type)).toContain('event_list');
@@ -639,7 +641,7 @@ describe('finalizeLiveRunResult presentation persistence', () => {
 					sequence_no: 10,
 					turn_index: 1,
 				},
-				createRuntimeEventContext(10),
+				createRuntimeEventContext(10, '2026-05-05T11:00:05.000Z'),
 			),
 			buildNarrationTokenEvent(
 				{
@@ -649,7 +651,7 @@ describe('finalizeLiveRunResult presentation persistence', () => {
 					text_delta: 'gecici metin',
 					turn_index: 1,
 				},
-				createRuntimeEventContext(11),
+				createRuntimeEventContext(11, '2026-05-05T11:00:06.000Z'),
 			),
 			buildNarrationSupersededEvent(
 				{
@@ -658,7 +660,7 @@ describe('finalizeLiveRunResult presentation persistence', () => {
 					sequence_no: 12,
 					turn_index: 1,
 				},
-				createRuntimeEventContext(12),
+				createRuntimeEventContext(12, '2026-05-05T11:00:07.000Z'),
 			),
 		];
 		const runtimeEvents = createCompletedRuntimeEvents(narrationEvents);
@@ -697,13 +699,20 @@ describe('finalizeLiveRunResult presentation persistence', () => {
 			(block) => block.type === 'work_narration',
 		);
 
-		expect(narrationBlocks).toHaveLength(1);
-		expect(narrationBlocks[0]).toMatchObject({
+		expect(narrationBlocks.map((block) => block.id)).toEqual(['nar_superseded']);
+		expect(narrationBlocks[0]).toEqual({
+			created_at: '2026-05-05T11:00:05.000Z',
 			id: 'nar_superseded',
 			payload: {
+				locale: 'tr',
+				run_id: 'run_tool_result_pipeline_regression',
+				sequence_no: 10,
 				status: 'superseded',
 				text: 'gecici metin',
+				turn_index: 1,
 			},
+			schema_version: 1,
+			type: 'work_narration',
 		});
 	});
 });

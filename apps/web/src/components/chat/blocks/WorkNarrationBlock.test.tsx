@@ -62,6 +62,32 @@ describe('WorkNarrationBlock', () => {
 		expect(markup).toContain('Checking package.json now.');
 	});
 
+	it('renders the canonical payload-based persisted shape without exposing metadata', () => {
+		const persistedBlock: WorkNarrationRenderBlock = {
+			created_at: '2026-05-05T12:00:00.000Z',
+			id: 'narration_payload_contract',
+			payload: {
+				linked_tool_call_id: 'call_payload_contract',
+				locale: 'tr',
+				run_id: 'run_payload_contract',
+				sequence_no: 42,
+				status: 'completed',
+				text: 'package.json dosyasini kontrol ediyorum.',
+				turn_index: 3,
+			},
+			schema_version: 1,
+			type: 'work_narration',
+		};
+		const markup = renderToStaticMarkup(<WorkNarrationBlock block={persistedBlock} replayMode />);
+
+		expect(markup).toContain('package.json dosyasini kontrol ediyorum.');
+		expect(markup).toContain('_replay_');
+		expect(markup).not.toContain('run_payload_contract');
+		expect(markup).not.toContain('call_payload_contract');
+		expect(markup).not.toContain('narration_payload_contract');
+		expect(markup).not.toContain('42');
+	});
+
 	it('renders tool_failed as a muted warning without duplicating technical error text', () => {
 		const markup = renderToStaticMarkup(
 			<WorkNarrationBlock

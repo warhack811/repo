@@ -84,4 +84,22 @@ describe('ws-guards narration contracts', () => {
 			}),
 		).toBe(true);
 	});
+
+	it('rejects flat work_narration render blocks without the canonical payload wrapper', () => {
+		expect(
+			isRenderBlock({
+				created_at: '2026-05-05T09:30:00.000Z',
+				id: 'narration_guard_block_flat',
+				linked_tool_call_id: 'call_guard_1',
+				locale: 'tr',
+				run_id: 'run_guard_1',
+				schema_version: 1,
+				sequence_no: 1,
+				status: 'completed',
+				text: 'Dosyayi okuyorum.',
+				turn_index: 0,
+				type: 'work_narration',
+			}),
+		).toBe(false);
+	});
 });

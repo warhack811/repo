@@ -227,4 +227,59 @@ describe('presentation narration surfaces', () => {
 			text: 'package.json dosyasını kontrol ediyorum.',
 		});
 	});
+	it('preserves exact payload-based persisted work_narration blocks and their ordering', () => {
+		const earlyBlock: Extract<RenderBlock, { type: 'work_narration' }> = {
+			created_at: '2026-05-05T10:00:00.000Z',
+			id: 'narration_early',
+			payload: {
+				locale: 'tr',
+				run_id: runId,
+				sequence_no: 1,
+				status: 'completed',
+				text: 'birinci',
+				turn_index: 1,
+			},
+			schema_version: 1,
+			type: 'work_narration',
+		};
+		const lateBlock: Extract<RenderBlock, { type: 'work_narration' }> = {
+			created_at: '2026-05-05T10:00:01.000Z',
+			id: 'narration_late',
+			payload: {
+				linked_tool_call_id: 'call_late',
+				locale: 'tr',
+				run_id: runId,
+				sequence_no: 5,
+				status: 'tool_failed',
+				text: 'ikinci',
+				turn_index: 2,
+			},
+			schema_version: 1,
+			type: 'work_narration',
+		};
+		const presentationMessage: PresentationBlocksServerMessage = {
+			payload: {
+				blocks: [earlyBlock, lateBlock],
+				run_id: runId,
+				trace_id: traceId,
+			},
+			type: 'presentation.blocks',
+		};
+		const update = derivePresentationBlocksUpdate(presentationMessage, {
+			expandedPastRunIds: new Set(),
+			expectedRunIds: new Set([runId]),
+			inspectionAnchorIdsByDetailId: new Map(),
+			inspectionRequestKeysByDetailId: new Map(),
+			pendingInspectionRequestKeys: new Set(),
+			presentationRunId: null,
+			presentationRunSurfaces: [],
+			staleInspectionRequestKeys: new Set(),
+		});
+
+		const blocks = getWorkNarrationBlocks(update?.presentationRunSurfaces ?? []);
+
+		expect(blocks).toEqual([earlyBlock, lateBlock]);
+		expect(blocks[1]).not.toHaveProperty('text');
+		expect(blocks[1]).not.toHaveProperty('status');
+	});
 });
