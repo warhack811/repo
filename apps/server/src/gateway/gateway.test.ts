@@ -3104,6 +3104,87 @@ describe('ClaudeGateway', () => {
 		});
 	});
 
+	it('preserves Claude interleaved text and tool use blocks in ordered_content', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				content: [
+					{ text: 'Checking the first file', type: 'text' },
+					{
+						id: 'toolu_first',
+						input: {
+							path: 'README.md',
+						},
+						name: 'file.read',
+						type: 'tool_use',
+					},
+					{ text: 'Checking the second file', type: 'text' },
+					{
+						id: 'toolu_second',
+						input: {
+							path: 'docs/PROGRESS.md',
+						},
+						name: 'file.read',
+						type: 'tool_use',
+					},
+					{ text: 'Done checking', type: 'text' },
+				],
+				id: 'msg_tool_interleaved',
+				model: 'claude-sonnet-4-5',
+				role: 'assistant',
+				stop_reason: 'end_turn',
+			}),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		const response = await gateway.generate(claudeRequest);
+
+		expect(response.message.ordered_content).toEqual([
+			{
+				index: 0,
+				kind: 'text',
+				text: 'Checking the first file',
+			},
+			{
+				index: 1,
+				input: {
+					path: 'README.md',
+				},
+				kind: 'tool_use',
+				tool_call_id: 'toolu_first',
+				tool_name: 'file.read',
+			},
+			{
+				index: 2,
+				kind: 'text',
+				text: 'Checking the second file',
+			},
+			{
+				index: 3,
+				input: {
+					path: 'docs/PROGRESS.md',
+				},
+				kind: 'tool_use',
+				tool_call_id: 'toolu_second',
+				tool_name: 'file.read',
+			},
+			{
+				index: 4,
+				kind: 'text',
+				text: 'Done checking',
+			},
+		]);
+		expect(response.message.content).toBe(
+			'Checking the first file\nChecking the second file\nDone checking',
+		);
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'toolu_first',
+			tool_input: {
+				path: 'README.md',
+			},
+			tool_name: 'file.read',
+		});
+	});
+
 	it('keeps request-side tool enablement and response-side continuation seam aligned for Claude', async () => {
 		const { calls } = installFetchMock(
 			mockJsonResponse(200, {
@@ -3903,6 +3984,75 @@ describe('OpenAiGateway', () => {
 					response_id: 'chatcmpl_openai_stream_order',
 					tool_call_candidate: {
 						call_id: 'call_openai_stream_order',
+						tool_input: {
+							path: 'README.md',
+						},
+						tool_name: 'file.read',
+					},
+					usage: {
+						input_tokens: 7,
+						output_tokens: 9,
+						total_tokens: 16,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('preserves OpenAI streaming tool call chunks before later text chunks in ordered_content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_openai_stream_tool_before_text","model":"gpt-4.1-mini","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_openai_stream_tool_before_text","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_tool_before_text","model":"gpt-4.1-mini","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"README.md\\"}"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_tool_before_text","model":"gpt-4.1-mini","choices":[{"delta":{"content":"Then summarize"},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+		const chunks = [];
+
+		for await (const chunk of gateway.stream({
+			...openAiRequest,
+			available_tools: callableToolsRequest,
+		})) {
+			chunks.push(chunk);
+		}
+
+		expect(chunks).toEqual([
+			{
+				content_part_index: 1,
+				text_delta: 'Then summarize',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Then summarize',
+						ordered_content: [
+							{
+								index: 0,
+								input: {
+									path: 'README.md',
+								},
+								kind: 'tool_use',
+								tool_call_id: 'call_openai_stream_tool_before_text',
+								tool_name: 'file.read',
+							},
+							{
+								index: 1,
+								kind: 'text',
+								text: 'Then summarize',
+							},
+						],
+						role: 'assistant',
+					},
+					model: 'gpt-4.1-mini',
+					provider: 'openai',
+					response_id: 'chatcmpl_openai_stream_tool_before_text',
+					tool_call_candidate: {
+						call_id: 'call_openai_stream_tool_before_text',
 						tool_input: {
 							path: 'README.md',
 						},
