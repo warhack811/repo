@@ -4,6 +4,7 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { describeAttachmentForTextPart } from './attachment-text.js';
@@ -17,6 +18,13 @@ import {
 	type ToolCallCandidateRejectionReason,
 	parseToolCallCandidatePartsDetailed,
 } from './tool-call-candidate.js';
+
+export const geminiProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'unsupported',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'low',
+};
 
 interface GeminiChatCompletionRequest {
 	readonly max_completion_tokens?: number;
@@ -414,6 +422,7 @@ function parseGeminiToolCallAccumulator(
 }
 
 export class GeminiGateway implements ModelGateway {
+	readonly capabilities = geminiProviderCapabilities;
 	readonly provider = 'gemini';
 	readonly #config: GatewayProviderConfig;
 

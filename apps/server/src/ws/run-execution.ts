@@ -36,6 +36,7 @@ import {
 } from '../persistence/conversation-store.js';
 import { persistRuntimeEvents } from '../persistence/event-store.js';
 import { defaultMemoryStore } from '../persistence/memory-store.js';
+import { persistReasoningTrace } from '../persistence/reasoning-store.js';
 import { persistRunState } from '../persistence/run-store.js';
 import {
 	type RequireApprovalPermissionDecision,
@@ -1014,6 +1015,26 @@ async function generateModelResponseWithStreaming(
 	return modelGateway.generate(modelRequest);
 }
 
+async function persistInternalReasoningIfPresent(
+	input: RunModelTurnInput,
+	modelResponse: ModelResponse,
+): Promise<void> {
+	const internalReasoning = modelResponse.message.internal_reasoning;
+
+	if (internalReasoning === undefined || internalReasoning.trim().length === 0) {
+		return;
+	}
+
+	await persistReasoningTrace({
+		model: modelResponse.model,
+		provider: modelResponse.provider,
+		reasoning_content: internalReasoning,
+		run_id: input.run_id,
+		trace_id: input.trace_id,
+		turn_index: input.turn_index ?? 1,
+	});
+}
+
 function resolveRunModelRequest(input: RunModelTurnInput):
 	| {
 			readonly model_request: ModelRequest;
@@ -1213,6 +1234,8 @@ async function runPolicyAwareModelTurn(
 			};
 		}
 	}
+
+	await persistInternalReasoningIfPresent(input, modelResponse);
 
 	const adaptedOutcomeResult = adaptModelResponseToTurnOutcome({
 		model_response: modelResponse,

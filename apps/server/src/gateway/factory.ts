@@ -1,19 +1,45 @@
-import type { ModelGateway, ModelRequest, ModelResponse, ModelStreamChunk } from '@runa/types';
+import type {
+	ModelGateway,
+	ModelRequest,
+	ModelResponse,
+	ModelStreamChunk,
+	ProviderCapabilities,
+} from '@runa/types';
 
 import { defaultGatewayModels } from '@runa/types';
 
 import type { ProviderHealthSignal } from '../runtime/provider-health.js';
-import { ClaudeGateway } from './claude-gateway.js';
+import { createLogger } from '../utils/logger.js';
+import { ClaudeGateway, claudeProviderCapabilities } from './claude-gateway.js';
 import { resolveGatewayConfig } from './config-resolver.js';
-import { DeepSeekGateway } from './deepseek-gateway.js';
+import { DeepSeekGateway, deepSeekProviderCapabilities } from './deepseek-gateway.js';
 import { GatewayConfigurationError } from './errors.js';
 import { buildProviderFallbackChain, shouldAttemptProviderFallback } from './fallback-chain.js';
-import { GeminiGateway } from './gemini-gateway.js';
-import { GroqGateway } from './groq-gateway.js';
+import { GeminiGateway, geminiProviderCapabilities } from './gemini-gateway.js';
+import { GroqGateway, groqProviderCapabilities } from './groq-gateway.js';
 import { applyModelRouteToRequest, resolveModelRoute } from './model-router.js';
-import { OpenAiGateway } from './openai-gateway.js';
+import { OpenAiGateway, openAiProviderCapabilities } from './openai-gateway.js';
 import type { CreateGatewayOptions, GatewayProvider, GatewayProviderConfig } from './providers.js';
-import { SambaNovaGateway } from './sambanova-gateway.js';
+import { SambaNovaGateway, sambaNovaProviderCapabilities } from './sambanova-gateway.js';
+
+const gatewayFactoryLogger = createLogger({
+	context: {
+		component: 'gateway.factory',
+	},
+});
+
+const providerCapabilities: Readonly<Record<GatewayProvider, ProviderCapabilities>> = {
+	claude: claudeProviderCapabilities,
+	deepseek: deepSeekProviderCapabilities,
+	gemini: geminiProviderCapabilities,
+	groq: groqProviderCapabilities,
+	openai: openAiProviderCapabilities,
+	sambanova: sambaNovaProviderCapabilities,
+};
+
+export function getGatewayProviderCapabilities(provider: GatewayProvider): ProviderCapabilities {
+	return providerCapabilities[provider];
+}
 
 function instantiateGateway({ config, provider }: CreateGatewayOptions): ModelGateway {
 	const resolvedConfig = resolveGatewayConfig(provider, config);
@@ -24,20 +50,30 @@ function instantiateGateway({ config, provider }: CreateGatewayOptions): ModelGa
 		);
 	}
 
-	switch (provider) {
-		case 'claude':
-			return new ClaudeGateway(resolvedConfig);
-		case 'deepseek':
-			return new DeepSeekGateway(resolvedConfig);
-		case 'gemini':
-			return new GeminiGateway(resolvedConfig);
-		case 'groq':
-			return new GroqGateway(resolvedConfig);
-		case 'openai':
-			return new OpenAiGateway(resolvedConfig);
-		case 'sambanova':
-			return new SambaNovaGateway(resolvedConfig);
-	}
+	const gateway = (() => {
+		switch (provider) {
+			case 'claude':
+				return new ClaudeGateway(resolvedConfig);
+			case 'deepseek':
+				return new DeepSeekGateway(resolvedConfig);
+			case 'gemini':
+				return new GeminiGateway(resolvedConfig);
+			case 'groq':
+				return new GroqGateway(resolvedConfig);
+			case 'openai':
+				return new OpenAiGateway(resolvedConfig);
+			case 'sambanova':
+				return new SambaNovaGateway(resolvedConfig);
+		}
+	})();
+
+	gatewayFactoryLogger.debug('gateway.capability.loaded', {
+		narration_strategy: gateway.capabilities?.narration_strategy,
+		provider,
+		streaming_supported: gateway.capabilities?.streaming_supported,
+	});
+
+	return gateway;
 }
 
 function resolveRouteModelForProvider(
@@ -67,6 +103,7 @@ class RoutedModelGateway implements ModelGateway {
 	readonly #healthSignal: ProviderHealthSignal | undefined;
 	readonly #requestedConfig: GatewayProviderConfig;
 	readonly #requestedProvider: GatewayProvider;
+	readonly capabilities: ProviderCapabilities;
 
 	constructor(
 		input: Readonly<{
@@ -78,6 +115,7 @@ class RoutedModelGateway implements ModelGateway {
 		this.#healthSignal = input.health_signal;
 		this.#requestedConfig = input.requested_config;
 		this.#requestedProvider = input.requested_provider;
+		this.capabilities = getGatewayProviderCapabilities(input.requested_provider);
 	}
 
 	async generate(request: ModelRequest): Promise<ModelResponse> {

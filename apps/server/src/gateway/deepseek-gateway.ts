@@ -1,20 +1,26 @@
 import type {
 	ModelAttachment,
+	ModelContentPart,
 	ModelGateway,
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ModelToolCallFallthroughSignal,
+	ProviderCapabilities,
 } from '@runa/types';
 
+import { createLogger } from '../utils/logger.js';
 import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
+import { detectToolCallFallthrough } from './fallthrough-detector.js';
 import {
 	createOrderedContentFromTextAndToolCalls,
 	getOrderedToolCallCandidates,
 } from './model-content.js';
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
+import { appendReasoningContent, joinReasoningContent } from './reasoning-isolation.js';
 import { type SerializedCallableTool, serializeCallableTool } from './request-tools.js';
 import {
 	type ToolCallCandidateRejectionReason,
@@ -37,6 +43,7 @@ interface DeepSeekChatCompletionRequest {
 	readonly max_tokens?: number;
 	readonly messages: ReadonlyArray<{
 		readonly content: string;
+		readonly reasoning_content?: string;
 		readonly role: 'assistant' | 'system' | 'user';
 	}>;
 	readonly model: string;
@@ -124,6 +131,33 @@ interface DeepSeekToolCallAccumulator {
 }
 
 const DEEPSEEK_CHAT_COMPLETIONS_URL = 'https://api.deepseek.com/chat/completions';
+const deepSeekGatewayLogger = createLogger({
+	context: {
+		component: 'gateway.deepseek',
+	},
+});
+
+export const deepSeekProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: true,
+	narration_strategy: 'temporal_stream',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'known_intermittent',
+};
+
+type DeepSeekMutableContentPart =
+	| {
+			index: number;
+			kind: 'text';
+			text: string;
+	  }
+	| {
+			arguments_text: string;
+			call_id?: string;
+			index: number;
+			kind: 'tool_use';
+			source_tool_call_index: number;
+			tool_name?: string;
+	  };
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -199,6 +233,11 @@ function appendAttachmentsToLastUserMessage(
 			lastUserMessageIndex === index && attachmentText.length > 0
 				? [message.content, attachmentText].filter((part) => part.trim().length > 0).join('\n\n')
 				: message.content,
+		...(message.role === 'assistant' && message.internal_reasoning !== undefined
+			? {
+					reasoning_content: message.internal_reasoning,
+				}
+			: {}),
 		role: message.role,
 	}));
 }
@@ -409,6 +448,11 @@ function parseDeepSeekResponse(
 	const response = payload as DeepSeekChatCompletionResponse;
 	const choice = response.choices?.[0];
 	const content = choice?.message?.content;
+	const internalReasoning =
+		typeof choice?.message?.reasoning_content === 'string' &&
+		choice.message.reasoning_content.length > 0
+			? choice.message.reasoning_content
+			: undefined;
 	const role = choice?.message?.role;
 	const toolCalls = parseDeepSeekToolCallCandidates(choice?.message?.tool_calls, toolNameByAlias);
 	const messageContent =
@@ -429,9 +473,11 @@ function parseDeepSeekResponse(
 		finish_reason: mapDeepSeekFinishReason(choice.finish_reason),
 		message: {
 			content: messageContent,
+			internal_reasoning: internalReasoning,
 			ordered_content: createOrderedContentFromTextAndToolCalls(
 				messageContent,
 				getOrderedToolCallCandidates(toolCalls.tool_call_candidate, toolCalls.tool_call_candidates),
+				'synthetic_non_streaming',
 			),
 			role: 'assistant',
 		},
@@ -539,7 +585,138 @@ function parseDeepSeekToolCallAccumulator(
 	};
 }
 
+function parseDeepSeekToolInputForOrderedContent(argumentsText: string): unknown {
+	if (argumentsText.trim().length === 0) {
+		return {};
+	}
+
+	try {
+		return JSON.parse(argumentsText) as unknown;
+	} catch {
+		return argumentsText;
+	}
+}
+
+function appendDeepSeekTextContentPart(parts: DeepSeekMutableContentPart[], text: string): number {
+	const lastPart = parts.at(-1);
+
+	if (lastPart?.kind === 'text') {
+		lastPart.text += text;
+		return lastPart.index;
+	}
+
+	const index = parts.length;
+
+	parts.push({
+		index,
+		kind: 'text',
+		text,
+	});
+
+	return index;
+}
+
+function upsertDeepSeekToolUseContentPart(
+	parts: DeepSeekMutableContentPart[],
+	toolCallIndex: number,
+	toolCall: DeepSeekStreamChoiceDeltaToolCall,
+): void {
+	const existingPart = parts.find(
+		(part) => part.kind === 'tool_use' && part.source_tool_call_index === toolCallIndex,
+	);
+	const toolUsePart: Extract<DeepSeekMutableContentPart, { kind: 'tool_use' }> =
+		existingPart?.kind === 'tool_use'
+			? existingPart
+			: {
+					arguments_text: '',
+					index: parts.length,
+					kind: 'tool_use',
+					source_tool_call_index: toolCallIndex,
+				};
+
+	toolUsePart.call_id = toolCall.id ?? toolUsePart.call_id;
+	toolUsePart.tool_name = toolCall.function?.name ?? toolUsePart.tool_name;
+	toolUsePart.arguments_text += toolCall.function?.arguments ?? '';
+
+	if (existingPart === undefined) {
+		parts.push(toolUsePart);
+	}
+}
+
+function finalizeDeepSeekStreamingContent(
+	parts: readonly DeepSeekMutableContentPart[],
+	toolNameByAlias: ReadonlyMap<string, string>,
+	context: Readonly<{
+		readonly run_id: string;
+		readonly trace_id: string;
+	}>,
+): {
+	readonly fallthrough_detected?: readonly ModelToolCallFallthroughSignal[];
+	readonly ordered_content: readonly ModelContentPart[];
+	readonly output_text: string;
+} {
+	const fallthroughSignals: ModelToolCallFallthroughSignal[] = [];
+	const outputTextParts: string[] = [];
+	const orderedContent = parts.flatMap((part): ModelContentPart[] => {
+		if (part.kind === 'text') {
+			if (part.text.length === 0) {
+				return [];
+			}
+
+			const detection = detectToolCallFallthrough(part.text);
+
+			if (detection.is_fallthrough) {
+				const signal: ModelToolCallFallthroughSignal = {
+					confidence: detection.confidence,
+					suspected_tool_name: detection.suspected_tool_name,
+				};
+				fallthroughSignals.push(signal);
+				deepSeekGatewayLogger.warn('deepseek.fallthrough.detected', {
+					confidence: detection.confidence,
+					run_id: context.run_id,
+					suspected_tool_name: detection.suspected_tool_name,
+					trace_id: context.trace_id,
+				});
+				return [];
+			}
+
+			outputTextParts.push(part.text);
+
+			return [
+				{
+					index: part.index,
+					kind: 'text',
+					ordering_origin: 'wire_streaming',
+					text: part.text,
+				},
+			];
+		}
+
+		if (typeof part.call_id !== 'string' || typeof part.tool_name !== 'string') {
+			return [];
+		}
+
+		return [
+			{
+				index: part.index,
+				input: parseDeepSeekToolInputForOrderedContent(part.arguments_text),
+				kind: 'tool_use',
+				ordering_origin: 'wire_streaming',
+				tool_call_id: part.call_id,
+				tool_name: String(resolveDeepSeekToolName(part.tool_name, toolNameByAlias)),
+			},
+		];
+	});
+
+	return {
+		fallthrough_detected: fallthroughSignals.length > 0 ? fallthroughSignals : undefined,
+		ordered_content: orderedContent,
+		output_text: outputTextParts.join(''),
+	};
+}
+
 export class DeepSeekGateway implements ModelGateway {
+	readonly capabilities = deepSeekProviderCapabilities;
 	readonly provider = 'deepseek';
 	readonly #config: GatewayProviderConfig;
 
@@ -641,10 +818,11 @@ export class DeepSeekGateway implements ModelGateway {
 		}
 
 		const toolCallsByIndex = new Map<number, DeepSeekToolCallAccumulator>();
+		const orderedContentParts: DeepSeekMutableContentPart[] = [];
+		const reasoningContentBuffer: string[] = [];
 		let completionTokens: number | undefined;
 		let finishReason: string | null | undefined;
 		let inputTokens: number | undefined;
-		let outputText = '';
 		let responseId: string | undefined;
 		let responseModel: string | undefined;
 		let totalTokens: number | undefined;
@@ -674,14 +852,23 @@ export class DeepSeekGateway implements ModelGateway {
 			inputTokens = parsedChunk.usage?.prompt_tokens ?? inputTokens;
 			completionTokens = parsedChunk.usage?.completion_tokens ?? completionTokens;
 			totalTokens = parsedChunk.usage?.total_tokens ?? totalTokens;
+			const reasoningResult = appendReasoningContent(reasoningContentBuffer, parsedChunk);
+
+			if (reasoningResult.appended_length > 0) {
+				deepSeekGatewayLogger.info('deepseek.reasoning.isolated', {
+					length: reasoningResult.appended_length,
+					run_id: request.run_id,
+					trace_id: request.trace_id,
+				});
+			}
 
 			const firstChoice = parsedChunk.choices?.[0];
 			const delta = firstChoice?.delta;
 
 			if (typeof delta?.content === 'string' && delta.content.length > 0) {
-				outputText += delta.content;
+				const contentPartIndex = appendDeepSeekTextContentPart(orderedContentParts, delta.content);
 				yield {
-					content_part_index: 0,
+					content_part_index: contentPartIndex,
 					text_delta: delta.content,
 					type: 'text.delta',
 				};
@@ -697,6 +884,7 @@ export class DeepSeekGateway implements ModelGateway {
 				existingToolCall.tool_name = toolCall.function?.name ?? existingToolCall.tool_name;
 				existingToolCall.arguments_text += toolCall.function?.arguments ?? '';
 				toolCallsByIndex.set(toolCallIndex, existingToolCall);
+				upsertDeepSeekToolUseContentPart(orderedContentParts, toolCallIndex, toolCall);
 			}
 
 			finishReason = firstChoice?.finish_reason ?? finishReason;
@@ -706,6 +894,24 @@ export class DeepSeekGateway implements ModelGateway {
 			toolCallsByIndex,
 			preparedRequest.toolNameByAlias,
 		);
+		const streamingContent =
+			orderedContentParts.length > 0
+				? finalizeDeepSeekStreamingContent(orderedContentParts, preparedRequest.toolNameByAlias, {
+						run_id: request.run_id,
+						trace_id: request.trace_id,
+					})
+				: {
+						ordered_content: createOrderedContentFromTextAndToolCalls(
+							'',
+							getOrderedToolCallCandidates(
+								parsedToolCalls.tool_call_candidate,
+								parsedToolCalls.tool_call_candidates,
+							),
+							'wire_streaming',
+						),
+						output_text: '',
+					};
+		const internalReasoning = joinReasoningContent(reasoningContentBuffer);
 		const resolvedModel = responseModel ?? request.model ?? this.#config.defaultModel;
 
 		if (!resolvedModel) {
@@ -720,18 +926,24 @@ export class DeepSeekGateway implements ModelGateway {
 				finish_reason: mapDeepSeekFinishReason(finishReason),
 				message: {
 					content:
-						outputText.length > 0
-							? outputText
+						streamingContent.output_text.length > 0
+							? streamingContent.output_text
 							: parsedToolCalls.tool_call_candidate
 								? ''
-								: outputText,
-					ordered_content: createOrderedContentFromTextAndToolCalls(
-						outputText,
-						getOrderedToolCallCandidates(
-							parsedToolCalls.tool_call_candidate,
-							parsedToolCalls.tool_call_candidates,
-						),
-					),
+								: streamingContent.output_text,
+					fallthrough_detected: streamingContent.fallthrough_detected,
+					internal_reasoning: internalReasoning,
+					ordered_content:
+						streamingContent.ordered_content.length > 0
+							? streamingContent.ordered_content
+							: createOrderedContentFromTextAndToolCalls(
+									streamingContent.output_text,
+									getOrderedToolCallCandidates(
+										parsedToolCalls.tool_call_candidate,
+										parsedToolCalls.tool_call_candidates,
+									),
+									'wire_streaming',
+								),
 					role: 'assistant',
 				},
 				model: resolvedModel,

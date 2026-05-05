@@ -5,6 +5,7 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { describeAttachmentForTextPart } from './attachment-text.js';
@@ -125,6 +126,13 @@ type OpenAiMutableContentPart =
 const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
 const LOCAL_OPENAI_COMPAT_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
 const REMOTE_OPENAI_COMPAT_ENV = 'RUNA_OPENAI_COMPAT_ALLOW_REMOTE';
+
+export const openAiProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'temporal_stream',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'none',
+};
 
 function ensureTrailingSlash(value: string): string {
 	return value.endsWith('/') ? value : `${value}/`;
@@ -369,6 +377,7 @@ function createOpenAiOrderedContentFromResponse(
 		parts.push({
 			index,
 			kind: 'text',
+			ordering_origin: 'synthetic_non_streaming',
 			text: content,
 		});
 		index += 1;
@@ -390,6 +399,7 @@ function createOpenAiOrderedContentFromResponse(
 					? parseOpenAiToolInputForOrderedContent(toolCall.function.arguments)
 					: toolCall.function.arguments,
 			kind: 'tool_use',
+			ordering_origin: 'synthetic_non_streaming',
 			tool_call_id: toolCall.id,
 			tool_name: toolCall.function.name,
 		});
@@ -583,6 +593,7 @@ function finalizeOpenAiOrderedContent(
 						{
 							index: part.index,
 							kind: 'text',
+							ordering_origin: 'wire_streaming',
 							text: part.text,
 						},
 					]
@@ -598,6 +609,7 @@ function finalizeOpenAiOrderedContent(
 				index: part.index,
 				input: parseOpenAiToolInputForOrderedContent(part.arguments_text),
 				kind: 'tool_use',
+				ordering_origin: 'wire_streaming',
 				tool_call_id: part.call_id,
 				tool_name: part.tool_name,
 			},
@@ -606,6 +618,7 @@ function finalizeOpenAiOrderedContent(
 }
 
 export class OpenAiGateway implements ModelGateway {
+	readonly capabilities = openAiProviderCapabilities;
 	readonly provider = 'openai';
 	readonly #config: GatewayProviderConfig;
 
@@ -775,6 +788,7 @@ export class OpenAiGateway implements ModelGateway {
 				: createOrderedContentFromTextAndToolCalls(
 						outputText,
 						toolCallCandidate ? [toolCallCandidate] : [],
+						'wire_streaming',
 					);
 		const resolvedModel = responseModel ?? request.model ?? this.#config.defaultModel;
 

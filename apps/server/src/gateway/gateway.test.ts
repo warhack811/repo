@@ -5,7 +5,7 @@ import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.
 import { ClaudeGateway } from './claude-gateway.js';
 import { DeepSeekGateway } from './deepseek-gateway.js';
 import { GatewayConfigurationError, GatewayResponseError } from './errors.js';
-import { createModelGateway } from './factory.js';
+import { createModelGateway, getGatewayProviderCapabilities } from './factory.js';
 import { GeminiGateway } from './gemini-gateway.js';
 import { GroqGateway } from './groq-gateway.js';
 import { OpenAiGateway } from './openai-gateway.js';
@@ -593,6 +593,28 @@ describe('gateway factory', () => {
 		expect(typeof gateway.stream).toBe('function');
 	});
 
+	it('exposes provider-owned narration capability metadata', () => {
+		expect(getGatewayProviderCapabilities('claude')).toEqual({
+			emits_reasoning_content: false,
+			narration_strategy: 'native_blocks',
+			streaming_supported: true,
+			tool_call_fallthrough_risk: 'none',
+		});
+		expect(getGatewayProviderCapabilities('openai')).toMatchObject({
+			narration_strategy: 'temporal_stream',
+			tool_call_fallthrough_risk: 'none',
+		});
+		expect(getGatewayProviderCapabilities('deepseek')).toEqual({
+			emits_reasoning_content: true,
+			narration_strategy: 'temporal_stream',
+			streaming_supported: true,
+			tool_call_fallthrough_risk: 'known_intermittent',
+		});
+		expect(getGatewayProviderCapabilities('gemini').narration_strategy).toBe('unsupported');
+		expect(getGatewayProviderCapabilities('groq').narration_strategy).toBe('unsupported');
+		expect(getGatewayProviderCapabilities('sambanova').narration_strategy).toBe('unsupported');
+	});
+
 	it('throws a typed error when generate() is attempted without a usable api key', async () => {
 		const gateway = createModelGateway({
 			config: {
@@ -650,6 +672,7 @@ describe('DeepSeekGateway', () => {
 					{
 						index: 0,
 						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
 						text: 'Hello from DeepSeek',
 					},
 				],
@@ -694,6 +717,44 @@ describe('DeepSeekGateway', () => {
 		expect(requestBody.thinking?.type).toBe('enabled');
 		expect(requestBody.reasoning_effort).toBe('high');
 		expect(response.message.content).toBe('Reasoned answer');
+		expect(response.message.internal_reasoning).toBe('hidden internal reasoning');
+		expect(JSON.stringify(response.message.ordered_content)).not.toContain(
+			'hidden internal reasoning',
+		);
+	});
+
+	it('sends preserved DeepSeek reasoning content only on assistant messages', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Recovered answer',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_deepseek_reasoning_request',
+				model: 'deepseek-v4-pro',
+			}),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		await gateway.generate({
+			...deepSeekRequest,
+			messages: [
+				{ content: 'Previous action', internal_reasoning: 'hidden chain', role: 'assistant' },
+				{ content: 'Continue', role: 'user' },
+			],
+			model: 'deepseek-v4-pro',
+		});
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.messages).toEqual([
+			{ content: 'Previous action', reasoning_content: 'hidden chain', role: 'assistant' },
+			{ content: 'Continue', role: 'user' },
+		]);
 	});
 
 	it('includes available_tools, deterministic tool temperature, and tool call parsing', async () => {
@@ -776,6 +837,7 @@ describe('DeepSeekGateway', () => {
 								index: 0,
 								input: {},
 								kind: 'tool_use',
+								ordering_origin: 'wire_streaming',
 								tool_call_id: 'call_deepseek_screenshot',
 								tool_name: 'desktop.screenshot',
 							},
@@ -799,6 +861,142 @@ describe('DeepSeekGateway', () => {
 				type: 'response.completed',
 			},
 		]);
+	});
+
+	it('preserves DeepSeek streaming wire order across text, tool calls, and later text', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","content":"Checking time."},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_deepseek_time","type":"function","function":{"name":"file_read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"README.md\\"}"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"content":" Then I will summarize."},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+			}),
+		);
+
+		expect(chunks[0]).toEqual({
+			content_part_index: 0,
+			text_delta: 'Checking time.',
+			type: 'text.delta',
+		});
+		expect(chunks[1]).toEqual({
+			content_part_index: 2,
+			text_delta: ' Then I will summarize.',
+			type: 'text.delta',
+		});
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: 'Checking time. Then I will summarize.',
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text: 'Checking time.',
+						},
+						{
+							index: 1,
+							input: {
+								path: 'README.md',
+							},
+							kind: 'tool_use',
+							ordering_origin: 'wire_streaming',
+							tool_call_id: 'call_deepseek_time',
+							tool_name: 'file.read',
+						},
+						{
+							index: 2,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text: ' Then I will summarize.',
+						},
+					],
+				},
+			},
+			type: 'response.completed',
+		});
+	});
+
+	it('isolates DeepSeek streaming reasoning_content from ordered content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_reasoning_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","reasoning_content":"hidden "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_reasoning_stream","model":"deepseek-v4-pro","choices":[{"delta":{"reasoning_content":"trace","content":"Visible answer"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+		const completed = chunks.at(-1);
+
+		expect(completed).toMatchObject({
+			response: {
+				message: {
+					content: 'Visible answer',
+					internal_reasoning: 'hidden trace',
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text: 'Visible answer',
+						},
+					],
+				},
+			},
+		});
+		expect(JSON.stringify(completed)).not.toContain('reasoning_content');
+	});
+
+	it('drops DeepSeek streaming tool-call fallthrough text from ordered content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_fallthrough_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","content":"{\\"name\\":\\"file.read\\",\\"arguments\\":{\\"path\\":\\"README.md\\"}}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+
+		expect(chunks[0]).toEqual({
+			content_part_index: 0,
+			text_delta: '{"name":"file.read","arguments":{"path":"README.md"}}',
+			type: 'text.delta',
+		});
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: '',
+					fallthrough_detected: [
+						{
+							confidence: 'high',
+							suspected_tool_name: 'file.read',
+						},
+					],
+					ordered_content: [],
+				},
+			},
+			type: 'response.completed',
+		});
 	});
 
 	it('surfaces missing call id as a structured DeepSeek streaming tool call rejection', async () => {
@@ -949,6 +1147,7 @@ describe('DeepSeekGateway', () => {
 							{
 								index: 0,
 								kind: 'text',
+								ordering_origin: 'wire_streaming',
 								text: 'Hello from DeepSeek',
 							},
 						],
@@ -1031,6 +1230,7 @@ describe('SambaNovaGateway', () => {
 					{
 						index: 0,
 						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
 						text: 'Hello from SambaNova',
 					},
 				],
@@ -1374,6 +1574,7 @@ describe('SambaNovaGateway', () => {
 							{
 								index: 0,
 								kind: 'text',
+								ordering_origin: 'synthetic_non_streaming',
 								text: 'Hello from SambaNova',
 							},
 						],
@@ -1437,6 +1638,7 @@ describe('GroqGateway', () => {
 					{
 						index: 0,
 						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
 						text: 'Hello from Groq',
 					},
 				],
@@ -2033,6 +2235,7 @@ describe('GroqGateway', () => {
 						path: 'src/example.ts',
 					},
 					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
 					tool_call_id: 'call_groq_tool',
 					tool_name: 'file.read',
 				},
@@ -2101,6 +2304,7 @@ describe('GroqGateway', () => {
 				{
 					index: 0,
 					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
 					text: 'Calling tools',
 				},
 				{
@@ -2109,6 +2313,7 @@ describe('GroqGateway', () => {
 						path: 'src/example.ts',
 					},
 					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
 					tool_call_id: 'call_groq_multi_1',
 					tool_name: 'file.read',
 				},
@@ -2118,6 +2323,7 @@ describe('GroqGateway', () => {
 						path: 'docs/vision.md',
 					},
 					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
 					tool_call_id: 'call_groq_multi_2',
 					tool_name: 'file.read',
 				},
@@ -2249,6 +2455,7 @@ describe('GroqGateway', () => {
 				{
 					index: 0,
 					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
 					text: 'Calling file.read',
 				},
 				{
@@ -2257,6 +2464,7 @@ describe('GroqGateway', () => {
 						path: 'src/example.ts',
 					},
 					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
 					tool_call_id: 'call_groq_roundtrip',
 					tool_name: 'file.read',
 				},
@@ -2304,6 +2512,7 @@ describe('GroqGateway', () => {
 				{
 					index: 0,
 					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
 					text: 'No tool needed.',
 				},
 			],
@@ -2721,6 +2930,7 @@ describe('GroqGateway', () => {
 							{
 								index: 0,
 								kind: 'text',
+								ordering_origin: 'synthetic_non_streaming',
 								text: 'Hello from Groq',
 							},
 						],
@@ -2769,6 +2979,7 @@ describe('GroqGateway', () => {
 									path: 'src/example.ts',
 								},
 								kind: 'tool_use',
+								ordering_origin: 'synthetic_non_streaming',
 								tool_call_id: 'call_stream_groq_1',
 								tool_name: 'file.read',
 							},
@@ -2778,6 +2989,7 @@ describe('GroqGateway', () => {
 									path: 'docs/vision.md',
 								},
 								kind: 'tool_use',
+								ordering_origin: 'synthetic_non_streaming',
 								tool_call_id: 'call_stream_groq_2',
 								tool_name: 'file.read',
 							},
@@ -2937,6 +3149,7 @@ describe('ClaudeGateway', () => {
 					{
 						index: 0,
 						kind: 'text',
+						ordering_origin: 'native_blocks',
 						text: 'Hello from Claude',
 					},
 				],
@@ -3081,6 +3294,7 @@ describe('ClaudeGateway', () => {
 				{
 					index: 0,
 					kind: 'text',
+					ordering_origin: 'native_blocks',
 					text: 'Calling file.read',
 				},
 				{
@@ -3089,6 +3303,7 @@ describe('ClaudeGateway', () => {
 						path: 'src/example.ts',
 					},
 					kind: 'tool_use',
+					ordering_origin: 'native_blocks',
 					tool_call_id: 'toolu_123',
 					tool_name: 'file.read',
 				},
@@ -3142,6 +3357,7 @@ describe('ClaudeGateway', () => {
 			{
 				index: 0,
 				kind: 'text',
+				ordering_origin: 'native_blocks',
 				text: 'Checking the first file',
 			},
 			{
@@ -3150,12 +3366,14 @@ describe('ClaudeGateway', () => {
 					path: 'README.md',
 				},
 				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
 				tool_call_id: 'toolu_first',
 				tool_name: 'file.read',
 			},
 			{
 				index: 2,
 				kind: 'text',
+				ordering_origin: 'native_blocks',
 				text: 'Checking the second file',
 			},
 			{
@@ -3164,12 +3382,14 @@ describe('ClaudeGateway', () => {
 					path: 'docs/PROGRESS.md',
 				},
 				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
 				tool_call_id: 'toolu_second',
 				tool_name: 'file.read',
 			},
 			{
 				index: 4,
 				kind: 'text',
+				ordering_origin: 'native_blocks',
 				text: 'Done checking',
 			},
 		]);
@@ -3219,6 +3439,7 @@ describe('ClaudeGateway', () => {
 				{
 					index: 0,
 					kind: 'text',
+					ordering_origin: 'native_blocks',
 					text: 'Calling file.read',
 				},
 				{
@@ -3227,6 +3448,7 @@ describe('ClaudeGateway', () => {
 						path: 'src/example.ts',
 					},
 					kind: 'tool_use',
+					ordering_origin: 'native_blocks',
 					tool_call_id: 'toolu_roundtrip_123',
 					tool_name: 'file.read',
 				},
@@ -3266,6 +3488,7 @@ describe('ClaudeGateway', () => {
 				{
 					index: 0,
 					kind: 'text',
+					ordering_origin: 'native_blocks',
 					text: 'No tool needed.',
 				},
 			],
@@ -3505,6 +3728,7 @@ describe('ClaudeGateway', () => {
 							{
 								index: 0,
 								kind: 'text',
+								ordering_origin: 'native_blocks',
 								text: 'Hello from Claude',
 							},
 						],
@@ -3626,6 +3850,7 @@ describe('OpenAiGateway', () => {
 					{
 						index: 0,
 						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
 						text: 'Hello from OpenAI',
 					},
 				],
@@ -3695,6 +3920,7 @@ describe('OpenAiGateway', () => {
 					path: 'README.md',
 				},
 				kind: 'tool_use',
+				ordering_origin: 'synthetic_non_streaming',
 				tool_call_id: 'call_openai_tool',
 				tool_name: 'file.read',
 			},
@@ -3740,6 +3966,7 @@ describe('OpenAiGateway', () => {
 				{
 					index: 0,
 					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
 					text: 'Calling file.read',
 				},
 				{
@@ -3748,6 +3975,7 @@ describe('OpenAiGateway', () => {
 						path: 'README.md',
 					},
 					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
 					tool_call_id: 'call_openai_ordered_tool',
 					tool_name: 'file.read',
 				},
@@ -3965,6 +4193,7 @@ describe('OpenAiGateway', () => {
 							{
 								index: 0,
 								kind: 'text',
+								ordering_origin: 'wire_streaming',
 								text: 'Checking ',
 							},
 							{
@@ -3973,6 +4202,7 @@ describe('OpenAiGateway', () => {
 									path: 'README.md',
 								},
 								kind: 'tool_use',
+								ordering_origin: 'wire_streaming',
 								tool_call_id: 'call_openai_stream_order',
 								tool_name: 'file.read',
 							},
@@ -4037,12 +4267,14 @@ describe('OpenAiGateway', () => {
 									path: 'README.md',
 								},
 								kind: 'tool_use',
+								ordering_origin: 'wire_streaming',
 								tool_call_id: 'call_openai_stream_tool_before_text',
 								tool_name: 'file.read',
 							},
 							{
 								index: 1,
 								kind: 'text',
+								ordering_origin: 'wire_streaming',
 								text: 'Then summarize',
 							},
 						],
@@ -4108,6 +4340,7 @@ describe('OpenAiGateway', () => {
 							{
 								index: 0,
 								kind: 'text',
+								ordering_origin: 'wire_streaming',
 								text: 'Hello from OpenAI',
 							},
 						],
@@ -4237,6 +4470,7 @@ describe('GeminiGateway', () => {
 					{
 						index: 0,
 						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
 						text: 'Hello from Gemini',
 					},
 				],
@@ -4508,6 +4742,7 @@ describe('GeminiGateway', () => {
 							{
 								index: 0,
 								kind: 'text',
+								ordering_origin: 'synthetic_non_streaming',
 								text: 'Hello from Gemini',
 							},
 						],

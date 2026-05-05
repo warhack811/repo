@@ -5,6 +5,7 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { describeAttachmentForTextPart } from './attachment-text.js';
@@ -126,6 +127,13 @@ interface ClaudeStreamToolUseAccumulator {
 
 const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
+
+export const claudeProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'native_blocks',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'none',
+};
 
 function readBase64DataUrlPayload(dataUrl: string): {
 	readonly data: string;
@@ -340,6 +348,7 @@ function createClaudeOrderedContent(response: ClaudeMessagesResponse): readonly 
 			parts.push({
 				index,
 				kind: 'text',
+				ordering_origin: 'native_blocks',
 				text: block.text,
 			});
 			continue;
@@ -354,6 +363,7 @@ function createClaudeOrderedContent(response: ClaudeMessagesResponse): readonly 
 				index,
 				input: block.input,
 				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
 				tool_call_id: block.id,
 				tool_name: block.name,
 			});
@@ -537,6 +547,7 @@ function createClaudeStreamOrderedContent(
 			parts.push({
 				index,
 				kind: 'text',
+				ordering_origin: 'native_blocks',
 				text,
 			});
 			continue;
@@ -553,6 +564,7 @@ function createClaudeStreamOrderedContent(
 				index,
 				input: parseClaudeStreamToolInput(toolUse),
 				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
 				tool_call_id: toolUse.call_id,
 				tool_name: toolUse.tool_name,
 			});
@@ -563,6 +575,7 @@ function createClaudeStreamOrderedContent(
 }
 
 export class ClaudeGateway implements ModelGateway {
+	readonly capabilities = claudeProviderCapabilities;
 	readonly provider = 'claude';
 	readonly #config: GatewayProviderConfig;
 

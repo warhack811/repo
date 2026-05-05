@@ -541,6 +541,7 @@ describe('runAgentLoop', () => {
 			tool_call_repair_recovery: expect.any(Object),
 			tool_names: ['file.read'],
 			trace_id: 'trace_agent_loop_forwarded',
+			turn_index: 1,
 		});
 	});
 

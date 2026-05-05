@@ -68,6 +68,31 @@ const CREATE_RUNTIME_EVENTS_TRACE_ID_INDEX_SQL = `
 	ON runtime_events (trace_id);
 `;
 
+const CREATE_AGENT_REASONING_TRACES_TABLE_SQL = `
+	CREATE TABLE IF NOT EXISTS agent_reasoning_traces (
+		trace_record_id text PRIMARY KEY,
+		run_id text NOT NULL,
+		trace_id text NOT NULL,
+		turn_index integer NOT NULL,
+		provider text NOT NULL,
+		model text NOT NULL,
+		reasoning_content text NOT NULL,
+		created_at timestamptz NOT NULL,
+		expires_at timestamptz NOT NULL,
+		retention_policy text NOT NULL
+	);
+`;
+
+const CREATE_AGENT_REASONING_TRACES_RUN_ID_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS agent_reasoning_traces_run_id_idx
+	ON agent_reasoning_traces (run_id);
+`;
+
+const CREATE_AGENT_REASONING_TRACES_EXPIRES_AT_INDEX_SQL = `
+	CREATE INDEX IF NOT EXISTS agent_reasoning_traces_expires_at_idx
+	ON agent_reasoning_traces (expires_at);
+`;
+
 const CREATE_RUNS_TABLE_SQL = `
 	CREATE TABLE IF NOT EXISTS runs (
 		run_id text PRIMARY KEY,
@@ -625,6 +650,9 @@ export function getDatabaseSchemaBootstrapStatements(): readonly string[] {
 		ALTER_RUNTIME_EVENTS_ADD_WORKSPACE_ID_SQL,
 		CREATE_RUNTIME_EVENTS_RUN_ID_INDEX_SQL,
 		CREATE_RUNTIME_EVENTS_TRACE_ID_INDEX_SQL,
+		CREATE_AGENT_REASONING_TRACES_TABLE_SQL,
+		CREATE_AGENT_REASONING_TRACES_RUN_ID_INDEX_SQL,
+		CREATE_AGENT_REASONING_TRACES_EXPIRES_AT_INDEX_SQL,
 		CREATE_RUNS_TABLE_SQL,
 		ALTER_RUNS_ADD_CONVERSATION_ID_SQL,
 		ALTER_RUNS_ADD_TENANT_ID_SQL,

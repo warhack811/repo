@@ -4,6 +4,7 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { createLogger } from '../utils/logger.js';
@@ -22,6 +23,13 @@ import {
 	type ToolCallCandidateRejectionReason,
 	parseToolCallCandidatePartsDetailed,
 } from './tool-call-candidate.js';
+
+export const groqProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'unsupported',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'low',
+};
 
 interface GroqChatCompletionRequest {
 	readonly max_completion_tokens?: number;
@@ -679,6 +687,7 @@ function parseGroqToolCallAccumulator(
 }
 
 export class GroqGateway implements ModelGateway {
+	readonly capabilities = groqProviderCapabilities;
 	readonly provider = 'groq';
 	readonly #config: GatewayProviderConfig;
 

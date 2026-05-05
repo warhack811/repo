@@ -687,6 +687,7 @@ describe('run-model-turn-loop-adapter', () => {
 			tool_call_repair_recovery: expect.any(Object),
 			tool_names: ['file.read'],
 			trace_id: 'trace_loop_adapter_forwarded',
+			turn_index: 3,
 		});
 	});
 

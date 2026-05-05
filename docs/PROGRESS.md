@@ -42,6 +42,22 @@
   - Biome check degisen dosyalarda PASS
 - Faz 2 notu: capability flag'i ordered_content varligina degil, gateway'in native interleaved mi synthetic fallback mi urettiği bilgisine dayanacak. DeepSeek/Gemini/Groq/SambaNova synthetic text-first/tool-use sirasi urettigi icin narration emission bu provider'larda devre disi kalmali.
 
+### TASK-WORK-NARRATION-PHASE-2A - 5 Mayis 2026
+
+- Kapsam: Provider foundation kuruldu; henuz narration classifier, guardrail, WS narration emission veya frontend UI eklenmedi. DeepSeek streaming adapter'i `delta.content` ve `delta.tool_calls` SSE wire sirasini `ordered_content` icinde `ordering_origin: 'wire_streaming'` ile koruyor; non-streaming DeepSeek response'lari `synthetic_non_streaming` olarak isaretleniyor.
+- Spike: `apps/server/scripts/deepseek-wire-spike.mjs` eklendi ve dogrudan DeepSeek API ile 3 prompt calistirildi. Cikti `docs/spikes/deepseek-wire-order-2026-05-05T11-35-38-175Z.log` dosyasina yazildi; `.log` repo ignore kapsaminda. Sonuc: content chunk'lari tool_call chunk'larindan once geliyor, iki tool-call senaryosunda temporal SSE sirasi korunuyor, `deepseek-chat` modunda `reasoning_content` gorulmedi, fallthrough gorulmedi.
+- Capability matrix: Gateway adapter'lari kendi modul sabitleriyle `ProviderCapabilities` export ediyor. Claude `native_blocks`; OpenAI ve DeepSeek `temporal_stream`; Gemini/Groq/SambaNova `unsupported`. Factory bu capability'yi gateway instance'ina tasiyor ve `gateway.capability.loaded` log'u basiyor.
+- Reasoning isolation: `internal_reasoning` model response metadata'si olarak eklendi, DeepSeek `reasoning_content` ayri buffer'da tutuluyor ve `ordered_content`/WS public model request kontratlarina karismiyor. `RUNA_PERSIST_REASONING=1` acik degilse reasoning trace DB'ye yazilmiyor.
+- Persistence: `agent_reasoning_traces` tablosu, bootstrap SQL'i, Drizzle schema tipi, migration dosyasi ve `apps/server/src/persistence/reasoning-store.ts` eklendi. Varsayilan retention `debug_30d`, cleanup helper'i `expires_at` uzerinden calisiyor.
+- Fallthrough: DeepSeek raw JSON/function-call gorunumlu text ciktilarini yakalayan `fallthrough-detector` eklendi. Streaming finalize sirasinda tespit edilen part `ordered_content`ten dusuyor, `fallthrough_detected` metadata'si ve `deepseek.fallthrough.detected` warning log'u uretiliyor.
+- Dogrulama:
+  - `pnpm.cmd typecheck` PASS (`9` task)
+  - `pnpm.cmd --filter @runa/server test` PASS (`143` dosya / `1065` test)
+  - `pnpm.cmd exec vitest run src/schema.test.ts --passWithNoTests` PASS (`packages/db`, `1` dosya / `3` test)
+  - Scoped `pnpm.cmd exec biome check ...` PASS (`30` degisen dosya)
+  - Full `pnpm.cmd exec biome check` RED: task disi mevcut baseline devam ediyor (`.codex-temp/desktop-agent-live-smoke.mjs`, `apps/server/src/presentation/map-run-timeline.ts`, cok sayida `apps/web/src/components/chat/*.module.css` bos block/format diagnostigi).
+- Faz 2B riski: classifier kesinlikle `ordering_origin` ayrimini kullanmali; `synthetic_non_streaming` veya `unsupported` kaynaklardan narration emit edilmemeli. DeepSeek fallthrough sinyali runtime retry/drop politikasina tasinmali.
+
 ### TASK-TOOL-RESULT-PIPELINE - 3 Mayis 2026 (Dalga 1 + Dalga 2)
 
 - Kapsam: tool result feedback pipeline sertlestirildi. Continuation inline preview limiti `8192/16384` sabitlerine tasindi; kucuk tool sonuclari tam gorunur, buyuk sonuclar kontrollu truncate edilir. RunLayer kucuk basarili tool sonuclarinda `inline_output` tasiyor, buyuk sonuclarda `output_truncated:true` ile prompt sismesini engelliyor.

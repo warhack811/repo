@@ -28,8 +28,8 @@ export interface PersistenceDebugFailureInput {
 	readonly operation: string;
 	readonly run_id?: string;
 	readonly stage?: string;
-	readonly store: 'event-store' | 'memory-store' | 'run-store';
-	readonly table?: 'memories' | 'runs' | 'runtime_events' | 'tool_calls';
+	readonly store: 'event-store' | 'memory-store' | 'reasoning-store' | 'run-store';
+	readonly table?: 'agent_reasoning_traces' | 'memories' | 'runs' | 'runtime_events' | 'tool_calls';
 	readonly trace_id?: string;
 }
 

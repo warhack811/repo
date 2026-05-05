@@ -4,6 +4,7 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { describeAttachmentForTextPart } from './attachment-text.js';
@@ -17,6 +18,13 @@ import {
 	type ToolCallCandidateRejectionReason,
 	parseToolCallCandidatePartsDetailed,
 } from './tool-call-candidate.js';
+
+export const sambaNovaProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'unsupported',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'low',
+};
 
 type SambaNovaContentPart =
 	| {
@@ -411,6 +419,7 @@ function parseSambaNovaToolCallAccumulator(
 }
 
 export class SambaNovaGateway implements ModelGateway {
+	readonly capabilities = sambaNovaProviderCapabilities;
 	readonly provider = 'sambanova';
 	readonly #config: GatewayProviderConfig;
 

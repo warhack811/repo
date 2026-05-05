@@ -1,6 +1,6 @@
 import type { InspectionDetailLevel, InspectionTargetKind, RenderBlock } from './blocks.js';
 import type { RuntimeEvent } from './events.js';
-import type { ModelAttachment, ModelRequest } from './gateway.js';
+import type { ModelAttachment, ModelMessage, ModelRequest } from './gateway.js';
 import type { SupportedLocale } from './locale.js';
 import type { ApprovalDecisionKind, UsageLimitRejection } from './policy.js';
 import type { ToolArguments, ToolErrorCode } from './tools.js';
@@ -50,8 +50,14 @@ export interface GatewayProviderConfig {
 	readonly defaultModel?: string;
 }
 
-export type RunRequestModelRequest = Omit<ModelRequest, 'run_id' | 'trace_id'> &
-	Partial<Pick<ModelRequest, 'run_id' | 'trace_id'>>;
+export type PublicModelMessage = Omit<ModelMessage, 'internal_reasoning'>;
+
+export type PublicModelRequest = Omit<ModelRequest, 'messages'> & {
+	readonly messages: readonly PublicModelMessage[];
+};
+
+export type RunRequestModelRequest = Omit<PublicModelRequest, 'run_id' | 'trace_id'> &
+	Partial<Pick<PublicModelRequest, 'run_id' | 'trace_id'>>;
 
 export interface RunRequestPayload {
 	readonly approval_policy?: RunApprovalPolicy;

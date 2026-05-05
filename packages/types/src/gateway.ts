@@ -5,6 +5,7 @@ export type ModelMessageRole = 'system' | 'user' | 'assistant';
 export interface ModelMessage {
 	readonly role: ModelMessageRole;
 	readonly content: string;
+	readonly internal_reasoning?: string;
 }
 
 export const modelAttachmentKinds = ['image', 'text', 'document'] as const;
@@ -101,6 +102,15 @@ export interface ModelUsage {
 
 export type ModelFinishReason = 'stop' | 'max_tokens' | 'error';
 
+export type NarrationStrategy = 'native_blocks' | 'temporal_stream' | 'unsupported';
+
+export interface ProviderCapabilities {
+	readonly emits_reasoning_content: boolean;
+	readonly narration_strategy: NarrationStrategy;
+	readonly streaming_supported: boolean;
+	readonly tool_call_fallthrough_risk: 'known_intermittent' | 'low' | 'none';
+}
+
 export interface ModelToolCallCandidate<
 	TName extends ToolName = ToolName,
 	TArguments extends ToolArguments = ToolArguments,
@@ -110,24 +120,37 @@ export interface ModelToolCallCandidate<
 	readonly tool_name: TName;
 }
 
+export type ModelContentOrderingOrigin =
+	| 'native_blocks'
+	| 'synthetic_non_streaming'
+	| 'wire_streaming';
+
 export type ModelContentPart =
 	| {
 			readonly index: number;
 			readonly kind: 'text';
+			readonly ordering_origin: ModelContentOrderingOrigin;
 			readonly text: string;
 	  }
 	| {
 			readonly index: number;
 			readonly input: unknown;
 			readonly kind: 'tool_use';
+			readonly ordering_origin: ModelContentOrderingOrigin;
 			readonly tool_call_id: string;
 			readonly tool_name: string;
 	  };
+
+export interface ModelToolCallFallthroughSignal {
+	readonly confidence: 'high' | 'low' | 'medium';
+	readonly suspected_tool_name?: string;
+}
 
 export interface ModelResponse {
 	readonly provider: string;
 	readonly model: string;
 	readonly message: ModelMessage & {
+		readonly fallthrough_detected?: readonly ModelToolCallFallthroughSignal[];
 		readonly ordered_content?: readonly ModelContentPart[];
 		readonly role: 'assistant';
 	};
@@ -152,6 +175,7 @@ export interface ModelResponseCompletedChunk {
 export type ModelStreamChunk = ModelTextDeltaChunk | ModelResponseCompletedChunk;
 
 export interface ModelGateway {
+	readonly capabilities?: ProviderCapabilities;
 	generate(request: ModelRequest): Promise<ModelResponse>;
 	stream(request: ModelRequest): AsyncIterable<ModelStreamChunk>;
 }

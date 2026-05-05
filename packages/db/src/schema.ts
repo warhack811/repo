@@ -60,6 +60,26 @@ export const runtimeEventsTable = pgTable(
 	}),
 );
 
+export const agentReasoningTracesTable = pgTable(
+	'agent_reasoning_traces',
+	{
+		created_at: timestamp('created_at', { mode: 'string', withTimezone: true }).notNull(),
+		expires_at: timestamp('expires_at', { mode: 'string', withTimezone: true }).notNull(),
+		model: text('model').notNull(),
+		provider: text('provider').notNull(),
+		reasoning_content: text('reasoning_content').notNull(),
+		retention_policy: text('retention_policy').$type<'debug_30d' | 'permanent_audit'>().notNull(),
+		run_id: text('run_id').notNull(),
+		trace_id: text('trace_id').notNull(),
+		trace_record_id: text('trace_record_id').primaryKey(),
+		turn_index: integer('turn_index').notNull(),
+	},
+	(table) => ({
+		expiresAtIndex: index('agent_reasoning_traces_expires_at_idx').on(table.expires_at),
+		runIdIndex: index('agent_reasoning_traces_run_id_idx').on(table.run_id),
+	}),
+);
+
 export const runsTable = pgTable(
 	'runs',
 	{
