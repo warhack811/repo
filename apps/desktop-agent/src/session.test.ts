@@ -53,6 +53,31 @@ function createBridgeFactory(): {
 	};
 }
 
+function createFlakyReconnectBridgeFactory(): {
+	readonly bridgeFactory: DesktopAgentBridgeFactory;
+	readonly sockets: FakeDesktopBridgeSocket[];
+} {
+	const sockets: FakeDesktopBridgeSocket[] = [];
+	const bridgeFactory = vi.fn(async (): Promise<DesktopAgentBridgeSession> => {
+		if (bridgeFactory.mock.calls.length === 2) {
+			throw new Error('Server is still restarting.');
+		}
+
+		const socket = new FakeDesktopBridgeSocket();
+		sockets.push(socket);
+
+		return {
+			close: (code, reason) => socket.close(code, reason),
+			socket: socket as unknown as WebSocket,
+		};
+	});
+
+	return {
+		bridgeFactory,
+		sockets,
+	};
+}
+
 describe('DesktopAgentSessionRuntime', () => {
 	afterEach(() => {
 		vi.useRealTimers();
@@ -83,6 +108,41 @@ describe('DesktopAgentSessionRuntime', () => {
 		await vi.advanceTimersByTimeAsync(1500);
 		await vi.waitFor(() => {
 			expect(bridgeFactory).toHaveBeenCalledTimes(2);
+		});
+		expect(runtime.getSnapshot()).toMatchObject({
+			status: 'bridge_connected',
+		});
+	});
+
+	it('keeps retrying when the first reconnect attempt happens before the server is back', async () => {
+		vi.useFakeTimers();
+		const { bridgeFactory, sockets } = createFlakyReconnectBridgeFactory();
+		const runtime = createDesktopAgentSessionRuntime({
+			agent_id: 'agent-reconnect',
+			bridge_factory: bridgeFactory,
+			initial_session: createSession(),
+			machine_label: 'Reconnect Host',
+			server_url: 'ws://127.0.0.1:3000/ws/desktop-agent',
+		});
+
+		await expect(runtime.start()).resolves.toMatchObject({
+			status: 'bridge_connected',
+		});
+		expect(bridgeFactory).toHaveBeenCalledTimes(1);
+
+		sockets[0]?.close(1012, 'Server restarted.');
+		await vi.advanceTimersByTimeAsync(1500);
+		await vi.waitFor(() => {
+			expect(bridgeFactory).toHaveBeenCalledTimes(2);
+		});
+		expect(runtime.getSnapshot()).toMatchObject({
+			error_message: 'Server is still restarting.',
+			status: 'bridge_error',
+		});
+
+		await vi.advanceTimersByTimeAsync(1500);
+		await vi.waitFor(() => {
+			expect(bridgeFactory).toHaveBeenCalledTimes(3);
 		});
 		expect(runtime.getSnapshot()).toMatchObject({
 			status: 'bridge_connected',

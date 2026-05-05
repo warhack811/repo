@@ -4338,6 +4338,24 @@ async function waitForServerMessage(socket, guard) {
     socket.addEventListener("message", handleMessage);
   });
 }
+async function waitForSocketOpen(socket) {
+  return await new Promise((resolve, reject) => {
+    const cleanup = () => {
+      socket.removeEventListener("error", handleError);
+      socket.removeEventListener("open", handleOpen);
+    };
+    const handleOpen = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error("Desktop agent bridge failed to connect."));
+    };
+    socket.addEventListener("open", handleOpen, { once: true });
+    socket.addEventListener("error", handleError, { once: true });
+  });
+}
 async function handleExecuteMessage(socket, message, captureScreenshot) {
   try {
     switch (message.payload.tool_name) {
@@ -4463,15 +4481,17 @@ async function startDesktopAgentBridge(options) {
     socket,
     isDesktopAgentConnectionReadyServerMessage
   );
-  await new Promise((resolve, reject) => {
-    socket.addEventListener("open", () => resolve(), { once: true });
-    socket.addEventListener(
-      "error",
-      () => reject(new Error("Desktop agent bridge failed to connect.")),
-      { once: true }
-    );
-  });
-  await connectionReadyPromise;
+  let connectionReadyHandled = false;
+  try {
+    await waitForSocketOpen(socket);
+    await connectionReadyPromise;
+    connectionReadyHandled = true;
+  } finally {
+    if (!connectionReadyHandled) {
+      connectionReadyPromise.catch(() => {
+      });
+    }
+  }
   const sessionAcceptedPromise = waitForServerMessage(
     socket,
     isDesktopAgentSessionAcceptedServerMessage
@@ -4509,6 +4529,7 @@ async function startDesktopAgentBridge(options) {
 
 // src/session.ts
 var SESSION_EXPIRING_WINDOW_SECONDS = 90;
+var BRIDGE_RECONNECT_DELAY_MS = 1500;
 function createSignedOutSnapshot(config, reason, error_message) {
   return {
     agent_id: config.agent_id,
@@ -4611,6 +4632,7 @@ var DesktopAgentSessionRuntimeImpl = class {
   #bridgeCleanup;
   #bridgeSession;
   #operation;
+  #reconnectTimeout;
   #snapshot;
   constructor(options) {
     this.#options = {
@@ -4627,6 +4649,7 @@ var DesktopAgentSessionRuntimeImpl = class {
     this.#bridgeCleanup = null;
     this.#bridgeSession = null;
     this.#operation = Promise.resolve();
+    this.#reconnectTimeout = null;
     this.#snapshot = createSignedOutSnapshot(
       this.#options,
       options.initial_session ? "stopped" : "missing_session"
@@ -4637,6 +4660,7 @@ var DesktopAgentSessionRuntimeImpl = class {
   }
   start() {
     return this.#enqueue(async () => {
+      this.#clearReconnectTimeout();
       if (this.#bridgeSession && this.#snapshot.status === "bridge_connected") {
         return this.getSnapshot();
       }
@@ -4669,12 +4693,14 @@ var DesktopAgentSessionRuntimeImpl = class {
             resolveRuntimeErrorMessage(error, "Desktop bridge connection failed.")
           )
         );
+        this.#scheduleReconnect(resolvedSession);
       }
       return this.getSnapshot();
     });
   }
   stop() {
     return this.#enqueue(async () => {
+      this.#clearReconnectTimeout();
       this.#closeBridgeSession(1e3, "Desktop runtime stopped.");
       if (this.#activeSession) {
         this.#setSnapshot(createSignedInSnapshot(this.#options, this.#activeSession));
@@ -4687,6 +4713,7 @@ var DesktopAgentSessionRuntimeImpl = class {
   setSession(session2) {
     return this.#enqueue(async () => {
       const normalizedSession = normalizeDesktopAgentPersistedSession(session2);
+      this.#clearReconnectTimeout();
       this.#closeBridgeSession(1e3, "Desktop runtime session updated.");
       await this.#options.session_storage.save(normalizedSession);
       this.#activeSession = cloneSession(normalizedSession);
@@ -4697,6 +4724,7 @@ var DesktopAgentSessionRuntimeImpl = class {
   }
   signOut() {
     return this.#enqueue(async () => {
+      this.#clearReconnectTimeout();
       await this.stop();
       await this.#options.session_storage.clear();
       this.#activeSession = null;
@@ -4774,6 +4802,7 @@ var DesktopAgentSessionRuntimeImpl = class {
           event.reason || `Desktop bridge closed with code ${String(event.code)}.`
         )
       );
+      this.#scheduleReconnect(session2);
     };
     const handleError = () => {
       if (this.#bridgeSession !== bridgeSession) {
@@ -4784,6 +4813,7 @@ var DesktopAgentSessionRuntimeImpl = class {
       this.#setSnapshot(
         createBridgeErrorSnapshot(this.#options, session2, "Desktop bridge socket error.")
       );
+      this.#scheduleReconnect(session2);
     };
     bridgeSession.socket.addEventListener("close", handleClose);
     bridgeSession.socket.addEventListener("error", handleError);
@@ -4805,6 +4835,13 @@ var DesktopAgentSessionRuntimeImpl = class {
     this.#bridgeCleanup?.();
     this.#bridgeCleanup = null;
   }
+  #clearReconnectTimeout() {
+    if (this.#reconnectTimeout === null) {
+      return;
+    }
+    clearTimeout(this.#reconnectTimeout);
+    this.#reconnectTimeout = null;
+  }
   #enqueue(operation) {
     const runOperation = this.#operation.then(operation, operation);
     this.#operation = runOperation.then(
@@ -4812,6 +4849,20 @@ var DesktopAgentSessionRuntimeImpl = class {
       () => void 0
     );
     return runOperation;
+  }
+  #scheduleReconnect(session2) {
+    if (this.#reconnectTimeout !== null || this.#activeSession === null) {
+      return;
+    }
+    const reconnectSession = cloneSession(session2);
+    this.#reconnectTimeout = setTimeout(() => {
+      this.#reconnectTimeout = null;
+      if (this.#activeSession === null) {
+        return;
+      }
+      this.#bootstrapSession = reconnectSession;
+      void this.start();
+    }, BRIDGE_RECONNECT_DELAY_MS);
   }
   #setSnapshot(snapshot) {
     this.#snapshot = cloneSnapshot(snapshot);
