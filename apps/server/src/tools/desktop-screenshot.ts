@@ -269,6 +269,7 @@ export function createDesktopScreenshotTool(
 		},
 		metadata: {
 			capability_class: 'desktop',
+			narration_policy: 'optional',
 			requires_approval: true,
 			risk_level: 'high',
 			side_effect_level: 'read',

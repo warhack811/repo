@@ -206,6 +206,7 @@ export function createMemorySearchTool(
 		},
 		metadata: {
 			capability_class: 'memory',
+			narration_policy: 'none',
 			requires_approval: false,
 			risk_level: 'low',
 			side_effect_level: 'read',

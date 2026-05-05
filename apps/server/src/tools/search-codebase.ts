@@ -672,6 +672,7 @@ export function createSearchCodebaseTool(
 		},
 		metadata: {
 			capability_class: 'search',
+			narration_policy: 'optional',
 			requires_approval: false,
 			risk_level: 'low',
 			side_effect_level: 'read',

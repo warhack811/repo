@@ -1,6 +1,7 @@
 import type { InspectionDetailLevel, InspectionTargetKind, RenderBlock } from './blocks.js';
 import type { RuntimeEvent } from './events.js';
 import type { ModelAttachment, ModelRequest } from './gateway.js';
+import type { SupportedLocale } from './locale.js';
 import type { ApprovalDecisionKind, UsageLimitRejection } from './policy.js';
 import type { ToolArguments, ToolErrorCode } from './tools.js';
 
@@ -220,6 +221,39 @@ export interface TextDeltaDiscardServerMessage {
 	readonly type: 'text.delta.discard';
 }
 
+export interface NarrationDeltaServerMessage {
+	readonly payload: {
+		readonly locale: SupportedLocale;
+		readonly narration_id: string;
+		readonly run_id: string;
+		readonly sequence_no: number;
+		readonly text_delta: string;
+		readonly trace_id: string;
+		readonly turn_index: number;
+	};
+	readonly type: 'narration.delta';
+}
+
+export interface NarrationCompletedServerMessage {
+	readonly payload: {
+		readonly full_text: string;
+		readonly narration_id: string;
+		readonly run_id: string;
+		readonly trace_id: string;
+		readonly linked_tool_call_id?: string;
+	};
+	readonly type: 'narration.completed';
+}
+
+export interface NarrationSupersededServerMessage {
+	readonly payload: {
+		readonly narration_id: string;
+		readonly run_id: string;
+		readonly trace_id: string;
+	};
+	readonly type: 'narration.superseded';
+}
+
 export interface RunRejectedServerMessage {
 	readonly payload: {
 		readonly error_code?: TransportErrorCode;
@@ -313,6 +347,9 @@ export type WebSocketServerMessage =
 	| RuntimeEventServerMessage
 	| TextDeltaServerMessage
 	| TextDeltaDiscardServerMessage
+	| NarrationDeltaServerMessage
+	| NarrationCompletedServerMessage
+	| NarrationSupersededServerMessage
 	| RunRejectedServerMessage
 	| RunFinishedServerMessage;
 

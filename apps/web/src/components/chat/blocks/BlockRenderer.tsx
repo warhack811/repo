@@ -135,6 +135,8 @@ export function BlockRenderer({
 			);
 		case 'tool_result':
 			return <ToolResultBlock block={block} isDeveloperMode={isDeveloperMode} />;
+		case 'work_narration':
+			return null;
 		default:
 			return renderImpossibleBlock(block);
 	}

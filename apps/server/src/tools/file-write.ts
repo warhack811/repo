@@ -332,6 +332,7 @@ export function createFileWriteTool(
 		},
 		metadata: {
 			capability_class: 'file_system',
+			narration_policy: 'required',
 			requires_approval: true,
 			risk_level: 'medium',
 			side_effect_level: 'write',

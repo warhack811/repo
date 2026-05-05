@@ -5,6 +5,16 @@ import type {
 	EventSource,
 	ModelCompletedEvent,
 	ModelCompletedEventPayload,
+	NarrationCompletedEvent,
+	NarrationCompletedEventPayload,
+	NarrationStartedEvent,
+	NarrationStartedEventPayload,
+	NarrationSupersededEvent,
+	NarrationSupersededEventPayload,
+	NarrationTokenEvent,
+	NarrationTokenEventPayload,
+	NarrationToolOutcomeLinkedEvent,
+	NarrationToolOutcomeLinkedEventPayload,
 	RunCompletedEvent,
 	RunCompletedEventPayload,
 	RunFailedEvent,
@@ -29,6 +39,23 @@ interface RuntimeEventContext {
 }
 
 const EVENT_VERSION = 1;
+
+type NarrationStartedEventInput = Omit<NarrationStartedEventPayload, 'run_id' | 'timestamp'>;
+
+type NarrationTokenEventInput = Omit<NarrationTokenEventPayload, 'run_id' | 'timestamp'>;
+
+type NarrationCompletedEventInput = Omit<NarrationCompletedEventPayload, 'run_id' | 'timestamp'>;
+
+type NarrationSupersededEventInput = Omit<NarrationSupersededEventPayload, 'run_id' | 'timestamp'>;
+
+type NarrationToolOutcomeLinkedEventInput = Omit<
+	NarrationToolOutcomeLinkedEventPayload,
+	'run_id' | 'timestamp'
+>;
+
+function getEventTimestamp(context: RuntimeEventContext): string {
+	return context.timestamp ?? new Date().toISOString();
+}
 
 function buildEventBase(
 	context: RuntimeEventContext,
@@ -124,5 +151,95 @@ export function buildRunFailedEvent(
 		payload,
 		state_after: context.state_after,
 		state_before: context.state_before,
+	};
+}
+
+export function buildNarrationStartedEvent(
+	payload: NarrationStartedEventInput,
+	context: RuntimeEventContext,
+): NarrationStartedEvent {
+	const timestamp = getEventTimestamp(context);
+
+	return {
+		...buildEventBase({ ...context, timestamp }),
+		event_id: `${context.run_id}:narration.started:${payload.narration_id}:${context.sequence_no}`,
+		event_type: 'narration.started',
+		payload: {
+			...payload,
+			run_id: context.run_id,
+			timestamp,
+		},
+	};
+}
+
+export function buildNarrationTokenEvent(
+	payload: NarrationTokenEventInput,
+	context: RuntimeEventContext,
+): NarrationTokenEvent {
+	const timestamp = getEventTimestamp(context);
+
+	return {
+		...buildEventBase({ ...context, timestamp }),
+		event_id: `${context.run_id}:narration.token:${payload.narration_id}:${context.sequence_no}`,
+		event_type: 'narration.token',
+		payload: {
+			...payload,
+			run_id: context.run_id,
+			timestamp,
+		},
+	};
+}
+
+export function buildNarrationCompletedEvent(
+	payload: NarrationCompletedEventInput,
+	context: RuntimeEventContext,
+): NarrationCompletedEvent {
+	const timestamp = getEventTimestamp(context);
+
+	return {
+		...buildEventBase({ ...context, timestamp }),
+		event_id: `${context.run_id}:narration.completed:${payload.narration_id}:${context.sequence_no}`,
+		event_type: 'narration.completed',
+		payload: {
+			...payload,
+			run_id: context.run_id,
+			timestamp,
+		},
+	};
+}
+
+export function buildNarrationSupersededEvent(
+	payload: NarrationSupersededEventInput,
+	context: RuntimeEventContext,
+): NarrationSupersededEvent {
+	const timestamp = getEventTimestamp(context);
+
+	return {
+		...buildEventBase({ ...context, timestamp }),
+		event_id: `${context.run_id}:narration.superseded:${payload.narration_id}:${context.sequence_no}`,
+		event_type: 'narration.superseded',
+		payload: {
+			...payload,
+			run_id: context.run_id,
+			timestamp,
+		},
+	};
+}
+
+export function buildNarrationToolOutcomeLinkedEvent(
+	payload: NarrationToolOutcomeLinkedEventInput,
+	context: RuntimeEventContext,
+): NarrationToolOutcomeLinkedEvent {
+	const timestamp = getEventTimestamp(context);
+
+	return {
+		...buildEventBase({ ...context, timestamp }),
+		event_id: `${context.run_id}:narration.tool_outcome_linked:${payload.narration_id}:${context.sequence_no}`,
+		event_type: 'narration.tool_outcome_linked',
+		payload: {
+			...payload,
+			run_id: context.run_id,
+			timestamp,
+		},
 	};
 }

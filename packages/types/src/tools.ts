@@ -55,6 +55,8 @@ export type ToolRiskLevel = 'low' | 'medium' | 'high';
 
 export type ToolSideEffectLevel = 'none' | 'read' | 'write' | 'execute';
 
+export type ToolNarrationPolicy = 'none' | 'optional' | 'required';
+
 export type ToolCapabilityClass =
 	| 'agent'
 	| 'browser'
@@ -175,6 +177,7 @@ export interface ToolExecutionContext {
 
 export interface ToolMetadata {
 	readonly capability_class: ToolCapabilityClass;
+	readonly narration_policy?: ToolNarrationPolicy;
 	readonly requires_approval: boolean;
 	readonly risk_level: ToolRiskLevel;
 	readonly side_effect_level: ToolSideEffectLevel;

@@ -26,6 +26,22 @@
   - `pnpm.cmd test` RED: task disi web visual-discipline baseline kirmizisi devam ediyor (`apps/web/src/pages/VisualDiscipline.test.tsx`; `BlockRenderer.module.css:462/469/474`, `WorkInsightPanel.module.css:44/63/154`).
 - Kapsam disi: narration domain event'leri, work_narration block tipi, system prompt kurallari, frontend narration UI, persistence/replay ve provider feature flag'leri Faz 1+ icin birakildi.
 
+### TASK-WORK-NARRATION-PHASE-1 - 5 Mayis 2026
+
+- Kapsam: work narration domain kontrati eklendi. `RenderBlock` union'i `work_narration` tipiyle genisletildi; locale kontrati `SupportedLocale = 'en' | 'tr'` olarak shared types'a tasindi. Bu fazda classifier, prompt degisikligi, runtime emission veya frontend narration UI eklenmedi.
+- Runtime events: `narration.started`, `narration.token`, `narration.completed`, `narration.superseded` ve `narration.tool_outcome_linked` payload tipleri ile builder fonksiyonlari eklendi. Payload'lar `narration_id`, `run_id`, `turn_index`, `sequence_no`, `timestamp` ve gerekli text/tool outcome alanlarini tasiyor.
+- WS contract: `narration.delta`, `narration.completed` ve `narration.superseded` server message tipleri ile guard fonksiyonlari eklendi. Bu mesajlar `text.delta` final-answer stream'inden ayri kontrat olarak duruyor; henuz emit edilmiyor.
+- Tool metadata: built-in tool'lara explicit `narration_policy` islendi. `memory.list` ve `memory.search` trivial okuma/arama olarak `none`; dosya yazma, shell, edit ve host/browser input gibi riskli yan etkili araclar `required`; diger okuma/arama araclari `optional` olarak etiketlendi.
+- Exhaustiveness: mevcut frontend block renderer `work_narration` bloklarini Faz 4'e kadar sessizce `null` donerek ignore edecek sekilde additive korundu; kullanici UI davranisi degismedi.
+- Pre-Faz-1 sanity: Faz 0 oncesi web test baseline'i ayni VisualDiscipline kirmizisiydi, regression degil. Eksik ordered_content edge testleri ayri test-only commit ile eklendi: Claude 5-part interleave ve OpenAI streaming tool-before-text sirasi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/server test -- gateway` PASS (`5` dosya / `123` test) - pre-Faz-1 test-only ekleme
+  - `pnpm.cmd typecheck` PASS (`9` task)
+  - `pnpm.cmd --filter @runa/server test -- runtime-events registry ws-guards work-narration-contracts` PASS (`6` dosya / `21` test)
+  - `pnpm.cmd --filter @runa/server test` PASS (`140` dosya / `1038` test)
+  - Biome check degisen dosyalarda PASS
+- Faz 2 notu: capability flag'i ordered_content varligina degil, gateway'in native interleaved mi synthetic fallback mi urettiği bilgisine dayanacak. DeepSeek/Gemini/Groq/SambaNova synthetic text-first/tool-use sirasi urettigi icin narration emission bu provider'larda devre disi kalmali.
+
 ### TASK-TOOL-RESULT-PIPELINE - 3 Mayis 2026 (Dalga 1 + Dalga 2)
 
 - Kapsam: tool result feedback pipeline sertlestirildi. Continuation inline preview limiti `8192/16384` sabitlerine tasindi; kucuk tool sonuclari tam gorunur, buyuk sonuclar kontrollu truncate edilir. RunLayer kucuk basarili tool sonuclarinda `inline_output` tasiyor, buyuk sonuclarda `output_truncated:true` ile prompt sismesini engelliyor.

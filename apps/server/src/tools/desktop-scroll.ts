@@ -423,6 +423,7 @@ export function createDesktopScrollTool(
 		},
 		metadata: {
 			capability_class: 'desktop',
+			narration_policy: 'required',
 			requires_approval: true,
 			risk_level: 'high',
 			side_effect_level: 'execute',

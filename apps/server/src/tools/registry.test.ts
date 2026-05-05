@@ -119,6 +119,24 @@ describe('ToolRegistry', () => {
 		expect(registry.listNames()).toContain('memory.search');
 	});
 
+	it('declares an explicit narration policy for every built-in tool', () => {
+		const registry = createBuiltInToolRegistry();
+		const policiesByToolName = new Map(
+			registry.list().map((entry) => [entry.name, entry.metadata.narration_policy] as const),
+		);
+
+		expect(registry.list().every((entry) => entry.metadata.narration_policy !== undefined)).toBe(
+			true,
+		);
+		expect(policiesByToolName.get('memory.list')).toBe('none');
+		expect(policiesByToolName.get('memory.search')).toBe('none');
+		expect(policiesByToolName.get('file.write')).toBe('required');
+		expect(policiesByToolName.get('shell.exec')).toBe('required');
+		expect(policiesByToolName.get('edit.patch')).toBe('required');
+		expect(policiesByToolName.get('file.read')).toBe('optional');
+		expect(policiesByToolName.get('search.codebase')).toBe('optional');
+	});
+
 	it('keeps built-in names authoritative when another tool tries to reuse them', () => {
 		const registry = createBuiltInToolRegistry();
 		const conflictingTool = createFakeTool('file.read');

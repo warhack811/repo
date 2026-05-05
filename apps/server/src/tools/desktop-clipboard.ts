@@ -317,6 +317,7 @@ export function createDesktopClipboardReadTool(): ToolDefinition<
 		},
 		metadata: {
 			capability_class: 'desktop',
+			narration_policy: 'optional',
 			requires_approval: true,
 			risk_level: 'high',
 			side_effect_level: 'read',
@@ -386,6 +387,7 @@ export function createDesktopClipboardWriteTool(): ToolDefinition<
 		},
 		metadata: {
 			capability_class: 'desktop',
+			narration_policy: 'required',
 			requires_approval: true,
 			risk_level: 'high',
 			side_effect_level: 'write',
