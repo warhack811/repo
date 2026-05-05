@@ -81,7 +81,10 @@ export function useConversationBackedChatRuntime(
 
 			return {
 				...current,
-				presentationRunSurfaces: activeConversationRunSurfaces,
+				presentationRunSurfaces: activeConversationRunSurfaces.map((surface) => ({
+					...surface,
+					replayMode: true,
+				})),
 			};
 		});
 	}, [activeConversationRunSurfaces, store]);

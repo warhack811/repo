@@ -22,6 +22,7 @@ import {
 	ToolResultBlock,
 	TraceDebugBlock,
 	WebSearchResultBlock,
+	WorkNarrationBlock,
 	WorkspaceInspectionBlock,
 } from './index.js';
 import type { GetInspectionActionState } from './index.js';
@@ -34,6 +35,7 @@ export type BlockRendererProps = Readonly<{
 	onRequestInspection?: (targetKind: InspectionTargetKind, targetId?: string) => void;
 	onResolveApproval?: (approvalId: string, decision: ApprovalResolveDecision) => void;
 	presentationCorrelationLabel?: string | null;
+	replayMode?: boolean;
 	getInspectionActionState?: GetInspectionActionState;
 	renderInspectionDetailBlock?: (block: InspectionDetailRenderBlock) => ReactElement;
 }>;
@@ -54,6 +56,7 @@ export function BlockRenderer({
 	onRequestInspection,
 	onResolveApproval,
 	presentationCorrelationLabel,
+	replayMode = false,
 	renderInspectionDetailBlock,
 }: BlockRendererProps): ReactElement | null {
 	switch (block.type) {
@@ -136,7 +139,7 @@ export function BlockRenderer({
 		case 'tool_result':
 			return <ToolResultBlock block={block} isDeveloperMode={isDeveloperMode} />;
 		case 'work_narration':
-			return null;
+			return <WorkNarrationBlock block={block} replayMode={replayMode} />;
 		default:
 			return renderImpossibleBlock(block);
 	}

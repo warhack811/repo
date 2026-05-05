@@ -9,6 +9,10 @@ import {
 	createInspectionRequestIdentity,
 } from '../lib/chat-runtime/inspection-relations.js';
 import {
+	type LiveNarrationUpdate,
+	deriveLiveNarrationCompletedUpdate,
+	deriveLiveNarrationDeltaUpdate,
+	deriveLiveNarrationSupersededUpdate,
 	derivePresentationBlocksUpdate,
 	derivePresentationSurfaceState,
 	findPresentationRunSurface,
@@ -591,6 +595,18 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			}));
 		}
 
+		function commitLiveNarrationUpdate(nextNarrationUpdate: LiveNarrationUpdate): void {
+			commitExpandedPastRunIds(nextNarrationUpdate.expandedPastRunIds);
+			expectedPresentationRunIdsRef.current = new Set(nextNarrationUpdate.expectedRunIds);
+			presentationRunIdRef.current = nextNarrationUpdate.presentationRunId;
+			presentationRunSurfacesRef.current = nextNarrationUpdate.presentationRunSurfaces;
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				presentationRunId: nextNarrationUpdate.presentationRunId,
+				presentationRunSurfaces: nextNarrationUpdate.presentationRunSurfaces,
+			}));
+		}
+
 		function scheduleReconnect(
 			message?: string,
 			transportErrorCode: TransportErrorCode = 'ws-disconnect',
@@ -793,6 +809,51 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 										scrollToPresentationBlock(latestDetailBlockId);
 									}
 								});
+							}
+
+							return;
+						}
+
+						if (parsedMessage.type === 'narration.delta') {
+							const nextNarrationUpdate = deriveLiveNarrationDeltaUpdate(parsedMessage, {
+								expandedPastRunIds: expandedPastRunIdsRef.current,
+								expectedRunIds: expectedPresentationRunIdsRef.current,
+								presentationRunId: presentationRunIdRef.current,
+								presentationRunSurfaces: presentationRunSurfacesRef.current,
+							});
+
+							if (nextNarrationUpdate) {
+								commitLiveNarrationUpdate(nextNarrationUpdate);
+							}
+
+							return;
+						}
+
+						if (parsedMessage.type === 'narration.completed') {
+							const nextNarrationUpdate = deriveLiveNarrationCompletedUpdate(parsedMessage, {
+								expandedPastRunIds: expandedPastRunIdsRef.current,
+								expectedRunIds: expectedPresentationRunIdsRef.current,
+								presentationRunId: presentationRunIdRef.current,
+								presentationRunSurfaces: presentationRunSurfacesRef.current,
+							});
+
+							if (nextNarrationUpdate) {
+								commitLiveNarrationUpdate(nextNarrationUpdate);
+							}
+
+							return;
+						}
+
+						if (parsedMessage.type === 'narration.superseded') {
+							const nextNarrationUpdate = deriveLiveNarrationSupersededUpdate(parsedMessage, {
+								expandedPastRunIds: expandedPastRunIdsRef.current,
+								expectedRunIds: expectedPresentationRunIdsRef.current,
+								presentationRunId: presentationRunIdRef.current,
+								presentationRunSurfaces: presentationRunSurfacesRef.current,
+							});
+
+							if (nextNarrationUpdate) {
+								commitLiveNarrationUpdate(nextNarrationUpdate);
 							}
 
 							return;

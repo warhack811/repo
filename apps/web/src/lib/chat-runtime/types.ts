@@ -14,6 +14,7 @@ export type InspectionDetailRenderBlock = Extract<RenderBlock, { type: 'inspecti
 
 export interface PresentationRunSurface {
 	readonly blocks: readonly RenderBlock[];
+	readonly replayMode?: boolean;
 	readonly run_id: string;
 	readonly trace_id: string;
 }

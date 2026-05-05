@@ -253,6 +253,21 @@ const sampleBlocks: readonly RenderBlock[] = [
 		schema_version: 1,
 		type: 'tool_result',
 	},
+	{
+		created_at: createdAt,
+		id: 'work-narration:block',
+		payload: {
+			locale: 'tr',
+			run_id: 'run_renderer',
+			sequence_no: 7,
+			status: 'completed',
+			text: 'package.json dosyasını kontrol ediyorum.',
+			turn_index: 1,
+			linked_tool_call_id: 'call_renderer',
+		},
+		schema_version: 1,
+		type: 'work_narration',
+	},
 ];
 
 describe('BlockRenderer', () => {
@@ -322,6 +337,33 @@ describe('BlockRenderer', () => {
 		expect(markup).not.toContain('Object{ok}');
 		expect(developerMarkup).toContain('file.read');
 		expect(developerMarkup).toContain('call_renderer');
+	});
+
+	it('renders work narration without exposing technical identifiers', () => {
+		const narrationBlock = sampleBlocks.find((block) => block.type === 'work_narration');
+
+		if (!narrationBlock || narrationBlock.type !== 'work_narration') {
+			throw new Error('Expected work narration fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={narrationBlock} replayMode />);
+
+		expect(markup).toContain('package.json dosyasını kontrol ediyorum.');
+		expect(markup).toContain('_replay_');
+		expect(markup).not.toContain('run_renderer');
+		expect(markup).not.toContain('call_renderer');
+		expect(markup).not.toContain('work-narration:block');
+
+		const supersededMarkup = renderToStaticMarkup(
+			<BlockRenderer
+				block={{
+					...narrationBlock,
+					payload: { ...narrationBlock.payload, status: 'superseded' },
+				}}
+			/>,
+		);
+
+		expect(supersededMarkup).toBe('');
 	});
 
 	it('renders code copy affordance and collapsed diff affordance', () => {

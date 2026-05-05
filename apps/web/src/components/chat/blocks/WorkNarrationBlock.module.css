@@ -1,0 +1,67 @@
+.narration {
+	display: grid;
+	grid-template-columns: 14px minmax(0, 1fr);
+	gap: 8px;
+	align-items: start;
+	max-width: min(680px, 100%);
+	margin: 2px 0;
+	padding: 4px 0 4px 10px;
+	border-left: 1px solid rgba(148, 163, 184, 0.28);
+	color: hsl(var(--color-text-muted));
+	font-size: 13px;
+	line-height: 1.55;
+	overflow-wrap: anywhere;
+}
+
+.streaming {
+	color: hsl(var(--color-text-muted));
+}
+
+.completed {
+	color: hsl(var(--color-text-muted));
+}
+
+.replay {
+	color: hsl(var(--color-text-soft));
+	opacity: 0.72;
+}
+
+.toolFailed {
+	border-left-color: rgba(245, 158, 11, 0.42);
+	color: hsl(var(--color-text-soft));
+}
+
+.toolFailed .text {
+	text-decoration: line-through;
+	text-decoration-color: rgba(245, 158, 11, 0.48);
+	text-decoration-thickness: 1px;
+}
+
+.icon {
+	width: 14px;
+	height: 14px;
+	margin-top: 3px;
+	color: currentColor;
+	opacity: 0.76;
+}
+
+.spinner {
+	animation: runa-work-narration-spin 900ms linear infinite;
+}
+
+.text {
+	min-width: 0;
+	white-space: pre-wrap;
+}
+
+@keyframes runa-work-narration-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.spinner {
+		animation: none;
+	}
+}

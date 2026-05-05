@@ -1,4 +1,10 @@
-import type { PresentationBlocksServerMessage, RenderBlock } from '../../ws-types.js';
+import type {
+	NarrationCompletedServerMessage,
+	NarrationDeltaServerMessage,
+	NarrationSupersededServerMessage,
+	PresentationBlocksServerMessage,
+	RenderBlock,
+} from '../../ws-types.js';
 import {
 	getInspectionDetailBlockRunId,
 	getInspectionDetailRequestKeyFromBlock,
@@ -35,6 +41,20 @@ export interface PresentationBlocksUpdate {
 	readonly presentationRunId: string | null;
 	readonly presentationRunSurfaces: readonly PresentationRunSurface[];
 	readonly staleInspectionRequestKeys: ReadonlySet<string>;
+}
+
+export interface LiveNarrationUpdateInput {
+	readonly expandedPastRunIds: ReadonlySet<string>;
+	readonly expectedRunIds: ReadonlySet<string>;
+	readonly presentationRunId: string | null;
+	readonly presentationRunSurfaces: readonly PresentationRunSurface[];
+}
+
+export interface LiveNarrationUpdate {
+	readonly expandedPastRunIds: ReadonlySet<string>;
+	readonly expectedRunIds: ReadonlySet<string>;
+	readonly presentationRunId: string | null;
+	readonly presentationRunSurfaces: readonly PresentationRunSurface[];
 }
 
 export interface PresentationSurfaceState {
@@ -100,6 +120,151 @@ export function splitPresentationBlocks(blocks: readonly RenderBlock[]): Present
 		detailBlocks,
 		nonDetailBlocks,
 	};
+}
+
+function isWorkNarrationBlock(
+	block: RenderBlock,
+): block is Extract<RenderBlock, { type: 'work_narration' }> {
+	return block.type === 'work_narration';
+}
+
+function compareWorkNarrationBlocks(left: RenderBlock, right: RenderBlock): number {
+	if (!isWorkNarrationBlock(left) || !isWorkNarrationBlock(right)) {
+		return 0;
+	}
+
+	const turnDelta = left.payload.turn_index - right.payload.turn_index;
+
+	if (turnDelta !== 0) {
+		return turnDelta;
+	}
+
+	const sequenceDelta = left.payload.sequence_no - right.payload.sequence_no;
+
+	if (sequenceDelta !== 0) {
+		return sequenceDelta;
+	}
+
+	return left.id.localeCompare(right.id);
+}
+
+function upsertAndOrderWorkNarrationBlock(
+	currentBlocks: readonly RenderBlock[],
+	nextBlock: Extract<RenderBlock, { type: 'work_narration' }>,
+): readonly RenderBlock[] {
+	const existingIndex = currentBlocks.findIndex((block) => block.id === nextBlock.id);
+	const nextBlocks =
+		existingIndex === -1
+			? [...currentBlocks, nextBlock]
+			: currentBlocks.map((block, index) => (index === existingIndex ? nextBlock : block));
+
+	return [...nextBlocks].sort(compareWorkNarrationBlocks);
+}
+
+function createStreamingNarrationBlock(
+	message: NarrationDeltaServerMessage,
+): Extract<RenderBlock, { type: 'work_narration' }> {
+	return {
+		created_at: new Date().toISOString(),
+		id: message.payload.narration_id,
+		payload: {
+			locale: message.payload.locale,
+			run_id: message.payload.run_id,
+			sequence_no: message.payload.sequence_no,
+			status: 'streaming',
+			text: message.payload.text_delta,
+			turn_index: message.payload.turn_index,
+		},
+		schema_version: 1,
+		type: 'work_narration',
+	};
+}
+
+function applyNarrationDeltaToBlocks(
+	currentBlocks: readonly RenderBlock[],
+	message: NarrationDeltaServerMessage,
+): readonly RenderBlock[] {
+	const existingBlock = currentBlocks.find(
+		(block): block is Extract<RenderBlock, { type: 'work_narration' }> =>
+			block.type === 'work_narration' && block.id === message.payload.narration_id,
+	);
+	const nextBlock = existingBlock
+		? {
+				...existingBlock,
+				payload: {
+					...existingBlock.payload,
+					locale: message.payload.locale,
+					run_id: message.payload.run_id,
+					sequence_no: message.payload.sequence_no,
+					status: 'streaming' as const,
+					text: `${existingBlock.payload.text}${message.payload.text_delta}`,
+					turn_index: message.payload.turn_index,
+				},
+			}
+		: createStreamingNarrationBlock(message);
+
+	return upsertAndOrderWorkNarrationBlock(currentBlocks, nextBlock);
+}
+
+function applyNarrationCompletedToBlocks(
+	currentBlocks: readonly RenderBlock[],
+	message: NarrationCompletedServerMessage,
+): readonly RenderBlock[] {
+	const existingBlock = currentBlocks.find(
+		(block): block is Extract<RenderBlock, { type: 'work_narration' }> =>
+			block.type === 'work_narration' && block.id === message.payload.narration_id,
+	);
+	const nextBlock: Extract<RenderBlock, { type: 'work_narration' }> = existingBlock
+		? {
+				...existingBlock,
+				payload: {
+					...existingBlock.payload,
+					linked_tool_call_id: message.payload.linked_tool_call_id,
+					run_id: message.payload.run_id,
+					status: 'completed',
+					text: message.payload.full_text,
+				},
+			}
+		: {
+				created_at: new Date().toISOString(),
+				id: message.payload.narration_id,
+				payload: {
+					linked_tool_call_id: message.payload.linked_tool_call_id,
+					locale: 'tr',
+					run_id: message.payload.run_id,
+					sequence_no: 0,
+					status: 'completed',
+					text: message.payload.full_text,
+					turn_index: 1,
+				},
+				schema_version: 1,
+				type: 'work_narration',
+			};
+
+	return upsertAndOrderWorkNarrationBlock(currentBlocks, nextBlock);
+}
+
+function applyNarrationSupersededToBlocks(
+	currentBlocks: readonly RenderBlock[],
+	message: NarrationSupersededServerMessage,
+): readonly RenderBlock[] {
+	const existingBlock = currentBlocks.find(
+		(block): block is Extract<RenderBlock, { type: 'work_narration' }> =>
+			block.type === 'work_narration' && block.id === message.payload.narration_id,
+	);
+
+	if (!existingBlock) {
+		return currentBlocks;
+	}
+
+	return upsertAndOrderWorkNarrationBlock(currentBlocks, {
+		...existingBlock,
+		payload: {
+			...existingBlock.payload,
+			run_id: message.payload.run_id,
+			status: 'superseded',
+		},
+	});
 }
 
 function isInspectionDetailOnlyMessage(blocks: readonly RenderBlock[]): boolean {
@@ -386,6 +551,91 @@ export function upsertPresentationRunSurface(
 	return nextRunSurfaces;
 }
 
+function deriveLiveNarrationUpdateForBlocks(
+	message:
+		| NarrationCompletedServerMessage
+		| NarrationDeltaServerMessage
+		| NarrationSupersededServerMessage,
+	input: LiveNarrationUpdateInput,
+	updateBlocks: (currentBlocks: readonly RenderBlock[]) => readonly RenderBlock[],
+): LiveNarrationUpdate | null {
+	const messageRunId = message.payload.run_id;
+	const trackedRunIds = new Set(input.presentationRunSurfaces.map((surface) => surface.run_id));
+
+	if (!shouldHydratePresentationRun(messageRunId, trackedRunIds, input.expectedRunIds)) {
+		return null;
+	}
+
+	const currentSurface = findPresentationRunSurface(input.presentationRunSurfaces, messageRunId);
+	const nextBlocks = updateBlocks(currentSurface?.blocks ?? []);
+	const shouldMakeCurrentRun =
+		input.presentationRunId === null ||
+		input.presentationRunId === messageRunId ||
+		input.expectedRunIds.has(messageRunId);
+	const nextPresentationRunId = shouldMakeCurrentRun ? messageRunId : input.presentationRunId;
+	const nextExpandedPastRunIds = new Set(input.expandedPastRunIds);
+
+	if (nextPresentationRunId) {
+		nextExpandedPastRunIds.delete(nextPresentationRunId);
+	}
+
+	const nextRunSurfaces = upsertPresentationRunSurface(
+		input.presentationRunSurfaces,
+		{
+			blocks: nextBlocks,
+			replayMode: false,
+			run_id: messageRunId,
+			trace_id: message.payload.trace_id,
+		},
+		{
+			makeCurrent: shouldMakeCurrentRun,
+		},
+	);
+	const retainedRunIds = new Set(nextRunSurfaces.map((surface) => surface.run_id));
+
+	for (const runId of [...nextExpandedPastRunIds]) {
+		if (!retainedRunIds.has(runId)) {
+			nextExpandedPastRunIds.delete(runId);
+		}
+	}
+
+	return {
+		expandedPastRunIds: nextExpandedPastRunIds,
+		expectedRunIds: shouldMakeCurrentRun
+			? new Set([...input.expectedRunIds, messageRunId])
+			: input.expectedRunIds,
+		presentationRunId: nextPresentationRunId,
+		presentationRunSurfaces: nextRunSurfaces,
+	};
+}
+
+export function deriveLiveNarrationDeltaUpdate(
+	message: NarrationDeltaServerMessage,
+	input: LiveNarrationUpdateInput,
+): LiveNarrationUpdate | null {
+	return deriveLiveNarrationUpdateForBlocks(message, input, (currentBlocks) =>
+		applyNarrationDeltaToBlocks(currentBlocks, message),
+	);
+}
+
+export function deriveLiveNarrationCompletedUpdate(
+	message: NarrationCompletedServerMessage,
+	input: LiveNarrationUpdateInput,
+): LiveNarrationUpdate | null {
+	return deriveLiveNarrationUpdateForBlocks(message, input, (currentBlocks) =>
+		applyNarrationCompletedToBlocks(currentBlocks, message),
+	);
+}
+
+export function deriveLiveNarrationSupersededUpdate(
+	message: NarrationSupersededServerMessage,
+	input: LiveNarrationUpdateInput,
+): LiveNarrationUpdate | null {
+	return deriveLiveNarrationUpdateForBlocks(message, input, (currentBlocks) =>
+		applyNarrationSupersededToBlocks(currentBlocks, message),
+	);
+}
+
 export function derivePresentationBlocksUpdate(
 	message: PresentationBlocksServerMessage,
 	input: PresentationBlocksUpdateInput,
@@ -457,6 +707,7 @@ export function derivePresentationBlocksUpdate(
 		input.presentationRunSurfaces,
 		{
 			blocks: nextBlocks,
+			replayMode: currentSurface?.replayMode ?? false,
 			run_id: messageRunId,
 			trace_id: message.payload.trace_id,
 		},

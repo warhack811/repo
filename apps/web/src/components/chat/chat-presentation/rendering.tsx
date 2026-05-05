@@ -18,6 +18,7 @@ export function renderPresentationBlock(
 	inspectionDetailRelations?: ReadonlyMap<string, InspectionDetailRelation>,
 	presentationCorrelationLabel?: string | null,
 	isDeveloperMode = false,
+	replayMode = false,
 ): ReactElement | null {
 	return (
 		<BlockRenderer
@@ -28,6 +29,7 @@ export function renderPresentationBlock(
 			onRequestInspection={onRequestInspection}
 			onResolveApproval={onResolveApproval}
 			presentationCorrelationLabel={presentationCorrelationLabel}
+			replayMode={replayMode}
 			renderInspectionDetailBlock={(detailBlock) => (
 				<InspectionDetailBlock
 					block={detailBlock}
