@@ -1,5 +1,6 @@
 import type {
 	ModelAttachment,
+	ModelContentPart,
 	ModelGateway,
 	ModelRequest,
 	ModelResponse,
@@ -9,6 +10,7 @@ import type {
 import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
+import { createOrderedContentFromTextAndToolCalls } from './model-content.js';
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { serializeCallableTool } from './request-tools.js';
@@ -104,6 +106,21 @@ interface OpenAiToolCallAccumulator {
 	call_id?: string;
 	tool_name?: string;
 }
+
+type OpenAiMutableContentPart =
+	| {
+			index: number;
+			kind: 'text';
+			text: string;
+	  }
+	| {
+			arguments_text: string;
+			call_id?: string;
+			index: number;
+			kind: 'tool_use';
+			source_tool_call_index: number;
+			tool_name?: string;
+	  };
 
 const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
 const LOCAL_OPENAI_COMPAT_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
@@ -329,6 +346,59 @@ function parseOpenAiToolCallCandidate(
 	return parseResult.candidate;
 }
 
+function parseOpenAiToolInputForOrderedContent(argumentsText: string): unknown {
+	if (argumentsText.trim().length === 0) {
+		return {};
+	}
+
+	try {
+		return JSON.parse(argumentsText) as unknown;
+	} catch {
+		return argumentsText;
+	}
+}
+
+function createOpenAiOrderedContentFromResponse(
+	choice: OpenAiChatCompletionResponse['choices'][number],
+): readonly ModelContentPart[] {
+	const parts: ModelContentPart[] = [];
+	let index = 0;
+	const content = choice.message?.content;
+
+	if (typeof content === 'string' && content.length > 0) {
+		parts.push({
+			index,
+			kind: 'text',
+			text: content,
+		});
+		index += 1;
+	}
+
+	for (const toolCall of choice.message?.tool_calls ?? []) {
+		if (
+			typeof toolCall.id !== 'string' ||
+			typeof toolCall.function?.name !== 'string' ||
+			toolCall.type !== 'function'
+		) {
+			continue;
+		}
+
+		parts.push({
+			index,
+			input:
+				typeof toolCall.function.arguments === 'string'
+					? parseOpenAiToolInputForOrderedContent(toolCall.function.arguments)
+					: toolCall.function.arguments,
+			kind: 'tool_use',
+			tool_call_id: toolCall.id,
+			tool_name: toolCall.function.name,
+		});
+		index += 1;
+	}
+
+	return parts;
+}
+
 function parseOpenAiResponse(payload: unknown): ModelResponse {
 	if (!payload || typeof payload !== 'object') {
 		throw new GatewayResponseError('openai', 'OpenAI response must be an object.');
@@ -353,6 +423,7 @@ function parseOpenAiResponse(payload: unknown): ModelResponse {
 		finish_reason: mapOpenAiFinishReason(choice.finish_reason),
 		message: {
 			content: messageContent,
+			ordered_content: createOpenAiOrderedContentFromResponse(choice),
 			role: 'assistant',
 		},
 		model: response.model,
@@ -456,6 +527,84 @@ function parseOpenAiToolCallAccumulator(
 	return parseResult.candidate;
 }
 
+function appendOpenAiTextContentPart(parts: OpenAiMutableContentPart[], text: string): number {
+	const lastPart = parts.at(-1);
+
+	if (lastPart?.kind === 'text') {
+		lastPart.text += text;
+		return lastPart.index;
+	}
+
+	const index = parts.length;
+
+	parts.push({
+		index,
+		kind: 'text',
+		text,
+	});
+
+	return index;
+}
+
+function upsertOpenAiToolUseContentPart(
+	parts: OpenAiMutableContentPart[],
+	toolCallIndex: number,
+	toolCall: OpenAiStreamChoiceDeltaToolCall,
+): void {
+	const existingPart = parts.find(
+		(part) => part.kind === 'tool_use' && part.source_tool_call_index === toolCallIndex,
+	);
+	const toolUsePart: Extract<OpenAiMutableContentPart, { kind: 'tool_use' }> =
+		existingPart?.kind === 'tool_use'
+			? existingPart
+			: {
+					arguments_text: '',
+					index: parts.length,
+					kind: 'tool_use',
+					source_tool_call_index: toolCallIndex,
+				};
+
+	toolUsePart.call_id = toolCall.id ?? toolUsePart.call_id;
+	toolUsePart.tool_name = toolCall.function?.name ?? toolUsePart.tool_name;
+	toolUsePart.arguments_text += toolCall.function?.arguments ?? '';
+
+	if (existingPart === undefined) {
+		parts.push(toolUsePart);
+	}
+}
+
+function finalizeOpenAiOrderedContent(
+	parts: readonly OpenAiMutableContentPart[],
+): readonly ModelContentPart[] {
+	return parts.flatMap((part): ModelContentPart[] => {
+		if (part.kind === 'text') {
+			return part.text.length > 0
+				? [
+						{
+							index: part.index,
+							kind: 'text',
+							text: part.text,
+						},
+					]
+				: [];
+		}
+
+		if (typeof part.call_id !== 'string' || typeof part.tool_name !== 'string') {
+			return [];
+		}
+
+		return [
+			{
+				index: part.index,
+				input: parseOpenAiToolInputForOrderedContent(part.arguments_text),
+				kind: 'tool_use',
+				tool_call_id: part.call_id,
+				tool_name: part.tool_name,
+			},
+		];
+	});
+}
+
 export class OpenAiGateway implements ModelGateway {
 	readonly provider = 'openai';
 	readonly #config: GatewayProviderConfig;
@@ -555,6 +704,7 @@ export class OpenAiGateway implements ModelGateway {
 		}
 
 		const toolCallsByIndex = new Map<number, OpenAiToolCallAccumulator>();
+		const orderedContentParts: OpenAiMutableContentPart[] = [];
 		let completionTokens: number | undefined;
 		let finishReason: string | null | undefined;
 		let inputTokens: number | undefined;
@@ -594,7 +744,9 @@ export class OpenAiGateway implements ModelGateway {
 
 			if (typeof delta?.content === 'string' && delta.content.length > 0) {
 				outputText += delta.content;
+				const contentPartIndex = appendOpenAiTextContentPart(orderedContentParts, delta.content);
 				yield {
+					content_part_index: contentPartIndex,
 					text_delta: delta.content,
 					type: 'text.delta',
 				};
@@ -610,12 +762,20 @@ export class OpenAiGateway implements ModelGateway {
 				existingToolCall.tool_name = toolCall.function?.name ?? existingToolCall.tool_name;
 				existingToolCall.arguments_text += toolCall.function?.arguments ?? '';
 				toolCallsByIndex.set(toolCallIndex, existingToolCall);
+				upsertOpenAiToolUseContentPart(orderedContentParts, toolCallIndex, toolCall);
 			}
 
 			finishReason = firstChoice?.finish_reason ?? finishReason;
 		}
 
 		const toolCallCandidate = parseOpenAiToolCallAccumulator(toolCallsByIndex);
+		const orderedContent =
+			orderedContentParts.length > 0
+				? finalizeOpenAiOrderedContent(orderedContentParts)
+				: createOrderedContentFromTextAndToolCalls(
+						outputText,
+						toolCallCandidate ? [toolCallCandidate] : [],
+					);
 		const resolvedModel = responseModel ?? request.model ?? this.#config.defaultModel;
 
 		if (!resolvedModel) {
@@ -630,6 +790,7 @@ export class OpenAiGateway implements ModelGateway {
 				finish_reason: mapOpenAiFinishReason(finishReason),
 				message: {
 					content: outputText.length > 0 ? outputText : toolCallCandidate ? '' : outputText,
+					ordered_content: orderedContent,
 					role: 'assistant',
 				},
 				model: resolvedModel,

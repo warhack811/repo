@@ -143,9 +143,15 @@ export function createRuntimeEventMessage(
 export function createTextDeltaMessage(
 	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
 	textDelta: string,
+	contentPartIndex?: number,
 ): TextDeltaServerMessage {
 	return {
 		payload: {
+			...(contentPartIndex !== undefined
+				? {
+						content_part_index: contentPartIndex,
+					}
+				: {}),
 			run_id: payload.run_id,
 			text_delta: textDelta,
 			trace_id: payload.trace_id,

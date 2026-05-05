@@ -110,10 +110,25 @@ export interface ModelToolCallCandidate<
 	readonly tool_name: TName;
 }
 
+export type ModelContentPart =
+	| {
+			readonly index: number;
+			readonly kind: 'text';
+			readonly text: string;
+	  }
+	| {
+			readonly index: number;
+			readonly input: unknown;
+			readonly kind: 'tool_use';
+			readonly tool_call_id: string;
+			readonly tool_name: string;
+	  };
+
 export interface ModelResponse {
 	readonly provider: string;
 	readonly model: string;
 	readonly message: ModelMessage & {
+		readonly ordered_content?: readonly ModelContentPart[];
 		readonly role: 'assistant';
 	};
 	readonly finish_reason: ModelFinishReason;
@@ -124,6 +139,7 @@ export interface ModelResponse {
 }
 
 export interface ModelTextDeltaChunk {
+	readonly content_part_index?: number;
 	readonly type: 'text.delta';
 	readonly text_delta: string;
 }

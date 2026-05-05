@@ -9,6 +9,7 @@ import type {
 import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
+import { createOrderedContentFromTextAndToolCalls } from './model-content.js';
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { serializeCallableTool } from './request-tools.js';
@@ -300,6 +301,10 @@ function parseSambaNovaResponse(payload: unknown): ModelResponse {
 		finish_reason: mapSambaNovaFinishReason(choice.finish_reason),
 		message: {
 			content: messageContent,
+			ordered_content: createOrderedContentFromTextAndToolCalls(
+				messageContent,
+				toolCallCandidate ? [toolCallCandidate] : [],
+			),
 			role: 'assistant',
 		},
 		model: response.model,
@@ -544,6 +549,7 @@ export class SambaNovaGateway implements ModelGateway {
 			if (typeof delta?.content === 'string' && delta.content.length > 0) {
 				outputText += delta.content;
 				yield {
+					content_part_index: 0,
 					text_delta: delta.content,
 					type: 'text.delta',
 				};
@@ -579,6 +585,10 @@ export class SambaNovaGateway implements ModelGateway {
 				finish_reason: mapSambaNovaFinishReason(finishReason),
 				message: {
 					content: outputText.length > 0 ? outputText : toolCallCandidate ? '' : outputText,
+					ordered_content: createOrderedContentFromTextAndToolCalls(
+						outputText,
+						toolCallCandidate ? [toolCallCandidate] : [],
+					),
 					role: 'assistant',
 				},
 				model: resolvedModel,

@@ -225,6 +225,7 @@ interface TextDeltaMessageCandidate {
 }
 
 interface TextDeltaPayloadCandidate {
+	readonly content_part_index?: unknown;
 	readonly run_id?: unknown;
 	readonly text_delta?: unknown;
 	readonly trace_id?: unknown;
@@ -1289,7 +1290,9 @@ export function isTextDeltaServerMessage(value: unknown): value is TextDeltaServ
 		isTextDeltaPayloadCandidate(value.payload) &&
 		typeof value.payload.run_id === 'string' &&
 		typeof value.payload.trace_id === 'string' &&
-		typeof value.payload.text_delta === 'string'
+		typeof value.payload.text_delta === 'string' &&
+		(value.payload.content_part_index === undefined ||
+			typeof value.payload.content_part_index === 'number')
 	);
 }
 

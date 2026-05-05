@@ -204,6 +204,7 @@ export interface RuntimeEventServerMessage {
 
 export interface TextDeltaServerMessage {
 	readonly payload: {
+		readonly content_part_index?: number;
 		readonly run_id: string;
 		readonly text_delta: string;
 		readonly trace_id: string;

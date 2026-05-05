@@ -9,6 +9,10 @@ import type {
 import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
+import {
+	createOrderedContentFromTextAndToolCalls,
+	getOrderedToolCallCandidates,
+} from './model-content.js';
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { type SerializedCallableTool, serializeCallableTool } from './request-tools.js';
@@ -425,6 +429,10 @@ function parseDeepSeekResponse(
 		finish_reason: mapDeepSeekFinishReason(choice.finish_reason),
 		message: {
 			content: messageContent,
+			ordered_content: createOrderedContentFromTextAndToolCalls(
+				messageContent,
+				getOrderedToolCallCandidates(toolCalls.tool_call_candidate, toolCalls.tool_call_candidates),
+			),
 			role: 'assistant',
 		},
 		model: response.model,
@@ -673,6 +681,7 @@ export class DeepSeekGateway implements ModelGateway {
 			if (typeof delta?.content === 'string' && delta.content.length > 0) {
 				outputText += delta.content;
 				yield {
+					content_part_index: 0,
 					text_delta: delta.content,
 					type: 'text.delta',
 				};
@@ -716,6 +725,13 @@ export class DeepSeekGateway implements ModelGateway {
 							: parsedToolCalls.tool_call_candidate
 								? ''
 								: outputText,
+					ordered_content: createOrderedContentFromTextAndToolCalls(
+						outputText,
+						getOrderedToolCallCandidates(
+							parsedToolCalls.tool_call_candidate,
+							parsedToolCalls.tool_call_candidates,
+						),
+					),
 					role: 'assistant',
 				},
 				model: resolvedModel,

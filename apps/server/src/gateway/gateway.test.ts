@@ -646,6 +646,13 @@ describe('DeepSeekGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from DeepSeek',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						text: 'Hello from DeepSeek',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'deepseek-v4-flash',
@@ -764,6 +771,15 @@ describe('DeepSeekGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: '',
+						ordered_content: [
+							{
+								index: 0,
+								input: {},
+								kind: 'tool_use',
+								tool_call_id: 'call_deepseek_screenshot',
+								tool_name: 'desktop.screenshot',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'deepseek-v4-flash',
@@ -915,10 +931,12 @@ describe('DeepSeekGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from DeepSeek',
 				type: 'text.delta',
 			},
@@ -927,6 +945,13 @@ describe('DeepSeekGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from DeepSeek',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								text: 'Hello from DeepSeek',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'deepseek-v4-flash',
@@ -1002,6 +1027,13 @@ describe('SambaNovaGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from SambaNova',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						text: 'Hello from SambaNova',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'DeepSeek-V3.1-cb',
@@ -1324,10 +1356,12 @@ describe('SambaNovaGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from SambaNova',
 				type: 'text.delta',
 			},
@@ -1336,6 +1370,13 @@ describe('SambaNovaGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from SambaNova',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								text: 'Hello from SambaNova',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'DeepSeek-V3.1-cb',
@@ -1392,6 +1433,13 @@ describe('GroqGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from Groq',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						text: 'Hello from Groq',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'llama-3.3-70b-versatile',
@@ -1978,6 +2026,17 @@ describe('GroqGateway', () => {
 
 		expect(response.message).toEqual({
 			content: '',
+			ordered_content: [
+				{
+					index: 0,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					tool_call_id: 'call_groq_tool',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -2038,6 +2097,31 @@ describe('GroqGateway', () => {
 
 		expect(response.message).toEqual({
 			content: 'Calling tools',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					text: 'Calling tools',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					tool_call_id: 'call_groq_multi_1',
+					tool_name: 'file.read',
+				},
+				{
+					index: 2,
+					input: {
+						path: 'docs/vision.md',
+					},
+					kind: 'tool_use',
+					tool_call_id: 'call_groq_multi_2',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -2161,6 +2245,22 @@ describe('GroqGateway', () => {
 		]);
 		expect(response.message).toEqual({
 			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					tool_call_id: 'call_groq_roundtrip',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -2200,6 +2300,13 @@ describe('GroqGateway', () => {
 		expect(requestBody.tools).toBeDefined();
 		expect(response.message).toEqual({
 			content: 'No tool needed.',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					text: 'No tool needed.',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toBeUndefined();
@@ -2596,10 +2703,12 @@ describe('GroqGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from Groq',
 				type: 'text.delta',
 			},
@@ -2608,6 +2717,13 @@ describe('GroqGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from Groq',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								text: 'Hello from Groq',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'llama-3.3-70b-versatile',
@@ -2646,6 +2762,26 @@ describe('GroqGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: '',
+						ordered_content: [
+							{
+								index: 0,
+								input: {
+									path: 'src/example.ts',
+								},
+								kind: 'tool_use',
+								tool_call_id: 'call_stream_groq_1',
+								tool_name: 'file.read',
+							},
+							{
+								index: 1,
+								input: {
+									path: 'docs/vision.md',
+								},
+								kind: 'tool_use',
+								tool_call_id: 'call_stream_groq_2',
+								tool_name: 'file.read',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'llama-3.3-70b-versatile',
@@ -2797,6 +2933,13 @@ describe('ClaudeGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from Claude',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						text: 'Hello from Claude',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'claude-sonnet-4-5',
@@ -2934,6 +3077,22 @@ describe('ClaudeGateway', () => {
 
 		expect(response.message).toEqual({
 			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					tool_call_id: 'toolu_123',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -2975,6 +3134,22 @@ describe('ClaudeGateway', () => {
 		expect(requestBody.tools?.map((tool) => tool.name)).toEqual(['file.read', 'shell.exec']);
 		expect(response.message).toEqual({
 			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					tool_call_id: 'toolu_roundtrip_123',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -3006,6 +3181,13 @@ describe('ClaudeGateway', () => {
 		expect(requestBody.tools).toBeDefined();
 		expect(response.message).toEqual({
 			content: 'No tool needed.',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					text: 'No tool needed.',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toBeUndefined();
@@ -3224,10 +3406,12 @@ describe('ClaudeGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from Claude',
 				type: 'text.delta',
 			},
@@ -3236,6 +3420,13 @@ describe('ClaudeGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from Claude',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								text: 'Hello from Claude',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'claude-sonnet-4-5',
@@ -3350,6 +3541,13 @@ describe('OpenAiGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from OpenAI',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						text: 'Hello from OpenAI',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'gpt-4.1-mini',
@@ -3404,6 +3602,79 @@ describe('OpenAiGateway', () => {
 		]);
 		expect(response.tool_call_candidate).toEqual({
 			call_id: 'call_openai_tool',
+			tool_input: {
+				path: 'README.md',
+			},
+			tool_name: 'file.read',
+		});
+		expect(response.message.ordered_content).toEqual([
+			{
+				index: 0,
+				input: {
+					path: 'README.md',
+				},
+				kind: 'tool_use',
+				tool_call_id: 'call_openai_tool',
+				tool_name: 'file.read',
+			},
+		]);
+	});
+
+	it('preserves OpenAI text before tool calls in ordered_content for generate()', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: 'Calling file.read',
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"README.md"}',
+										name: 'file.read',
+									},
+									id: 'call_openai_ordered_tool',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_openai_ordered_tool',
+				model: 'gpt-4.1-mini',
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		const response = await gateway.generate({
+			...openAiRequest,
+			available_tools: callableToolsRequest,
+		});
+
+		expect(response.message).toEqual({
+			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'README.md',
+					},
+					kind: 'tool_use',
+					tool_call_id: 'call_openai_ordered_tool',
+					tool_name: 'file.read',
+				},
+			],
+			role: 'assistant',
+		});
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_openai_ordered_tool',
 			tool_input: {
 				path: 'README.md',
 			},
@@ -3579,6 +3850,75 @@ describe('OpenAiGateway', () => {
 		});
 	});
 
+	it('preserves OpenAI streaming text and tool call order in ordered_content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_openai_stream_order","model":"gpt-4.1-mini","choices":[{"delta":{"role":"assistant","content":"Checking "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_order","model":"gpt-4.1-mini","choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_openai_stream_order","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_order","model":"gpt-4.1-mini","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"README.md\\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+		const chunks = [];
+
+		for await (const chunk of gateway.stream({
+			...openAiRequest,
+			available_tools: callableToolsRequest,
+		})) {
+			chunks.push(chunk);
+		}
+
+		expect(chunks).toEqual([
+			{
+				content_part_index: 0,
+				text_delta: 'Checking ',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Checking ',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								text: 'Checking ',
+							},
+							{
+								index: 1,
+								input: {
+									path: 'README.md',
+								},
+								kind: 'tool_use',
+								tool_call_id: 'call_openai_stream_order',
+								tool_name: 'file.read',
+							},
+						],
+						role: 'assistant',
+					},
+					model: 'gpt-4.1-mini',
+					provider: 'openai',
+					response_id: 'chatcmpl_openai_stream_order',
+					tool_call_candidate: {
+						call_id: 'call_openai_stream_order',
+						tool_input: {
+							path: 'README.md',
+						},
+						tool_name: 'file.read',
+					},
+					usage: {
+						input_tokens: 7,
+						output_tokens: 9,
+						total_tokens: 16,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
 	it('streams OpenAI text deltas and returns a terminal response chunk', async () => {
 		const { calls } = installFetchMock(
 			mockSseResponse([
@@ -3600,10 +3940,12 @@ describe('OpenAiGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from OpenAI',
 				type: 'text.delta',
 			},
@@ -3612,6 +3954,13 @@ describe('OpenAiGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from OpenAI',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								text: 'Hello from OpenAI',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'gpt-4.1-mini',
@@ -3734,6 +4083,13 @@ describe('GeminiGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from Gemini',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						text: 'Hello from Gemini',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'gemini-3-flash-preview',
@@ -3984,10 +4340,12 @@ describe('GeminiGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from Gemini',
 				type: 'text.delta',
 			},
@@ -3996,6 +4354,13 @@ describe('GeminiGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from Gemini',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								text: 'Hello from Gemini',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'gemini-3-flash-preview',

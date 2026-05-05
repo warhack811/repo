@@ -13,6 +13,19 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-WORK-NARRATION-PHASE-0 - 5 Mayis 2026
+
+- Kapsam: canonical `ModelResponse.message` geriye donuk uyumlu bicimde `ordered_content` metadata'siyle genisletildi. Bu fazda narration event'i, classifier, prompt degisikligi veya frontend render farki eklenmedi.
+- Provider davranisi: Claude response content block sirasi `text` / `tool_use` part'lari olarak korunuyor. OpenAI generate ve streaming yolunda text/tool sirasi korunuyor; streaming `text.delta` chunk'lari `content_part_index` tasiyor. DeepSeek, Gemini, Groq ve SambaNova guvenli fallback olarak mevcut text-first/tool-after sirasini `ordered_content` icinde yansitiyor.
+- WS contract: `text.delta` server payload'i opsiyonel `content_part_index` alaniyla additive genisletildi; eski payload sekli gecerliligini koruyor.
+- Dogrulama:
+  - `pnpm.cmd exec biome check ...` PASS (degisen server/types dosyalari)
+  - `pnpm.cmd typecheck` PASS (`9` task)
+  - `pnpm.cmd --filter @runa/server test -- gateway` PASS (`5` dosya / `121` test)
+  - `pnpm.cmd --filter @runa/server test` PASS (`138` dosya / `1029` test)
+  - `pnpm.cmd test` RED: task disi web visual-discipline baseline kirmizisi devam ediyor (`apps/web/src/pages/VisualDiscipline.test.tsx`; `BlockRenderer.module.css:462/469/474`, `WorkInsightPanel.module.css:44/63/154`).
+- Kapsam disi: narration domain event'leri, work_narration block tipi, system prompt kurallari, frontend narration UI, persistence/replay ve provider feature flag'leri Faz 1+ icin birakildi.
+
 ### TASK-TOOL-RESULT-PIPELINE - 3 Mayis 2026 (Dalga 1 + Dalga 2)
 
 - Kapsam: tool result feedback pipeline sertlestirildi. Continuation inline preview limiti `8192/16384` sabitlerine tasindi; kucuk tool sonuclari tam gorunur, buyuk sonuclar kontrollu truncate edilir. RunLayer kucuk basarili tool sonuclarinda `inline_output` tasiyor, buyuk sonuclarda `output_truncated:true` ile prompt sismesini engelliyor.

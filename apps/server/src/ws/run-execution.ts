@@ -982,7 +982,10 @@ async function generateModelResponseWithStreaming(
 				}
 
 				streamedTextLength += chunk.text_delta.length;
-				sendServerMessage(socket, createTextDeltaMessage(payload, chunk.text_delta));
+				sendServerMessage(
+					socket,
+					createTextDeltaMessage(payload, chunk.text_delta, chunk.content_part_index),
+				);
 				continue;
 			}
 
