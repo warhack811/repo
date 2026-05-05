@@ -30,10 +30,7 @@ function normalizeText(value: string | undefined): string | null {
 	return normalized && normalized.length > 0 ? normalized : null;
 }
 
-function isKnownToolName(
-	toolName: ApprovalRenderBlock['payload']['tool_name'],
-	expected: string,
-): boolean {
+function isKnownToolName(toolName: string | null | undefined, expected: string): boolean {
 	return toolName === expected;
 }
 
@@ -54,8 +51,21 @@ function formatApprovalToolLabel(toolName: string | null): string | null {
 	return toolName && approvalToolLabels.has(toolName) ? formatWorkToolLabel(toolName) : null;
 }
 
+function getApprovalToolName(block: ApprovalRenderBlock): string | null {
+	const toolName = normalizeText(block.payload.tool_name);
+
+	if (toolName && approvalToolLabels.has(toolName)) {
+		return toolName;
+	}
+
+	const target = normalizeText(block.payload.target_label);
+	return target && approvalToolLabels.has(target) ? target : toolName;
+}
+
 function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
-	if (isKnownToolName(block.payload.tool_name, 'file.write')) {
+	const toolName = getApprovalToolName(block);
+
+	if (isKnownToolName(toolName, 'file.write')) {
 		return {
 			action: 'Dosyaya yazma isteği',
 			outcome: 'Onaylarsan yazma adımı çalışır ve sohbet akışı devam eder.',
@@ -63,7 +73,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'file.read')) {
+	if (isKnownToolName(toolName, 'file.read')) {
 		return {
 			action: 'Dosya okuma isteği',
 			outcome: 'Onaylarsan dosya okunur ve sonuç sohbet akışına eklenir.',
@@ -71,7 +81,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.clipboard.read')) {
+	if (isKnownToolName(toolName, 'desktop.clipboard.read')) {
 		return {
 			action: 'Pano okuma isteği',
 			outcome: 'Onaylarsan bağlı masaüstünün pano metni okunur ve sonuç sohbet akışına eklenir.',
@@ -79,7 +89,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.clipboard.write')) {
+	if (isKnownToolName(toolName, 'desktop.clipboard.write')) {
 		return {
 			action: 'Pano yazma isteği',
 			outcome: 'Onaylarsan belirtilen metin bağlı masaüstünün panosuna yazılır.',
@@ -87,7 +97,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.click')) {
+	if (isKnownToolName(toolName, 'desktop.click')) {
 		return {
 			action: 'Masaüstünde tıklama isteği',
 			outcome: 'Onaylarsan bağlı masaüstünde belirtilen tıklama adımı çalışır.',
@@ -95,7 +105,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.type')) {
+	if (isKnownToolName(toolName, 'desktop.type')) {
 		return {
 			action: 'Masaüstüne yazma isteği',
 			outcome: 'Onaylarsan bağlı masaüstündeki aktif alana metin yazılır.',
@@ -103,7 +113,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.keypress')) {
+	if (isKnownToolName(toolName, 'desktop.keypress')) {
 		return {
 			action: 'Klavye kısayolu isteği',
 			outcome: 'Onaylarsan bağlı masaüstünde belirtilen klavye kısayolu çalışır.',
@@ -111,7 +121,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.launch')) {
+	if (isKnownToolName(toolName, 'desktop.launch')) {
 		return {
 			action: 'Uygulama başlatma isteği',
 			outcome: 'Onaylarsan bağlı masaüstünde hedef uygulama başlatılır.',
@@ -119,7 +129,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.scroll')) {
+	if (isKnownToolName(toolName, 'desktop.scroll')) {
 		return {
 			action: 'Masaüstünde kaydırma isteği',
 			outcome: 'Onaylarsan bağlı masaüstündeki aktif yüzey kaydırılır.',
@@ -127,7 +137,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 		};
 	}
 
-	if (isKnownToolName(block.payload.tool_name, 'desktop.screenshot')) {
+	if (isKnownToolName(toolName, 'desktop.screenshot')) {
 		return {
 			action: 'Ekran görüntüsü alma isteği',
 			outcome: 'Onaylarsan mevcut ekrandan görüntü alınır ve sonuç paylaşılır.',
@@ -158,7 +168,7 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 }
 
 function getApprovalActionVariant(block: ApprovalRenderBlock): RunaButtonVariant {
-	if (isKnownToolName(block.payload.tool_name, 'file.read')) {
+	if (isKnownToolName(getApprovalToolName(block), 'file.read')) {
 		return 'primary';
 	}
 

@@ -439,6 +439,35 @@ describe('BlockRenderer', () => {
 		expect(markup).not.toContain('Allow desktop.clipboard.read');
 	});
 
+	it('infers desktop approval copy from the target when tool name is omitted', () => {
+		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
+
+		if (!approvalBlock || approvalBlock.type !== 'approval_block') {
+			throw new Error('Expected approval fixture block.');
+		}
+
+		const keypressBlock: RenderBlock = {
+			...approvalBlock,
+			payload: {
+				...approvalBlock.payload,
+				approval_id: 'approval_desktop_keypress',
+				target_kind: 'tool_call',
+				target_label: 'desktop.keypress',
+				title: 'Araç çalıştırma isteği',
+				tool_name: undefined,
+			},
+		};
+
+		const markup = renderToStaticMarkup(
+			<BlockRenderer block={keypressBlock} onResolveApproval={() => undefined} />,
+		);
+
+		expect(markup).toContain('Klavye kısayolu isteği');
+		expect(markup).toContain('Klavye kısayolu');
+		expect(markup).not.toContain('Araç çalıştırma isteği');
+		expect(markup).not.toContain('desktop.keypress');
+	});
+
 	it('does not offer actions for historical pending approval cards', () => {
 		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
 

@@ -30,6 +30,9 @@ describe('work narration formatting', () => {
 				'Reads text from the connected desktop agent clipboard through an approval-gated bridge, returning a bounded redaction-aware payload.',
 			),
 		).toBe('Bağlı masaüstü panosundaki metin güvenli sınırlar içinde okunur.');
+		expect(formatWorkDetail('Approval rejected for Ekran görüntüsü.')).toBe(
+			'Onay reddedildi: Ekran görüntüsü.',
+		);
 	});
 
 	it('formats tool and state chips consistently', () => {

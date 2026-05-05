@@ -73,6 +73,7 @@ export function formatWorkDetail(detail: string | undefined): string | undefined
 			'Bağlı masaüstü panosuna metin yazılır.',
 		)
 		.replaceAll('deepseek / deepseek-v4-pro', 'DeepSeek V4 Pro')
+		.replaceAll('Approval rejected for ', 'Onay reddedildi: ')
 		.replaceAll('completed successfully.', 'tamamlandı.')
 		.replaceAll('failed.', 'tamamlanamadı.');
 }
