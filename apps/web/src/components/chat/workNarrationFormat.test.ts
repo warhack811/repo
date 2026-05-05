@@ -25,10 +25,16 @@ describe('work narration formatting', () => {
 				'Captures a screenshot of the server host desktop and returns the image as base64-encoded PNG data.',
 			),
 		).toBe('Ekrandaki görünür bilgileri yakalamak için ekran görüntüsü alınır.');
+		expect(
+			formatWorkDetail(
+				'Reads text from the connected desktop agent clipboard through an approval-gated bridge, returning a bounded redaction-aware payload.',
+			),
+		).toBe('Bağlı masaüstü panosundaki metin güvenli sınırlar içinde okunur.');
 	});
 
 	it('formats tool and state chips consistently', () => {
 		expect(formatWorkToolLabel('desktop.screenshot')).toBe('Ekran görüntüsü');
+		expect(formatWorkToolLabel('desktop.clipboard.write')).toBe('Pano yazma');
 		expect(formatWorkStateLabel('paused')).toBe('bekliyor');
 		expect(formatWorkStateLabel('success')).toBe('tamamlandı');
 	});

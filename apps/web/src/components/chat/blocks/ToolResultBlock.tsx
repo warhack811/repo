@@ -29,11 +29,18 @@ function getFriendlyToolTitle(toolName: string | undefined): string {
 		'web.fetch': 'Sayfa getirildi',
 		'shell.exec': 'Komut çalıştı',
 		'search.codebase': 'Kod tarandı',
+		'desktop.click': 'Masaüstünde tıklandı',
+		'desktop.clipboard.read': 'Pano okundu',
+		'desktop.clipboard.write': 'Pano güncellendi',
+		'desktop.keypress': 'Klavye kısayolu çalıştı',
+		'desktop.launch': 'Uygulama başlatıldı',
+		'desktop.scroll': 'Masaüstü kaydırıldı',
 		'desktop.screenshot': 'Ekran görüntüsü alındı',
+		'desktop.type': 'Masaüstüne yazıldı',
 		'memory.write': 'Bilgi kaydedildi',
 		'memory.read': 'Bellek okundu',
 	};
-	return map[toolName] ?? `${toolName.replace(/\./gu, ' ')} tamamlandı`;
+	return map[toolName] ?? `${formatWorkToolLabel(toolName)} tamamlandı`;
 }
 
 function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{

@@ -397,7 +397,7 @@ describe('BlockRenderer', () => {
 
 		expect(markup).toContain('Güven kararı');
 		expect(markup).toContain('Dosyaya yazma isteği');
-		expect(markup).toContain('Bu onayda net hedef bilgisi gönderilmedi.');
+		expect(markup).toContain('Dosya yazma');
 		expect(markup).not.toContain('Ayrıntılar');
 		expect(markup).not.toContain('file.write');
 		expect(markup).not.toContain('Approval required');
@@ -407,6 +407,36 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} isDeveloperMode onResolveApproval={() => undefined} />,
 		);
 		expect(developerMarkup).toContain('Ayrıntılar');
+	});
+
+	it('keeps desktop approval targets user-facing in normal mode', () => {
+		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
+
+		if (!approvalBlock || approvalBlock.type !== 'approval_block') {
+			throw new Error('Expected approval fixture block.');
+		}
+
+		const clipboardReadBlock: RenderBlock = {
+			...approvalBlock,
+			payload: {
+				...approvalBlock.payload,
+				approval_id: 'approval_desktop_clipboard_read',
+				summary: 'Allow desktop.clipboard.read.',
+				target_kind: 'tool_call',
+				target_label: 'desktop.clipboard.read',
+				title: 'Allow desktop.clipboard.read?',
+				tool_name: 'desktop.clipboard.read',
+			},
+		};
+
+		const markup = renderToStaticMarkup(
+			<BlockRenderer block={clipboardReadBlock} onResolveApproval={() => undefined} />,
+		);
+
+		expect(markup).toContain('Pano okuma isteği');
+		expect(markup).toContain('Pano okuma');
+		expect(markup).not.toContain('desktop.clipboard.read');
+		expect(markup).not.toContain('Allow desktop.clipboard.read');
 	});
 
 	it('does not offer actions for historical pending approval cards', () => {

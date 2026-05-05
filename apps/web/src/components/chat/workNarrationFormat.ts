@@ -64,6 +64,14 @@ export function formatWorkDetail(detail: string | undefined): string | undefined
 			'Captures a screenshot of the server host desktop and returns the image as base64-encoded PNG data.',
 			'Ekrandaki görünür bilgileri yakalamak için ekran görüntüsü alınır.',
 		)
+		.replaceAll(
+			'Reads text from the connected desktop agent clipboard through an approval-gated bridge, returning a bounded redaction-aware payload.',
+			'Bağlı masaüstü panosundaki metin güvenli sınırlar içinde okunur.',
+		)
+		.replaceAll(
+			'Writes text to the connected desktop agent clipboard through an approval-gated bridge.',
+			'Bağlı masaüstü panosuna metin yazılır.',
+		)
 		.replaceAll('deepseek / deepseek-v4-pro', 'DeepSeek V4 Pro')
 		.replaceAll('completed successfully.', 'tamamlandı.')
 		.replaceAll('failed.', 'tamamlanamadı.');

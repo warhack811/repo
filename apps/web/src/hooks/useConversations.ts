@@ -1,5 +1,5 @@
 import type { ModelMessage, RenderBlock } from '@runa/types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const ACTIVE_CONVERSATION_STORAGE_KEY = 'runa.chat.active_conversation_id';
 
@@ -131,6 +131,7 @@ type ConversationMemberCandidate = Record<string, unknown> & {
 
 interface UseConversationsOptions {
 	readonly accessToken?: string | null;
+	readonly startInDraft?: boolean;
 }
 
 function resolveConversationStorage(): Storage | null {
@@ -433,10 +434,10 @@ function summarizePrompt(value: string, maxLength: number): string {
 }
 
 export function useConversations(options: UseConversationsOptions = {}): UseConversationsResult {
-	const { accessToken } = options;
+	const { accessToken, startInDraft = false } = options;
 	const [conversations, setConversations] = useState<readonly ConversationSummary[]>([]);
-	const [activeConversationId, setActiveConversationId] = useState<string | null>(
-		readStoredActiveConversationId(),
+	const [activeConversationId, setActiveConversationId] = useState<string | null>(() =>
+		startInDraft ? null : readStoredActiveConversationId(),
 	);
 	const [activeConversationMessages, setActiveConversationMessages] = useState<
 		readonly ConversationMessage[]
@@ -451,6 +452,21 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 	const [isConversationLoading, setIsConversationLoading] = useState(true);
 	const [isMemberLoading, setIsMemberLoading] = useState(false);
 	const [memberError, setMemberError] = useState<string | null>(null);
+	const isDraftConversationRef = useRef(startInDraft);
+
+	useEffect(() => {
+		if (!startInDraft) {
+			return;
+		}
+
+		isDraftConversationRef.current = true;
+		setActiveConversationId(null);
+		setActiveConversationMessages([]);
+		setActiveConversationRunSurfaces([]);
+		setActiveConversationMembers([]);
+		setConversationError(null);
+		setMemberError(null);
+	}, [startInDraft]);
 
 	useEffect(() => {
 		let isCancelled = false;
@@ -470,6 +486,10 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				setConversationError(null);
 
 				setActiveConversationId((currentConversationId) => {
+					if (isDraftConversationRef.current) {
+						return null;
+					}
+
 					if (
 						currentConversationId &&
 						nextConversations.some(
@@ -644,6 +664,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 	);
 
 	const beginDraftConversation = useCallback((): void => {
+		isDraftConversationRef.current = true;
 		setActiveConversationId(null);
 		setActiveConversationMessages([]);
 		setActiveConversationRunSurfaces([]);
@@ -653,6 +674,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 	}, []);
 
 	const selectConversation = useCallback((conversationId: string): void => {
+		isDraftConversationRef.current = false;
 		setActiveConversationId(conversationId);
 		setActiveConversationRunSurfaces([]);
 		setConversationError(null);
@@ -685,6 +707,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				return;
 			}
 
+			isDraftConversationRef.current = false;
 			const preview = summarizePrompt(input.prompt, 160);
 
 			setActiveConversationId(conversationId);

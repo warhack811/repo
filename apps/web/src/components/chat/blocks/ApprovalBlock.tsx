@@ -7,6 +7,7 @@ import type { RunaButtonVariant } from '../../ui/RunaButton.js';
 import { RunaButton } from '../../ui/RunaButton.js';
 import { RunaDisclosure } from '../../ui/RunaDisclosure.js';
 import { cx } from '../../ui/ui-utils.js';
+import { formatWorkToolLabel } from '../workNarrationFormat.js';
 import styles from './BlockRenderer.module.css';
 
 type ApprovalRenderBlock = Extract<RenderBlock, { type: 'approval_block' }>;
@@ -36,6 +37,23 @@ function isKnownToolName(
 	return toolName === expected;
 }
 
+const approvalToolLabels = new Set([
+	'desktop.click',
+	'desktop.clipboard.read',
+	'desktop.clipboard.write',
+	'desktop.keypress',
+	'desktop.launch',
+	'desktop.scroll',
+	'desktop.screenshot',
+	'desktop.type',
+	'file.read',
+	'file.write',
+]);
+
+function formatApprovalToolLabel(toolName: string | null): string | null {
+	return toolName && approvalToolLabels.has(toolName) ? formatWorkToolLabel(toolName) : null;
+}
+
 function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 	if (isKnownToolName(block.payload.tool_name, 'file.write')) {
 		return {
@@ -50,6 +68,62 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 			action: 'Dosya okuma isteği',
 			outcome: 'Onaylarsan dosya okunur ve sonuç sohbet akışına eklenir.',
 			risk: 'Bu işlem dosya içeriğini okuyabilir; dosyayı değiştirmez.',
+		};
+	}
+
+	if (isKnownToolName(block.payload.tool_name, 'desktop.clipboard.read')) {
+		return {
+			action: 'Pano okuma isteği',
+			outcome: 'Onaylarsan bağlı masaüstünün pano metni okunur ve sonuç sohbet akışına eklenir.',
+			risk: 'Panoda kişisel veya gizli bilgi olabilir.',
+		};
+	}
+
+	if (isKnownToolName(block.payload.tool_name, 'desktop.clipboard.write')) {
+		return {
+			action: 'Pano yazma isteği',
+			outcome: 'Onaylarsan belirtilen metin bağlı masaüstünün panosuna yazılır.',
+			risk: 'Mevcut pano içeriği değişir.',
+		};
+	}
+
+	if (isKnownToolName(block.payload.tool_name, 'desktop.click')) {
+		return {
+			action: 'Masaüstünde tıklama isteği',
+			outcome: 'Onaylarsan bağlı masaüstünde belirtilen tıklama adımı çalışır.',
+			risk: 'Tıklama açık uygulamalarda seçim veya işlem başlatabilir.',
+		};
+	}
+
+	if (isKnownToolName(block.payload.tool_name, 'desktop.type')) {
+		return {
+			action: 'Masaüstüne yazma isteği',
+			outcome: 'Onaylarsan bağlı masaüstündeki aktif alana metin yazılır.',
+			risk: 'Metin aktif uygulamadaki seçili alana girilir.',
+		};
+	}
+
+	if (isKnownToolName(block.payload.tool_name, 'desktop.keypress')) {
+		return {
+			action: 'Klavye kısayolu isteği',
+			outcome: 'Onaylarsan bağlı masaüstünde belirtilen klavye kısayolu çalışır.',
+			risk: 'Kısayol açık uygulamada komut veya gezinme tetikleyebilir.',
+		};
+	}
+
+	if (isKnownToolName(block.payload.tool_name, 'desktop.launch')) {
+		return {
+			action: 'Uygulama başlatma isteği',
+			outcome: 'Onaylarsan bağlı masaüstünde hedef uygulama başlatılır.',
+			risk: 'Uygulama açılması sistem kaynaklarını veya oturum durumunu etkileyebilir.',
+		};
+	}
+
+	if (isKnownToolName(block.payload.tool_name, 'desktop.scroll')) {
+		return {
+			action: 'Masaüstünde kaydırma isteği',
+			outcome: 'Onaylarsan bağlı masaüstündeki aktif yüzey kaydırılır.',
+			risk: 'Kaydırma açık uygulamadaki görünür konumu değiştirir.',
 		};
 	}
 
@@ -151,18 +225,13 @@ function getStateMessage(status: ApprovalStatus, canResolvePendingApproval: bool
 function getTargetLabel(block: ApprovalRenderBlock): string {
 	const target = normalizeText(block.payload.target_label);
 	const toolName = normalizeText(block.payload.tool_name);
-	const internalTargetLabels = new Set(['file.write', 'file.read', 'desktop.screenshot']);
+	const friendlyToolLabel = formatApprovalToolLabel(toolName);
 
-	if (
-		!target ||
-		target === toolName ||
-		target === block.payload.action_kind ||
-		internalTargetLabels.has(target)
-	) {
-		return 'Bu onayda net hedef bilgisi gönderilmedi.';
+	if (!target || target === toolName || target === block.payload.action_kind) {
+		return friendlyToolLabel ?? 'Bu onayda net hedef bilgisi gönderilmedi.';
 	}
 
-	return target;
+	return formatApprovalToolLabel(target) ?? target;
 }
 
 function getTargetHeading(targetKind: ApprovalRenderBlock['payload']['target_kind']): string {
