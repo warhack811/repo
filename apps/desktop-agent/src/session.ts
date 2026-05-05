@@ -306,6 +306,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 						resolveRuntimeErrorMessage(error, 'Desktop bridge connection failed.'),
 					),
 				);
+				this.#scheduleReconnect(resolvedSession);
 			}
 
 			return this.getSnapshot();

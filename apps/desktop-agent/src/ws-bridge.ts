@@ -163,6 +163,26 @@ async function waitForServerMessage(
 	});
 }
 
+async function waitForSocketOpen(socket: WebSocket): Promise<void> {
+	return await new Promise((resolve, reject) => {
+		const cleanup = () => {
+			socket.removeEventListener('error', handleError);
+			socket.removeEventListener('open', handleOpen);
+		};
+		const handleOpen = () => {
+			cleanup();
+			resolve();
+		};
+		const handleError = () => {
+			cleanup();
+			reject(new Error('Desktop agent bridge failed to connect.'));
+		};
+
+		socket.addEventListener('open', handleOpen, { once: true });
+		socket.addEventListener('error', handleError, { once: true });
+	});
+}
+
 async function handleExecuteMessage(
 	socket: WebSocket,
 	message: DesktopAgentExecuteServerMessage,
@@ -305,17 +325,18 @@ export async function startDesktopAgentBridge(
 		socket,
 		isDesktopAgentConnectionReadyServerMessage,
 	);
+	let connectionReadyHandled = false;
 
-	await new Promise<void>((resolve, reject) => {
-		socket.addEventListener('open', () => resolve(), { once: true });
-		socket.addEventListener(
-			'error',
-			() => reject(new Error('Desktop agent bridge failed to connect.')),
-			{ once: true },
-		);
-	});
+	try {
+		await waitForSocketOpen(socket);
+		await connectionReadyPromise;
+		connectionReadyHandled = true;
+	} finally {
+		if (!connectionReadyHandled) {
+			connectionReadyPromise.catch(() => {});
+		}
+	}
 
-	await connectionReadyPromise;
 	const sessionAcceptedPromise = waitForServerMessage(
 		socket,
 		isDesktopAgentSessionAcceptedServerMessage,
