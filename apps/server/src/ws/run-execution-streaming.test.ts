@@ -1,64 +1,13 @@
-import type { ModelStreamChunk, ProviderCapabilities } from '@runa/types';
+import type { ModelResponse, ModelStreamChunk, ProviderCapabilities } from '@runa/types';
 import { describe, expect, it } from 'vitest';
 
-import type { ModelResponse, RuntimeEvent } from '@runa/types';
-import type { WebSocketConnection } from '../ws/transport.js';
+import type { RuntimeEvent } from '@runa/types';
+import { createMockSocket } from '../test-utils/mock-socket.js';
+import { createMockStreamingGateway } from '../test-utils/mock-streaming-gateway.js';
 import { generateModelResponseWithStreaming } from '../ws/run-execution.js';
+import type { WebSocketConnection } from '../ws/transport.js';
 
-interface MockSocket {
-	close(code?: number, reason?: string): void;
-	on(event: 'close' | 'message', listener: (message?: unknown) => void): void;
-	send(message: string): void;
-}
-
-interface MockGateway {
-	capabilities?: ProviderCapabilities;
-	generate(request: unknown): Promise<ModelResponse>;
-	stream(request: unknown): AsyncGenerator<ModelStreamChunk>;
-}
-
-function createMockSocket(): { socket: MockSocket; sentMessages: unknown[] } {
-	const sentMessages: unknown[] = [];
-	return {
-		socket: {
-			close: () => {},
-			on: () => {},
-			send: (msg: string) => sentMessages.push(JSON.parse(msg)),
-		},
-		sentMessages,
-	};
-}
-
-function createMockGateway(
-	capabilities: ProviderCapabilities,
-	chunks: readonly ModelStreamChunk[],
-): MockGateway {
-	const chunkArray = [...chunks];
-	let completedResponse: ModelResponse | undefined = undefined;
-
-	return {
-		capabilities,
-		async generate() {
-			if (completedResponse) return completedResponse;
-			const textPart = chunkArray.find((c) => c.type === 'text.delta');
-			const text = textPart ? textPart.text_delta : '';
-			return {
-				message: { content: text, role: 'assistant' as const },
-				finish_reason: 'stop' as const,
-				model: 'mock',
-				provider: 'mock',
-			};
-		},
-		async *stream() {
-			for (const chunk of chunkArray) {
-				if (chunk.type === 'response.completed') completedResponse = chunk.response;
-				yield chunk;
-			}
-		},
-	};
-}
-
-const defaultCapabilities: ProviderCapabilities = {
+const supportedCapabilities: ProviderCapabilities = {
 	emits_reasoning_content: false,
 	narration_strategy: 'temporal_stream',
 	streaming_supported: true,
@@ -72,107 +21,192 @@ const unsupportedCapabilities: ProviderCapabilities = {
 	tool_call_fallthrough_risk: 'none',
 };
 
-describe('generateModelResponseWithStreaming', () => {
-	it('returns model response from streaming gateway', async () => {
-		const chunks: readonly ModelStreamChunk[] = [
-			{ type: 'text.delta', text_delta: 'Hello', content_part_index: 0 },
-			{
-				type: 'response.completed',
-				response: {
-					message: { content: 'Hello', role: 'assistant' },
-					finish_reason: 'stop',
-					model: 'mock',
-					provider: 'mock',
-				},
-			},
-		];
+function createBaseRequest() {
+	return {
+		messages: [],
+		model: 'mock-model',
+		run_id: 'run_test',
+		trace_id: 'trace_test',
+	};
+}
 
-		const mockGateway = createMockGateway(defaultCapabilities, chunks);
+describe('generateModelResponseWithStreaming', () => {
+	it('returns model response from streaming gateway with tool calls', async () => {
+		const mockResponse: ModelResponse = {
+			message: {
+				content: 'package.json kontrol ediyorum.',
+				ordered_content: [
+					{
+						kind: 'text',
+						text: 'package.json kontrol ediyorum.',
+						index: 0,
+						ordering_origin: 'wire_streaming',
+					},
+					{
+						kind: 'tool_use',
+						tool_call_id: 'call_001',
+						tool_name: 'file.read',
+						input: {},
+						index: 1,
+						ordering_origin: 'wire_streaming',
+					},
+				],
+				role: 'assistant',
+			},
+			finish_reason: 'stop',
+			model: 'mock-model',
+			provider: 'mock',
+			tool_call_candidates: [{ call_id: 'call_001', tool_name: 'file.read', tool_input: {} }],
+		};
+
+		const mockGateway = createMockStreamingGateway({
+			capabilities: supportedCapabilities,
+			chunks: [
+				{ type: 'text.delta', text_delta: 'package.json', content_part_index: 0 },
+				{ type: 'text.delta', text_delta: ' kontrol', content_part_index: 0 },
+				{ type: 'text.delta', text_delta: ' ediyorum.', content_part_index: 0 },
+				{ type: 'response.completed', response: mockResponse },
+			],
+			finalResponse: mockResponse,
+		});
+
 		const { socket } = createMockSocket();
+		const runtimeEvents: RuntimeEvent[] = [];
+		let seqCounter = 0;
 
 		const result = await generateModelResponseWithStreaming(
 			socket as unknown as WebSocketConnection,
-			{ run_id: 'run', trace_id: 'trace' },
+			{ run_id: 'run_test', trace_id: 'trace_test' },
 			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			{ messages: [], model: 'm', run_id: 'r', trace_id: 't' },
+			createBaseRequest(),
 			undefined,
+			{
+				capabilities: mockGateway.capabilities,
+				locale: 'tr',
+				runId: 'run_test',
+				traceId: 'trace_test',
+				turnIndex: 1,
+				onRuntimeEvent: (e) => runtimeEvents.push(e),
+				getNextSequenceNo: () => ++seqCounter,
+			},
 		);
 
-		expect(result.message.content).toBe('Hello');
+		expect(result.message.content).toBe('package.json kontrol ediyorum.');
+		expect(result.finish_reason).toBe('stop');
 	});
 
-	it('uses text.delta for unsupported providers', async () => {
-		const chunks: readonly ModelStreamChunk[] = [
-			{ type: 'text.delta', text_delta: 'Test', content_part_index: 0 },
-			{
-				type: 'response.completed',
-				response: {
-					message: { content: 'Test', role: 'assistant' },
-					finish_reason: 'stop',
-					model: 'mock',
-					provider: 'mock',
-				},
-			},
-		];
+	it('falls back to text.delta for unsupported providers', async () => {
+		const mockResponse: ModelResponse = {
+			message: { content: 'merhaba dünya', role: 'assistant' },
+			finish_reason: 'stop',
+			model: 'mock',
+			provider: 'mock',
+		};
 
-		const mockGateway = createMockGateway(unsupportedCapabilities, chunks);
+		const mockGateway = createMockStreamingGateway({
+			capabilities: unsupportedCapabilities,
+			chunks: [
+				{ type: 'text.delta', text_delta: 'merhaba', content_part_index: 0 },
+				{ type: 'text.delta', text_delta: ' dünya', content_part_index: 0 },
+				{ type: 'response.completed', response: mockResponse },
+			],
+			finalResponse: mockResponse,
+		});
+
 		const { socket, sentMessages } = createMockSocket();
+		const runtimeEvents: RuntimeEvent[] = [];
 
 		await generateModelResponseWithStreaming(
 			socket as unknown as WebSocketConnection,
-			{ run_id: 'run', trace_id: 'trace' },
+			{ run_id: 'run_test', trace_id: 'trace_test' },
 			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			{ messages: [], model: 'm', run_id: 'r', trace_id: 't' },
+			createBaseRequest(),
 			undefined,
+			{
+				capabilities: mockGateway.capabilities,
+				locale: 'tr',
+				onRuntimeEvent: (e) => runtimeEvents.push(e),
+				runId: 'run_test',
+				traceId: 'trace_test',
+				turnIndex: 1,
+			},
 		);
 
-		const textDeltas = sentMessages.filter((m) => (m as { type?: string }).type === 'text.delta');
-		expect(textDeltas.length).toBe(1);
+		const narrationDelta = sentMessages.filter((m) => m.type === 'narration.delta');
+		const textDelta = sentMessages.filter((m) => m.type === 'text.delta');
+
+		expect(narrationDelta.length).toBe(0);
+		expect(textDelta.length).toBeGreaterThan(0);
+		expect(runtimeEvents.length).toBe(0);
 	});
 
-	it('handles empty text delta', async () => {
-		const chunks: readonly ModelStreamChunk[] = [
-			{ type: 'text.delta', text_delta: '', content_part_index: 0 },
-			{
-				type: 'response.completed',
-				response: {
-					message: { content: '', role: 'assistant' },
-					finish_reason: 'stop',
-					model: 'mock',
-					provider: 'mock',
-				},
+	it('handles response.completed with tool_call_candidates', async () => {
+		const mockResponse: ModelResponse = {
+			message: {
+				content: '',
+				ordered_content: [
+					{
+						kind: 'tool_use',
+						tool_call_id: 'call_001',
+						tool_name: 'shell.run',
+						input: {},
+						index: 0,
+						ordering_origin: 'wire_streaming',
+					},
+				],
+				role: 'assistant',
 			},
-		];
+			finish_reason: 'stop',
+			model: 'mock',
+			provider: 'mock',
+			tool_call_candidates: [{ call_id: 'call_001', tool_name: 'shell.run', tool_input: {} }],
+		};
 
-		const mockGateway = createMockGateway(defaultCapabilities, chunks);
+		const mockGateway = createMockStreamingGateway({
+			capabilities: supportedCapabilities,
+			chunks: [{ type: 'response.completed', response: mockResponse }],
+			finalResponse: mockResponse,
+		});
+
 		const { socket } = createMockSocket();
+		const runtimeEvents: RuntimeEvent[] = [];
 
 		const result = await generateModelResponseWithStreaming(
 			socket as unknown as WebSocketConnection,
-			{ run_id: 'run', trace_id: 'trace' },
+			{ run_id: 'run_test', trace_id: 'trace_test' },
 			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			{ messages: [], model: 'm', run_id: 'r', trace_id: 't' },
+			createBaseRequest(),
 			undefined,
-			{ capabilities: defaultCapabilities, locale: 'tr', runId: 'r', traceId: 't', turnIndex: 1 },
+			{
+				capabilities: mockGateway.capabilities,
+				locale: 'tr',
+				onRuntimeEvent: (e) => runtimeEvents.push(e),
+				runId: 'run_test',
+				traceId: 'trace_test',
+				turnIndex: 1,
+			},
 		);
 
 		expect(result).toBeDefined();
+		expect(result.finish_reason).toBe('stop');
 	});
 
 	it('accepts options parameter', async () => {
-		const chunks: readonly ModelStreamChunk[] = [
-			{
-				type: 'response.completed',
-				response: {
-					message: { content: 'ok', role: 'assistant' },
-					finish_reason: 'stop',
-					model: 'mock',
-					provider: 'mock',
+		const mockGateway = createMockStreamingGateway({
+			capabilities: supportedCapabilities,
+			chunks: [
+				{
+					type: 'response.completed',
+					response: {
+						message: { content: 'ok', role: 'assistant' },
+						finish_reason: 'stop',
+						model: 'mock',
+						provider: 'mock',
+					},
 				},
-			},
-		];
+			],
+		});
 
-		const mockGateway = createMockGateway(defaultCapabilities, chunks);
 		const { socket } = createMockSocket();
 		const events: RuntimeEvent[] = [];
 
@@ -180,10 +214,10 @@ describe('generateModelResponseWithStreaming', () => {
 			socket as unknown as WebSocketConnection,
 			{ run_id: 'run', trace_id: 'trace' },
 			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			{ messages: [], model: 'm', run_id: 'r', trace_id: 't' },
+			createBaseRequest(),
 			undefined,
 			{
-				capabilities: defaultCapabilities,
+				capabilities: supportedCapabilities,
 				locale: 'tr',
 				onRuntimeEvent: (e) => events.push(e),
 				runId: 'run',
