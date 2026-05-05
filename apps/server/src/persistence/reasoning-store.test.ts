@@ -1,3 +1,4 @@
+import type { RunaDatabase } from '@runa/db';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -125,7 +126,7 @@ describe('reasoning-store', () => {
 				environment: {},
 				writer,
 			}),
-		).resolves.toBe(0);
+		).resolves.toEqual({ deleted_count: 0 });
 		expect(cleanupExpired).not.toHaveBeenCalled();
 
 		await expect(
@@ -133,7 +134,26 @@ describe('reasoning-store', () => {
 				environment: { RUNA_PERSIST_REASONING: '1' },
 				writer,
 			}),
-		).resolves.toBe(4);
+		).resolves.toEqual({ deleted_count: 4 });
 		expect(cleanupExpired).toHaveBeenCalledWith(expect.any(String));
+	});
+
+	it('supports manual cleanup through a provided database handle', async () => {
+		const returning = vi.fn(async () => [
+			{ trace_record_id: 'expired_1' },
+			{ trace_record_id: 'expired_2' },
+		]);
+		const where = vi.fn(() => ({ returning }));
+		const deleteMock = vi.fn(() => ({ where }));
+		const db = { delete: deleteMock };
+
+		await expect(
+			cleanupExpiredReasoningTraces(
+				db as unknown as RunaDatabase,
+				new Date('2026-05-05T12:00:00.000Z'),
+			),
+		).resolves.toEqual({ deleted_count: 2 });
+		expect(deleteMock).toHaveBeenCalled();
+		expect(where).toHaveBeenCalled();
 	});
 });

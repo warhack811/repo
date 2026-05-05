@@ -1,83 +1,42 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '../../..');
-
-function parseDotEnv(text) {
-	const entries = {};
-
-	for (const line of text.split(/\r?\n/u)) {
-		const trimmed = line.trim();
-
-		if (trimmed.length === 0 || trimmed.startsWith('#')) {
-			continue;
-		}
-
-		const equalsIndex = trimmed.indexOf('=');
-
-		if (equalsIndex < 0) {
-			continue;
-		}
-
-		const key = trimmed.slice(0, equalsIndex).trim();
-		let value = trimmed.slice(equalsIndex + 1).trim();
-
-		if (
-			(value.startsWith('"') && value.endsWith('"')) ||
-			(value.startsWith("'") && value.endsWith("'"))
-		) {
-			value = value.slice(1, -1);
-		}
-
-		entries[key] = value;
-	}
-
-	return entries;
-}
-
-async function readApiKey() {
-	if (process.env.DEEPSEEK_API_KEY?.trim()) {
-		return {
-			key: process.env.DEEPSEEK_API_KEY.trim(),
-			source: 'shell',
-		};
-	}
-
-	for (const filename of ['.env.local', '.env']) {
-		try {
-			const envText = await readFile(resolve(repoRoot, filename), 'utf8');
-			const key = parseDotEnv(envText).DEEPSEEK_API_KEY;
-
-			if (typeof key === 'string' && key.trim().length > 0) {
-				return {
-					key: key.trim(),
-					source: filename,
-				};
-			}
-		} catch (error) {
-			if (error?.code !== 'ENOENT') {
-				throw error;
-			}
-		}
-	}
-
-	return {
-		key: null,
-		source: 'missing',
-	};
-}
+const systemPrompt = "Cagiracagin tool'dan hemen once kullaniciya 1 cumle ile ne yapacagini soyle.";
 
 function timestamp() {
 	return new Date().toISOString();
+}
+
+function sha256Prefix(value) {
+	return createHash('sha256').update(value).digest('hex').slice(0, 16);
+}
+
+function summarizeReasoningContent(value) {
+	return {
+		length: value.length,
+		sha256_prefix: sha256Prefix(value),
+	};
+}
+
+function truncate(value, maxLength) {
+	return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
+
+function maskApiKey(apiKey) {
+	const last4 = apiKey.slice(-4);
+
+	return `sk-***${last4}`;
 }
 
 function buildRequest(prompt) {
 	return {
 		messages: [
 			{
-				content: "Cagiracagin tool'dan hemen once kullaniciya 1 cumle ile ne yapacagini soyle.",
+				content: systemPrompt,
 				role: 'system',
 			},
 			{
@@ -115,12 +74,15 @@ function buildRequest(prompt) {
 function summarizeChunk(chunk) {
 	const choice = chunk?.choices?.[0];
 	const delta = choice?.delta ?? {};
+	const reasoningContent =
+		typeof delta.reasoning_content === 'string'
+			? summarizeReasoningContent(delta.reasoning_content)
+			: undefined;
 
 	return {
 		timestamp: timestamp(),
 		delta_content: typeof delta.content === 'string' ? delta.content : undefined,
-		delta_reasoning_content:
-			typeof delta.reasoning_content === 'string' ? delta.reasoning_content : undefined,
+		delta_reasoning_content: reasoningContent,
 		delta_tool_calls: Array.isArray(delta.tool_calls)
 			? delta.tool_calls.map((toolCall) => ({
 					function_arguments: toolCall?.function?.arguments,
@@ -131,7 +93,6 @@ function summarizeChunk(chunk) {
 				}))
 			: undefined,
 		finish_reason: choice?.finish_reason,
-		raw: chunk,
 	};
 }
 
@@ -192,7 +153,9 @@ async function runPrompt({ apiKey, lines, prompt, runIndex }) {
 			api: 'deepseek-chat-completions',
 			event: 'prompt.started',
 			model: process.env.DEEPSEEK_SPIKE_MODEL ?? 'deepseek-chat',
-			prompt,
+			system_prompt_sha256_prefix: sha256Prefix(systemPrompt),
+			system_prompt_truncated: truncate(systemPrompt, 80),
+			user_prompt: truncate(prompt, 200),
 			run_index: runIndex,
 			timestamp: timestamp(),
 		}),
@@ -211,7 +174,7 @@ async function runPrompt({ apiKey, lines, prompt, runIndex }) {
 		const body = await response.text();
 		lines.push(
 			JSON.stringify({
-				body,
+				body: truncate(body, 500),
 				event: 'prompt.http_error',
 				status: response.status,
 				timestamp: timestamp(),
@@ -248,33 +211,30 @@ async function runPrompt({ apiKey, lines, prompt, runIndex }) {
 }
 
 async function main() {
-	const apiKeyResult = await readApiKey();
-	const logDirectory = resolve(repoRoot, 'docs/spikes');
+	if (process.env.NODE_ENV === 'production') {
+		throw new Error('Spike scripts must not run in production');
+	}
+
+	if (!process.env.DEEPSEEK_API_KEY?.trim()) {
+		throw new Error('DEEPSEEK_API_KEY required');
+	}
+
+	const apiKey = process.env.DEEPSEEK_API_KEY.trim();
+	const logDirectory = resolve(repoRoot, '.local/spikes');
 	const logPath = resolve(
 		logDirectory,
 		`deepseek-wire-order-${new Date().toISOString().replace(/[:.]/gu, '-')}.log`,
 	);
 	const lines = [
 		JSON.stringify({
-			api_key_source: apiKeyResult.source,
+			api_key: maskApiKey(apiKey),
+			api_key_source: 'process.env.DEEPSEEK_API_KEY',
 			event: 'spike.started',
 			timestamp: timestamp(),
 		}),
 	];
 
 	await mkdir(logDirectory, { recursive: true });
-
-	if (!apiKeyResult.key) {
-		lines.push(
-			JSON.stringify({
-				event: 'DEEPSEEK_KEY_UNAVAILABLE',
-				timestamp: timestamp(),
-			}),
-		);
-		await writeFile(logPath, `${lines.join('\n')}\n`, 'utf8');
-		console.log(`DEEPSEEK_KEY_UNAVAILABLE ${logPath}`);
-		return;
-	}
 
 	const prompts = [
 		'Su an saat kac Istanbulda?',
@@ -284,7 +244,7 @@ async function main() {
 
 	for (const [index, prompt] of prompts.entries()) {
 		await runPrompt({
-			apiKey: apiKeyResult.key,
+			apiKey,
 			lines,
 			prompt,
 			runIndex: index + 1,

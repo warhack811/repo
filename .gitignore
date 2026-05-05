@@ -60,6 +60,7 @@ server_logs.txt
 
 # Local scratch/proof files
 .tmp/
+.local/
 .codex-tmp/
 scratch_*
 scratch*.json

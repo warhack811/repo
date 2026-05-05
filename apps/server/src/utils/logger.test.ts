@@ -39,6 +39,33 @@ describe('createLogger', () => {
 		);
 	});
 
+	it('redacts internal reasoning fields from structured log payloads', () => {
+		const sink = vi.fn();
+		const logger = createLogger({ sink });
+
+		logger.info('logger.reasoning.test', {
+			internal_reasoning: 'hidden chain',
+			nested: {
+				reasoning_content: 'hidden provider trace',
+				visible: 'safe',
+			},
+			visible: 'safe root',
+		});
+
+		expect(sink).toHaveBeenCalledWith(
+			'info',
+			expect.objectContaining({
+				internal_reasoning: '[REDACTED]',
+				message: 'logger.reasoning.test',
+				nested: {
+					reasoning_content: '[REDACTED]',
+					visible: 'safe',
+				},
+				visible: 'safe root',
+			}),
+		);
+	});
+
 	it('emits span lifecycle entries with shared span metadata', () => {
 		const sink = vi.fn();
 		const logger = createLogger({

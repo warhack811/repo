@@ -1,4 +1,4 @@
-import type { ModelRequest } from '@runa/types';
+import { type ModelRequest, type ModelStreamChunk, redact, unwrapRedacted } from '@runa/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.js';
@@ -717,7 +717,11 @@ describe('DeepSeekGateway', () => {
 		expect(requestBody.thinking?.type).toBe('enabled');
 		expect(requestBody.reasoning_effort).toBe('high');
 		expect(response.message.content).toBe('Reasoned answer');
-		expect(response.message.internal_reasoning).toBe('hidden internal reasoning');
+		const internalReasoning = response.message.internal_reasoning;
+		if (internalReasoning === undefined) {
+			throw new Error('Expected internal reasoning to be redacted.');
+		}
+		expect(unwrapRedacted(internalReasoning)).toBe('hidden internal reasoning');
 		expect(JSON.stringify(response.message.ordered_content)).not.toContain(
 			'hidden internal reasoning',
 		);
@@ -744,7 +748,11 @@ describe('DeepSeekGateway', () => {
 		await gateway.generate({
 			...deepSeekRequest,
 			messages: [
-				{ content: 'Previous action', internal_reasoning: 'hidden chain', role: 'assistant' },
+				{
+					content: 'Previous action',
+					internal_reasoning: redact('hidden chain'),
+					role: 'assistant',
+				},
 				{ content: 'Continue', role: 'user' },
 			],
 			model: 'deepseek-v4-pro',
@@ -940,13 +948,13 @@ describe('DeepSeekGateway', () => {
 				model: 'deepseek-v4-pro',
 			}),
 		);
-		const completed = chunks.at(-1);
+		const completed = chunks.at(-1) as ModelStreamChunk | undefined;
 
 		expect(completed).toMatchObject({
 			response: {
 				message: {
 					content: 'Visible answer',
-					internal_reasoning: 'hidden trace',
+					internal_reasoning: expect.any(Object),
 					ordered_content: [
 						{
 							index: 0,
@@ -958,6 +966,14 @@ describe('DeepSeekGateway', () => {
 				},
 			},
 		});
+		if (completed?.type !== 'response.completed') {
+			throw new Error('Expected response.completed chunk.');
+		}
+		const streamingInternalReasoning = completed.response.message.internal_reasoning;
+		if (streamingInternalReasoning === undefined) {
+			throw new Error('Expected streaming internal reasoning to be redacted.');
+		}
+		expect(unwrapRedacted(streamingInternalReasoning)).toBe('hidden trace');
 		expect(JSON.stringify(completed)).not.toContain('reasoning_content');
 	});
 
@@ -989,6 +1005,7 @@ describe('DeepSeekGateway', () => {
 					fallthrough_detected: [
 						{
 							confidence: 'high',
+							matched_pattern: expect.any(String),
 							suspected_tool_name: 'file.read',
 						},
 					],
@@ -997,6 +1014,87 @@ describe('DeepSeekGateway', () => {
 			},
 			type: 'response.completed',
 		});
+	});
+
+	it('keeps medium-confidence DeepSeek fallthrough text but suppresses narration eligibility', async () => {
+		const text =
+			'I will call file.read tool with parameters {"path":"README.md"} before answering.';
+		installFetchMock(
+			mockSseResponse([
+				`data: {"id":"chatcmpl_deepseek_medium_fallthrough_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","content":${JSON.stringify(text)}},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}`,
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: text,
+					fallthrough_detected: [
+						{
+							confidence: 'medium',
+							matched_pattern: expect.any(String),
+							suspected_tool_name: 'file.read',
+						},
+					],
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							narration_eligible: false,
+							ordering_origin: 'wire_streaming',
+							text,
+						},
+					],
+				},
+			},
+			type: 'response.completed',
+		});
+	});
+
+	it('keeps low-confidence DeepSeek fallthrough observations without metadata flags', async () => {
+		const text = 'I will use the tool after checking the file.';
+		installFetchMock(
+			mockSseResponse([
+				`data: {"id":"chatcmpl_deepseek_low_fallthrough_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","content":${JSON.stringify(text)}},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}`,
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: text,
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text,
+						},
+					],
+				},
+			},
+			type: 'response.completed',
+		});
+		expect(JSON.stringify(chunks.at(-1))).not.toContain('fallthrough_detected');
+		expect(JSON.stringify(chunks.at(-1))).not.toContain('narration_eligible');
 	});
 
 	it('surfaces missing call id as a structured DeepSeek streaming tool call rejection', async () => {

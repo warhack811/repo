@@ -91,6 +91,7 @@ export type {
 	AgentReasoningTraceRecord,
 	NewAgentReasoningTraceRecord,
 } from './reasoning-traces.js';
+export { cleanupExpiredAgentReasoningTraces } from './reasoning-traces.js';
 export {
 	createPolicyStateDatabaseClient,
 	type PolicyStateDatabaseClient,

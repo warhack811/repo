@@ -1,20 +1,21 @@
-import type {
-	AnyRuntimeEvent,
-	ApprovalTarget,
-	GatewayProvider,
-	ModelMessage,
-	ModelRequest,
-	ModelResponse,
-	ModelToolCallCandidate,
-	RenderBlock,
-	RuntimeEvent,
-	RuntimeState,
-	RuntimeTerminationCode,
-	ToolDefinition,
-	ToolErrorCode,
-	ToolResult,
-	ToolRuntimeEvent,
-	TurnProgressEvent,
+import {
+	type AnyRuntimeEvent,
+	type ApprovalTarget,
+	type GatewayProvider,
+	type ModelMessage,
+	type ModelRequest,
+	type ModelResponse,
+	type ModelToolCallCandidate,
+	type RenderBlock,
+	type RuntimeEvent,
+	type RuntimeState,
+	type RuntimeTerminationCode,
+	type ToolDefinition,
+	type ToolErrorCode,
+	type ToolResult,
+	type ToolRuntimeEvent,
+	type TurnProgressEvent,
+	unwrapRedacted,
 } from '@runa/types';
 
 import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
@@ -1021,14 +1022,20 @@ async function persistInternalReasoningIfPresent(
 ): Promise<void> {
 	const internalReasoning = modelResponse.message.internal_reasoning;
 
-	if (internalReasoning === undefined || internalReasoning.trim().length === 0) {
+	if (internalReasoning === undefined) {
+		return;
+	}
+
+	const reasoningContent = unwrapRedacted(internalReasoning);
+
+	if (reasoningContent.trim().length === 0) {
 		return;
 	}
 
 	await persistReasoningTrace({
 		model: modelResponse.model,
 		provider: modelResponse.provider,
-		reasoning_content: internalReasoning,
+		reasoning_content: reasoningContent,
 		run_id: input.run_id,
 		trace_id: input.trace_id,
 		turn_index: input.turn_index ?? 1,

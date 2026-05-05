@@ -55,8 +55,18 @@
   - `pnpm.cmd --filter @runa/server test` PASS (`143` dosya / `1065` test)
   - `pnpm.cmd exec vitest run src/schema.test.ts --passWithNoTests` PASS (`packages/db`, `1` dosya / `3` test)
   - Scoped `pnpm.cmd exec biome check ...` PASS (`30` degisen dosya)
-  - Full `pnpm.cmd exec biome check` RED: task disi mevcut baseline devam ediyor (`.codex-temp/desktop-agent-live-smoke.mjs`, `apps/server/src/presentation/map-run-timeline.ts`, cok sayida `apps/web/src/components/chat/*.module.css` bos block/format diagnostigi).
+- Full `pnpm.cmd exec biome check` RED: task disi mevcut baseline devam ediyor (`.codex-temp/desktop-agent-live-smoke.mjs`, `apps/server/src/presentation/map-run-timeline.ts`, cok sayida `apps/web/src/components/chat/*.module.css` bos block/format diagnostigi).
 - Faz 2B riski: classifier kesinlikle `ordering_origin` ayrimini kullanmali; `synthetic_non_streaming` veya `unsupported` kaynaklardan narration emit edilmemeli. DeepSeek fallthrough sinyali runtime retry/drop politikasina tasinmali.
+
+### TASK-WORK-NARRATION-PHASE-2A.5 - 5 Mayis 2026
+
+- Kapsam: Faz 2A altyapisi sertlestirildi; Faz 2B classifier/emission isine gecilmedi.
+- Redaction: `Redacted<T>` opaque type eklendi ve `ModelMessage.internal_reasoning` artik raw `string` degil. DeepSeek provider replay ve reasoning persistence noktalari bilincli `unwrapRedacted()` karar noktalari olarak kaldi. Logger `internal_reasoning` ve `reasoning_content` alanlarini recursive redact ediyor.
+- Telemetry: Server tarafinda analytics, Sentry, PostHog, Datadog veya trace span attribute entegrasyonu bulunmadi. `docs/architecture/reasoning-persistence.md` gelecekteki telemetry wrapper zorunlulugunu kaydediyor.
+- Fallthrough: Detector high/medium/low confidence politikasina gecti. Sadece high confidence tool-call gorunumlu text `ordered_content`ten dusuyor; medium confidence part tutuluyor ama `narration_eligible:false`; low confidence sadece debug gozlem olarak kaliyor.
+- Spike guvenligi: DeepSeek spike output yolu `.local/spikes/` oldu ve `.local/` gitignore kapsaminda. Script production'da calismaz, yalniz shell `DEEPSEEK_API_KEY` kabul eder, API key maskelenir, promptlar cap/hash ile loglanir, `reasoning_content` ham yazilmaz.
+- Retention defer: `reasoning-store` basina Faz 6 cleanup TODO'su eklendi. `cleanupExpiredReasoningTraces` manuel helper'i var; scheduled job Faz 6'ya explicit ertelendi.
+- Faz 2B hazirlik: Classifier high fallthrough sinyalini hard block olarak, medium sinyali narration suppression olarak yorumlamali; `narration_eligible:false` olan text final answer olabilir ama work narration olarak emit edilmemeli.
 
 ### TASK-TOOL-RESULT-PIPELINE - 3 Mayis 2026 (Dalga 1 + Dalga 2)
 

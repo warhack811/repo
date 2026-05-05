@@ -1,12 +1,14 @@
-import type {
-	ModelAttachment,
-	ModelContentPart,
-	ModelGateway,
-	ModelRequest,
-	ModelResponse,
-	ModelStreamChunk,
-	ModelToolCallFallthroughSignal,
-	ProviderCapabilities,
+import {
+	type ModelAttachment,
+	type ModelContentPart,
+	type ModelGateway,
+	type ModelRequest,
+	type ModelResponse,
+	type ModelStreamChunk,
+	type ModelToolCallFallthroughSignal,
+	type ProviderCapabilities,
+	redact,
+	unwrapRedacted,
 } from '@runa/types';
 
 import { createLogger } from '../utils/logger.js';
@@ -235,7 +237,7 @@ function appendAttachmentsToLastUserMessage(
 				: message.content,
 		...(message.role === 'assistant' && message.internal_reasoning !== undefined
 			? {
-					reasoning_content: message.internal_reasoning,
+					reasoning_content: unwrapRedacted(message.internal_reasoning),
 				}
 			: {}),
 		role: message.role,
@@ -473,7 +475,7 @@ function parseDeepSeekResponse(
 		finish_reason: mapDeepSeekFinishReason(choice.finish_reason),
 		message: {
 			content: messageContent,
-			internal_reasoning: internalReasoning,
+			internal_reasoning: internalReasoning !== undefined ? redact(internalReasoning) : undefined,
 			ordered_content: createOrderedContentFromTextAndToolCalls(
 				messageContent,
 				getOrderedToolCallCandidates(toolCalls.tool_call_candidate, toolCalls.tool_call_candidates),
@@ -665,14 +667,16 @@ function finalizeDeepSeekStreamingContent(
 
 			const detection = detectToolCallFallthrough(part.text);
 
-			if (detection.is_fallthrough) {
+			if (detection.is_fallthrough && detection.confidence === 'high') {
 				const signal: ModelToolCallFallthroughSignal = {
 					confidence: detection.confidence,
+					matched_pattern: detection.matched_pattern,
 					suspected_tool_name: detection.suspected_tool_name,
 				};
 				fallthroughSignals.push(signal);
-				deepSeekGatewayLogger.warn('deepseek.fallthrough.detected', {
+				deepSeekGatewayLogger.warn('fallthrough.high.blocked', {
 					confidence: detection.confidence,
+					matched_pattern: detection.matched_pattern,
 					run_id: context.run_id,
 					suspected_tool_name: detection.suspected_tool_name,
 					trace_id: context.trace_id,
@@ -682,10 +686,37 @@ function finalizeDeepSeekStreamingContent(
 
 			outputTextParts.push(part.text);
 
+			if (detection.is_fallthrough && detection.confidence === 'medium') {
+				const signal: ModelToolCallFallthroughSignal = {
+					confidence: detection.confidence,
+					matched_pattern: detection.matched_pattern,
+					suspected_tool_name: detection.suspected_tool_name,
+				};
+				fallthroughSignals.push(signal);
+				deepSeekGatewayLogger.info('fallthrough.medium.suppressed_narration', {
+					confidence: detection.confidence,
+					matched_pattern: detection.matched_pattern,
+					run_id: context.run_id,
+					suspected_tool_name: detection.suspected_tool_name,
+					trace_id: context.trace_id,
+				});
+			} else if (detection.is_fallthrough && detection.confidence === 'low') {
+				deepSeekGatewayLogger.debug('fallthrough.low.observed', {
+					confidence: detection.confidence,
+					matched_pattern: detection.matched_pattern,
+					run_id: context.run_id,
+					suspected_tool_name: detection.suspected_tool_name,
+					trace_id: context.trace_id,
+				});
+			}
+
 			return [
 				{
 					index: part.index,
 					kind: 'text',
+					...(detection.is_fallthrough && detection.confidence === 'medium'
+						? { narration_eligible: false }
+						: {}),
 					ordering_origin: 'wire_streaming',
 					text: part.text,
 				},
@@ -932,7 +963,8 @@ export class DeepSeekGateway implements ModelGateway {
 								? ''
 								: streamingContent.output_text,
 					fallthrough_detected: streamingContent.fallthrough_detected,
-					internal_reasoning: internalReasoning,
+					internal_reasoning:
+						internalReasoning !== undefined ? redact(internalReasoning) : undefined,
 					ordered_content:
 						streamingContent.ordered_content.length > 0
 							? streamingContent.ordered_content

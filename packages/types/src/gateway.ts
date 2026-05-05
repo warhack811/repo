@@ -1,3 +1,4 @@
+import type { Redacted } from './redacted.js';
 import type { ToolArguments, ToolName } from './tools.js';
 
 export type ModelMessageRole = 'system' | 'user' | 'assistant';
@@ -5,7 +6,7 @@ export type ModelMessageRole = 'system' | 'user' | 'assistant';
 export interface ModelMessage {
 	readonly role: ModelMessageRole;
 	readonly content: string;
-	readonly internal_reasoning?: string;
+	readonly internal_reasoning?: Redacted<string>;
 }
 
 export const modelAttachmentKinds = ['image', 'text', 'document'] as const;
@@ -129,6 +130,7 @@ export type ModelContentPart =
 	| {
 			readonly index: number;
 			readonly kind: 'text';
+			readonly narration_eligible?: boolean;
 			readonly ordering_origin: ModelContentOrderingOrigin;
 			readonly text: string;
 	  }
@@ -143,6 +145,7 @@ export type ModelContentPart =
 
 export interface ModelToolCallFallthroughSignal {
 	readonly confidence: 'high' | 'low' | 'medium';
+	readonly matched_pattern?: string;
 	readonly suspected_tool_name?: string;
 }
 

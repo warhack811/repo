@@ -2,12 +2,20 @@ import { randomUUID } from 'node:crypto';
 
 import {
 	type NewAgentReasoningTraceRecord,
+	type RunaDatabase,
 	agentReasoningTracesTable,
+	cleanupExpiredAgentReasoningTraces,
 	createDatabaseConnection,
 	ensureDatabaseSchema,
 } from '@runa/db';
 
 import { logPersistenceDebugFailure, resolvePersistenceDatabaseUrl } from './database-config.js';
+
+// TODO(faz-6): Scheduled cleanup job for expired reasoning traces.
+// Current state: rows have expires_at, but no automated deletion.
+// Risk: Table will grow unbounded if RUNA_PERSIST_REASONING is enabled.
+// Mitigation: Operators must run manual cleanup until Faz 6.
+// Tracking: docs/architecture/work-narration.md
 
 export type ReasoningRetentionPolicy = 'debug_30d' | 'permanent_audit';
 
@@ -77,6 +85,10 @@ interface PersistenceOptions {
 	readonly writer?: ReasoningTraceRecordWriter;
 }
 
+export interface CleanupExpiredReasoningTracesResult {
+	readonly deleted_count: number;
+}
+
 let defaultWriterPromise: Promise<ReasoningTraceRecordWriter> | null = null;
 
 function isReasoningPersistenceEnabled(environment: NodeJS.ProcessEnv): boolean {
@@ -133,6 +145,15 @@ function toReasoningTraceRecord(input: PersistReasoningTraceInput): NewAgentReas
 	};
 }
 
+function isRunaDatabase(value: unknown): value is RunaDatabase {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'delete' in value &&
+		typeof (value as { readonly delete?: unknown }).delete === 'function'
+	);
+}
+
 export async function persistReasoningTrace(
 	input: PersistReasoningTraceInput,
 	options: PersistenceOptions = {},
@@ -175,17 +196,31 @@ export async function persistReasoningTrace(
 }
 
 export async function cleanupExpiredReasoningTraces(
-	options: PersistenceOptions = {},
-): Promise<number> {
-	if (!isReasoningPersistenceEnabled(options.environment ?? process.env)) {
-		return 0;
+	db: RunaDatabase,
+	now?: Date,
+): Promise<CleanupExpiredReasoningTracesResult>;
+export async function cleanupExpiredReasoningTraces(
+	options?: PersistenceOptions,
+): Promise<CleanupExpiredReasoningTracesResult>;
+export async function cleanupExpiredReasoningTraces(
+	dbOrOptions: PersistenceOptions | RunaDatabase = {},
+	now: Date = new Date(),
+): Promise<CleanupExpiredReasoningTracesResult> {
+	if (isRunaDatabase(dbOrOptions)) {
+		return cleanupExpiredAgentReasoningTraces(dbOrOptions, now);
 	}
 
-	const now = new Date().toISOString();
+	const options = dbOrOptions;
+
+	if (!isReasoningPersistenceEnabled(options.environment ?? process.env)) {
+		return { deleted_count: 0 };
+	}
+
+	const nowIso = now.toISOString();
 
 	try {
 		const writer = options.writer ?? (await getDefaultWriter());
-		return await writer.cleanupExpired(now);
+		return { deleted_count: await writer.cleanupExpired(nowIso) };
 	} catch (error) {
 		logPersistenceDebugFailure({
 			error,

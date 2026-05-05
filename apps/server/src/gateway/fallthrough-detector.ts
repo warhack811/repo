@@ -11,8 +11,12 @@ const jsonFunctionArgumentsPattern =
 	/^\s*\{\s*"function"\s*:\s*\{\s*"name"\s*:\s*"(?<toolName>[\w.-]+)"\s*,\s*"arguments"\s*:/iu;
 const functionSyntaxPattern = /^\s*(?<toolName>[a-zA-Z_][\w.-]*)\s*\(\s*\{/u;
 const explicitCallPattern =
-	/\b(?:i(?:'ll| will)|let me|going to)\s+call\s+(?:the\s+)?(?<toolName>[\w.-]+)(?:\s+tool)?\s+with\s+(?:parameters|arguments)\b/iu;
+	/\b(?:i(?:'ll| will)|let me|going to|calling)\s+call?\s*(?:the\s+)?(?<toolName>[\w.-]+)?(?:\s+tool)?\s+(?:with|using)\s+(?:parameters|arguments)\b/iu;
+const callingToolPattern =
+	/\bcalling\s+(?:the\s+)?(?<toolName>[\w.-]+)\s+tool\b.*\b(?:with|using)\b/iu;
+const partialJsonPattern = /(?:^|[^\w])\{\s*"name"\s*:\s*"(?<toolName>[\w.-]+)"(?:\s*[,}])/iu;
 const mediumKeywordJsonPattern = /\b(arguments|parameters)\s*[:=]\s*\{/iu;
+const lowKeywordPattern = /\b(tool|function|call)\b/iu;
 
 function emptyResult(): ToolCallFallthroughDetection {
 	return {
@@ -43,6 +47,7 @@ export function detectToolCallFallthrough(textContent: string): ToolCallFallthro
 			return {
 				confidence: 'high',
 				is_fallthrough: true,
+				matched_pattern: markerPattern.source,
 			};
 		}
 	}
@@ -53,6 +58,7 @@ export function detectToolCallFallthrough(textContent: string): ToolCallFallthro
 		return {
 			confidence: 'high',
 			is_fallthrough: true,
+			matched_pattern: jsonNameArgumentsPattern.source,
 			suspected_tool_name: normalizeSuspectedToolName(jsonNameMatch.groups?.['toolName']),
 		};
 	}
@@ -63,6 +69,7 @@ export function detectToolCallFallthrough(textContent: string): ToolCallFallthro
 		return {
 			confidence: 'high',
 			is_fallthrough: true,
+			matched_pattern: jsonFunctionArgumentsPattern.source,
 			suspected_tool_name: normalizeSuspectedToolName(jsonFunctionMatch.groups?.['toolName']),
 		};
 	}
@@ -73,6 +80,7 @@ export function detectToolCallFallthrough(textContent: string): ToolCallFallthro
 		return {
 			confidence: 'high',
 			is_fallthrough: true,
+			matched_pattern: functionSyntaxPattern.source,
 			suspected_tool_name: normalizeSuspectedToolName(functionSyntaxMatch.groups?.['toolName']),
 		};
 	}
@@ -81,9 +89,32 @@ export function detectToolCallFallthrough(textContent: string): ToolCallFallthro
 
 	if (explicitCallMatch) {
 		return {
-			confidence: 'high',
+			confidence: 'medium',
 			is_fallthrough: true,
+			matched_pattern: explicitCallPattern.source,
 			suspected_tool_name: normalizeSuspectedToolName(explicitCallMatch.groups?.['toolName']),
+		};
+	}
+
+	const callingToolMatch = callingToolPattern.exec(normalizedText);
+
+	if (callingToolMatch) {
+		return {
+			confidence: 'medium',
+			is_fallthrough: true,
+			matched_pattern: callingToolPattern.source,
+			suspected_tool_name: normalizeSuspectedToolName(callingToolMatch.groups?.['toolName']),
+		};
+	}
+
+	const partialJsonMatch = partialJsonPattern.exec(normalizedText);
+
+	if (partialJsonMatch) {
+		return {
+			confidence: 'medium',
+			is_fallthrough: true,
+			matched_pattern: partialJsonPattern.source,
+			suspected_tool_name: normalizeSuspectedToolName(partialJsonMatch.groups?.['toolName']),
 		};
 	}
 
@@ -91,6 +122,15 @@ export function detectToolCallFallthrough(textContent: string): ToolCallFallthro
 		return {
 			confidence: 'medium',
 			is_fallthrough: true,
+			matched_pattern: mediumKeywordJsonPattern.source,
+		};
+	}
+
+	if (lowKeywordPattern.test(normalizedText)) {
+		return {
+			confidence: 'low',
+			is_fallthrough: true,
+			matched_pattern: lowKeywordPattern.source,
 		};
 	}
 

@@ -1,12 +1,13 @@
-import type {
-	ApprovalRequest,
-	ModelGateway,
-	ModelRequest,
-	ModelResponse,
-	RuntimeState,
-	ToolExecutionContext,
-	ToolName,
-	ToolResult,
+import {
+	type ApprovalRequest,
+	type ModelGateway,
+	type ModelRequest,
+	type ModelResponse,
+	type RuntimeState,
+	type ToolExecutionContext,
+	type ToolName,
+	type ToolResult,
+	unwrapRedacted,
 } from '@runa/types';
 
 import type { RunRecordWriter } from '../persistence/run-store.js';
@@ -249,14 +250,20 @@ async function persistInternalReasoningIfPresent(
 ): Promise<void> {
 	const internalReasoning = modelResponse.message.internal_reasoning;
 
-	if (internalReasoning === undefined || internalReasoning.trim().length === 0) {
+	if (internalReasoning === undefined) {
+		return;
+	}
+
+	const reasoningContent = unwrapRedacted(internalReasoning);
+
+	if (reasoningContent.trim().length === 0) {
 		return;
 	}
 
 	await persistReasoningTrace({
 		model: modelResponse.model,
 		provider: modelResponse.provider,
-		reasoning_content: internalReasoning,
+		reasoning_content: reasoningContent,
 		run_id: input.run_id,
 		trace_id: input.trace_id,
 		turn_index: input.turn_index ?? 1,
