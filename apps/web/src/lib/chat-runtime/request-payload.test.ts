@@ -37,4 +37,47 @@ describe('createRunRequestPayload', () => {
 			mode: 'trusted-session',
 		});
 	});
+
+	it('infers English locale from the outgoing user prompt', () => {
+		const payload = createRunRequestPayload({
+			apiKey: 'test-key',
+			includePresentationBlocks: true,
+			model: 'deepseek-chat',
+			prompt: 'Please check package.json and find the dev command.',
+			provider: 'deepseek',
+			runId: 'run_locale_en',
+			traceId: 'trace_locale_en',
+		});
+
+		expect(payload.locale).toBe('en');
+	});
+
+	it('infers Turkish locale from the outgoing user prompt', () => {
+		const payload = createRunRequestPayload({
+			apiKey: 'test-key',
+			includePresentationBlocks: true,
+			model: 'deepseek-chat',
+			prompt: 'Lütfen package.json dosyasını kontrol et.',
+			provider: 'deepseek',
+			runId: 'run_locale_tr',
+			traceId: 'trace_locale_tr',
+		});
+
+		expect(payload.locale).toBe('tr');
+	});
+
+	it('lets an explicit locale override prompt inference', () => {
+		const payload = createRunRequestPayload({
+			apiKey: 'test-key',
+			includePresentationBlocks: true,
+			locale: 'en',
+			model: 'deepseek-chat',
+			prompt: 'Lütfen package.json dosyasını kontrol et.',
+			provider: 'deepseek',
+			runId: 'run_locale_override',
+			traceId: 'trace_locale_override',
+		});
+
+		expect(payload.locale).toBe('en');
+	});
 });

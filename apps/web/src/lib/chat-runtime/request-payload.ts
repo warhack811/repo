@@ -1,8 +1,14 @@
 import type { ModelAttachment, ModelMessage } from '@runa/types';
-import { uiCopy } from '../../localization/copy.js';
+import { defaultLocale, uiCopy } from '../../localization/copy.js';
+import type { SupportedLocale } from '../../localization/copy.js';
 import type { ApprovalMode, GatewayProvider, RunRequestPayload } from '../../ws-types.js';
 
 export const DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 2048;
+
+const TURKISH_SIGNAL_PATTERN =
+	/[çğıöşüÇĞİÖŞÜ]|\b(merhaba|lutfen|lütfen|dosya|komut|kontrol|çalıştır|calistir|proje|sunucu|oku|yaz|bul)\b/iu;
+const ENGLISH_SIGNAL_PATTERN =
+	/\b(hello|please|could|would|should|what|how|read|check|find|write|run|project|server|file|command)\b/iu;
 
 export interface CreateRunRequestPayloadInput {
 	readonly apiKey: string;
@@ -11,12 +17,37 @@ export interface CreateRunRequestPayloadInput {
 	readonly conversationId?: string | null;
 	readonly desktopTargetConnectionId?: string | null;
 	readonly includePresentationBlocks: boolean;
+	readonly locale?: SupportedLocale;
 	readonly model: string;
 	readonly messages?: readonly ModelMessage[];
 	readonly prompt: string;
 	readonly provider: GatewayProvider;
 	readonly runId: string;
 	readonly traceId: string;
+}
+
+function inferLocaleFromText(text: string): SupportedLocale {
+	if (TURKISH_SIGNAL_PATTERN.test(text)) {
+		return 'tr';
+	}
+
+	if (ENGLISH_SIGNAL_PATTERN.test(text)) {
+		return 'en';
+	}
+
+	return defaultLocale;
+}
+
+function resolveRequestLocale(input: CreateRunRequestPayloadInput): SupportedLocale {
+	if (input.locale) {
+		return input.locale;
+	}
+
+	const lastUserMessage = [...(input.messages ?? [])]
+		.reverse()
+		.find((message) => message.role === 'user' && message.content.trim().length > 0);
+
+	return inferLocaleFromText(lastUserMessage?.content ?? input.prompt);
 }
 
 export function createRunRequestPayload(input: CreateRunRequestPayloadInput): RunRequestPayload {
@@ -42,6 +73,7 @@ export function createRunRequestPayload(input: CreateRunRequestPayloadInput): Ru
 		include_presentation_blocks: input.includePresentationBlocks,
 		conversation_id: input.conversationId?.trim() || undefined,
 		desktop_target_connection_id: input.desktopTargetConnectionId?.trim() || undefined,
+		locale: resolveRequestLocale(input),
 		provider: input.provider,
 		provider_config: {
 			apiKey: apiKeyValue,

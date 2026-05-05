@@ -83,6 +83,7 @@ interface RunRequestPayloadCandidate {
 	readonly conversation_id?: unknown;
 	readonly desktop_target_connection_id?: unknown;
 	readonly include_presentation_blocks?: unknown;
+	readonly locale?: unknown;
 	readonly provider?: unknown;
 	readonly provider_config?: unknown;
 	readonly request?: unknown;
@@ -940,6 +941,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 		conversation_id: conversationId,
 		desktop_target_connection_id: desktopTargetConnectionId,
 		include_presentation_blocks: includePresentationBlocks,
+		locale,
 		provider,
 		provider_config: providerConfig,
 		request,
@@ -959,6 +961,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 		(conversationId === undefined || typeof conversationId === 'string') &&
 		(desktopTargetConnectionId === undefined || typeof desktopTargetConnectionId === 'string') &&
 		(includePresentationBlocks === undefined || typeof includePresentationBlocks === 'boolean') &&
+		(locale === undefined || isSupportedLocale(locale)) &&
 		isGatewayProvider(provider) &&
 		isProviderConfig(providerConfig) &&
 		typeof runId === 'string' &&

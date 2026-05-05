@@ -1,7 +1,13 @@
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
-import type { ModelMessage, RuntimeState, ToolResult } from '@runa/types';
+import type {
+	ModelMessage,
+	ProviderCapabilities,
+	RuntimeState,
+	SupportedLocale,
+	ToolResult,
+} from '@runa/types';
 
 import { adaptContextToModelRequest } from '../context/adapt-context-to-model-request.js';
 import { buildMemoryPromptLayer } from '../context/build-memory-prompt-layer.js';
@@ -24,6 +30,11 @@ interface ExtractedUserTurn {
 	readonly history: readonly ModelMessage[];
 	readonly user_turn: string;
 }
+
+const TURKISH_SIGNAL_PATTERN =
+	/[çğıöşüÇĞİÖŞÜ]|\b(merhaba|lutfen|lütfen|dosya|komut|kontrol|çalıştır|calistir|proje|sunucu|oku|yaz|bul)\b/iu;
+const ENGLISH_SIGNAL_PATTERN =
+	/\b(hello|please|could|would|should|what|how|read|check|find|write|run|project|server|file|command)\b/iu;
 
 function hasWorkspaceRootMarker(directory: string): boolean {
 	return (
@@ -69,6 +80,32 @@ export function extractUserTurn(messages: readonly ModelMessage[]): ExtractedUse
 		history: messages.slice(0, -1),
 		user_turn: lastMessage.content,
 	};
+}
+
+export function inferSupportedLocaleFromText(text: string): SupportedLocale {
+	if (TURKISH_SIGNAL_PATTERN.test(text)) {
+		return 'tr';
+	}
+
+	if (ENGLISH_SIGNAL_PATTERN.test(text)) {
+		return 'en';
+	}
+
+	return 'tr';
+}
+
+export function resolveRunRequestLocale(
+	payload: Pick<RunRequestPayload, 'locale' | 'request'>,
+): SupportedLocale {
+	if (payload.locale) {
+		return payload.locale;
+	}
+
+	const lastUserMessage = [...payload.request.messages]
+		.reverse()
+		.find((message) => message.role === 'user' && message.content.trim().length > 0);
+
+	return inferSupportedLocaleFromText(lastUserMessage?.content ?? '');
 }
 
 function canUseMemoryOrchestration(memoryStore?: MemoryOrchestrationStore): boolean {
@@ -294,6 +331,7 @@ export async function buildLiveModelRequest(
 		readonly current_state?: RuntimeState;
 		readonly latest_tool_result?: ToolResult;
 		readonly memoryStore?: MemoryOrchestrationStore;
+		readonly provider_capabilities?: ProviderCapabilities;
 		readonly recent_tool_calls?: readonly ToolCallSignature[];
 		readonly workspace_layer?: WorkspaceLayer;
 	}> = {},
@@ -304,6 +342,7 @@ export async function buildLiveModelRequest(
 	}
 > {
 	const extractedUserTurn = extractUserTurn(payload.request.messages);
+	const locale = resolveRunRequestLocale(payload);
 	const memoryLayer = await buildLiveMemoryLayer(
 		payload,
 		workingDirectory,
@@ -350,7 +389,9 @@ export async function buildLiveModelRequest(
 						result_status: options.latest_tool_result.status === 'success' ? 'success' : 'error',
 						tool_name: options.latest_tool_result.tool_name,
 					},
+		locale,
 		memory_layer: memoryLayer,
+		provider_capabilities: options.provider_capabilities,
 		run_id: payload.run_id,
 		trace_id: payload.trace_id,
 		workspace_layer: options.workspace_layer,

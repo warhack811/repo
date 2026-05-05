@@ -65,6 +65,7 @@ export interface RunRequestPayload {
 	readonly conversation_id?: string;
 	readonly desktop_target_connection_id?: string;
 	readonly include_presentation_blocks?: boolean;
+	readonly locale?: SupportedLocale;
 	readonly provider: GatewayProvider;
 	readonly provider_config: GatewayProviderConfig;
 	readonly request: RunRequestModelRequest;

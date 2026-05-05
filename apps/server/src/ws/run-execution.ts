@@ -11,6 +11,7 @@ import type {
 	RuntimeEvent,
 	RuntimeState,
 	RuntimeTerminationCode,
+	SupportedLocale,
 	ToolDefinition,
 	ToolErrorCode,
 	ToolResult,
@@ -110,6 +111,7 @@ import {
 	getLiveUserPreferenceScopeId,
 	getLiveWorkingDirectory,
 	logLiveMemoryWriteFailure,
+	resolveRunRequestLocale,
 } from './live-request.js';
 import type { RunRequestPayload } from './messages.js';
 import type {
@@ -1304,6 +1306,7 @@ async function runPolicyAwareModelTurn(
 		readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 		readonly desktop_target_connection_id?: string;
 		readonly get_next_runtime_sequence_no?: () => number;
+		readonly locale?: SupportedLocale;
 		readonly on_runtime_event?: (event: RuntimeEvent) => void;
 		readonly requested_provider?: RunRequestPayload['provider'];
 		readonly session_id?: string;
@@ -1354,7 +1357,7 @@ async function runPolicyAwareModelTurn(
 			{
 				capabilities: input.model_gateway.capabilities,
 				getNextSequenceNo: options.get_next_runtime_sequence_no,
-				locale: 'tr',
+				locale: options.locale ?? 'tr',
 				onRuntimeEvent: options.on_runtime_event,
 				runId: input.run_id,
 				traceId: input.trace_id,
@@ -1383,7 +1386,7 @@ async function runPolicyAwareModelTurn(
 						{
 							capabilities: input.model_gateway.capabilities,
 							getNextSequenceNo: options.get_next_runtime_sequence_no,
-							locale: 'tr',
+							locale: options.locale ?? 'tr',
 							onRuntimeEvent: options.on_runtime_event,
 							runId: input.run_id,
 							traceId: input.trace_id,
@@ -1482,6 +1485,7 @@ async function runPolicyAwareModelTurn(
 		recent_tool_results: [],
 		run_id: input.run_id,
 		trace_id: input.trace_id,
+		locale: options.locale ?? 'tr',
 		turn_index: input.turn_index ?? 1,
 		turn_intent: orderedToolCallCandidates.length > 0 ? 'continuing' : 'done',
 	});
@@ -1537,7 +1541,7 @@ async function runPolicyAwareModelTurn(
 			options.on_runtime_event?.(
 				buildNarrationToolOutcomeLinkedEvent(
 					{
-						locale: 'tr',
+						locale: options.locale ?? 'tr',
 						linked_tool_call_id: linkedNarration.tool_call_id,
 						narration_id: linkedNarration.narration_id,
 						outcome: toolResult.status === 'success' ? 'success' : 'failure',
@@ -2208,6 +2212,7 @@ async function executeLiveRun(
 	};
 	const events: AnyRuntimeEvent[] = [];
 	const runtimeEvents: RuntimeEvent[] = [];
+	const locale = resolveRunRequestLocale(payload);
 	let previousRuntimeState: RuntimeState = options.initial_runtime_state ?? 'INIT';
 	let lastIncrementalApprovalId: string | undefined;
 	let lastIncrementalToolResultCallId: string | undefined;
@@ -2234,6 +2239,7 @@ async function executeLiveRun(
 				current_state: input.snapshot.current_runtime_state,
 				latest_tool_result: input.snapshot.tool_result,
 				memoryStore: options.memoryStore,
+				provider_capabilities: gateway.capabilities,
 				recent_tool_calls: input.snapshot.recent_tool_calls,
 				workspace_layer: workspaceLayer,
 			});
@@ -2280,6 +2286,7 @@ async function executeLiveRun(
 				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 				desktop_target_connection_id: payload.desktop_target_connection_id,
 				get_next_runtime_sequence_no: () => getNextRuntimeSequenceNo(runtimeEvents),
+				locale,
 				on_runtime_event: appendAndSendRuntimeEvent,
 				requested_provider: payload.provider,
 				session_id: runtimeSessionId,

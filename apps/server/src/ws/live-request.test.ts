@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ProviderCapabilities } from '@runa/types';
 import type { RunRequestPayload } from './messages.js';
 
 import {
@@ -7,6 +8,33 @@ import {
 	TOOL_RESULT_TRUNCATED_NOTICE,
 } from '../context/runtime-context-limits.js';
 import { buildLiveModelRequest, buildToolResultContinuationUserTurn } from './live-request.js';
+
+const TEMPORAL_STREAM_CAPABILITIES: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'temporal_stream',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'none',
+};
+
+function getCompiledCorePrinciplesText(
+	request: Awaited<ReturnType<typeof buildLiveModelRequest>>,
+): string {
+	const coreRulesLayer = request.compiled_context?.layers.find(
+		(layer) => layer.name === 'core_rules',
+	);
+
+	if (coreRulesLayer?.name !== 'core_rules') {
+		throw new Error('Expected compiled core_rules layer.');
+	}
+
+	const content = coreRulesLayer.content as { readonly principles?: unknown };
+
+	if (!Array.isArray(content.principles)) {
+		throw new Error('Expected core_rules principles.');
+	}
+
+	return content.principles.join('\n');
+}
 
 function createRunRequestPayload(): RunRequestPayload {
 	return {
@@ -162,6 +190,70 @@ describe('buildLiveModelRequest', () => {
 				role: 'user',
 			},
 		]);
+	});
+
+	it('propagates request locale into backend prompt assembly', async () => {
+		const request = await buildLiveModelRequest(
+			{
+				...createRunRequestPayload(),
+				locale: 'en',
+			},
+			'D:/ai/Runa',
+			{
+				provider_capabilities: TEMPORAL_STREAM_CAPABILITIES,
+			},
+		);
+
+		const principles = getCompiledCorePrinciplesText(request);
+
+		expect(principles).toContain('## Work Narration Rules');
+		expect(principles).not.toContain('## Çalışma Anlatımı Kuralları');
+	});
+
+	it('infers English locale when request locale is omitted', async () => {
+		const request = await buildLiveModelRequest(
+			{
+				...createRunRequestPayload(),
+				request: {
+					...createRunRequestPayload().request,
+					messages: [
+						{
+							content: 'Please check package.json and find the dev command.',
+							role: 'user',
+						},
+					],
+				},
+			},
+			'D:/ai/Runa',
+			{
+				provider_capabilities: TEMPORAL_STREAM_CAPABILITIES,
+			},
+		);
+
+		expect(getCompiledCorePrinciplesText(request)).toContain('## Work Narration Rules');
+	});
+
+	it('falls back to Turkish locale when request locale is omitted and language is ambiguous', async () => {
+		const request = await buildLiveModelRequest(
+			{
+				...createRunRequestPayload(),
+				request: {
+					...createRunRequestPayload().request,
+					messages: [
+						{
+							content: 'package.json',
+							role: 'user',
+						},
+					],
+				},
+			},
+			'D:/ai/Runa',
+			{
+				provider_capabilities: TEMPORAL_STREAM_CAPABILITIES,
+			},
+		);
+
+		expect(getCompiledCorePrinciplesText(request)).toContain('## Çalışma Anlatımı Kuralları');
 	});
 
 	it('preserves explicit available_tools from the live request payload', async () => {
