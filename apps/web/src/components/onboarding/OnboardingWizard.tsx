@@ -2,8 +2,6 @@ import { Code2, FileText, MonitorSmartphone, Search, Sparkles, Wand2 } from 'luc
 import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 
-import { RunaModal } from '../ui/RunaModal.js';
-
 const onboardingStorageKey = 'runa.onboarding.completed';
 
 type OnboardingWizardProps = Readonly<{
@@ -78,7 +76,7 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 	}
 
 	return (
-		<RunaModal isOpen={isOpen} onClose={complete} size="lg" title="Runa'ya başla">
+		<aside className="runa-onboarding-shell" aria-label="Runa başlangıç">
 			<section className="runa-onboarding" aria-live="polite">
 				<div className="runa-onboarding__progress" aria-label={`Başlangıç adımı ${step + 1} / 4`}>
 					{[0, 1, 2, 3].map((item) => (
@@ -222,6 +220,6 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 					</div>
 				) : null}
 			</section>
-		</RunaModal>
+		</aside>
 	);
 }

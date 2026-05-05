@@ -1655,10 +1655,30 @@ pre {
 
 /* ---- Onboarding ---- */
 
+.runa-onboarding-shell {
+	position: fixed;
+	bottom: max(18px, var(--safe-area-bottom));
+	left: max(18px, var(--safe-area-left));
+	z-index: 90;
+	width: min(420px, calc(100vw - 36px));
+	pointer-events: none;
+}
+
 .runa-onboarding,
 .runa-onboarding__page {
 	display: grid;
 	gap: 18px;
+}
+
+.runa-onboarding {
+	max-height: min(520px, calc(100dvh - var(--safe-area-top) - 36px));
+	overflow: auto;
+	padding: 18px;
+	border: 1px solid rgba(245, 158, 11, 0.38);
+	border-radius: 8px;
+	background: hsl(var(--color-surface-strong) / 0.92);
+	box-shadow: 0 20px 80px rgba(0, 0, 0, 0.36);
+	pointer-events: auto;
 }
 
 .runa-onboarding__progress {
@@ -1678,7 +1698,8 @@ pre {
 }
 
 .runa-onboarding__page h2 {
-	font-size: 28px;
+	font-size: 22px;
+	line-height: 1.15;
 }
 
 .runa-onboarding__page p {
@@ -2080,6 +2101,13 @@ pre {
 
 	.runa-markdown__table {
 		min-width: 280px;
+	}
+
+	.runa-onboarding-shell {
+		position: static;
+		width: auto;
+		margin: 12px 10px calc(var(--safe-area-bottom) + 12px);
+		pointer-events: auto;
 	}
 
 	.runa-onboarding__prompt-grid {
