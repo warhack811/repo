@@ -15,7 +15,7 @@ process.env.RUNA_DESKTOP_AGENT_SERVER_URL =
 	process.env.RUNA_DESKTOP_AGENT_SERVER_URL || 'http://localhost:3001';
 
 const electronPath = path.join(__dirname, '../node_modules/electron/dist/electron.exe');
-const mainPath = path.join(__dirname, '../dist-electron/main.mjs');
+const mainPath = path.join(__dirname, '../dist-electron/main.cjs');
 
 console.log('Starting Electron app...');
 console.log('Electron path:', electronPath);
