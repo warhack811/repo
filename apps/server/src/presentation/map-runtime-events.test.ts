@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildModelCompletedEvent,
+	buildNarrationCompletedEvent,
+	buildNarrationSupersededEvent,
+	buildNarrationToolOutcomeLinkedEvent,
 	buildRunCompletedEvent,
 	buildRunFailedEvent,
 	buildRunStartedEvent,
@@ -247,6 +250,115 @@ describe('map-runtime-events', () => {
 				path: 'apps/server/src/example.ts',
 			},
 			type: 'file_reference',
+		});
+	});
+
+	it('maps completed narration events to work narration blocks', () => {
+		const events = [
+			...createSuccessfulRuntimeEvents(),
+			buildNarrationCompletedEvent(
+				{
+					full_text: 'package.json kontrol ediyorum',
+					linked_tool_call_id: 'call_1',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 2,
+					turn_index: 1,
+				},
+				createEventContext(6),
+			),
+		];
+		const blocks = mapRuntimeEventsToRenderBlocks(events);
+
+		expect(blocks.map((block) => block.type)).toEqual([
+			'status',
+			'text',
+			'work_narration',
+			'event_list',
+		]);
+		expect(blocks[2]).toMatchObject({
+			id: 'nar_1',
+			payload: {
+				linked_tool_call_id: 'call_1',
+				locale: 'tr',
+				sequence_no: 2,
+				status: 'completed',
+				text: 'package.json kontrol ediyorum',
+				turn_index: 1,
+			},
+			type: 'work_narration',
+		});
+	});
+
+	it('marks narration blocks superseded when a superseded event arrives', () => {
+		const events = [
+			...createSuccessfulRuntimeEvents(),
+			buildNarrationCompletedEvent(
+				{
+					full_text: 'temporary narration',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 1,
+					turn_index: 1,
+				},
+				createEventContext(6),
+			),
+			buildNarrationSupersededEvent(
+				{
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 1,
+					turn_index: 1,
+				},
+				createEventContext(7),
+			),
+		];
+		const block = mapRuntimeEventsToRenderBlocks(events).find(
+			(candidate) => candidate.type === 'work_narration',
+		);
+
+		expect(block).toMatchObject({
+			payload: {
+				status: 'superseded',
+			},
+		});
+	});
+
+	it('marks linked narration blocks tool_failed when the linked outcome fails', () => {
+		const events = [
+			...createSuccessfulRuntimeEvents(),
+			buildNarrationCompletedEvent(
+				{
+					full_text: 'komutu calistiriyorum',
+					linked_tool_call_id: 'call_1',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 1,
+					turn_index: 1,
+				},
+				createEventContext(6),
+			),
+			buildNarrationToolOutcomeLinkedEvent(
+				{
+					linked_tool_call_id: 'call_1',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					outcome: 'failure',
+					sequence_no: 1,
+					tool_call_id: 'call_1',
+					turn_index: 1,
+				},
+				createEventContext(7),
+			),
+		];
+		const block = mapRuntimeEventsToRenderBlocks(events).find(
+			(candidate) => candidate.type === 'work_narration',
+		);
+
+		expect(block).toMatchObject({
+			payload: {
+				status: 'tool_failed',
+			},
 		});
 	});
 });

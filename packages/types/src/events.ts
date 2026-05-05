@@ -1,3 +1,4 @@
+import type { SupportedLocale } from './locale.js';
 import type { ApprovalActionKind, ApprovalDecisionKind } from './policy.js';
 import type { RuntimeState } from './state.js';
 import type { ToolName } from './tools.js';
@@ -81,6 +82,7 @@ export interface ApprovalResolvedEventPayload {
 }
 
 export interface NarrationEventPayloadBase {
+	readonly locale: SupportedLocale;
 	readonly narration_id: string;
 	readonly run_id: string;
 	readonly sequence_no: number;

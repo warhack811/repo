@@ -4,6 +4,7 @@ import type {
 	RuntimeEvent,
 	StatusBlock,
 	TextBlock,
+	WorkNarrationBlock,
 } from '@runa/types';
 
 import { mapAssistantTextToStructuredBlocks } from './map-structured-output.js';
@@ -74,6 +75,72 @@ function createEventListBlock(
 		schema_version: 1,
 		type: 'event_list',
 	};
+}
+
+function createWorkNarrationBlocks(
+	context: PresentationContext,
+	events: readonly RuntimeEvent[],
+): readonly WorkNarrationBlock[] {
+	const blocksByNarrationId = new Map<string, WorkNarrationBlock>();
+
+	for (const event of events) {
+		if (event.event_type === 'narration.completed') {
+			blocksByNarrationId.set(event.payload.narration_id, {
+				created_at: event.timestamp,
+				id: event.payload.narration_id,
+				payload: {
+					linked_tool_call_id: event.payload.linked_tool_call_id,
+					locale: event.payload.locale,
+					run_id: context.run_id,
+					sequence_no: event.payload.sequence_no,
+					status: 'completed',
+					text: event.payload.full_text,
+					turn_index: event.payload.turn_index,
+				},
+				schema_version: 1,
+				type: 'work_narration',
+			});
+			continue;
+		}
+
+		if (event.event_type === 'narration.superseded') {
+			const existingBlock = blocksByNarrationId.get(event.payload.narration_id);
+
+			if (existingBlock) {
+				blocksByNarrationId.set(event.payload.narration_id, {
+					...existingBlock,
+					payload: {
+						...existingBlock.payload,
+						status: 'superseded',
+					},
+				});
+			}
+			continue;
+		}
+
+		if (
+			event.event_type === 'narration.tool_outcome_linked' &&
+			event.payload.outcome === 'failure'
+		) {
+			const existingBlock = blocksByNarrationId.get(event.payload.narration_id);
+
+			if (existingBlock) {
+				blocksByNarrationId.set(event.payload.narration_id, {
+					...existingBlock,
+					payload: {
+						...existingBlock.payload,
+						status: 'tool_failed',
+					},
+				});
+			}
+		}
+	}
+
+	return [...blocksByNarrationId.values()].sort(
+		(left, right) =>
+			left.payload.turn_index - right.payload.turn_index ||
+			left.payload.sequence_no - right.payload.sequence_no,
+	);
 }
 
 function getTerminalFailureEvent(events: readonly RuntimeEvent[]): RuntimeEvent | null {
@@ -154,5 +221,9 @@ export function mapRuntimeEventsToRenderBlocks(
 		return [];
 	}
 
-	return [...createSummaryBlocks(context, events), createEventListBlock(context, events)];
+	return [
+		...createSummaryBlocks(context, events),
+		...createWorkNarrationBlocks(context, events),
+		createEventListBlock(context, events),
+	];
 }

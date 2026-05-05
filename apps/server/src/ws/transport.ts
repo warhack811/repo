@@ -14,6 +14,9 @@ import type {
 import { getTransportErrorCode } from '../transport/error-codes.js';
 import type {
 	ConnectionReadyServerMessage,
+	NarrationCompletedServerMessage,
+	NarrationDeltaServerMessage,
+	NarrationSupersededServerMessage,
 	PresentationBlocksServerMessage,
 	RunAcceptedServerMessage,
 	RunFinishedServerMessage,
@@ -169,6 +172,54 @@ export function createTextDeltaDiscardMessage(
 			trace_id: payload.trace_id,
 		},
 		type: 'text.delta.discard',
+	};
+}
+
+export function createNarrationDeltaMessage(
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	event: Extract<RuntimeEvent, { readonly event_type: 'narration.token' }>,
+): NarrationDeltaServerMessage {
+	return {
+		payload: {
+			locale: event.payload.locale,
+			narration_id: event.payload.narration_id,
+			run_id: payload.run_id,
+			sequence_no: event.payload.sequence_no,
+			text_delta: event.payload.text_delta,
+			trace_id: payload.trace_id,
+			turn_index: event.payload.turn_index,
+		},
+		type: 'narration.delta',
+	};
+}
+
+export function createNarrationCompletedMessage(
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	event: Extract<RuntimeEvent, { readonly event_type: 'narration.completed' }>,
+): NarrationCompletedServerMessage {
+	return {
+		payload: {
+			full_text: event.payload.full_text,
+			linked_tool_call_id: event.payload.linked_tool_call_id,
+			narration_id: event.payload.narration_id,
+			run_id: payload.run_id,
+			trace_id: payload.trace_id,
+		},
+		type: 'narration.completed',
+	};
+}
+
+export function createNarrationSupersededMessage(
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	event: Extract<RuntimeEvent, { readonly event_type: 'narration.superseded' }>,
+): NarrationSupersededServerMessage {
+	return {
+		payload: {
+			narration_id: event.payload.narration_id,
+			run_id: payload.run_id,
+			trace_id: payload.trace_id,
+		},
+		type: 'narration.superseded',
 	};
 }
 

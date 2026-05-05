@@ -53,6 +53,7 @@ import {
 	continueAssistantResponseFastPath,
 } from '../runtime/continue-model-turn.js';
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
+import { buildNarrationEmissionEvents } from '../runtime/narration/emission.js';
 import { orchestrateMemoryWrite } from '../runtime/orchestrate-memory-write.js';
 import { defaultProviderHealthStore } from '../runtime/provider-health.js';
 import { requestApproval } from '../runtime/request-approval.js';
@@ -63,8 +64,12 @@ import type {
 	RunModelTurnResult,
 } from '../runtime/run-model-turn.js';
 import { runToolStep } from '../runtime/run-tool-step.js';
-import { buildRunStartedEvent, buildStateEnteredEvent } from '../runtime/runtime-events.js';
-import { buildRunFailedEvent } from '../runtime/runtime-events.js';
+import {
+	buildNarrationToolOutcomeLinkedEvent,
+	buildRunFailedEvent,
+	buildRunStartedEvent,
+	buildStateEnteredEvent,
+} from '../runtime/runtime-events.js';
 import { runSequentialSubAgentDelegation } from '../runtime/sequential-sub-agent.js';
 import { recordToolCallRepairTerminalFailure } from '../runtime/tool-call-repair-metrics.js';
 import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.js';
@@ -124,6 +129,8 @@ import {
 	type WebSocketConnection,
 	createAcceptedMessage,
 	createFinishedMessage,
+	createNarrationCompletedMessage,
+	createNarrationDeltaMessage,
 	createPresentationBlocksMessage,
 	createRuntimeEventMessage,
 	createTextDeltaDiscardMessage,
@@ -137,20 +144,25 @@ const runExecutionLogger = createLogger({
 	},
 });
 
-type LoopRuntimeProgressEvent = Extract<
-	RuntimeEvent,
-	{ readonly event_type: 'model.completed' | 'run.completed' | 'run.failed' | 'state.entered' }
->;
-
 function isRuntimeEventEnvelope(event: AnyRuntimeEvent): event is RuntimeEvent {
 	return (
 		event.event_type === 'model.completed' ||
+		event.event_type === 'narration.completed' ||
+		event.event_type === 'narration.started' ||
+		event.event_type === 'narration.superseded' ||
+		event.event_type === 'narration.token' ||
+		event.event_type === 'narration.tool_outcome_linked' ||
 		event.event_type === 'run.completed' ||
 		event.event_type === 'run.failed' ||
 		event.event_type === 'run.started' ||
 		event.event_type === 'state.entered'
 	);
 }
+
+type LoopRuntimeProgressEvent = Extract<
+	RuntimeEvent,
+	{ readonly event_type: 'model.completed' | 'run.completed' | 'run.failed' | 'state.entered' }
+>;
 
 function isRuntimeEvent(event: TurnProgressEvent): event is LoopRuntimeProgressEvent {
 	return isRuntimeEventEnvelope(event);
@@ -376,6 +388,21 @@ function getNextRuntimeSequenceNo(events: readonly RuntimeEvent[]): number {
 	const lastEvent = events[events.length - 1];
 
 	return (lastEvent?.sequence_no ?? 0) + 1;
+}
+
+function sendNarrationServerMessageForRuntimeEvent(
+	socket: WebSocketConnection,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	event: RuntimeEvent,
+): void {
+	if (event.event_type === 'narration.token') {
+		sendServerMessage(socket, createNarrationDeltaMessage(payload, event));
+		return;
+	}
+
+	if (event.event_type === 'narration.completed') {
+		sendServerMessage(socket, createNarrationCompletedMessage(payload, event));
+	}
 }
 
 function formatStopReasonMessage(stopReason: AgentLoopSnapshot['stop_reason']): string | undefined {
@@ -1094,6 +1121,8 @@ async function runPolicyAwareModelTurn(
 		readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
 		readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 		readonly desktop_target_connection_id?: string;
+		readonly get_next_runtime_sequence_no?: () => number;
+		readonly on_runtime_event?: (event: RuntimeEvent) => void;
 		readonly requested_provider?: RunRequestPayload['provider'];
 		readonly session_id?: string;
 	}> = {},
@@ -1125,6 +1154,15 @@ async function runPolicyAwareModelTurn(
 	const resolvedModelRequest = modelRequestResult.model_request;
 	let finalResolvedModelRequest = resolvedModelRequest;
 	let modelResponse: ModelResponse;
+
+	if ((input.model_gateway.capabilities?.narration_strategy ?? 'unsupported') === 'unsupported') {
+		turnLogger.info('narration.disabled', {
+			model: resolvedModelRequest.model,
+			provider: options.requested_provider ?? 'unknown',
+			reason: 'unsupported',
+		});
+	}
+
 	const gatewaySpan = startLogSpan(turnLogger, 'gateway.generate', {
 		model: resolvedModelRequest.model,
 	});
@@ -1244,6 +1282,87 @@ async function runPolicyAwareModelTurn(
 
 	await persistInternalReasoningIfPresent(input, modelResponse);
 
+	const orderedToolCallCandidates = getOrderedToolCallCandidates(modelResponse);
+	const narrationEmission = buildNarrationEmissionEvents({
+		base_runtime_sequence_no: options.get_next_runtime_sequence_no?.() ?? 1,
+		capabilities: input.model_gateway.capabilities,
+		model_response: modelResponse,
+		recent_tool_results: [],
+		run_id: input.run_id,
+		trace_id: input.trace_id,
+		turn_index: input.turn_index ?? 1,
+		turn_intent: orderedToolCallCandidates.length > 0 ? 'continuing' : 'done',
+	});
+
+	if (narrationEmission.high_fallthrough_count >= 2) {
+		turnLogger.error('fallthrough.high.repeated', {
+			count: narrationEmission.high_fallthrough_count,
+			model: modelResponse.model,
+			provider: modelResponse.provider,
+		});
+
+		return {
+			failure: {
+				code: 'MODEL_RESPONSE_ADAPTATION_FAILED',
+				message: 'Model unstable after repeated high-confidence fallthrough; retry suggested.',
+			},
+			final_state: 'FAILED',
+			model_response: modelResponse,
+			resolved_model_request: finalResolvedModelRequest,
+			status: 'failed',
+		};
+	}
+
+	for (const rejection of narrationEmission.rejections) {
+		turnLogger.info('narration.guardrail.rejected', {
+			reason: rejection.reason,
+			sequence_no: rejection.sequence_no,
+		});
+	}
+
+	for (const event of narrationEmission.events) {
+		options.on_runtime_event?.(event);
+		sendNarrationServerMessageForRuntimeEvent(
+			socket,
+			{
+				run_id: input.run_id,
+				trace_id: input.trace_id,
+			},
+			event,
+		);
+	}
+
+	const emitNarrationToolOutcomeLinks = (toolResults: readonly ToolResult[]): void => {
+		for (const linkedNarration of narrationEmission.linked_narrations) {
+			const toolResult = toolResults.find(
+				(result) => result.call_id === linkedNarration.tool_call_id,
+			);
+
+			if (!toolResult) {
+				continue;
+			}
+
+			options.on_runtime_event?.(
+				buildNarrationToolOutcomeLinkedEvent(
+					{
+						locale: 'tr',
+						linked_tool_call_id: linkedNarration.tool_call_id,
+						narration_id: linkedNarration.narration_id,
+						outcome: toolResult.status === 'success' ? 'success' : 'failure',
+						sequence_no: linkedNarration.sequence_no,
+						tool_call_id: linkedNarration.tool_call_id,
+						turn_index: input.turn_index ?? 1,
+					},
+					{
+						run_id: input.run_id,
+						sequence_no: options.get_next_runtime_sequence_no?.() ?? 1,
+						trace_id: input.trace_id,
+					},
+				),
+			);
+		}
+	};
+
 	const adaptedOutcomeResult = adaptModelResponseToTurnOutcome({
 		model_response: modelResponse,
 	});
@@ -1280,7 +1399,6 @@ async function runPolicyAwareModelTurn(
 		};
 	}
 
-	const orderedToolCallCandidates = getOrderedToolCallCandidates(modelResponse);
 	const primaryToolCallOutcome =
 		adaptedOutcomeResult.outcome.kind === 'tool_calls'
 			? adaptedOutcomeResult.outcome.tool_calls[0]
@@ -1338,6 +1456,7 @@ async function runPolicyAwareModelTurn(
 					},
 					101,
 				);
+				emitNarrationToolOutcomeLinks([executedCandidate.tool_result]);
 				const ingestionResult = ingestToolResult({
 					call_id: executedCandidate.tool_result.call_id,
 					current_state: 'TOOL_RESULT_INGESTING',
@@ -1640,6 +1759,7 @@ async function runPolicyAwareModelTurn(
 	const orderedToolResults = orderedExecutedCandidates.map(
 		(executedCandidate) => executedCandidate.tool_result,
 	);
+	emitNarrationToolOutcomeLinks(orderedToolResults);
 	const lastExecutedToolResult = orderedToolResults.at(-1);
 	const blockedApprovalCandidate =
 		scheduledPlan.blocked_candidate === undefined
@@ -1967,6 +2087,8 @@ async function executeLiveRun(
 				auth_context: options.auth_context,
 				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 				desktop_target_connection_id: payload.desktop_target_connection_id,
+				get_next_runtime_sequence_no: () => getNextRuntimeSequenceNo(runtimeEvents),
+				on_runtime_event: appendAndSendRuntimeEvent,
 				requested_provider: payload.provider,
 				session_id: runtimeSessionId,
 			}),

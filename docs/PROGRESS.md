@@ -13,6 +13,14 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-WORK-NARRATION-PHASE-2B - 5 Mayis 2026
+
+- Kapsam: Faz 2A/2A.5 altyapisi uzerine backend-only narration runtime emission eklendi. Classifier `ordered_content` pozisyonunu, `turn_intent`, `ordering_origin` ve provider `narration_strategy` gate'ini kullanarak final answer ile work narration adaylarini ayiriyor.
+- Guardrails: bos metin, 240 karakter cap, duplicate, locale-aware deliberation ve tool-result quote filtreleri eklendi. Streaming strategy pessimistic buffer olarak testlendi; optimistic mode tipi var ama Faz 2B'de aktif degil.
+- Runtime/WS: kabul edilen narration adaylari `narration.started`, `narration.token`, `narration.completed` runtime event'leri olarak runtime event hattina giriyor ve `narration.delta` / `narration.completed` WS mesajlari olarak akiyor. Unsupported provider'larda emission kapali.
+- Presentation: `narration.completed` runtime event'i `work_narration` block'a map ediliyor; `narration.superseded` status'u `superseded`, failed tool outcome link'i `tool_failed` yapiyor. Frontend UI hala Faz 4'e kadar silent null.
+- Reconnect: WS disconnect sirasinda in-flight narration buffer kaybi kabul edilen Faz 2B trade-off'u olarak `docs/architecture/work-narration.md` altinda belgelendi; replay/final block recovery persistence sonrasi calisir, tam in-flight recovery Faz 6'ya birakildi.
+
 ### TASK-WORK-NARRATION-PHASE-0 - 5 Mayis 2026
 
 - Kapsam: canonical `ModelResponse.message` geriye donuk uyumlu bicimde `ordered_content` metadata'siyle genisletildi. Bu fazda narration event'i, classifier, prompt degisikligi veya frontend render farki eklenmedi.

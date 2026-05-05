@@ -209,6 +209,7 @@ describe('runtime-events', () => {
 		const started = buildNarrationStartedEvent(
 			{
 				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
 				narration_id: 'narration_1',
 				sequence_no: 1,
 				turn_index: 2,
@@ -223,6 +224,7 @@ describe('runtime-events', () => {
 		const token = buildNarrationTokenEvent(
 			{
 				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
 				narration_id: 'narration_1',
 				sequence_no: 1,
 				text_delta: 'Dosyayi okuyorum.',
@@ -239,6 +241,7 @@ describe('runtime-events', () => {
 			{
 				full_text: 'Dosyayi okuyorum.',
 				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
 				narration_id: 'narration_1',
 				sequence_no: 1,
 				turn_index: 2,
@@ -252,6 +255,7 @@ describe('runtime-events', () => {
 		);
 		const superseded = buildNarrationSupersededEvent(
 			{
+				locale: 'tr',
 				narration_id: 'narration_2',
 				sequence_no: 2,
 				turn_index: 2,
@@ -266,6 +270,7 @@ describe('runtime-events', () => {
 		const linked = buildNarrationToolOutcomeLinkedEvent(
 			{
 				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
 				narration_id: 'narration_1',
 				outcome: 'success',
 				sequence_no: 1,
@@ -286,6 +291,7 @@ describe('runtime-events', () => {
 			event_version: 1,
 			payload: {
 				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
 				narration_id: 'narration_1',
 				run_id: 'run_narration_1',
 				sequence_no: 1,
@@ -299,6 +305,7 @@ describe('runtime-events', () => {
 		});
 		expect(token.payload).toEqual({
 			linked_tool_call_id: 'call_narration_1',
+			locale: 'tr',
 			narration_id: 'narration_1',
 			run_id: 'run_narration_1',
 			sequence_no: 1,
@@ -309,6 +316,7 @@ describe('runtime-events', () => {
 		expect(completed.payload).toEqual({
 			full_text: 'Dosyayi okuyorum.',
 			linked_tool_call_id: 'call_narration_1',
+			locale: 'tr',
 			narration_id: 'narration_1',
 			run_id: 'run_narration_1',
 			sequence_no: 1,
@@ -316,6 +324,7 @@ describe('runtime-events', () => {
 			turn_index: 2,
 		});
 		expect(superseded.payload).toEqual({
+			locale: 'tr',
 			narration_id: 'narration_2',
 			run_id: 'run_narration_1',
 			sequence_no: 2,
@@ -324,6 +333,7 @@ describe('runtime-events', () => {
 		});
 		expect(linked.payload).toEqual({
 			linked_tool_call_id: 'call_narration_1',
+			locale: 'tr',
 			narration_id: 'narration_1',
 			outcome: 'success',
 			run_id: 'run_narration_1',
