@@ -988,7 +988,7 @@ export function replaceFinalUserMessage(
 	];
 }
 
-async function generateModelResponseWithStreaming(
+export async function generateModelResponseWithStreaming(
 	socket: WebSocketConnection,
 	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
 	modelGateway: Pick<ReturnType<typeof createModelGateway>, 'generate' | 'stream'>,
