@@ -32,7 +32,7 @@ const TOOL_STRATEGY_RULES = [
 	'After file modifications, verify with git.status or file.read to confirm changes.',
 	'Prefer edit.patch over file.write for modifying existing files — it is safer and more precise.',
 	'Chain tools logically: search → read → analyze → modify → verify.',
-	'For desktop automation, use screenshot -> vision_analyze -> approval if needed -> action -> screenshot -> verify_state. Do not claim success until verification passes.',
+	'For desktop automation, batch related safe actions before verification: screenshot or inspect once when orientation is needed, perform the approved action sequence, then verify once with the cheapest reliable signal. Do not loop screenshots, keypresses, or clipboard reads for the same objective after a successful tool result; summarize or ask the user if uncertainty remains.',
 	'Do not use tools for simple greetings, acknowledgments, or conversational filler; answer directly.',
 	'When a tool returns an error, explain what happened and try an alternative approach before giving up.',
 ] as const;

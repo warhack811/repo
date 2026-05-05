@@ -97,6 +97,26 @@ describe('composeContext', () => {
 		});
 	});
 
+	it('guards desktop automation against repetitive verification loops', () => {
+		const result = composeContext({
+			current_state: 'MODEL_THINKING',
+			run_id: 'run_context_desktop_verification',
+			trace_id: 'trace_context_desktop_verification',
+		});
+
+		const coreRulesLayer = result.layers[0];
+
+		if (coreRulesLayer?.name !== 'core_rules') {
+			throw new Error('Expected first layer to be core_rules.');
+		}
+
+		const principles = coreRulesLayer.content.principles.join('\n');
+
+		expect(principles).toContain('batch related safe actions before verification');
+		expect(principles).toContain('Do not loop screenshots, keypresses, or clipboard reads');
+		expect(principles).not.toContain('action -> screenshot -> verify_state');
+	});
+
 	it('appends memory_layer after workspace_layer when both contexts are provided', async () => {
 		const workspaceDirectory = await mkdtemp(path.join(os.tmpdir(), 'runa-compose-context-'));
 
