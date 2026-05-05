@@ -10,6 +10,7 @@ import {
 import { startDesktopAgentBridge } from './ws-bridge.js';
 
 const SESSION_EXPIRING_WINDOW_SECONDS = 90;
+const BRIDGE_RECONNECT_DELAY_MS = 1_500;
 
 export type DesktopAgentSignedOutReason =
 	| 'bootstrap_failed'
@@ -233,6 +234,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 	#bridgeCleanup: (() => void) | null;
 	#bridgeSession: DesktopAgentBridgeSession | null;
 	#operation: Promise<void>;
+	#reconnectTimeout: ReturnType<typeof setTimeout> | null;
 	#snapshot: DesktopAgentRuntimeSnapshot;
 
 	constructor(options: DesktopAgentSessionRuntimeOptions) {
@@ -252,6 +254,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 		this.#bridgeCleanup = null;
 		this.#bridgeSession = null;
 		this.#operation = Promise.resolve();
+		this.#reconnectTimeout = null;
 		this.#snapshot = createSignedOutSnapshot(
 			this.#options,
 			options.initial_session ? 'stopped' : 'missing_session',
@@ -264,6 +267,8 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 
 	start(): Promise<DesktopAgentRuntimeSnapshot> {
 		return this.#enqueue(async () => {
+			this.#clearReconnectTimeout();
+
 			if (this.#bridgeSession && this.#snapshot.status === 'bridge_connected') {
 				return this.getSnapshot();
 			}
@@ -309,6 +314,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 
 	stop(): Promise<DesktopAgentRuntimeSnapshot> {
 		return this.#enqueue(async () => {
+			this.#clearReconnectTimeout();
 			this.#closeBridgeSession(1000, 'Desktop runtime stopped.');
 
 			if (this.#activeSession) {
@@ -325,6 +331,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 		return this.#enqueue(async () => {
 			const normalizedSession = normalizeDesktopAgentPersistedSession(session);
 
+			this.#clearReconnectTimeout();
 			this.#closeBridgeSession(1000, 'Desktop runtime session updated.');
 			await this.#options.session_storage.save(normalizedSession);
 			this.#activeSession = cloneSession(normalizedSession);
@@ -337,6 +344,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 
 	signOut(): Promise<DesktopAgentRuntimeSnapshot> {
 		return this.#enqueue(async () => {
+			this.#clearReconnectTimeout();
 			await this.stop();
 			await this.#options.session_storage.clear();
 			this.#activeSession = null;
@@ -427,6 +435,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 					event.reason || `Desktop bridge closed with code ${String(event.code)}.`,
 				),
 			);
+			this.#scheduleReconnect(session);
 		};
 		const handleError = () => {
 			if (this.#bridgeSession !== bridgeSession) {
@@ -438,6 +447,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 			this.#setSnapshot(
 				createBridgeErrorSnapshot(this.#options, session, 'Desktop bridge socket error.'),
 			);
+			this.#scheduleReconnect(session);
 		};
 
 		bridgeSession.socket.addEventListener('close', handleClose);
@@ -465,6 +475,15 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 		this.#bridgeCleanup = null;
 	}
 
+	#clearReconnectTimeout(): void {
+		if (this.#reconnectTimeout === null) {
+			return;
+		}
+
+		clearTimeout(this.#reconnectTimeout);
+		this.#reconnectTimeout = null;
+	}
+
 	#enqueue<T>(operation: () => Promise<T>): Promise<T> {
 		const runOperation = this.#operation.then(operation, operation);
 		this.#operation = runOperation.then(
@@ -472,6 +491,24 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 			() => undefined,
 		);
 		return runOperation;
+	}
+
+	#scheduleReconnect(session: DesktopAgentPersistedSession): void {
+		if (this.#reconnectTimeout !== null || this.#activeSession === null) {
+			return;
+		}
+
+		const reconnectSession = cloneSession(session);
+		this.#reconnectTimeout = setTimeout(() => {
+			this.#reconnectTimeout = null;
+
+			if (this.#activeSession === null) {
+				return;
+			}
+
+			this.#bootstrapSession = reconnectSession;
+			void this.start();
+		}, BRIDGE_RECONNECT_DELAY_MS);
 	}
 
 	#setSnapshot(snapshot: DesktopAgentRuntimeSnapshot): void {
