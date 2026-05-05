@@ -15,13 +15,16 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 async function buildRenderer() {
 	try {
+		const distRendererDirectory = path.join(__dirname, '../dist-electron/renderer');
+		const electronRendererDirectory = path.join(__dirname, '../electron/renderer');
+
 		await esbuild.build({
 			entryPoints: [path.join(__dirname, '../electron/renderer/App.tsx')],
 			bundle: true,
 			platform: 'browser',
 			target: 'chrome119',
 			format: 'esm',
-			outfile: path.join(__dirname, '../dist-electron/renderer/App.js'),
+			outfile: path.join(distRendererDirectory, 'App.js'),
 			loader: {
 				'.tsx': 'tsx',
 				'.ts': 'tsx',
@@ -33,10 +36,18 @@ async function buildRenderer() {
 				'process.env.NODE_ENV': isProduction ? '"production"' : '"development"',
 			},
 		});
-		await mkdir(path.join(__dirname, '../electron/renderer'), { recursive: true });
+		await mkdir(electronRendererDirectory, { recursive: true });
 		await copyFile(
-			path.join(__dirname, '../dist-electron/renderer/App.js'),
-			path.join(__dirname, '../electron/renderer/App.js'),
+			path.join(distRendererDirectory, 'App.js'),
+			path.join(electronRendererDirectory, 'App.js'),
+		);
+		await copyFile(
+			path.join(electronRendererDirectory, 'index.html'),
+			path.join(distRendererDirectory, 'index.html'),
+		);
+		await copyFile(
+			path.join(electronRendererDirectory, 'styles.css'),
+			path.join(distRendererDirectory, 'styles.css'),
 		);
 
 		console.log('Renderer build completed successfully');
