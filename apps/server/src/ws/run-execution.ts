@@ -2581,12 +2581,12 @@ export async function finalizeLiveRunResult(
 		);
 
 		if (
-			presentationAdditionalBlocks.length > 0 &&
+			presentationBlocks.length > 0 &&
 			finalizeOptions.conversation_id &&
 			conversationStore?.appendConversationRunBlocks
 		) {
 			await conversationStore.appendConversationRunBlocks({
-				blocks: presentationAdditionalBlocks,
+				blocks: presentationBlocks,
 				conversation_id: finalizeOptions.conversation_id,
 				created_at: result.runtime_events.at(-1)?.timestamp,
 				run_id: payload.run_id,

@@ -15,6 +15,18 @@ interface PresentationContext {
 	readonly trace_id: string;
 }
 
+interface WorkNarrationDraft {
+	readonly created_at: string;
+	readonly id: string;
+	readonly linked_tool_call_id?: string;
+	readonly locale: WorkNarrationBlock['payload']['locale'];
+	readonly run_id: string;
+	readonly sequence_no: number;
+	readonly status: WorkNarrationBlock['payload']['status'];
+	readonly text: string;
+	readonly turn_index: number;
+}
+
 function getPresentationContext(events: readonly RuntimeEvent[]): PresentationContext | null {
 	const [firstEvent] = events;
 
@@ -81,66 +93,130 @@ function createWorkNarrationBlocks(
 	context: PresentationContext,
 	events: readonly RuntimeEvent[],
 ): readonly WorkNarrationBlock[] {
-	const blocksByNarrationId = new Map<string, WorkNarrationBlock>();
+	const draftsByNarrationId = new Map<string, WorkNarrationDraft>();
+
+	const upsertDraft = (
+		narrationId: string,
+		createOrUpdate: (existing: WorkNarrationDraft | undefined) => WorkNarrationDraft,
+	): void => {
+		draftsByNarrationId.set(narrationId, createOrUpdate(draftsByNarrationId.get(narrationId)));
+	};
 
 	for (const event of events) {
-		if (event.event_type === 'narration.completed') {
-			blocksByNarrationId.set(event.payload.narration_id, {
-				created_at: event.timestamp,
+		if (event.event_type === 'narration.started') {
+			upsertDraft(event.payload.narration_id, (existing) => ({
+				created_at: existing?.created_at ?? event.timestamp,
 				id: event.payload.narration_id,
-				payload: {
-					linked_tool_call_id: event.payload.linked_tool_call_id,
-					locale: event.payload.locale,
-					run_id: context.run_id,
-					sequence_no: event.payload.sequence_no,
-					status: 'completed',
-					text: event.payload.full_text,
-					turn_index: event.payload.turn_index,
-				},
-				schema_version: 1,
-				type: 'work_narration',
+				linked_tool_call_id: existing?.linked_tool_call_id ?? event.payload.linked_tool_call_id,
+				locale: existing?.locale ?? event.payload.locale,
+				run_id: event.payload.run_id,
+				sequence_no: existing?.sequence_no ?? event.payload.sequence_no,
+				status: existing?.status ?? 'streaming',
+				text: existing?.text ?? '',
+				turn_index: existing?.turn_index ?? event.payload.turn_index,
+			}));
+			continue;
+		}
+
+		if (event.event_type === 'narration.token') {
+			upsertDraft(event.payload.narration_id, (existing) => {
+				if (
+					existing?.status === 'completed' ||
+					existing?.status === 'superseded' ||
+					existing?.status === 'tool_failed'
+				) {
+					return existing;
+				}
+
+				return {
+					created_at: existing?.created_at ?? event.timestamp,
+					id: event.payload.narration_id,
+					linked_tool_call_id: existing?.linked_tool_call_id ?? event.payload.linked_tool_call_id,
+					locale: existing?.locale ?? event.payload.locale,
+					run_id: event.payload.run_id,
+					sequence_no: existing?.sequence_no ?? event.payload.sequence_no,
+					status: 'streaming',
+					text: `${existing?.text ?? ''}${event.payload.text_delta}`,
+					turn_index: existing?.turn_index ?? event.payload.turn_index,
+				};
 			});
 			continue;
 		}
 
-		if (event.event_type === 'narration.superseded') {
-			const existingBlock = blocksByNarrationId.get(event.payload.narration_id);
-
-			if (existingBlock) {
-				blocksByNarrationId.set(event.payload.narration_id, {
-					...existingBlock,
-					payload: {
-						...existingBlock.payload,
-						status: 'superseded',
-					},
-				});
-			}
+		if (event.event_type === 'narration.completed') {
+			upsertDraft(event.payload.narration_id, (existing) => ({
+				created_at: existing?.created_at ?? event.timestamp,
+				id: event.payload.narration_id,
+				linked_tool_call_id: event.payload.linked_tool_call_id ?? existing?.linked_tool_call_id,
+				locale: event.payload.locale,
+				run_id: event.payload.run_id,
+				sequence_no: event.payload.sequence_no,
+				status: 'completed',
+				text: event.payload.full_text,
+				turn_index: event.payload.turn_index,
+			}));
 			continue;
 		}
 
-		if (
-			event.event_type === 'narration.tool_outcome_linked' &&
-			event.payload.outcome === 'failure'
-		) {
-			const existingBlock = blocksByNarrationId.get(event.payload.narration_id);
+		if (event.event_type === 'narration.superseded') {
+			upsertDraft(event.payload.narration_id, (existing) => ({
+				created_at: existing?.created_at ?? event.timestamp,
+				id: event.payload.narration_id,
+				linked_tool_call_id: existing?.linked_tool_call_id ?? event.payload.linked_tool_call_id,
+				locale: existing?.locale ?? event.payload.locale,
+				run_id: existing?.run_id ?? event.payload.run_id,
+				sequence_no: existing?.sequence_no ?? event.payload.sequence_no,
+				status: 'superseded',
+				text: existing?.text ?? '',
+				turn_index: existing?.turn_index ?? event.payload.turn_index,
+			}));
+			continue;
+		}
 
-			if (existingBlock) {
-				blocksByNarrationId.set(event.payload.narration_id, {
-					...existingBlock,
-					payload: {
-						...existingBlock.payload,
-						status: 'tool_failed',
-					},
-				});
-			}
+		if (event.event_type === 'narration.tool_outcome_linked') {
+			upsertDraft(event.payload.narration_id, (existing) => ({
+				created_at: existing?.created_at ?? event.timestamp,
+				id: event.payload.narration_id,
+				linked_tool_call_id: event.payload.linked_tool_call_id ?? existing?.linked_tool_call_id,
+				locale: existing?.locale ?? event.payload.locale,
+				run_id: existing?.run_id ?? event.payload.run_id,
+				sequence_no: existing?.sequence_no ?? event.payload.sequence_no,
+				status:
+					event.payload.outcome === 'failure' ? 'tool_failed' : (existing?.status ?? 'completed'),
+				text: existing?.text ?? '',
+				turn_index: existing?.turn_index ?? event.payload.turn_index,
+			}));
 		}
 	}
 
-	return [...blocksByNarrationId.values()].sort(
-		(left, right) =>
-			left.payload.turn_index - right.payload.turn_index ||
-			left.payload.sequence_no - right.payload.sequence_no,
-	);
+	return [...draftsByNarrationId.values()]
+		.filter(
+			(draft) =>
+				draft.text.trim().length > 0 ||
+				draft.status === 'superseded' ||
+				draft.status === 'tool_failed',
+		)
+		.sort(
+			(left, right) =>
+				left.turn_index - right.turn_index ||
+				left.sequence_no - right.sequence_no ||
+				left.id.localeCompare(right.id),
+		)
+		.map((draft) => ({
+			created_at: draft.created_at,
+			id: draft.id,
+			payload: {
+				linked_tool_call_id: draft.linked_tool_call_id,
+				locale: draft.locale,
+				run_id: draft.run_id || context.run_id,
+				sequence_no: draft.sequence_no,
+				status: draft.status,
+				text: draft.text,
+				turn_index: draft.turn_index,
+			},
+			schema_version: 1,
+			type: 'work_narration',
+		}));
 }
 
 function getTerminalFailureEvent(events: readonly RuntimeEvent[]): RuntimeEvent | null {

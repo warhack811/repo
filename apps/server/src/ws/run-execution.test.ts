@@ -1,13 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import type { AuthContext, RenderBlock, RuntimeEvent } from '@runa/types';
+import { describe, expect, it, vi } from 'vitest';
 
 import { composeContext } from '../context/compose-context.js';
+import type { ApprovalStore } from '../persistence/approval-store.js';
 import type { AgentLoopSnapshot } from '../runtime/agent-loop.js';
+import {
+	buildNarrationCompletedEvent,
+	buildNarrationStartedEvent,
+	buildNarrationSupersededEvent,
+	buildNarrationTokenEvent,
+	buildNarrationToolOutcomeLinkedEvent,
+	buildRunCompletedEvent,
+	buildRunStartedEvent,
+	buildStateEnteredEvent,
+} from '../runtime/runtime-events.js';
 import { evaluateStopConditions } from '../runtime/stop-conditions.js';
+import { createMockSocket } from '../test-utils/mock-socket.js';
 import { buildLiveModelRequest, buildToolResultContinuationUserTurn } from './live-request.js';
 import type { RunRequestPayload } from './messages.js';
+import type { ConversationOrchestrationStore } from './orchestration-types.js';
 import {
 	buildTerminalFailureMessage,
 	createOrderedToolResultContinuationText,
+	finalizeLiveRunResult,
 	replaceFinalUserMessage,
 	resolveRuntimeTerminationCode,
 	supportsDesktopVisionProvider,
@@ -30,6 +45,7 @@ function createSnapshot(overrides: Partial<AgentLoopSnapshot>): AgentLoopSnapsho
 
 function createRunRequestPayload(): RunRequestPayload {
 	return {
+		include_presentation_blocks: true,
 		provider: 'groq',
 		provider_config: {
 			apiKey: 'groq-key',
@@ -46,6 +62,129 @@ function createRunRequestPayload(): RunRequestPayload {
 		run_id: 'run_tool_result_pipeline_regression',
 		trace_id: 'trace_tool_result_pipeline_regression',
 	};
+}
+
+function createAuthContext(): AuthContext {
+	return {
+		bearer_token_present: true,
+		principal: {
+			kind: 'authenticated',
+			provider: 'internal',
+			role: 'authenticated',
+			scope: {
+				tenant_id: 'tenant_1',
+				workspace_id: 'workspace_1',
+			},
+			session_id: 'session_1',
+			user_id: 'user_1',
+		},
+		request_id: 'req_run_execution_test',
+		transport: 'websocket',
+	};
+}
+
+function createApprovalStore(): ApprovalStore {
+	return {
+		getPendingApprovalById: vi.fn(async () => null),
+		persistApprovalRequest: vi.fn(async () => {}),
+		persistApprovalResolution: vi.fn(async () => {}),
+	};
+}
+
+function createConversationStore(): ConversationOrchestrationStore {
+	return {
+		appendConversationMessage: vi.fn(async (input) => ({
+			content: input.content,
+			conversation_id: input.conversation_id,
+			created_at: input.created_at ?? '2026-05-05T11:00:00.000Z',
+			message_id: 'message_1',
+			role: input.role,
+			run_id: input.run_id,
+			sequence_no: 1,
+			trace_id: input.trace_id,
+		})),
+		appendConversationRunBlocks: vi.fn(async (input) => ({
+			block_record_id: 'block_record_1',
+			blocks: input.blocks,
+			conversation_id: input.conversation_id,
+			created_at: input.created_at ?? '2026-05-05T11:00:00.000Z',
+			run_id: input.run_id,
+			trace_id: input.trace_id,
+		})),
+		ensureConversation: vi.fn(async (input) => ({
+			access_role: 'owner' as const,
+			conversation_id: input.conversation_id ?? 'conversation_1',
+			created_at: input.created_at ?? '2026-05-05T11:00:00.000Z',
+			last_message_at: input.created_at ?? '2026-05-05T11:00:00.000Z',
+			last_message_preview: input.initial_preview ?? 'test',
+			title: input.initial_preview ?? 'test',
+			updated_at: input.created_at ?? '2026-05-05T11:00:00.000Z',
+		})),
+	};
+}
+
+function createRuntimeEventContext(sequence_no: number, timestamp?: string) {
+	return {
+		run_id: 'run_tool_result_pipeline_regression',
+		sequence_no,
+		timestamp,
+		trace_id: 'trace_tool_result_pipeline_regression',
+	};
+}
+
+function createCompletedRuntimeEvents(
+	narrationEvents: readonly RuntimeEvent[] = [],
+): readonly RuntimeEvent[] {
+	return [
+		buildRunStartedEvent(
+			{
+				entry_state: 'INIT',
+				trigger: 'user_message',
+			},
+			createRuntimeEventContext(1, '2026-05-05T11:00:00.000Z'),
+		),
+		buildStateEnteredEvent(
+			{
+				previous_state: 'INIT',
+				reason: 'run-request-accepted',
+				state: 'MODEL_THINKING',
+			},
+			{
+				...createRuntimeEventContext(2, '2026-05-05T11:00:01.000Z'),
+				state_after: 'MODEL_THINKING',
+				state_before: 'INIT',
+			},
+		),
+		...narrationEvents,
+		buildRunCompletedEvent(
+			{
+				final_state: 'COMPLETED',
+				output_text: 'Done.',
+			},
+			{
+				...createRuntimeEventContext(99, '2026-05-05T11:00:09.000Z'),
+				state_after: 'COMPLETED',
+				state_before: 'MODEL_THINKING',
+			},
+		),
+	];
+}
+
+function getPersistedBlocks(
+	conversationStore: ConversationOrchestrationStore,
+): readonly RenderBlock[] {
+	if (!conversationStore.appendConversationRunBlocks) {
+		throw new Error('Expected appendConversationRunBlocks to exist.');
+	}
+
+	const appendConversationRunBlocks = vi.mocked(conversationStore.appendConversationRunBlocks);
+	const [input] = appendConversationRunBlocks.mock.calls[0] ?? [];
+
+	if (!input) {
+		throw new Error('Expected appendConversationRunBlocks to be called.');
+	}
+
+	return input.blocks;
 }
 
 describe('run-execution tool result pipeline helpers', () => {
@@ -318,5 +457,253 @@ describe('tool-result-pipeline regression', () => {
 		);
 
 		expect(message).toContain('DO NOT call this tool again with the same arguments.');
+	});
+});
+
+describe('finalizeLiveRunResult presentation persistence', () => {
+	it('persists mapper-created work narration blocks in conversation_run_blocks', async () => {
+		const narrationEvents = [
+			buildNarrationStartedEvent(
+				{
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 10,
+					turn_index: 1,
+				},
+				createRuntimeEventContext(10, '2026-05-05T11:00:02.000Z'),
+			),
+			buildNarrationTokenEvent(
+				{
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 11,
+					text_delta: 'package.json',
+					turn_index: 1,
+				},
+				createRuntimeEventContext(11, '2026-05-05T11:00:03.000Z'),
+			),
+			buildNarrationCompletedEvent(
+				{
+					full_text: 'package.json kontrol ediyorum.',
+					linked_tool_call_id: 'call_1',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 12,
+					turn_index: 1,
+				},
+				createRuntimeEventContext(12, '2026-05-05T11:00:04.000Z'),
+			),
+		];
+		const runtimeEvents = createCompletedRuntimeEvents(narrationEvents);
+		const conversationStore = createConversationStore();
+		const { socket } = createMockSocket();
+
+		await finalizeLiveRunResult(
+			socket,
+			{
+				...createRunRequestPayload(),
+				conversation_id: 'conversation_1',
+			},
+			{
+				assistant_text: 'Done.',
+				events: runtimeEvents,
+				final_state: 'COMPLETED',
+				runtime_events: runtimeEvents,
+				status: 'completed',
+				turn_count: 1,
+			},
+			{
+				approvalStore: createApprovalStore(),
+				auth_context: createAuthContext(),
+				conversationStore,
+				persistEvents: vi.fn(async () => {}),
+				persistRunState: vi.fn(async () => {}),
+			},
+			{
+				conversation_id: 'conversation_1',
+				persist_live_memory_write: false,
+				working_directory: 'D:/ai/Runa',
+			},
+		);
+
+		const persistedBlocks = getPersistedBlocks(conversationStore);
+		const narrationBlocks = persistedBlocks.filter((block) => block.type === 'work_narration');
+
+		expect(narrationBlocks).toHaveLength(1);
+		expect(narrationBlocks[0]).toMatchObject({
+			id: 'nar_1',
+			payload: {
+				linked_tool_call_id: 'call_1',
+				locale: 'tr',
+				run_id: 'run_tool_result_pipeline_regression',
+				sequence_no: 12,
+				status: 'completed',
+				text: 'package.json kontrol ediyorum.',
+				turn_index: 1,
+			},
+			type: 'work_narration',
+		});
+		expect(persistedBlocks.map((block) => block.type)).toContain('event_list');
+	});
+
+	it('persists tool_failed narration status and deduplicates repeated completed events', async () => {
+		const narrationEvents = [
+			buildNarrationCompletedEvent(
+				{
+					full_text: 'ilk metin',
+					linked_tool_call_id: 'call_1',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 10,
+					turn_index: 1,
+				},
+				createRuntimeEventContext(10),
+			),
+			buildNarrationCompletedEvent(
+				{
+					full_text: 'canonical metin',
+					linked_tool_call_id: 'call_1',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					sequence_no: 11,
+					turn_index: 1,
+				},
+				createRuntimeEventContext(11),
+			),
+			buildNarrationToolOutcomeLinkedEvent(
+				{
+					linked_tool_call_id: 'call_1',
+					locale: 'tr',
+					narration_id: 'nar_1',
+					outcome: 'failure',
+					sequence_no: 12,
+					tool_call_id: 'call_1',
+					turn_index: 1,
+				},
+				createRuntimeEventContext(12),
+			),
+		];
+		const runtimeEvents = createCompletedRuntimeEvents(narrationEvents);
+		const conversationStore = createConversationStore();
+		const { socket } = createMockSocket();
+
+		await finalizeLiveRunResult(
+			socket,
+			{
+				...createRunRequestPayload(),
+				conversation_id: 'conversation_1',
+			},
+			{
+				assistant_text: 'Done.',
+				events: runtimeEvents,
+				final_state: 'COMPLETED',
+				runtime_events: runtimeEvents,
+				status: 'completed',
+				turn_count: 1,
+			},
+			{
+				approvalStore: createApprovalStore(),
+				auth_context: createAuthContext(),
+				conversationStore,
+				persistEvents: vi.fn(async () => {}),
+				persistRunState: vi.fn(async () => {}),
+			},
+			{
+				conversation_id: 'conversation_1',
+				persist_live_memory_write: false,
+				working_directory: 'D:/ai/Runa',
+			},
+		);
+
+		const narrationBlocks = getPersistedBlocks(conversationStore).filter(
+			(block) => block.type === 'work_narration',
+		);
+
+		expect(narrationBlocks).toHaveLength(1);
+		expect(narrationBlocks[0]).toMatchObject({
+			id: 'nar_1',
+			payload: {
+				linked_tool_call_id: 'call_1',
+				status: 'tool_failed',
+				text: 'canonical metin',
+			},
+		});
+	});
+
+	it('persists superseded narration status for replay consistency', async () => {
+		const narrationEvents = [
+			buildNarrationStartedEvent(
+				{
+					locale: 'tr',
+					narration_id: 'nar_superseded',
+					sequence_no: 10,
+					turn_index: 1,
+				},
+				createRuntimeEventContext(10),
+			),
+			buildNarrationTokenEvent(
+				{
+					locale: 'tr',
+					narration_id: 'nar_superseded',
+					sequence_no: 11,
+					text_delta: 'gecici metin',
+					turn_index: 1,
+				},
+				createRuntimeEventContext(11),
+			),
+			buildNarrationSupersededEvent(
+				{
+					locale: 'tr',
+					narration_id: 'nar_superseded',
+					sequence_no: 12,
+					turn_index: 1,
+				},
+				createRuntimeEventContext(12),
+			),
+		];
+		const runtimeEvents = createCompletedRuntimeEvents(narrationEvents);
+		const conversationStore = createConversationStore();
+		const { socket } = createMockSocket();
+
+		await finalizeLiveRunResult(
+			socket,
+			{
+				...createRunRequestPayload(),
+				conversation_id: 'conversation_1',
+			},
+			{
+				assistant_text: 'Done.',
+				events: runtimeEvents,
+				final_state: 'COMPLETED',
+				runtime_events: runtimeEvents,
+				status: 'completed',
+				turn_count: 1,
+			},
+			{
+				approvalStore: createApprovalStore(),
+				auth_context: createAuthContext(),
+				conversationStore,
+				persistEvents: vi.fn(async () => {}),
+				persistRunState: vi.fn(async () => {}),
+			},
+			{
+				conversation_id: 'conversation_1',
+				persist_live_memory_write: false,
+				working_directory: 'D:/ai/Runa',
+			},
+		);
+
+		const narrationBlocks = getPersistedBlocks(conversationStore).filter(
+			(block) => block.type === 'work_narration',
+		);
+
+		expect(narrationBlocks).toHaveLength(1);
+		expect(narrationBlocks[0]).toMatchObject({
+			id: 'nar_superseded',
+			payload: {
+				status: 'superseded',
+				text: 'gecici metin',
+			},
+		});
 	});
 });

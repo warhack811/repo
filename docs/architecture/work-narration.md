@@ -42,3 +42,17 @@ turn-scoped, not run-scoped, so a WebSocket disconnect can lose in-flight narrat
 deltas. After the turn completes, persisted runtime events can still reconstruct the
 final `work_narration` block on replay or refresh. Full in-flight recovery is deferred
 to Faz 6 hardening.
+
+## Faz 5: Persistence and Replay
+
+Work narration blocks currently persist at run finalize. The finalize path writes the
+canonical presentation block list built from runtime events plus deterministic
+presentation blocks, so replay/F5 receives the same `work_narration` block ids and
+status values that the live run emitted.
+
+Incremental per-block persistence is deferred. The current durable store writes the
+full `conversation_run_blocks.blocks` JSON payload per run; doing per-event
+fetch-modify-write updates during active streaming would add race and partial-duplicate
+risk without a versioned JSONB merge/upsert contract. Faz 6 or a dedicated persistence
+follow-up should add a block-aware incremental write path before enabling durable
+in-flight narration recovery.
