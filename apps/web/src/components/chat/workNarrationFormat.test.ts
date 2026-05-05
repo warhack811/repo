@@ -33,6 +33,11 @@ describe('work narration formatting', () => {
 		expect(formatWorkDetail('Approval rejected for Ekran görüntüsü.')).toBe(
 			'Onay reddedildi: Ekran görüntüsü.',
 		);
+		expect(
+			formatWorkDetail(
+				'Writes text to the connected desktop agent clipboard through an explicit approval-gated bridge path.',
+			),
+		).toBe('Bağlı masaüstü panosuna metin yazılır.');
 	});
 
 	it('formats tool and state chips consistently', () => {

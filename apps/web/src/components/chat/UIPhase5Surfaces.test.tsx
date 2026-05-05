@@ -82,13 +82,14 @@ describe('UI Phase 5 surfaces', () => {
 		const progress: CurrentRunProgressSurface = {
 			approval_block: null,
 			correlation_label: null,
-			detail: 'Proof saved.',
+			detail:
+				'Writes text to the connected desktop agent clipboard through an explicit approval-gated bridge path.',
 			headline: 'Calisma tamamlandi',
 			hidden_step_count: 0,
 			meta_items: [],
 			phase_items: [],
 			run_id: 'run_activity',
-			status_tone: 'success',
+			status_tone: 'info',
 			step_items: [
 				{
 					call_id: 'call_file_write',
@@ -104,6 +105,8 @@ describe('UI Phase 5 surfaces', () => {
 		const markup = renderToStaticMarkup(<RunProgressPanel progress={progress} />);
 
 		expect(markup).toContain('Dosya yazma');
+		expect(markup).toContain('Bağlı masaüstü panosuna metin yazılır.');
+		expect(markup).not.toContain('Writes text to the connected desktop agent clipboard');
 		expect(markup).not.toContain('file.write');
 	});
 

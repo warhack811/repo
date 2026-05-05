@@ -72,6 +72,10 @@ export function formatWorkDetail(detail: string | undefined): string | undefined
 			'Writes text to the connected desktop agent clipboard through an approval-gated bridge.',
 			'Bağlı masaüstü panosuna metin yazılır.',
 		)
+		.replaceAll(
+			'Writes text to the connected desktop agent clipboard through an explicit approval-gated bridge path.',
+			'Bağlı masaüstü panosuna metin yazılır.',
+		)
 		.replaceAll('deepseek / deepseek-v4-pro', 'DeepSeek V4 Pro')
 		.replaceAll('Approval rejected for ', 'Onay reddedildi: ')
 		.replaceAll('completed successfully.', 'tamamlandı.')

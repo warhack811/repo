@@ -121,6 +121,7 @@ export function RunProgressPanel({
 	const accent = getPanelAccent(progress.status_tone);
 	const shouldShowDiagnostics = isDeveloperMode;
 	const toolActivityItems = createToolActivityItems(progress);
+	const formattedDetail = formatWorkDetail(progress.detail) ?? progress.detail;
 
 	if (!isDeveloperMode) {
 		const thinkingSteps = createThinkingSteps(progress);
@@ -131,7 +132,7 @@ export function RunProgressPanel({
 					<h3 id="current-run-progress-heading" className={styles['activityHeadline']}>
 						{progress.headline}
 					</h3>
-					<p className={styles['activityDetail']}>{progress.detail}</p>
+					<p className={styles['activityDetail']}>{formattedDetail}</p>
 					{thinkingSteps.length > 0 ? (
 						<ThinkingBlock
 							isActive={progress.status_tone === 'info' || progress.status_tone === 'warning'}
@@ -154,7 +155,7 @@ export function RunProgressPanel({
 						<h3 id="current-run-progress-heading" className={styles['headline']}>
 							{progress.headline}
 						</h3>
-						<div className={styles['detail']}>{progress.detail}</div>
+						<div className={styles['detail']}>{formattedDetail}</div>
 					</div>
 				</div>
 			</div>
