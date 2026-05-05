@@ -17,16 +17,45 @@ export interface StreamingStrategyWarning {
 	readonly reason: 'buffer_timeout';
 }
 
+export interface CreateStrategyOptions {
+	readonly buffer_timeout_ms?: number;
+	readonly locale?: string;
+	readonly narration_strategy?: string;
+	readonly ordering_origin?: string;
+	readonly run_id: string;
+	readonly trace_id: string;
+	readonly turn_index: number;
+}
+
+export function createPessimisticNarrationStrategy(
+	options: CreateStrategyOptions,
+): PessimisticNarrationStreamingStrategy {
+	return new PessimisticNarrationStreamingStrategy({
+		buffer_timeout_ms: options.buffer_timeout_ms ?? 200,
+		mode: 'pessimistic',
+	});
+}
+
 export interface PessimisticStreamingStrategyResult {
 	readonly classifier_output: ClassifierOutput;
 	readonly flush_text: string;
 	readonly warnings: readonly StreamingStrategyWarning[];
 }
 
+export type DecisionKind = 'buffered' | 'final_answer_token' | 'narration_token';
+
+export interface SingleDecision {
+	readonly kind: DecisionKind;
+	readonly linked_tool_call_id?: string;
+	readonly text_delta: string;
+}
+
 export class PessimisticNarrationStreamingStrategy {
 	readonly #config: StreamingStrategyConfig;
 	readonly #parts: ModelContentPart[] = [];
 	readonly #startedAt: number;
+	#lastActivityAt: number;
+	#flushSequence = 0;
 
 	constructor(config: Partial<StreamingStrategyConfig> = {}, now: number = Date.now()) {
 		this.#config = {
@@ -35,14 +64,73 @@ export class PessimisticNarrationStreamingStrategy {
 			mode: 'pessimistic',
 		};
 		this.#startedAt = now;
+		this.#lastActivityAt = now;
 	}
 
-	observePart(part: ModelContentPart): void {
+	onTextDelta(
+		textDelta: string,
+		contentPartIndex?: number,
+		now: number = Date.now(),
+	): SingleDecision {
+		this.#lastActivityAt = now;
+
+		const part: ModelContentPart = {
+			index: contentPartIndex ?? this.#parts.length,
+			kind: 'text',
+			ordering_origin: 'wire_streaming',
+			text: textDelta,
+		};
 		this.#parts.push(part);
+
+		const hasPendingToolUse = this.#parts.some((p) => p.kind === 'tool_use');
+
+		if (hasPendingToolUse) {
+			this.#flushSequence += 1;
+			const linkedToolUse = this.#parts.filter((p) => p.kind === 'tool_use').pop();
+			return {
+				kind: 'narration_token',
+				linked_tool_call_id: linkedToolUse?.tool_call_id,
+				text_delta: textDelta,
+			};
+		}
+
+		return {
+			kind: 'buffered',
+			text_delta: textDelta,
+		};
+	}
+
+	onToolUseStart(
+		toolName: string,
+		toolCallId: string,
+		contentPartIndex?: number,
+		now: number = Date.now(),
+	): SingleDecision {
+		this.#lastActivityAt = now;
+
+		const part: ModelContentPart = {
+			index: contentPartIndex ?? this.#parts.length,
+			input: {},
+			kind: 'tool_use',
+			ordering_origin: 'wire_streaming',
+			tool_call_id: toolCallId,
+			tool_name: toolName,
+		};
+		this.#parts.push(part);
+
+		this.#flushSequence += 1;
+		return {
+			kind: 'narration_token',
+			text_delta: '',
+		};
+	}
+
+	hasPendingNarration(): boolean {
+		return this.#parts.some((p) => p.kind === 'text' && p.text.length > 0);
 	}
 
 	checkTimeout(now: number = Date.now()): readonly StreamingStrategyWarning[] {
-		const elapsedMs = now - this.#startedAt;
+		const elapsedMs = now - this.#lastActivityAt;
 		const hasText = this.#parts.some((part) => part.kind === 'text' && part.text.length > 0);
 		const hasToolUse = this.#parts.some((part) => part.kind === 'tool_use');
 
@@ -56,6 +144,10 @@ export class PessimisticNarrationStreamingStrategy {
 		}
 
 		return [];
+	}
+
+	async sleep(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
 	finish(input: {

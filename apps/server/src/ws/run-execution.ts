@@ -1,22 +1,22 @@
-import {
-	type AnyRuntimeEvent,
-	type ApprovalTarget,
-	type GatewayProvider,
-	type ModelMessage,
-	type ModelRequest,
-	type ModelResponse,
-	type ModelToolCallCandidate,
-	type RenderBlock,
-	type RuntimeEvent,
-	type RuntimeState,
-	type RuntimeTerminationCode,
-	type ToolDefinition,
-	type ToolErrorCode,
-	type ToolResult,
-	type ToolRuntimeEvent,
-	type TurnProgressEvent,
-	unwrapRedacted,
+import type {
+	AnyRuntimeEvent,
+	ApprovalTarget,
+	GatewayProvider,
+	ModelMessage,
+	ModelRequest,
+	ModelResponse,
+	ModelToolCallCandidate,
+	RenderBlock,
+	RuntimeEvent,
+	RuntimeState,
+	RuntimeTerminationCode,
+	ToolDefinition,
+	ToolErrorCode,
+	ToolResult,
+	ToolRuntimeEvent,
+	TurnProgressEvent,
 } from '@runa/types';
+import { unwrapRedacted } from '@runa/types';
 
 import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
 import { GatewayUnsupportedOperationError } from '../gateway/errors.js';
@@ -54,6 +54,7 @@ import {
 } from '../runtime/continue-model-turn.js';
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
 import { buildNarrationEmissionEvents } from '../runtime/narration/emission.js';
+import { createPessimisticNarrationStrategy } from '../runtime/narration/streaming-strategy.js';
 import { orchestrateMemoryWrite } from '../runtime/orchestrate-memory-write.js';
 import { defaultProviderHealthStore } from '../runtime/provider-health.js';
 import { requestApproval } from '../runtime/request-approval.js';
@@ -65,6 +66,9 @@ import type {
 } from '../runtime/run-model-turn.js';
 import { runToolStep } from '../runtime/run-tool-step.js';
 import {
+	buildNarrationCompletedEvent,
+	buildNarrationStartedEvent,
+	buildNarrationTokenEvent,
 	buildNarrationToolOutcomeLinkedEvent,
 	buildRunFailedEvent,
 	buildRunStartedEvent,
@@ -1166,6 +1170,55 @@ async function runPolicyAwareModelTurn(
 	const gatewaySpan = startLogSpan(turnLogger, 'gateway.generate', {
 		model: resolvedModelRequest.model,
 	});
+
+	const narrationStrategy = input.model_gateway.capabilities?.narration_strategy;
+	const enableStreaming = narrationStrategy !== 'unsupported';
+	let sequenceNo = options.get_next_runtime_sequence_no?.() ?? 1;
+
+	const onNarrationToken = enableStreaming
+		? (params: {
+				readonly isFirst: boolean;
+				readonly linkedToolCallId?: string;
+				readonly narrationId: string;
+				readonly textDelta: string;
+			}) => {
+				if (params.isFirst) {
+					const startedEvent = buildNarrationStartedEvent(
+						{
+							linked_tool_call_id: params.linkedToolCallId,
+							locale: 'tr',
+							narration_id: params.narrationId,
+							sequence_no: sequenceNo,
+							turn_index: input.turn_index ?? 1,
+						},
+						{
+							run_id: input.run_id,
+							sequence_no: sequenceNo,
+							trace_id: input.trace_id,
+						},
+					);
+					options.on_runtime_event?.(startedEvent);
+				}
+
+				const tokenEvent = buildNarrationTokenEvent(
+					{
+						linked_tool_call_id: params.linkedToolCallId,
+						locale: 'tr',
+						narration_id: params.narrationId,
+						sequence_no: sequenceNo,
+						text_delta: params.textDelta,
+						turn_index: input.turn_index ?? 1,
+					},
+					{
+						run_id: input.run_id,
+						sequence_no: sequenceNo,
+						trace_id: input.trace_id,
+					},
+				);
+				options.on_runtime_event?.(tokenEvent);
+				sequenceNo += 1;
+			}
+		: undefined;
 
 	try {
 		modelResponse = await generateModelResponseWithStreaming(

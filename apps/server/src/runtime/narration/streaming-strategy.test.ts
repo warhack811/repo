@@ -26,8 +26,8 @@ function tool(index: number, callId: string): ModelContentPart {
 describe('PessimisticNarrationStreamingStrategy', () => {
 	it('buffers text until a tool use appears and then flushes narration text', () => {
 		const strategy = new PessimisticNarrationStreamingStrategy({}, 0);
-		strategy.observePart(text(0, 'Reading package.json.'));
-		strategy.observePart(tool(1, 'call_1'));
+		strategy.onTextDelta('Reading package.json.', 0, 0);
+		strategy.onToolUseStart('file.read', 'call_1', 1, 0);
 
 		expect(
 			strategy.finish({
@@ -43,7 +43,7 @@ describe('PessimisticNarrationStreamingStrategy', () => {
 
 	it('keeps waiting in pessimistic mode after the timeout and reports a warning', () => {
 		const strategy = new PessimisticNarrationStreamingStrategy({ buffer_timeout_ms: 200 }, 0);
-		strategy.observePart(text(0, 'Still deciding placement.'));
+		strategy.onTextDelta('Still deciding placement.', 0, 0);
 
 		expect(strategy.checkTimeout(250)).toEqual([
 			{
@@ -55,7 +55,7 @@ describe('PessimisticNarrationStreamingStrategy', () => {
 
 	it('classifies turn end without tool use as final answer', () => {
 		const strategy = new PessimisticNarrationStreamingStrategy({}, 0);
-		strategy.observePart(text(0, 'Final answer.'));
+		strategy.onTextDelta('Final answer.');
 
 		expect(
 			strategy.finish({
@@ -71,9 +71,9 @@ describe('PessimisticNarrationStreamingStrategy', () => {
 
 	it('delegates tool-containing turn end to the classifier', () => {
 		const strategy = new PessimisticNarrationStreamingStrategy({}, 0);
-		strategy.observePart(text(0, 'Reading package.json.'));
-		strategy.observePart(tool(1, 'call_1'));
-		strategy.observePart(text(2, 'Continuing analysis.'));
+		strategy.onTextDelta('Reading package.json.');
+		strategy.onToolUseStart('file.read', 'call_1');
+		strategy.onTextDelta('Continuing analysis.');
 
 		expect(
 			strategy.finish({
