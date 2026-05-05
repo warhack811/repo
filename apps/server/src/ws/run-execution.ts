@@ -6,6 +6,7 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelToolCallCandidate,
+	ProviderCapabilities,
 	RenderBlock,
 	RuntimeEvent,
 	RuntimeState,
@@ -993,9 +994,37 @@ async function generateModelResponseWithStreaming(
 	modelGateway: Pick<ReturnType<typeof createModelGateway>, 'generate' | 'stream'>,
 	modelRequest: ModelRequest,
 	requestedProvider?: RunRequestPayload['provider'],
+	options?: {
+		capabilities?: ProviderCapabilities;
+		getNextSequenceNo?: () => number;
+		locale?: 'en' | 'tr';
+		onRuntimeEvent?: (event: RuntimeEvent) => void;
+		runId: string;
+		traceId: string;
+		turnIndex: number;
+	},
 ): Promise<ModelResponse> {
 	let streamedResponse: ModelResponse | undefined;
 	let streamedTextLength = 0;
+
+	const narrationStrategyKind = options?.capabilities?.narration_strategy ?? 'unsupported';
+	const enableNarration = narrationStrategyKind !== 'unsupported';
+
+	const strategy = enableNarration
+		? createPessimisticNarrationStrategy({
+				buffer_timeout_ms: 200,
+				locale: options?.locale ?? 'tr',
+				narration_strategy: narrationStrategyKind,
+				ordering_origin: 'wire_streaming',
+				run_id: options?.runId ?? payload.run_id,
+				trace_id: options?.traceId ?? payload.trace_id,
+				turn_index: options?.turnIndex ?? 1,
+		  })
+		: null;
+
+	const getSequenceNo = options?.getNextSequenceNo ?? (() => 1);
+	let nextSequenceNo = getSequenceNo();
+	const narrationIdMap = new Map<number, string>();
 
 	if (
 		requestedProvider !== undefined &&
@@ -1015,14 +1044,149 @@ async function generateModelResponseWithStreaming(
 				}
 
 				streamedTextLength += chunk.text_delta.length;
-				sendServerMessage(
-					socket,
-					createTextDeltaMessage(payload, chunk.text_delta, chunk.content_part_index),
+
+				if (!strategy) {
+					sendServerMessage(
+						socket,
+						createTextDeltaMessage(payload, chunk.text_delta, chunk.content_part_index),
+					);
+					continue;
+				}
+
+				const decision = strategy.onTextDelta(
+					chunk.text_delta,
+					chunk.content_part_index,
 				);
+
+				if (decision.kind === 'buffered') {
+					continue;
+				}
+
+				if (decision.kind === 'narration_token') {
+					const contentPartIndex = chunk.content_part_index ?? 0;
+					const narrationId = narrationIdMap.get(contentPartIndex) ?? `${options?.runId ?? payload.run_id}:turn:${options?.turnIndex ?? 1}:narration:${contentPartIndex}`;
+					narrationIdMap.set(contentPartIndex, narrationId);
+
+					const isFirst = decision.text_delta.length === chunk.text_delta.length;
+
+					if (isFirst) {
+						const startedEvent = buildNarrationStartedEvent(
+							{
+								linked_tool_call_id: decision.linked_tool_call_id,
+								locale: options?.locale ?? 'tr',
+								narration_id: narrationId,
+								sequence_no: nextSequenceNo,
+								turn_index: options?.turnIndex ?? 1,
+							},
+							{
+								run_id: options?.runId ?? payload.run_id,
+								sequence_no: nextSequenceNo,
+								trace_id: options?.traceId ?? payload.trace_id,
+							},
+						);
+						options?.onRuntimeEvent?.(startedEvent);
+					}
+
+					nextSequenceNo += 1;
+
+					const tokenEvent = buildNarrationTokenEvent(
+						{
+							linked_tool_call_id: decision.linked_tool_call_id,
+							locale: options?.locale ?? 'tr',
+							narration_id: narrationId,
+							sequence_no: nextSequenceNo,
+							text_delta: chunk.text_delta,
+							turn_index: options?.turnIndex ?? 1,
+						},
+						{
+							run_id: options?.runId ?? payload.run_id,
+							sequence_no: nextSequenceNo,
+							trace_id: options?.traceId ?? payload.trace_id,
+						},
+					);
+					options?.onRuntimeEvent?.(tokenEvent);
+
+					nextSequenceNo += 1;
+
+					sendServerMessage(
+						socket,
+						createNarrationDeltaMessage(payload, tokenEvent),
+					);
+					continue;
+				}
+
+				if (decision.kind === 'final_answer_token') {
+					sendServerMessage(
+						socket,
+						createTextDeltaMessage(payload, chunk.text_delta, chunk.content_part_index),
+					);
+					continue;
+				}
+
 				continue;
 			}
 
-			streamedResponse = chunk.response;
+			if (chunk.type === 'response.completed') {
+				streamedResponse = chunk.response;
+
+				if (strategy && streamedResponse) {
+					const hasToolCalls = streamedResponse.tool_call_candidates !== undefined && streamedResponse.tool_call_candidates.length > 0;
+					const turnIntent = hasToolCalls ? 'continuing' : 'done';
+
+					const finishResult = strategy.finish({
+						narration_strategy: narrationStrategyKind,
+						ordering_origin: 'wire_streaming',
+						turn_intent: turnIntent,
+					});
+
+					if (finishResult.flush_text.length > 0) {
+						const narrationId = `${options?.runId ?? payload.run_id}:turn:${options?.turnIndex ?? 1}:narration:final`;
+
+						sendServerMessage(
+							socket,
+							createNarrationDeltaMessage(
+								payload,
+								buildNarrationTokenEvent(
+									{
+										locale: options?.locale ?? 'tr',
+										narration_id: narrationId,
+										sequence_no: nextSequenceNo,
+										text_delta: finishResult.flush_text,
+										turn_index: options?.turnIndex ?? 1,
+									},
+									{
+										run_id: options?.runId ?? payload.run_id,
+										sequence_no: nextSequenceNo,
+										trace_id: options?.traceId ?? payload.trace_id,
+									},
+								),
+							),
+						);
+
+						nextSequenceNo += 1;
+
+						const completedEvent = buildNarrationCompletedEvent(
+							{
+								full_text: finishResult.flush_text,
+								locale: options?.locale ?? 'tr',
+								narration_id: narrationId,
+								sequence_no: nextSequenceNo,
+								turn_index: options?.turnIndex ?? 1,
+							},
+							{
+								run_id: options?.runId ?? payload.run_id,
+								sequence_no: nextSequenceNo,
+								trace_id: options?.traceId ?? payload.trace_id,
+							},
+						);
+						options?.onRuntimeEvent?.(completedEvent);
+
+						sendServerMessage(socket, createNarrationCompletedMessage(payload, completedEvent));
+					}
+				}
+
+				return streamedResponse;
+			}
 		}
 	} catch (error: unknown) {
 		if (error instanceof GatewayUnsupportedOperationError) {
@@ -1038,10 +1202,6 @@ async function generateModelResponseWithStreaming(
 		}
 
 		throw error;
-	}
-
-	if (streamedResponse) {
-		return streamedResponse;
 	}
 
 	return modelGateway.generate(modelRequest);
@@ -1159,66 +1319,9 @@ async function runPolicyAwareModelTurn(
 	let finalResolvedModelRequest = resolvedModelRequest;
 	let modelResponse: ModelResponse;
 
-	if ((input.model_gateway.capabilities?.narration_strategy ?? 'unsupported') === 'unsupported') {
-		turnLogger.info('narration.disabled', {
-			model: resolvedModelRequest.model,
-			provider: options.requested_provider ?? 'unknown',
-			reason: 'unsupported',
-		});
-	}
-
 	const gatewaySpan = startLogSpan(turnLogger, 'gateway.generate', {
 		model: resolvedModelRequest.model,
 	});
-
-	const narrationStrategy = input.model_gateway.capabilities?.narration_strategy;
-	const enableStreaming = narrationStrategy !== 'unsupported';
-	let sequenceNo = options.get_next_runtime_sequence_no?.() ?? 1;
-
-	const onNarrationToken = enableStreaming
-		? (params: {
-				readonly isFirst: boolean;
-				readonly linkedToolCallId?: string;
-				readonly narrationId: string;
-				readonly textDelta: string;
-			}) => {
-				if (params.isFirst) {
-					const startedEvent = buildNarrationStartedEvent(
-						{
-							linked_tool_call_id: params.linkedToolCallId,
-							locale: 'tr',
-							narration_id: params.narrationId,
-							sequence_no: sequenceNo,
-							turn_index: input.turn_index ?? 1,
-						},
-						{
-							run_id: input.run_id,
-							sequence_no: sequenceNo,
-							trace_id: input.trace_id,
-						},
-					);
-					options.on_runtime_event?.(startedEvent);
-				}
-
-				const tokenEvent = buildNarrationTokenEvent(
-					{
-						linked_tool_call_id: params.linkedToolCallId,
-						locale: 'tr',
-						narration_id: params.narrationId,
-						sequence_no: sequenceNo,
-						text_delta: params.textDelta,
-						turn_index: input.turn_index ?? 1,
-					},
-					{
-						run_id: input.run_id,
-						sequence_no: sequenceNo,
-						trace_id: input.trace_id,
-					},
-				);
-				options.on_runtime_event?.(tokenEvent);
-				sequenceNo += 1;
-			}
-		: undefined;
 
 	try {
 		modelResponse = await generateModelResponseWithStreaming(
@@ -1230,6 +1333,15 @@ async function runPolicyAwareModelTurn(
 			input.model_gateway,
 			resolvedModelRequest,
 			options.requested_provider,
+			{
+				capabilities: input.model_gateway.capabilities,
+				getNextSequenceNo: options.get_next_runtime_sequence_no,
+				locale: 'tr',
+				onRuntimeEvent: options.on_runtime_event,
+				runId: input.run_id,
+				traceId: input.trace_id,
+				turnIndex: input.turn_index ?? 1,
+			},
 		);
 		gatewaySpan.end({
 			finish_reason: modelResponse.finish_reason,
@@ -1250,6 +1362,15 @@ async function runPolicyAwareModelTurn(
 						input.model_gateway,
 						request,
 						options.requested_provider,
+						{
+							capabilities: input.model_gateway.capabilities,
+							getNextSequenceNo: options.get_next_runtime_sequence_no,
+							locale: 'tr',
+							onRuntimeEvent: options.on_runtime_event,
+							runId: input.run_id,
+							traceId: input.trace_id,
+							turnIndex: input.turn_index ?? 1,
+						},
 					);
 				},
 			});

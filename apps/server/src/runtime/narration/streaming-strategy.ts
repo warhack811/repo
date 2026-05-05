@@ -100,6 +100,10 @@ export class PessimisticNarrationStreamingStrategy {
 		};
 	}
 
+	/**
+	 * Deferred: Reserved for future real-time tool flush. Currently tool_use flushes only at response.completed.
+	 * See work-narration.md for architecture and Phase 6+ timeline.
+	 */
 	onToolUseStart(
 		toolName: string,
 		toolCallId: string,
