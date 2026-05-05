@@ -10,6 +10,7 @@ export interface ClassifierInput {
 }
 
 export interface NarrationCandidate {
+	readonly content_part_index?: number;
 	readonly narration_eligible: boolean;
 	readonly sequence_no: number;
 	readonly text: string;
@@ -84,6 +85,7 @@ function createNarration(
 	}
 
 	return {
+		content_part_index: part.index,
 		...(linkedToolCallId !== undefined ? { linked_tool_call_id: linkedToolCallId } : {}),
 		narration_eligible: true,
 		sequence_no: sequenceNo,

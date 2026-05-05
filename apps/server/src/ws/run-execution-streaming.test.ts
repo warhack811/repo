@@ -1,11 +1,16 @@
-import type { ModelResponse, ModelStreamChunk, ProviderCapabilities } from '@runa/types';
+import type {
+	ModelContentPart,
+	ModelRequest,
+	ModelResponse,
+	ProviderCapabilities,
+	RuntimeEvent,
+	WebSocketServerBridgeMessage,
+} from '@runa/types';
 import { describe, expect, it } from 'vitest';
 
-import type { RuntimeEvent } from '@runa/types';
 import { createMockSocket } from '../test-utils/mock-socket.js';
 import { createMockStreamingGateway } from '../test-utils/mock-streaming-gateway.js';
 import { generateModelResponseWithStreaming } from '../ws/run-execution.js';
-import type { WebSocketConnection } from '../ws/transport.js';
 
 const supportedCapabilities: ProviderCapabilities = {
 	emits_reasoning_content: false,
@@ -21,7 +26,7 @@ const unsupportedCapabilities: ProviderCapabilities = {
 	tool_call_fallthrough_risk: 'none',
 };
 
-function createBaseRequest() {
+function createBaseRequest(): ModelRequest {
 	return {
 		messages: [],
 		model: 'mock-model',
@@ -30,202 +35,232 @@ function createBaseRequest() {
 	};
 }
 
+function createResponse(input: {
+	content: string;
+	ordered_content?: readonly ModelContentPart[];
+	tool_call_candidates?: ModelResponse['tool_call_candidates'];
+}): ModelResponse {
+	return {
+		message: {
+			content: input.content,
+			ordered_content: input.ordered_content,
+			role: 'assistant',
+		},
+		finish_reason: 'stop',
+		model: 'mock-model',
+		provider: 'mock',
+		tool_call_candidates: input.tool_call_candidates,
+	};
+}
+
+async function runStreaming(input: {
+	capabilities: ProviderCapabilities;
+	chunks: Parameters<typeof createMockStreamingGateway>[0]['chunks'];
+	finalResponse?: ModelResponse;
+}): Promise<{
+	runtimeEvents: RuntimeEvent[];
+	sentMessages: WebSocketServerBridgeMessage[];
+}> {
+	const mockGateway = createMockStreamingGateway({
+		capabilities: input.capabilities,
+		chunks: input.chunks,
+		finalResponse: input.finalResponse,
+	});
+	const { socket, sentMessages } = createMockSocket();
+	const runtimeEvents: RuntimeEvent[] = [];
+	let seqCounter = 0;
+
+	await generateModelResponseWithStreaming(
+		socket,
+		{ run_id: 'run_test', trace_id: 'trace_test' },
+		mockGateway,
+		createBaseRequest(),
+		undefined,
+		{
+			capabilities: mockGateway.capabilities,
+			getNextSequenceNo: () => ++seqCounter,
+			locale: 'tr',
+			onRuntimeEvent: (event) => runtimeEvents.push(event),
+			runId: 'run_test',
+			traceId: 'trace_test',
+			turnIndex: 1,
+		},
+	);
+
+	return { runtimeEvents, sentMessages };
+}
+
 describe('generateModelResponseWithStreaming', () => {
-	it('returns model response from streaming gateway with tool calls', async () => {
-		const mockResponse: ModelResponse = {
-			message: {
-				content: 'package.json kontrol ediyorum.',
-				ordered_content: [
-					{
-						kind: 'text',
-						text: 'package.json kontrol ediyorum.',
-						index: 0,
-						ordering_origin: 'wire_streaming',
-					},
-					{
-						kind: 'tool_use',
-						tool_call_id: 'call_001',
-						tool_name: 'file.read',
-						input: {},
-						index: 1,
-						ordering_origin: 'wire_streaming',
-					},
-				],
-				role: 'assistant',
-			},
-			finish_reason: 'stop',
-			model: 'mock-model',
-			provider: 'mock',
-			tool_call_candidates: [{ call_id: 'call_001', tool_name: 'file.read', tool_input: {} }],
-		};
-
-		const mockGateway = createMockStreamingGateway({
-			capabilities: supportedCapabilities,
-			chunks: [
-				{ type: 'text.delta', text_delta: 'package.json', content_part_index: 0 },
-				{ type: 'text.delta', text_delta: ' kontrol', content_part_index: 0 },
-				{ type: 'text.delta', text_delta: ' ediyorum.', content_part_index: 0 },
-				{ type: 'response.completed', response: mockResponse },
-			],
-			finalResponse: mockResponse,
-		});
-
-		const { socket } = createMockSocket();
-		const runtimeEvents: RuntimeEvent[] = [];
-		let seqCounter = 0;
-
-		const result = await generateModelResponseWithStreaming(
-			socket as unknown as WebSocketConnection,
-			{ run_id: 'run_test', trace_id: 'trace_test' },
-			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			createBaseRequest(),
-			undefined,
-			{
-				capabilities: mockGateway.capabilities,
-				locale: 'tr',
-				runId: 'run_test',
-				traceId: 'trace_test',
-				turnIndex: 1,
-				onRuntimeEvent: (e) => runtimeEvents.push(e),
-				getNextSequenceNo: () => ++seqCounter,
-			},
-		);
-
-		expect(result.message.content).toBe('package.json kontrol ediyorum.');
-		expect(result.finish_reason).toBe('stop');
-	});
-
-	it('falls back to text.delta for unsupported providers', async () => {
-		const mockResponse: ModelResponse = {
-			message: { content: 'merhaba dünya', role: 'assistant' },
-			finish_reason: 'stop',
-			model: 'mock',
-			provider: 'mock',
-		};
-
-		const mockGateway = createMockStreamingGateway({
-			capabilities: unsupportedCapabilities,
-			chunks: [
-				{ type: 'text.delta', text_delta: 'merhaba', content_part_index: 0 },
-				{ type: 'text.delta', text_delta: ' dünya', content_part_index: 0 },
-				{ type: 'response.completed', response: mockResponse },
-			],
-			finalResponse: mockResponse,
-		});
-
-		const { socket, sentMessages } = createMockSocket();
-		const runtimeEvents: RuntimeEvent[] = [];
-
-		await generateModelResponseWithStreaming(
-			socket as unknown as WebSocketConnection,
-			{ run_id: 'run_test', trace_id: 'trace_test' },
-			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			createBaseRequest(),
-			undefined,
-			{
-				capabilities: mockGateway.capabilities,
-				locale: 'tr',
-				onRuntimeEvent: (e) => runtimeEvents.push(e),
-				runId: 'run_test',
-				traceId: 'trace_test',
-				turnIndex: 1,
-			},
-		);
-
-		const narrationDelta = sentMessages.filter((m) => m.type === 'narration.delta');
-		const textDelta = sentMessages.filter((m) => m.type === 'text.delta');
-
-		expect(narrationDelta.length).toBe(0);
-		expect(textDelta.length).toBeGreaterThan(0);
-		expect(runtimeEvents.length).toBe(0);
-	});
-
-	it('handles response.completed with tool_call_candidates', async () => {
-		const mockResponse: ModelResponse = {
-			message: {
-				content: '',
-				ordered_content: [
-					{
-						kind: 'tool_use',
-						tool_call_id: 'call_001',
-						tool_name: 'shell.run',
-						input: {},
-						index: 0,
-						ordering_origin: 'wire_streaming',
-					},
-				],
-				role: 'assistant',
-			},
-			finish_reason: 'stop',
-			model: 'mock',
-			provider: 'mock',
-			tool_call_candidates: [{ call_id: 'call_001', tool_name: 'shell.run', tool_input: {} }],
-		};
-
-		const mockGateway = createMockStreamingGateway({
-			capabilities: supportedCapabilities,
-			chunks: [{ type: 'response.completed', response: mockResponse }],
-			finalResponse: mockResponse,
-		});
-
-		const { socket } = createMockSocket();
-		const runtimeEvents: RuntimeEvent[] = [];
-
-		const result = await generateModelResponseWithStreaming(
-			socket as unknown as WebSocketConnection,
-			{ run_id: 'run_test', trace_id: 'trace_test' },
-			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			createBaseRequest(),
-			undefined,
-			{
-				capabilities: mockGateway.capabilities,
-				locale: 'tr',
-				onRuntimeEvent: (e) => runtimeEvents.push(e),
-				runId: 'run_test',
-				traceId: 'trace_test',
-				turnIndex: 1,
-			},
-		);
-
-		expect(result).toBeDefined();
-		expect(result.finish_reason).toBe('stop');
-	});
-
-	it('accepts options parameter', async () => {
-		const mockGateway = createMockStreamingGateway({
-			capabilities: supportedCapabilities,
-			chunks: [
+	it('streams narration tokens then flushes at response.completed', async () => {
+		const mockResponse = createResponse({
+			content: 'package.json kontrol ediyorum.',
+			ordered_content: [
 				{
-					type: 'response.completed',
-					response: {
-						message: { content: 'ok', role: 'assistant' },
-						finish_reason: 'stop',
-						model: 'mock',
-						provider: 'mock',
-					},
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'wire_streaming',
+					text: 'package.json kontrol ediyorum.',
+				},
+				{
+					index: 1,
+					input: {},
+					kind: 'tool_use',
+					ordering_origin: 'wire_streaming',
+					tool_call_id: 'call_001',
+					tool_name: 'file.read',
 				},
 			],
+			tool_call_candidates: [{ call_id: 'call_001', tool_input: {}, tool_name: 'file.read' }],
 		});
 
-		const { socket } = createMockSocket();
-		const events: RuntimeEvent[] = [];
+		const { runtimeEvents, sentMessages } = await runStreaming({
+			capabilities: supportedCapabilities,
+			chunks: [
+				{ content_part_index: 0, text_delta: 'package.json', type: 'text.delta' },
+				{ content_part_index: 0, text_delta: ' kontrol', type: 'text.delta' },
+				{ content_part_index: 0, text_delta: ' ediyorum.', type: 'text.delta' },
+				{ response: mockResponse, type: 'response.completed' },
+			],
+			finalResponse: mockResponse,
+		});
 
-		const result = await generateModelResponseWithStreaming(
-			socket as unknown as WebSocketConnection,
-			{ run_id: 'run', trace_id: 'trace' },
-			mockGateway as unknown as Parameters<typeof generateModelResponseWithStreaming>[2],
-			createBaseRequest(),
-			undefined,
-			{
-				capabilities: supportedCapabilities,
-				locale: 'tr',
-				onRuntimeEvent: (e) => events.push(e),
-				runId: 'run',
-				traceId: 'trace',
-				turnIndex: 1,
-			},
+		const narrationDeltas = sentMessages.filter((message) => message.type === 'narration.delta');
+		const narrationCompleted = sentMessages.filter(
+			(message) => message.type === 'narration.completed',
+		);
+		const textDeltas = sentMessages.filter((message) => message.type === 'text.delta');
+		const startedEvents = runtimeEvents.filter((event) => event.event_type === 'narration.started');
+		const tokenEvents = runtimeEvents.filter((event) => event.event_type === 'narration.token');
+		const completedEvents = runtimeEvents.filter(
+			(event) => event.event_type === 'narration.completed',
 		);
 
-		expect(result.message.content).toBe('ok');
+		expect(narrationDeltas.length).toBe(3);
+		expect(narrationDeltas.map((message) => message.payload.text_delta).join('')).toBe(
+			'package.json kontrol ediyorum.',
+		);
+		expect(narrationCompleted.length).toBe(1);
+		expect(narrationCompleted[0]?.payload.full_text).toBe('package.json kontrol ediyorum.');
+		expect(narrationCompleted[0]?.payload.linked_tool_call_id).toBe('call_001');
+		expect(textDeltas.length).toBe(0);
+		expect(startedEvents.length).toBe(1);
+		expect(tokenEvents.length).toBe(3);
+		expect(completedEvents.length).toBe(1);
+		expect(tokenEvents.map((event) => event.payload.text_delta)).toEqual([
+			'package.json',
+			' kontrol',
+			' ediyorum.',
+		]);
+	});
+
+	it('emits text.delta and zero narration for unsupported providers', async () => {
+		const mockResponse = createResponse({ content: 'merhaba dunya' });
+
+		const { runtimeEvents, sentMessages } = await runStreaming({
+			capabilities: unsupportedCapabilities,
+			chunks: [
+				{ content_part_index: 0, text_delta: 'merhaba', type: 'text.delta' },
+				{ content_part_index: 0, text_delta: ' dunya', type: 'text.delta' },
+				{ response: mockResponse, type: 'response.completed' },
+			],
+			finalResponse: mockResponse,
+		});
+
+		expect(sentMessages.filter((message) => message.type === 'narration.delta').length).toBe(0);
+		expect(sentMessages.filter((message) => message.type === 'narration.completed').length).toBe(0);
+		expect(sentMessages.filter((message) => message.type === 'text.delta').length).toBe(2);
+		expect(runtimeEvents.filter((event) => event.event_type === 'narration.started').length).toBe(
+			0,
+		);
+		expect(runtimeEvents.filter((event) => event.event_type === 'narration.token').length).toBe(0);
+	});
+
+	it('handles multiple narration parts grouped by content_part_index', async () => {
+		const mockResponse = createResponse({
+			content: 'birinci kisimikinci kisim',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'wire_streaming',
+					text: 'birinci kisim',
+				},
+				{
+					index: 1,
+					input: {},
+					kind: 'tool_use',
+					ordering_origin: 'wire_streaming',
+					tool_call_id: 'call_001',
+					tool_name: 'file.list',
+				},
+				{
+					index: 2,
+					kind: 'text',
+					ordering_origin: 'wire_streaming',
+					text: 'ikinci kisim',
+				},
+				{
+					index: 3,
+					input: {},
+					kind: 'tool_use',
+					ordering_origin: 'wire_streaming',
+					tool_call_id: 'call_002',
+					tool_name: 'shell.exec',
+				},
+			],
+			tool_call_candidates: [
+				{ call_id: 'call_001', tool_input: {}, tool_name: 'file.list' },
+				{ call_id: 'call_002', tool_input: {}, tool_name: 'shell.exec' },
+			],
+		});
+
+		const { sentMessages } = await runStreaming({
+			capabilities: supportedCapabilities,
+			chunks: [
+				{ content_part_index: 0, text_delta: 'birinci', type: 'text.delta' },
+				{ content_part_index: 0, text_delta: ' kisim', type: 'text.delta' },
+				{ content_part_index: 2, text_delta: 'ikinci', type: 'text.delta' },
+				{ content_part_index: 2, text_delta: ' kisim', type: 'text.delta' },
+				{ response: mockResponse, type: 'response.completed' },
+			],
+			finalResponse: mockResponse,
+		});
+
+		const completed = sentMessages.filter((message) => message.type === 'narration.completed');
+
+		expect(sentMessages.filter((message) => message.type === 'narration.delta').length).toBe(4);
+		expect(completed.length).toBe(2);
+		expect(completed[0]?.payload.linked_tool_call_id).toBe('call_001');
+		expect(completed[0]?.payload.full_text).toBe('birinci kisim');
+		expect(completed[1]?.payload.linked_tool_call_id).toBe('call_002');
+		expect(completed[1]?.payload.full_text).toBe('ikinci kisim');
+		expect(sentMessages.filter((message) => message.type === 'text.delta').length).toBe(0);
+	});
+
+	it('emits no narration when stream has no text deltas', async () => {
+		const mockResponse = createResponse({
+			content: '',
+			ordered_content: [
+				{
+					index: 0,
+					input: {},
+					kind: 'tool_use',
+					ordering_origin: 'wire_streaming',
+					tool_call_id: 'call_001',
+					tool_name: 'file.list',
+				},
+			],
+			tool_call_candidates: [{ call_id: 'call_001', tool_input: {}, tool_name: 'file.list' }],
+		});
+
+		const { sentMessages } = await runStreaming({
+			capabilities: supportedCapabilities,
+			chunks: [{ response: mockResponse, type: 'response.completed' }],
+			finalResponse: mockResponse,
+		});
+
+		expect(sentMessages.filter((message) => message.type === 'narration.delta').length).toBe(0);
+		expect(sentMessages.filter((message) => message.type === 'narration.completed').length).toBe(0);
+		expect(sentMessages.filter((message) => message.type === 'text.delta').length).toBe(0);
 	});
 });

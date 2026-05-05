@@ -54,8 +54,8 @@ import {
 	continueAssistantResponseFastPath,
 } from '../runtime/continue-model-turn.js';
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
+import { classifyNarration } from '../runtime/narration/classify.js';
 import { buildNarrationEmissionEvents } from '../runtime/narration/emission.js';
-import { createPessimisticNarrationStrategy } from '../runtime/narration/streaming-strategy.js';
 import { orchestrateMemoryWrite } from '../runtime/orchestrate-memory-write.js';
 import { defaultProviderHealthStore } from '../runtime/provider-health.js';
 import { requestApproval } from '../runtime/request-approval.js';
@@ -731,6 +731,144 @@ function toToolCallOutcome(candidate: OrderedToolCallCandidate): ToolCallOutcome
 	};
 }
 
+interface BufferedStreamingTextDelta {
+	readonly content_part_index?: number;
+	readonly resolved_content_part_index: number;
+	readonly text_delta: string;
+}
+
+function getStreamingTurnIntent(modelResponse: ModelResponse): 'continuing' | 'done' {
+	return getOrderedToolCallCandidates(modelResponse).length > 0 ? 'continuing' : 'done';
+}
+
+function emitBufferedTextDeltas(
+	socket: WebSocketConnection,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	deltas: readonly BufferedStreamingTextDelta[],
+): void {
+	for (const delta of deltas) {
+		sendServerMessage(
+			socket,
+			createTextDeltaMessage(payload, delta.text_delta, delta.content_part_index),
+		);
+	}
+}
+
+function emitNarrationFromBufferedText(
+	socket: WebSocketConnection,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	input: Readonly<{
+		buffered_text_deltas: readonly BufferedStreamingTextDelta[];
+		capabilities: ProviderCapabilities;
+		get_next_sequence_no: () => number;
+		locale: 'en' | 'tr';
+		model_response: ModelResponse;
+		on_runtime_event?: (event: RuntimeEvent) => void;
+		run_id: string;
+		trace_id: string;
+		turn_index: number;
+	}>,
+): void {
+	const orderedContent = input.model_response.message.ordered_content ?? [];
+	const classifierOutput = classifyNarration({
+		narration_strategy: input.capabilities.narration_strategy,
+		ordered_content: orderedContent,
+		ordering_origin: orderedContent[0]?.ordering_origin ?? 'synthetic_non_streaming',
+		turn_intent: getStreamingTurnIntent(input.model_response),
+	});
+
+	if (classifierOutput.emission_decision !== 'emit') {
+		emitBufferedTextDeltas(socket, payload, input.buffered_text_deltas);
+		return;
+	}
+
+	const narrationPartIndexes = new Set<number>();
+
+	for (const candidate of classifierOutput.narrations) {
+		const contentPartIndex = candidate.content_part_index ?? candidate.sequence_no - 1;
+		narrationPartIndexes.add(contentPartIndex);
+
+		const deltas = input.buffered_text_deltas.filter(
+			(delta) => delta.resolved_content_part_index === contentPartIndex,
+		);
+		const tokenDeltas =
+			deltas.length > 0
+				? deltas
+				: [
+						{
+							content_part_index: contentPartIndex,
+							resolved_content_part_index: contentPartIndex,
+							text_delta: candidate.text,
+						},
+					];
+		const narrationId = `${input.run_id}:turn:${input.turn_index}:narration:${candidate.sequence_no}`;
+		const startedSequenceNo = input.get_next_sequence_no();
+		const startedEvent = buildNarrationStartedEvent(
+			{
+				linked_tool_call_id: candidate.linked_tool_call_id,
+				locale: input.locale,
+				narration_id: narrationId,
+				sequence_no: startedSequenceNo,
+				turn_index: input.turn_index,
+			},
+			{
+				run_id: input.run_id,
+				sequence_no: startedSequenceNo,
+				trace_id: input.trace_id,
+			},
+		);
+		input.on_runtime_event?.(startedEvent);
+
+		for (const delta of tokenDeltas) {
+			const tokenSequenceNo = input.get_next_sequence_no();
+			const tokenEvent = buildNarrationTokenEvent(
+				{
+					linked_tool_call_id: candidate.linked_tool_call_id,
+					locale: input.locale,
+					narration_id: narrationId,
+					sequence_no: tokenSequenceNo,
+					text_delta: delta.text_delta,
+					turn_index: input.turn_index,
+				},
+				{
+					run_id: input.run_id,
+					sequence_no: tokenSequenceNo,
+					trace_id: input.trace_id,
+				},
+			);
+			input.on_runtime_event?.(tokenEvent);
+			sendServerMessage(socket, createNarrationDeltaMessage(payload, tokenEvent));
+		}
+
+		const completedSequenceNo = input.get_next_sequence_no();
+		const completedEvent = buildNarrationCompletedEvent(
+			{
+				full_text: tokenDeltas.map((delta) => delta.text_delta).join(''),
+				linked_tool_call_id: candidate.linked_tool_call_id,
+				locale: input.locale,
+				narration_id: narrationId,
+				sequence_no: completedSequenceNo,
+				turn_index: input.turn_index,
+			},
+			{
+				run_id: input.run_id,
+				sequence_no: completedSequenceNo,
+				trace_id: input.trace_id,
+			},
+		);
+		input.on_runtime_event?.(completedEvent);
+		sendServerMessage(socket, createNarrationCompletedMessage(payload, completedEvent));
+	}
+
+	emitBufferedTextDeltas(
+		socket,
+		payload,
+		input.buffered_text_deltas.filter(
+			(delta) => !narrationPartIndexes.has(delta.resolved_content_part_index),
+		),
+	);
+}
+
 function mapRunToolFailureCodeToToolErrorCode(
 	failureCode:
 		| 'APPROVAL_REQUEST_FAILED'
@@ -1006,25 +1144,12 @@ export async function generateModelResponseWithStreaming(
 ): Promise<ModelResponse> {
 	let streamedResponse: ModelResponse | undefined;
 	let streamedTextLength = 0;
+	const bufferedTextDeltas: BufferedStreamingTextDelta[] = [];
 
 	const narrationStrategyKind = options?.capabilities?.narration_strategy ?? 'unsupported';
 	const enableNarration = narrationStrategyKind !== 'unsupported';
 
-	const strategy = enableNarration
-		? createPessimisticNarrationStrategy({
-				buffer_timeout_ms: 200,
-				locale: options?.locale ?? 'tr',
-				narration_strategy: narrationStrategyKind,
-				ordering_origin: 'wire_streaming',
-				run_id: options?.runId ?? payload.run_id,
-				trace_id: options?.traceId ?? payload.trace_id,
-				turn_index: options?.turnIndex ?? 1,
-		  })
-		: null;
-
 	const getSequenceNo = options?.getNextSequenceNo ?? (() => 1);
-	let nextSequenceNo = getSequenceNo();
-	const narrationIdMap = new Map<number, string>();
 
 	if (
 		requestedProvider !== undefined &&
@@ -1045,7 +1170,7 @@ export async function generateModelResponseWithStreaming(
 
 				streamedTextLength += chunk.text_delta.length;
 
-				if (!strategy) {
+				if (!enableNarration || options?.capabilities === undefined) {
 					sendServerMessage(
 						socket,
 						createTextDeltaMessage(payload, chunk.text_delta, chunk.content_part_index),
@@ -1053,136 +1178,29 @@ export async function generateModelResponseWithStreaming(
 					continue;
 				}
 
-				const decision = strategy.onTextDelta(
-					chunk.text_delta,
-					chunk.content_part_index,
-				);
-
-				if (decision.kind === 'buffered') {
-					continue;
-				}
-
-				if (decision.kind === 'narration_token') {
-					const contentPartIndex = chunk.content_part_index ?? 0;
-					const narrationId = narrationIdMap.get(contentPartIndex) ?? `${options?.runId ?? payload.run_id}:turn:${options?.turnIndex ?? 1}:narration:${contentPartIndex}`;
-					narrationIdMap.set(contentPartIndex, narrationId);
-
-					const isFirst = decision.text_delta.length === chunk.text_delta.length;
-
-					if (isFirst) {
-						const startedEvent = buildNarrationStartedEvent(
-							{
-								linked_tool_call_id: decision.linked_tool_call_id,
-								locale: options?.locale ?? 'tr',
-								narration_id: narrationId,
-								sequence_no: nextSequenceNo,
-								turn_index: options?.turnIndex ?? 1,
-							},
-							{
-								run_id: options?.runId ?? payload.run_id,
-								sequence_no: nextSequenceNo,
-								trace_id: options?.traceId ?? payload.trace_id,
-							},
-						);
-						options?.onRuntimeEvent?.(startedEvent);
-					}
-
-					nextSequenceNo += 1;
-
-					const tokenEvent = buildNarrationTokenEvent(
-						{
-							linked_tool_call_id: decision.linked_tool_call_id,
-							locale: options?.locale ?? 'tr',
-							narration_id: narrationId,
-							sequence_no: nextSequenceNo,
-							text_delta: chunk.text_delta,
-							turn_index: options?.turnIndex ?? 1,
-						},
-						{
-							run_id: options?.runId ?? payload.run_id,
-							sequence_no: nextSequenceNo,
-							trace_id: options?.traceId ?? payload.trace_id,
-						},
-					);
-					options?.onRuntimeEvent?.(tokenEvent);
-
-					nextSequenceNo += 1;
-
-					sendServerMessage(
-						socket,
-						createNarrationDeltaMessage(payload, tokenEvent),
-					);
-					continue;
-				}
-
-				if (decision.kind === 'final_answer_token') {
-					sendServerMessage(
-						socket,
-						createTextDeltaMessage(payload, chunk.text_delta, chunk.content_part_index),
-					);
-					continue;
-				}
-
+				bufferedTextDeltas.push({
+					content_part_index: chunk.content_part_index,
+					resolved_content_part_index: chunk.content_part_index ?? 0,
+					text_delta: chunk.text_delta,
+				});
 				continue;
 			}
 
 			if (chunk.type === 'response.completed') {
 				streamedResponse = chunk.response;
 
-				if (strategy && streamedResponse) {
-					const hasToolCalls = streamedResponse.tool_call_candidates !== undefined && streamedResponse.tool_call_candidates.length > 0;
-					const turnIntent = hasToolCalls ? 'continuing' : 'done';
-
-					const finishResult = strategy.finish({
-						narration_strategy: narrationStrategyKind,
-						ordering_origin: 'wire_streaming',
-						turn_intent: turnIntent,
+				if (enableNarration && options?.capabilities !== undefined) {
+					emitNarrationFromBufferedText(socket, payload, {
+						buffered_text_deltas: bufferedTextDeltas,
+						capabilities: options.capabilities,
+						get_next_sequence_no: getSequenceNo,
+						locale: options.locale ?? 'tr',
+						model_response: streamedResponse,
+						on_runtime_event: options.onRuntimeEvent,
+						run_id: options.runId ?? payload.run_id,
+						trace_id: options.traceId ?? payload.trace_id,
+						turn_index: options.turnIndex ?? 1,
 					});
-
-					if (finishResult.flush_text.length > 0) {
-						const narrationId = `${options?.runId ?? payload.run_id}:turn:${options?.turnIndex ?? 1}:narration:final`;
-
-						sendServerMessage(
-							socket,
-							createNarrationDeltaMessage(
-								payload,
-								buildNarrationTokenEvent(
-									{
-										locale: options?.locale ?? 'tr',
-										narration_id: narrationId,
-										sequence_no: nextSequenceNo,
-										text_delta: finishResult.flush_text,
-										turn_index: options?.turnIndex ?? 1,
-									},
-									{
-										run_id: options?.runId ?? payload.run_id,
-										sequence_no: nextSequenceNo,
-										trace_id: options?.traceId ?? payload.trace_id,
-									},
-								),
-							),
-						);
-
-						nextSequenceNo += 1;
-
-						const completedEvent = buildNarrationCompletedEvent(
-							{
-								full_text: finishResult.flush_text,
-								locale: options?.locale ?? 'tr',
-								narration_id: narrationId,
-								sequence_no: nextSequenceNo,
-								turn_index: options?.turnIndex ?? 1,
-							},
-							{
-								run_id: options?.runId ?? payload.run_id,
-								sequence_no: nextSequenceNo,
-								trace_id: options?.traceId ?? payload.trace_id,
-							},
-						);
-						options?.onRuntimeEvent?.(completedEvent);
-
-						sendServerMessage(socket, createNarrationCompletedMessage(payload, completedEvent));
-					}
 				}
 
 				return streamedResponse;
