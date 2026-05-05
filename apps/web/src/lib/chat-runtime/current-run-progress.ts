@@ -143,6 +143,17 @@ function hasTimelineRunFailure(items: readonly RunTimelineItem[]): boolean {
 	return items.some((item) => item.kind === 'run_failed');
 }
 
+function hasTimelineToolFailure(items: readonly RunTimelineItem[]): boolean {
+	return items.some((item) => item.kind === 'tool_failed');
+}
+
+function isStoppedByApprovalRejection(
+	approvalBlock: ApprovalBlock | null,
+	stepItems: readonly RunTimelineItem[],
+): boolean {
+	return approvalBlock?.payload.status === 'rejected' && !hasTimelineToolFailure(stepItems);
+}
+
 function hasModelProgress(
 	items: readonly RunTimelineItem[],
 	runSummary: RunTransportSummary | undefined,
@@ -211,7 +222,16 @@ function getRuntimeMetaItem(
 	runSummary: RunTransportSummary | undefined,
 	feedback: RunFeedbackState | null,
 	approvalBlock: ApprovalBlock | null,
+	stepItems: readonly RunTimelineItem[],
 ): RunStatusChipItem {
+	if (isStoppedByApprovalRejection(approvalBlock, stepItems)) {
+		return {
+			label: 'Runtime',
+			tone: 'warning',
+			value: 'Stopped',
+		};
+	}
+
 	if (runSummary?.final_state === 'FAILED' || feedback?.tone === 'error') {
 		return {
 			label: 'Runtime',
@@ -313,7 +333,7 @@ function createPhaseItems(
 			: input.approval_block?.payload.status === 'approved'
 				? { label: 'Approval', tone: 'success', value: 'Approved' }
 				: input.approval_block?.payload.status === 'rejected'
-					? { label: 'Approval', tone: 'error', value: 'Rejected' }
+					? { label: 'Approval', tone: 'warning', value: 'Rejected' }
 					: input.approval_block
 						? {
 								label: 'Approval',
@@ -325,7 +345,9 @@ function createPhaseItems(
 								value: humanizeApprovalStatus(input.approval_block.payload.status),
 							}
 						: { label: 'Approval', tone: 'neutral', value: 'Not needed' },
-		finalState === 'COMPLETED' || hasRunCompletion
+		isStoppedByApprovalRejection(input.approval_block, input.step_items)
+			? { label: 'Outcome', tone: 'warning', value: 'Stopped' }
+			: finalState === 'COMPLETED' || hasRunCompletion
 			? { label: 'Outcome', tone: 'success', value: 'Completed' }
 			: finalState === 'FAILED' || hasRunFailure || input.feedback?.tone === 'error'
 				? { label: 'Outcome', tone: 'error', value: 'Failed' }
@@ -339,6 +361,10 @@ function getStatusTone(
 	runSummary: RunTransportSummary | undefined,
 	stepItems: readonly RunTimelineItem[],
 ): RunStatusChipTone {
+	if (isStoppedByApprovalRejection(approvalBlock, stepItems)) {
+		return 'warning';
+	}
+
 	if (runSummary?.final_state === 'FAILED' || hasTimelineRunFailure(stepItems)) {
 		return 'error';
 	}
@@ -404,6 +430,14 @@ function getFallbackHeadline(runSummary: RunTransportSummary | undefined): strin
 	return uiCopy.run.currentRunProgress;
 }
 
+function getApprovalRejectedHeadline(): string {
+	return 'Onay reddedildi';
+}
+
+function getApprovalRejectedDetail(): string {
+	return 'Çalışma güven kararınla durduruldu. İstersen isteği değiştirip yeniden gönderebilirsin.';
+}
+
 function getFallbackDetail(
 	runSummary: RunTransportSummary | undefined,
 	approvalBlock: ApprovalBlock | null,
@@ -457,6 +491,7 @@ export function deriveCurrentRunProgressSurface(
 	const stepItems = timelineBlock?.payload.items ?? [];
 	const visibleStepItems = stepItems.slice(-5);
 	const blockCounts = countBlocksByType(input.current_presentation_surface);
+	const stoppedByApprovalRejection = isStoppedByApprovalRejection(approvalBlock, stepItems);
 	const correlationLabel = buildCorrelationLabel(
 		runId,
 		input.current_run_feedback?.trace_id ??
@@ -464,7 +499,7 @@ export function deriveCurrentRunProgressSurface(
 			input.run_summary?.trace_id,
 	);
 	const metaItems: RunStatusChipItem[] = [
-		getRuntimeMetaItem(input.run_summary, input.current_run_feedback, approvalBlock),
+		getRuntimeMetaItem(input.run_summary, input.current_run_feedback, approvalBlock, stepItems),
 	];
 
 	if (input.run_summary?.provider) {
@@ -502,9 +537,12 @@ export function deriveCurrentRunProgressSurface(
 	return {
 		approval_block: approvalBlock,
 		correlation_label: correlationLabel,
-		detail:
-			input.current_run_feedback?.detail ?? getFallbackDetail(input.run_summary, approvalBlock),
-		headline: input.current_run_feedback?.title ?? getFallbackHeadline(input.run_summary),
+		detail: stoppedByApprovalRejection
+			? getApprovalRejectedDetail()
+			: input.current_run_feedback?.detail ?? getFallbackDetail(input.run_summary, approvalBlock),
+		headline: stoppedByApprovalRejection
+			? getApprovalRejectedHeadline()
+			: input.current_run_feedback?.title ?? getFallbackHeadline(input.run_summary),
 		hidden_step_count: Math.max(stepItems.length - visibleStepItems.length, 0),
 		meta_items: metaItems,
 		phase_items: createPhaseItems({
