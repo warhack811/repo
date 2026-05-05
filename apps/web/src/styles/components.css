@@ -162,8 +162,8 @@ body::before {
 }
 
 .runa-shell-frame--chat {
-	max-width: 1080px;
-	width: min(100%, 1080px);
+	max-width: 1520px;
+	width: min(100%, 1520px);
 }
 
 .runa-page--app-shell {
@@ -630,7 +630,48 @@ pre {
 
 .runa-app-shell-main--chat {
 	margin: 0 auto;
-	width: min(100%, 1280px);
+	width: min(100%, 1520px);
+}
+
+@media (min-width: 769px) {
+	.runa-page--chat-product .runa-app-nav {
+		display: flex;
+		justify-content: center;
+	}
+
+	.runa-page--chat-product .runa-app-nav__items {
+		display: inline-flex;
+		width: auto;
+		max-width: 100%;
+		gap: 4px;
+		padding: 4px;
+		border: 1px solid rgba(148, 163, 184, 0.16);
+		border-radius: 18px;
+		background: rgba(4, 9, 19, 0.74);
+		backdrop-filter: blur(16px);
+	}
+
+	.runa-page--chat-product .runa-app-nav__item {
+		min-height: 40px;
+		padding: 8px 12px;
+		border: 0;
+		border-radius: 14px;
+		background: transparent;
+	}
+
+	.runa-page--chat-product .runa-app-nav__item--active {
+		background: rgba(248, 250, 252, 0.1);
+	}
+
+	.runa-page--chat-product .runa-app-nav__icon {
+		width: 24px;
+		height: 24px;
+		background: transparent;
+	}
+
+	.runa-page--chat-product .runa-app-nav__description {
+		display: none;
+	}
 }
 
 /* DENSITY REDUCTION: Chat header simplified to reduce card feeling.
@@ -726,7 +767,7 @@ pre {
 	align-items: start;
 	display: grid;
 	gap: 16px;
-	grid-template-columns: minmax(0, 1fr);
+	grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(250px, 304px);
 	margin-top: 10px;
 	min-width: 0;
 }
@@ -734,6 +775,7 @@ pre {
 .runa-chat-layout__sidebar,
 .runa-chat-layout__main,
 .runa-chat-layout__composer,
+.runa-chat-layout__insights,
 .runa-chat-layout__work {
 	min-width: 0;
 }
@@ -742,8 +784,8 @@ pre {
 	display: grid;
 	gap: 16px;
 	margin: 0 auto;
-	max-width: 920px;
-	width: min(100%, 920px);
+	max-width: none;
+	width: min(100%, 900px);
 }
 
 .runa-chat-layout__composer {
@@ -758,6 +800,22 @@ pre {
 
 .runa-chat-layout__sidebar .runa-conversation-sidebar {
 	top: calc(var(--safe-area-top) + 12px);
+}
+
+@media (min-width: 1025px) {
+	.runa-chat-layout__sidebar .runa-conversation-sidebar {
+		position: sticky;
+		top: calc(var(--safe-area-top) + 92px);
+		width: 100%;
+		max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 112px);
+		opacity: 1;
+		pointer-events: auto;
+		transform: none;
+	}
+
+	.runa-chat-layout__sidebar .runa-sidebar-backdrop {
+		display: none;
+	}
 }
 
 /* DENSITY REDUCTION: Simplified transcript-details to feel integrated, not a floating card.
@@ -1767,6 +1825,10 @@ pre {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
+	.runa-chat-layout__insights {
+		order: 3;
+	}
+
 	.runa-chat-layout__sidebar {
 		display: contents;
 	}
@@ -1843,6 +1905,10 @@ pre {
 		order: 2;
 		position: sticky;
 		bottom: calc(var(--safe-area-bottom) + 8px);
+	}
+
+	.runa-chat-layout__insights {
+		order: 3;
 	}
 
 	.runa-chat-layout__work {

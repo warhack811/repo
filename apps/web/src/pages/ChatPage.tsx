@@ -12,6 +12,7 @@ import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
+import { WorkInsightPanel } from '../components/chat/WorkInsightPanel.js';
 import { TransportErrorBanner } from '../lib/transport/errors.js';
 
 const RunTimelinePanel = lazy(() =>
@@ -297,6 +298,17 @@ export function ChatPage({
 							voiceStatusMessage={voiceStatusMessage}
 						/>
 					</>
+				}
+				insights={
+					<WorkInsightPanel
+						activeConversationTitle={conversations.activeConversationSummary?.title}
+						attachmentCount={attachments.length}
+						currentRunProgress={currentRunProgress}
+						desktopDevices={desktopDevices}
+						isDesktopDevicesLoading={isDesktopDevicesLoading}
+						presentationRunSurfaceCount={presentationRunSurfaces.length}
+						selectedDesktopTargetConnectionId={runtimeDesktopTargetConnectionId}
+					/>
 				}
 				isSidebarOpen={isConversationSidebarOpen}
 				messages={

@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 
 import { RunaDisclosure } from '../ui/RunaDisclosure.js';
 import styles from './ThinkingBlock.module.css';
+import { formatWorkStateLabel, formatWorkToolLabel } from './workNarrationFormat.js';
 
 export type ThinkingStepStatus = 'active' | 'completed' | 'failed' | 'paused' | 'pending';
 
@@ -35,12 +36,14 @@ function renderStep(step: ThinkingStep): ReactElement {
 		<div className={styles['step']} key={step.id}>
 			<div className={styles['stepTop']}>
 				<div className={styles['stepTitle']}>{step.label}</div>
-				<code className={styles['chip']}>{step.status}</code>
+				<code className={styles['chip']}>{formatWorkStateLabel(step.status)}</code>
 			</div>
 			{step.detail ? <div className={styles['detail']}>{step.detail}</div> : null}
 			{step.tool_name || step.duration_ms !== undefined ? (
 				<div className={styles['meta']}>
-					{step.tool_name ? <code className={styles['chip']}>{step.tool_name}</code> : null}
+					{step.tool_name ? (
+						<code className={styles['chip']}>{formatWorkToolLabel(step.tool_name)}</code>
+					) : null}
 					{step.duration_ms !== undefined ? (
 						<code className={styles['chip']}>{step.duration_ms}ms</code>
 					) : null}
