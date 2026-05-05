@@ -1,3 +1,4 @@
+import { AlertTriangle, CheckCircle2, TerminalSquare } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import {
@@ -8,6 +9,9 @@ import {
 	ToolOutput,
 } from '../../../components/ai-elements/tool.js';
 import type { RenderBlock } from '../../../ws-types.js';
+import { cx } from '../../ui/ui-utils.js';
+import { formatWorkDetail, formatWorkToolLabel } from '../workNarrationFormat.js';
+import styles from './BlockRenderer.module.css';
 
 type ToolResultBlockProps = Readonly<{
 	block: Extract<RenderBlock, { type: 'tool_result' }>;
@@ -49,6 +53,28 @@ function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{
 	};
 }
 
+function normalizeText(value: string | undefined): string | null {
+	const normalized = value?.trim();
+	return normalized && normalized.length > 0 ? normalized : null;
+}
+
+function isTechnicalPreview(value: string): boolean {
+	return (
+		value.startsWith('Object{') ||
+		value.startsWith('Array[') ||
+		value === '[object Object]' ||
+		value === '{}'
+	);
+}
+
+function getFriendlyOutputSummary(block: ToolResultBlockProps['block'], fallback: string): string {
+	const preview = normalizeText(block.payload.result_preview?.summary_text);
+	const summary = normalizeText(block.payload.summary);
+	const selected =
+		preview && !isTechnicalPreview(preview) ? preview : (summary ?? preview ?? fallback);
+	return formatWorkDetail(selected) ?? selected;
+}
+
 export function ToolResultBlock({
 	block,
 	isDeveloperMode = false,
@@ -56,22 +82,48 @@ export function ToolResultBlock({
 	const isSuccess = block.payload.status === 'success';
 	const friendlyCopy = getFriendlyResultCopy(block);
 	const output = block.payload.result_preview ?? friendlyCopy.summary;
+	const friendlySummary = getFriendlyOutputSummary(block, friendlyCopy.summary);
+	const friendlyToolLabel = formatWorkToolLabel(block.payload.tool_name);
 
 	if (!isDeveloperMode) {
 		return (
-			<Tool className={isSuccess ? 'runa-tool-result--success' : 'runa-tool-result--error'}>
-				<ToolHeader
-					state={isSuccess ? 'output-available' : 'output-error'}
-					title={friendlyCopy.title}
-					type={`tool-${block.payload.tool_name}`}
-				/>
-				<ToolContent>
-					<ToolOutput
-						errorText={isSuccess ? undefined : (block.payload.error_code ?? friendlyCopy.summary)}
-						output={output}
-					/>
-				</ToolContent>
-			</Tool>
+			<article
+				className={cx(
+					styles['toolResultCard'],
+					isSuccess ? styles['toolResultSuccess'] : styles['toolResultError'],
+				)}
+			>
+				<div className={styles['toolResultHeader']}>
+					<div className={styles['headerStack']}>
+						<span className={styles['eyebrow']}>İşlem sonucu</span>
+						<h3 className={styles['title']}>{friendlyCopy.title}</h3>
+					</div>
+					<span className={styles['toolResultStatus']}>
+						{isSuccess ? (
+							<CheckCircle2 aria-hidden="true" size={16} />
+						) : (
+							<AlertTriangle aria-hidden="true" size={16} />
+						)}
+						{isSuccess ? 'tamamlandı' : 'hata'}
+					</span>
+				</div>
+				<div className={styles['toolResultBody']}>
+					<p className={styles['summary']}>{friendlySummary}</p>
+					<div className={styles['chipRow']}>
+						<span className={styles['chip']}>
+							<TerminalSquare aria-hidden="true" size={14} />
+							{friendlyToolLabel}
+						</span>
+						{isSuccess ? null : (
+							<span className={styles['chip']}>
+								{block.payload.error_code
+									? `Hata kodu: ${block.payload.error_code}`
+									: 'Tekrar denenebilir'}
+							</span>
+						)}
+					</div>
+				</div>
+			</article>
 		);
 	}
 

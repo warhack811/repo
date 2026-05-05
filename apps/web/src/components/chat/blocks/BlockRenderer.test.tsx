@@ -301,6 +301,29 @@ describe('BlockRenderer', () => {
 		expect(BlockRenderer({ block: workspaceBlock })).toEqual(null);
 	});
 
+	it('renders tool results as user-facing work cards outside developer mode', () => {
+		const toolBlock = sampleBlocks.find((block) => block.type === 'tool_result');
+
+		if (!toolBlock) {
+			throw new Error('Expected tool result fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={toolBlock} />);
+		const developerMarkup = renderToStaticMarkup(
+			<BlockRenderer block={toolBlock} isDeveloperMode />,
+		);
+
+		expect(markup).toContain('İşlem sonucu');
+		expect(markup).toContain('Dosya okundu');
+		expect(markup).toContain('Dosya okuma tamamlandı.');
+		expect(markup).toContain('tamamlandı');
+		expect(markup).not.toContain('file.read');
+		expect(markup).not.toContain('call_renderer');
+		expect(markup).not.toContain('Object{ok}');
+		expect(developerMarkup).toContain('file.read');
+		expect(developerMarkup).toContain('call_renderer');
+	});
+
 	it('renders code copy affordance and collapsed diff affordance', () => {
 		const codeBlock = sampleBlocks.find((block) => block.type === 'code_block');
 		const diffBlock = sampleBlocks.find((block) => block.type === 'diff_block');
