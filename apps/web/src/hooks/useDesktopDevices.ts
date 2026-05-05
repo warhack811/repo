@@ -3,9 +3,12 @@ import { useEffect, useState } from 'react';
 
 import { fetchDesktopDevices } from '../lib/desktop-devices.js';
 
+const DESKTOP_DEVICES_REFRESH_INTERVAL_MS = 10_000;
+
 export type UseDesktopDevicesInput = Readonly<{
 	accessToken?: string | null;
 	onSelectedDeviceMissing: () => void;
+	refreshIntervalMs?: number;
 	selectedConnectionId: string | null;
 }>;
 
@@ -19,6 +22,7 @@ export type UseDesktopDevicesResult = Readonly<{
 export function useDesktopDevices({
 	accessToken,
 	onSelectedDeviceMissing,
+	refreshIntervalMs = DESKTOP_DEVICES_REFRESH_INTERVAL_MS,
 	selectedConnectionId,
 }: UseDesktopDevicesInput): UseDesktopDevicesResult {
 	const [desktopDeviceError, setDesktopDeviceError] = useState<string | null>(null);
@@ -40,36 +44,64 @@ export function useDesktopDevices({
 			return;
 		}
 
-		const abortController = new AbortController();
-		setIsDesktopDevicesLoading(true);
+		let isDisposed = false;
+		const abortControllers = new Set<AbortController>();
 
-		void fetchDesktopDevices({
-			bearerToken: normalizedAccessToken,
-			signal: abortController.signal,
-		})
-			.then((response) => {
+		async function loadDesktopDevices(showLoading: boolean): Promise<void> {
+			const abortController = new AbortController();
+			abortControllers.add(abortController);
+
+			if (showLoading) {
+				setIsDesktopDevicesLoading(true);
+			}
+
+			try {
+				const response = await fetchDesktopDevices({
+					bearerToken: normalizedAccessToken,
+					signal: abortController.signal,
+				});
+
+				if (isDisposed || abortController.signal.aborted) {
+					return;
+				}
+
 				setDesktopDevices(response.devices);
 				setDesktopDeviceError(null);
-			})
-			.catch((error: unknown) => {
-				if (abortController.signal.aborted) {
+			} catch (error: unknown) {
+				if (isDisposed || abortController.signal.aborted) {
 					return;
 				}
 
 				setDesktopDeviceError(
 					error instanceof Error ? error.message : 'Desktop availability could not be loaded.',
 				);
-			})
-			.finally(() => {
-				if (!abortController.signal.aborted) {
+			} finally {
+				abortControllers.delete(abortController);
+
+				if (!isDisposed && !abortController.signal.aborted && showLoading) {
 					setIsDesktopDevicesLoading(false);
 				}
-			});
+			}
+		}
+
+		void loadDesktopDevices(true);
+		const refreshInterval =
+			refreshIntervalMs > 0
+				? setInterval(() => {
+						void loadDesktopDevices(false);
+					}, refreshIntervalMs)
+				: undefined;
 
 		return () => {
-			abortController.abort();
+			isDisposed = true;
+			if (refreshInterval !== undefined) {
+				clearInterval(refreshInterval);
+			}
+			for (const abortController of abortControllers) {
+				abortController.abort();
+			}
 		};
-	}, [accessToken, desktopDevicesReloadKey]);
+	}, [accessToken, desktopDevicesReloadKey, refreshIntervalMs]);
 
 	useEffect(() => {
 		if (
