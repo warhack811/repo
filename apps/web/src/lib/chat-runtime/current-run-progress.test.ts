@@ -168,6 +168,11 @@ describe('deriveCurrentRunProgressSurface', () => {
 		expect(progress?.headline).toBe('Onay reddedildi');
 		expect(progress?.detail).toContain('güven kararınla durduruldu');
 		expect(progress?.status_tone).toBe('warning');
+		expect(progress?.meta_items.at(0)).toEqual({
+			label: 'Provider',
+			tone: 'info',
+			value: 'DeepSeek',
+		});
 		expect(progress?.phase_items.at(-1)).toEqual({
 			label: 'Outcome',
 			tone: 'warning',

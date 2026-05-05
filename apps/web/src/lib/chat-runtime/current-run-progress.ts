@@ -36,8 +36,16 @@ function humanizeProvider(provider: RunTransportSummary['provider']): string {
 	switch (provider) {
 		case 'claude':
 			return 'Claude';
+		case 'deepseek':
+			return 'DeepSeek';
+		case 'gemini':
+			return 'Gemini';
 		case 'groq':
 			return 'Groq';
+		case 'openai':
+			return 'OpenAI';
+		case 'sambanova':
+			return 'SambaNova';
 		default:
 			return 'Bilinmiyor';
 	}
@@ -67,9 +75,9 @@ function humanizeApprovalStatus(status: ApprovalBlock['payload']['status']): str
 		case 'approved':
 			return uiCopy.approval.approved;
 		case 'cancelled':
-			return 'Cancelled';
+			return 'İptal edildi';
 		case 'expired':
-			return 'Expired';
+			return 'Süresi doldu';
 		case 'pending':
 			return 'Bekliyor';
 		case 'rejected':
