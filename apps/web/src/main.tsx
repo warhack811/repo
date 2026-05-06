@@ -2,11 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App.js';
+import './lib/theme-bootstrap.js';
 import './index.css';
 import { startWebVitalsMonitoring } from './lib/monitoring/telemetry.js';
-import { applyTheme, getStoredTheme } from './lib/theme.js';
 
-applyTheme(getStoredTheme());
 startWebVitalsMonitoring();
 
 const container = document.getElementById('root');

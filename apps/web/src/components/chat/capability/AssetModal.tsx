@@ -2,9 +2,9 @@ import type { DialogHTMLAttributes, MouseEvent, ReactElement } from 'react';
 import { useId } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import { RunaButton } from '../../ui/RunaButton.js';
+import styles from './AssetModal.module.css';
 import { CapabilityResultActions } from './CapabilityResultActions.js';
 import type { AssetPreviewItem, CapabilityResultAction } from './types.js';
-import styles from './AssetModal.module.css';
 
 export type AssetModalProps = Readonly<
 	Omit<DialogHTMLAttributes<HTMLDialogElement>, 'children' | 'open'> & {
@@ -49,10 +49,7 @@ export function AssetModal({
 				{...modalProps}
 				aria-labelledby={titleId}
 				aria-modal="true"
-				className={[
-					['runa-asset-modal', className].filter(Boolean).join(' '),
-					styles['dialog'],
-				]
+				className={[['runa-asset-modal', className].filter(Boolean).join(' '), styles['dialog']]
 					.filter(Boolean)
 					.join(' ')}
 				open={true}
@@ -62,11 +59,7 @@ export function AssetModal({
 						<h2 id={titleId} className={styles['title']}>
 							{asset.title}
 						</h2>
-						{asset.subtitle ? (
-							<p className={styles['subtitle']}>
-								{asset.subtitle}
-							</p>
-						) : null}
+						{asset.subtitle ? <p className={styles['subtitle']}>{asset.subtitle}</p> : null}
 					</div>
 					<RunaButton onClick={onClose} type="button" variant="ghost">
 						Close
@@ -74,11 +67,7 @@ export function AssetModal({
 				</div>
 				<div className={styles['body']}>
 					{canRenderLargeImage(asset) ? (
-						<img
-							alt={asset.alt ?? ''}
-							src={asset.previewUrl}
-							className={styles['previewImage']}
-						/>
+						<img alt={asset.alt ?? ''} src={asset.previewUrl} className={styles['previewImage']} />
 					) : (
 						<div className={styles['previewPlaceholder']}>
 							{asset.previewUrl

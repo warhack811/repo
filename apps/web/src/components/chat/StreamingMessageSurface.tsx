@@ -23,10 +23,7 @@ export function StreamingMessageSurface({
 	}
 
 	return (
-		<div
-			className={`runa-streaming-message ${styles['root']}`}
-			aria-live="polite"
-		>
+		<div className={`runa-streaming-message ${styles['root']}`} aria-live="polite">
 			<span className="runa-chat-visually-hidden">Canlı yanıt</span>
 			<StreamdownMessage className="runa-streaming-response" mode="streaming">
 				{currentStreamingText}

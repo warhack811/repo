@@ -356,10 +356,10 @@ function createPhaseItems(
 		isStoppedByApprovalRejection(input.approval_block, input.step_items)
 			? { label: 'Outcome', tone: 'warning', value: 'Stopped' }
 			: finalState === 'COMPLETED' || hasRunCompletion
-			? { label: 'Outcome', tone: 'success', value: 'Completed' }
-			: finalState === 'FAILED' || hasRunFailure || input.feedback?.tone === 'error'
-				? { label: 'Outcome', tone: 'error', value: 'Failed' }
-				: { label: 'Outcome', tone: 'neutral', value: 'In progress' },
+				? { label: 'Outcome', tone: 'success', value: 'Completed' }
+				: finalState === 'FAILED' || hasRunFailure || input.feedback?.tone === 'error'
+					? { label: 'Outcome', tone: 'error', value: 'Failed' }
+					: { label: 'Outcome', tone: 'neutral', value: 'In progress' },
 	];
 }
 
@@ -547,10 +547,10 @@ export function deriveCurrentRunProgressSurface(
 		correlation_label: correlationLabel,
 		detail: stoppedByApprovalRejection
 			? getApprovalRejectedDetail()
-			: input.current_run_feedback?.detail ?? getFallbackDetail(input.run_summary, approvalBlock),
+			: (input.current_run_feedback?.detail ?? getFallbackDetail(input.run_summary, approvalBlock)),
 		headline: stoppedByApprovalRejection
 			? getApprovalRejectedHeadline()
-			: input.current_run_feedback?.title ?? getFallbackHeadline(input.run_summary),
+			: (input.current_run_feedback?.title ?? getFallbackHeadline(input.run_summary)),
 		hidden_step_count: Math.max(stepItems.length - visibleStepItems.length, 0),
 		meta_items: metaItems,
 		phase_items: createPhaseItems({

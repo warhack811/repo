@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaButton } from '../../ui/RunaButton.js';
-import type { CapabilityResultAction, CapabilityResultActionTone } from './types.js';
 import styles from './CapabilityResultActions.module.css';
+import type { CapabilityResultAction, CapabilityResultActionTone } from './types.js';
 
 export type CapabilityResultActionsProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {

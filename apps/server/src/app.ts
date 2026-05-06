@@ -36,7 +36,7 @@ import {
 	createSupabaseStorageAdapterFromEnvironment,
 } from './storage/supabase-storage-adapter.js';
 import { createLogger } from './utils/logger.js';
-import { registerWebSocketRoutes } from './ws/register-ws.js';
+import { type RegisterWebSocketRoutesOptions, registerWebSocketRoutes } from './ws/register-ws.js';
 
 export interface BuildServerOptions extends FastifyServerOptions {
 	readonly auth?: {
@@ -60,6 +60,10 @@ export interface BuildServerOptions extends FastifyServerOptions {
 			readonly path_prefix?: string;
 		};
 	};
+	readonly websocket?: Pick<
+		RegisterWebSocketRoutesOptions,
+		'desktopAgentBridgeRegistry' | 'runtime'
+	>;
 }
 
 const defaultAuthTokenVerifier: AuthTokenVerifier = async () => {
@@ -85,7 +89,14 @@ const serverLogger = createLogger({
 });
 
 export async function buildServer(options: BuildServerOptions = {}): Promise<FastifyInstance> {
-	const { auth, conversations, storage, subscription, ...fastifyOptions } = options;
+	const {
+		auth,
+		conversations,
+		storage,
+		subscription,
+		websocket: websocketOptions,
+		...fastifyOptions
+	} = options;
 	const server = Fastify(fastifyOptions);
 	const authEnvironment =
 		auth?.supabase?.environment ??
@@ -161,7 +172,9 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 		verify_token: resolvedVerifyToken,
 	});
 	await registerHealthRoutes(server);
-	await registerDesktopDeviceRoutes(server);
+	await registerDesktopDeviceRoutes(server, {
+		desktopAgentBridgeRegistry: websocketOptions?.desktopAgentBridgeRegistry,
+	});
 	await registerConversationRoutes(server, conversations);
 	await registerUploadRoutes(server, storageService);
 	serverLogger.info('server.storage_routes.registering');
@@ -171,8 +184,10 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 	serverLogger.info('server.websocket_routes.registering');
 	await registerWebSocketRoutes(server, {
 		allow_service_principal: subscription?.websocket?.allow_service_principal,
+		desktopAgentBridgeRegistry: websocketOptions?.desktopAgentBridgeRegistry,
 		feature_gate: subscription?.websocket?.feature_gate,
 		resolve_subscription_context: subscription?.resolve_context,
+		runtime: websocketOptions?.runtime,
 		storage_service: storageService,
 		create_storage_download_url: storageDownloadUrlSigner.create,
 		verify_token: resolvedVerifyToken,

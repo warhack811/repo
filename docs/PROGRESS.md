@@ -13,6 +13,15 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-DEEPSEEK-LIVE-USER-JOURNEY-QA - 6 Mayis 2026
+
+- Kapsam: DeepSeek `.env` credential'i ile 5 kullanici tipi ve 15 gercek hayat senaryosu canli provider testine eklendi. Kullanicilar: ogrenci, yazilimci, arastirmaci, kucuk isletme sahibi ve urun yoneticisi. Test `ModelGateway` uzerinden gider, provider fallback'i kapatir, her senaryoda provider/model/finish_reason/public content/latency kaniti uretir.
+- Bulgu/fix: Mevcut DeepSeek live smoke reasoning stage'i `max_output_tokens=128` ile `deepseek-v4-pro` reasoning_content icinde butceyi tuketip public cevabi bos veya kesik birakabiliyordu; smoke artik daha dar cikti kontrati, 768 token butcesi ve `finish_reason=stop` + public content validasyonu istiyor. Tool schema stage'i de artik sadece "provider dondu" demiyor; tool-call veya gorunur assistant content yoksa fail ediyor.
+- Browser QA fixleri: Playwright/Vite E2E hatti port-parametrik hale getirildi (`RUNA_E2E_SERVER_PORT`, `RUNA_E2E_WEB_PORT`, `RUNA_E2E_STRICT_SERVER`) ve Vite proxy hardcoded `3000` yerine ayni server portunu izliyor. Boylece baska checkout'tan calisan eski dev server'a baglanip sahte gorsel/protocol sonucu uretme riski kapatildi. E2E stub'i conversation list/blocks kontratina hizalandi; stale UI selector'lari guncel chat-native metinlerle duzeltildi.
+- Canli kanit: `pnpm.cmd --filter @runa/server run test:deepseek-user-journey-live-suite` PASS; `DEEPSEEK_USER_JOURNEY_LIVE_SUMMARY result="PASS"`, `persona_count=5`, `scenario_count=15`, API key source `.env`, fast/reasoning model source `.env`, `DATABASE_URL` source `.env.local`.
+- Tekrar dogrulama: `pnpm.cmd --filter @runa/server run test:deepseek-live-smoke` PASS; reasoning stage `finish_reason="stop"`, tool schema stage `tool_name="file.read"`. `RUNA_E2E_SERVER_PORT=4310 RUNA_E2E_WEB_PORT=4311 RUNA_E2E_STRICT_SERVER=1 pnpm.cmd exec playwright test e2e/chat-e2e.spec.ts e2e/approval-modes-capabilities-e2e.spec.ts --config playwright.config.ts --workers=1` PASS (`14` Chromium test). `pnpm.cmd --filter @runa/server typecheck` PASS; `pnpm.cmd --filter @runa/web typecheck` PASS; scoped Biome check for touched smoke/E2E/config files PASS.
+- Kalan not: Full `pnpm.cmd lint` bu kosuda task-disindaki mevcut format driftleri nedeniyle RED kaldi (`.local/spikes`, `.codex-temp`, Groq/terminal/desktop smoke scriptleri). Bu task kapsaminda degisen dosyalar scoped Biome'da yesil.
+
 ### TASK-TERMINAL-SESSION-LIFECYCLE-03 - 6 Mayis 2026
 
 - Kapsam: Backend-only terminal session lifecycle eklendi. `shell.session.start`, `shell.session.read` ve `shell.session.stop` built-in registry uzerinden kullanilabilir hale geldi; frontend, desktop-agent, auth ve provider runtime kontratlari degistirilmedi.
@@ -34,10 +43,69 @@
 - Kapsam: Terminal/runtime env otoritesi netlestirildi; provider smoke ve persistence proof ozetleri artik shell env, `.env.local`, `.env`, `.env.compose`, `client_config`, `default` ve `missing` kaynaklarini ayrica raporluyor.
 - Uygulama: TypeScript resolver `apps/server/src/config/env-authority.ts` ve script helper `apps/server/scripts/env-authority.mjs` eklendi. Precedence `client_config > process_env > .env.local > .env > .env.compose > default > missing`; secret degerleri yalnizca maskeli preview ile cikiyor.
 - Gateway: `resolveGatewayConfigAuthority` eklendi; mevcut `resolveGatewayConfig` davranisi ve public kontrat bozulmadi. Client config ve env-backed provider key kaynaklari testlerle ayrildi.
-- Smoke/proof: DeepSeek ve Groq live smoke summaryleri API key, model ve `DATABASE_URL` otoritesini maskeli ve kanitlanabilir sekilde raporluyor. Persistence/approval proof scriptleri file-backed env yuklemesini ayni authority ozetiyle yapiyor.
+- Smoke/proof: DeepSeek ve Groq live smoke summary'leri API key, model ve `DATABASE_URL` otoritesini maskeli ve kanitlanabilir sekilde raporluyor. Persistence/approval proof scriptleri file-backed env yuklemesini ayni authority ozetiyle yapiyor.
 - Canli kanit: DeepSeek live smoke PASS; API key `.env`, DeepSeek model secimleri `.env`, `DATABASE_URL` `.env.local` olarak raporlandi. Groq live smoke PASS; API key `.env`, model `default`, `DATABASE_URL` `.env.local` olarak raporlandi.
 - Dogrulama: `node --check apps/server/scripts/deepseek-live-smoke.mjs` PASS; `node --check apps/server/scripts/groq-live-smoke.mjs` PASS; `pnpm.cmd --filter @runa/server run test:deepseek-live-smoke` PASS; `pnpm.cmd --filter @runa/server run test:groq-live-smoke` PASS; `pnpm.cmd --filter @runa/server typecheck` PASS; `pnpm.cmd --filter @runa/server test -- env-authority gateway model-router` PASS (`164` test); `pnpm.cmd --filter @runa/server lint` PASS (`358` dosya).
-- Not: Server lint baselineini kapatmak icin `apps/server/src/presentation/map-run-timeline.ts` uzerinde format-only duzeltme de dahil edildi. PowerShell profile kaynakli `\` gurultusu komut exit codelarini bozmadigi icin urun hatasi olarak ele alinmadi.
+- Not: Server lint baseline'i kapatmak icin `apps/server/src/presentation/map-run-timeline.ts` uzerinde format-only duzeltme de dahil edildi. PowerShell profile kaynakli `\` gurultusu komut exit code'larini bozmadigi icin urun hatasi olarak ele alinmadi.
+
+### TASK-DESKTOP-INSTALLER-RELEASE-HARDENING-OFFLINE-CONFIG-UX - 6 Mayis 2026
+
+- Kapsam: Server live olmadan desktop companion'in Windows installer/unpacked release riskleri, offline/config failure state'i, token/log redaction ve artifact metadata gate'i kapatildi.
+- Uygulama: Electron shell explicit web URL yoksa veya invalid URL verilirse internal renderer fallback ile guvenli hata state'i gosteriyor; external web load fail olursa Chromium error/blank screen yerine internal fallback'e donuyor. Desktop web URL yuklenmeden once sensitive auth query/hash parametreleri temizleniyor.
+- Distribution gate: `smoke:distribution` eklendi. Gate unpacked exe, setup artifact, appId/productName/asar/protocol/shortcut metadata, ASAR, Electron fuses, packaged app start/shutdown, missing/invalid/unreachable config UX ve sentinel token redaction alanlarini `DESKTOP_DISTRIBUTION_SMOKE_SUMMARY` ile raporluyor.
+- Guvenlik: Logger query/hash token parametrelerini bearer/JWT redaction'a ek olarak redakte ediyor; smoke sentinel access/refresh/query token'in stdout/stderr/main.log/summary icinde ham gorunmedigini dogruluyor.
+- Dogrulama: `typecheck`, `typecheck:electron`, `typecheck:renderer`, `test`, `build`, `build:renderer`, `dist:win`, `smoke:packaged`, `smoke:distribution` ve `git diff --check` PASS. `smoke:distribution` icindeki nested packaged proof da PASS.
+- Kalan risk: Authenticode code signing mevcut lokal artifact'ta `unsigned_blocker`; production update provider/channel henuz configured olmadigi icin `auto_update_status="disabled_until_release_channel"`. Silent installer install/uninstall sistem geneline dokunmadan test edilmedi; live auth gate server canli olunca tekrar kosulmali.
+
+### TASK-STAGING-PRODUCTION-AUTH-DESKTOP-COMPANION-LIVE-E2E-GATE - 6 Mayis 2026
+
+- Kapsam: Local packaged desktop companion proof sonrasi acik kalan gercek staging/production auth, live domain, desktop device visibility ve remote target protection kaniti icin ayri bir release gate eklendi.
+- Uygulama: `@runa/desktop-agent` icine `smoke:live-auth` script'i eklendi. Script staging/live server URL, web URL, iki farkli kullanici access token'i ve explicit provider smoke key'i ister; token degerlerini summary/log icine yazmaz.
+- Kanit modeli: Canli `/auth/context`, `/desktop/devices`, `/ws/desktop-agent` ve `/ws` hatlarini kullanir; primary user altinda synthetic desktop bridge presence olusturur, secondary user cihaz gizliligini kontrol eder, invalid token'in presence yaratmadigini dogrular ve provider key varsa approval-gated `desktop.screenshot` ile cross-account target rejection proof kosar.
+- Guvenlik: Localhost canli kanit olarak varsayilan kabul edilmez; sadece `RUNA_DESKTOP_COMPANION_E2E_ALLOW_LOCALHOST=1` ile acilir. Missing credential veya provider key durumunda PASS maskelenmez, `DESKTOP_COMPANION_LIVE_AUTH_E2E_SUMMARY status="blocked"` ve eksik alanlar raporlanir.
+- Mevcut lokal dogrulama: `node --check apps/desktop-agent/scripts/live-auth-companion-smoke.mjs` PASS. `pnpm.cmd --filter @runa/desktop-agent smoke:live-auth` lokal shell'de staging/live credential olmadigi icin beklenen sekilde BLOCKED/exit 1; eksikler `primaryAccessToken`, `secondaryAccessToken`, `serverUrl`, `webUrl` ve explicit provider smoke key'i.
+- Kalan risk: Gercek staging/production PASS icin dedicated iki test kullanicisi, live web/server URL'leri ve `RUNA_DESKTOP_COMPANION_E2E_PROVIDER_API_KEY` ile bu gate tekrar kosulmali.
+
+### TASK-PRODUCTION-AUTH-DESKTOP-COMPANION-LIFECYCLE-E2E - 6 Mayis 2026
+
+- Kapsam: Signed-in desktop companion proof'u production-style session handoff, invalid/expired token, logout/session clear, restart-after-logout ve cross-account target protection risklerine genisletildi.
+- Uygulama: Web companion bind token-only/session restore yollarinda `submitSession` kacirmiyor ve auth clear path'i desktop sign-out cagiriyor. Desktop expired stored session refresh token yoksa storage'i temizleyip bridge baslatmiyor. Smoke-only sign-out control seam'i packaged lifecycle kaniti icin eklendi.
+- Server hardening: WebSocket handshake explicit header/query token'i pre-authenticated request context'e tercih ediyor; pending approval replay desktop target connection id'yi persistence/presentation hattinda koruyor. Cross-user desktop target denemesi registry seviyesinde `desktop_agent_target_unavailable` ile testlendi.
+- Packaged proof: `smoke:packaged` PASS; summary `production_style_session_bound=true`, `invalid_token_did_not_create_presence=true`, `logout_or_session_clear_removed_device=true`, `restart_after_logout_stayed_offline=true`, `cross_account_device_hidden=true`, `cross_account_target_rejected=true`, `approval_target_label_present=true`, `screenshot_succeeded=true`, `final_message_type="run.finished"`, `run_status="completed"` raporladi.
+- Dogrulama: Server typecheck/test, desktop typecheck/electron/renderer/test/build/build:renderer/smoke, web typecheck/test/build PASS. Ek olarak `dist:win` PASS ile paketli exe guncellendi; PowerShell profile kaynakli `\` gurultusu command exit code'unu bozmadi.
+- Kalan risk: Gercek staging/production Supabase OAuth redirect allowlist ve canli domain uzerinde manuel/browser E2E henuz bu local packaged smoke disinda ayrica kosulmali.
+
+### TASK-WEB-LINT-BASELINE-CLOSURE - 6 Mayis 2026
+
+- Kapsam: `@runa/web` Biome lint baseline kapatildi. Runtime/server/desktop kontratlari degistirilmedi; task disi mevcut dirty desktop/server dosyalarina dokunulmadi.
+- Uygulama: Biome safe write ile web format/import-order diagnostikleri duzeltildi. `apps/web/src/components/chat/*.module.css` ve `apps/web/src/components/chat/capability/*.module.css` icindeki placeholder bos class bloklari token tabanli, dar ve gercek layout stilleriyle kapatildi.
+- Capability preview/chat yuzeyleri: modal, asset preview, before/after, task queue, progress list, screenshot, desktop target selector, workspace header ve conversation sidebar class export'lari korunarak bos bloklar kaldirildi; yeni dependency, yeni public API veya runtime davranis degisikligi eklenmedi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web lint` PASS (`276` dosya)
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd run style:check` PASS
+  - `pnpm.cmd run manifesto:check` PASS
+  - `pnpm.cmd --filter @runa/web exec vitest run src/pages/VisualDiscipline.test.tsx --config ./vitest.config.mjs --configLoader native` PASS (`4` test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - Full `apps/web/src` source inventory scan PASS: `#hex`, `rgba(`, `hsla(` sayisi `0`
+  - `git diff --check` PASS
+
+### TASK-WEB-THEME-SELECTOR-VISUAL-QA - 6 Mayis 2026
+
+- Kapsam: Mevcut token/brand theme altyapisi urun ayarina donusturuldu. Yeni tema sistemi, yeni dependency, backend preference sistemi, auth/WS/runtime/provider degisikligi veya token mimarisi rewrite'i eklenmedi.
+- Uygulama: `apps/web/src/lib/theme.ts` icinde `teal`, `indigo`, `graphite`, `plum`, `amber` tek typed brand-theme constant/union haline getirildi; gecersiz localStorage degeri guvenli sekilde `teal` default'una donuyor. `theme-bootstrap.ts` ile ilk yuklemede root `data-theme` ve `data-brand-theme` CSS yuklenmeden once uygulanir hale getirildi.
+- UI: `App.tsx` root state sahibi oldu ve tema secimi `AuthenticatedApp` uzerinden `SettingsPage`'e controlled props olarak tasindi. Settings > Tercihler icinde mevcut Sistem/Koyu/Acik gorunum kontrolu korundu; ayri Renk kontrolu swatch'li, secili durumu belirgin ve mobil grid-safe olarak eklendi.
+- Browser QA: `pnpm dev` ile lokal server/web hatti calistirildi; Playwright ile login, chat, settings, capability preview, history/devices ve 390px mobile settings yuzeyleri kontrol edildi. Tum yuzeylerde horizontal overflow temizdi, console error yoktu, invalid stored theme ilk yuklemede `teal` oldu, bes brand theme Settings uzerinden root `data-brand-theme` olarak uygulandi ve refresh sonrasi `amber` korunarak persistence dogrulandi. QA screenshot'lari `.codex-temp/theme-qa-*.png` altinda.
+- Ek test: `apps/web/src/lib/theme.test.ts` marka tema fallback, store ve root apply davranisini kapsiyor; `SettingsPage.test.tsx` brand theme seciminin controlled callback ile aktigini dogruluyor.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web lint` PASS (`278` dosya)
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd run style:check` PASS (`violations=0`)
+  - `pnpm.cmd run manifesto:check` PASS (`violations=0`)
+  - `pnpm.cmd --filter @runa/web exec vitest run src/pages/VisualDiscipline.test.tsx --config ./vitest.config.mjs --configLoader native` PASS (`4` test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - Source scan PASS: `Get-ChildItem -Path apps\web\src -Recurse -File | Select-String -Pattern '#[0-9A-Fa-f]{3,8}|rgba\(|hsla\(' | Measure-Object` sonucu `Count: 0`
+- Kapsam disi birakilanlar: `apps/server/**`, `apps/desktop-agent/**`, `packages/types/**`, auth/WS/runtime/provider/persistence katmanlari, backend-backed user preferences, yeni dependency ve mevcut token sistemini yeniden yazma.
 
 ### TASK-WORK-NARRATION-PHASE-6 - 5 Mayis 2026
 
@@ -49,6 +117,22 @@
 - DeepSeek smoke: Shell env'de `DEEPSEEK_API_KEY` yoksa canli smoke skip edilir; API key/log guvenligi geregi key degeri yazilmaz.
 - Docs: `docs/architecture/work-narration.md`, `docs/architecture/reasoning-persistence.md` ve `docs/architecture/work-narration-release-checklist.md` guncellendi.
 - Faz commit zinciri: `6a8548f`, `2ca55f5`, `79e741f`, `5a8add3`, `2f7ebcf`, `899e941`, `f41c4c4`, `fae6ce6`; Faz 6 final commit hash'i commit olustuktan sonra raporda verilir.
+
+### TASK-WEB-THEME-TOKENIZATION-FOUNDATION - 5 Mayis 2026
+
+- Kapsam: Web UI renk zemini profesyonel tema/token mimarisine tasindi. `apps/web/src/styles/tokens.css` varsayilan teal marka temasi ve `teal`, `indigo`, `graphite`, `plum`, `amber` brand theme varyantlariyla genisletildi; yuzey, border, metin, aksiyon ve status rolleri semantik CSS token'lari olarak ayrildi.
+- Uygulama: `apps/web/src/styles`, `apps/web/src/components/ui`, `apps/web/src/components/chat`, `apps/web/src/pages/CapabilityPreviewPage.*`, `apps/web/src/assets/runa-logo.svg`, `apps/web/src/components/ai-elements/shimmer.tsx` ve `apps/web/src/lib/design-tokens.ts` altindaki hard-coded `#hex`, `rgba(...)`, `hsla(...)`, dekoratif gradient ve 600 uzeri font-weight kullanimi token temelli hale getirildi. `components.css` icindeki eski duplicate `:root` renk override'i kaldirildi.
+- UI davranisi: Renk dili tek flat aksan, semantic status renkleri ve trust-first chat yuzeyiyle uyumlu hale getirildi. `PersistedTranscript` kullanici balonu icin CSS Modules `:global(...)` selector'u standard module class + `data-role` selector'una tasindi.
+- Dogrulama:
+  - `pnpm.cmd run style:check` PASS
+  - `pnpm.cmd run manifesto:check` PASS
+  - `pnpm.cmd --filter @runa/web exec vitest run src/pages/VisualDiscipline.test.tsx --config ./vitest.config.mjs --configLoader native` PASS (`4` test) onceki tokenization turunda; son TSX/SVG residual cleanup sonrasi tekrar kosu escalation tarafinda kullanim limitiyle reddedildi.
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - Scoped `pnpm.cmd exec biome check ...` PASS (`44` dosya)
+  - Full `apps/web/src` source inventory scan PASS: `#hex`, `rgba(`, `hsla(` sayisi `0`
+  - CSS inventory scan PASS: `#hex`, `rgba(`, `hsla(`, `linear-gradient/radial-gradient background`, `font-weight > 600` sayisi `0`
+  - `git diff --check` PASS
+- Kalan baseline: Full `pnpm.cmd --filter @runa/web lint` RED (`138` mevcut hata); gorunen ornekler `ChatShell.module.css`, `ChatWorkspaceHeader.module.css` ve `ConversationSidebar.module.css` icindeki task disi empty block/format diagnostikleri. Bu task kapsamindaki degisen dosyalar scoped Biome'da yesil.
 
 ### TASK-WORK-NARRATION-PHASE-2B - 5 Mayis 2026
 
@@ -365,7 +449,6 @@
   - `pnpm.cmd test:e2e` PASS (`13` Playwright test; build dahil). Not: Playwright kapanisinda Vite WS proxy `write ECONNABORTED` / `read ECONNRESET` loglari goruldu, fakat komut exit code `0` ve test sonucu PASS.
 - Kapsam disi birakilanlar: `apps/server/**`, `apps/desktop-agent/**`, `packages/**`, auth/WS/provider/runtime/approval persistence contracts ve yeni dependency yok. Secondary surfaces 7.5'e, operator/developer hard isolation 7.4'e, full visual discipline pass 7.6'ya, copy voice pass 7.7'ye birakildi.
 - Worktree notu: gorev basinda checkout zaten genis dirty durumdaydi; task disi silinmis/tasinmis kok dokumanlar, mevcut web UI degisiklikleri, screenshot baseline drift'leri ve `apps/server/approval-e2e-temp.txt` silinmesi geri alinmadi. Bu tur yalniz approval/chat web yuzeyi, task-local visual smoke ve `docs/PROGRESS.md` kaydi icin gerekli dosyalara dokundu.
-
 ### TASK-TERMINAL-RUNTIME-INTEGRATION-04 - Shell Session Runtime Integration - 6 Mayis 2026
 
 - `shell.session.start/read/stop` sonuclari runtime tarafinda okunabilir hale getirildi: `runtime_feedback`, `next_action_hint`, stdout/stderr byte durumlari ve redaction-aware `metadata.shell_session` eklendi. Secret redaction kontrati korunuyor; raw secret veya yeni provider/auth yuzeyi eklenmedi.

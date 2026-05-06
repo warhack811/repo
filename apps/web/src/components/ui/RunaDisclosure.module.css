@@ -1,5 +1,5 @@
 .disclosure {
-	border: 1px solid rgba(148, 163, 184, 0.14);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-soft);
 	display: grid;
 	overflow: hidden;
@@ -7,7 +7,7 @@
 
 .trigger {
 	align-items: center;
-	background: rgba(15, 23, 42, 0.36);
+	background: var(--surface-panel-muted);
 	border: 0;
 	color: hsl(var(--color-text));
 	cursor: pointer;
@@ -22,7 +22,7 @@
 }
 
 .content {
-	border-top: 1px solid rgba(148, 163, 184, 0.12);
+	border-top: 1px solid var(--border-hairline);
 	color: hsl(var(--color-text-muted));
 	display: grid;
 	gap: var(--space-3);

@@ -18,10 +18,7 @@ export function ChatWorkspaceHeader({ statusLabel }: ChatWorkspaceHeaderProps): 
 			<div className={styles['content']}>
 				<div className={styles['titleGroup']}>
 					<div className="runa-eyebrow">{uiCopy.appShell.chatEyebrow.toUpperCase()}</div>
-					<h1
-						id="chat-workspace-heading"
-						className={styles['title']}
-					>
+					<h1 id="chat-workspace-heading" className={styles['title']}>
 						{uiCopy.chat.heroTitle}
 					</h1>
 					<p

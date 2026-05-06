@@ -60,23 +60,14 @@ export function ToolActivityIndicator({ items }: ToolActivityIndicatorProps): Re
 	}
 
 	return (
-		<div
-			aria-label="Araç etkinliği"
-			className={styles['container']}
-		>
+		<div aria-label="Araç etkinliği" className={styles['container']}>
 			{items.map((item) => (
-				<div
-					key={item.id}
-					title={item.detail}
-					className={styles['item']}
-				>
+				<div key={item.id} title={item.detail} className={styles['item']}>
 					<span className={styles['statusLabel']}>
 						{getStatusIcon(item.status)}
 						<span>{getStatusLabel(item.status)}</span>
 					</span>
-					<span className={styles['toolLabel']}>
-						{item.label}
-					</span>
+					<span className={styles['toolLabel']}>{item.label}</span>
 				</div>
 			))}
 		</div>

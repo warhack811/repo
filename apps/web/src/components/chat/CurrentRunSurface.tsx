@@ -3,9 +3,9 @@ import type { ReactElement, ReactNode } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
 import { RunaSkeleton } from '../ui/RunaSkeleton.js';
+import styles from './CurrentRunSurface.module.css';
 import { PersistedTranscript } from './PersistedTranscript.js';
 import { StreamingMessageSurface } from './StreamingMessageSurface.js';
-import styles from './CurrentRunSurface.module.css';
 
 type CurrentRunSurfaceProps = Readonly<{
 	activeConversationId: string | null;
@@ -51,10 +51,7 @@ export function CurrentRunSurface({
 			aria-busy={isBusy}
 		>
 			<div className={`runa-chat-visually-hidden ${styles['visuallyHidden']}`}>
-				<h2
-					id="chat-conversation-surface-heading"
-					className={styles['title']}
-				>
+				<h2 id="chat-conversation-surface-heading" className={styles['title']}>
 					Sohbet
 				</h2>
 			</div>

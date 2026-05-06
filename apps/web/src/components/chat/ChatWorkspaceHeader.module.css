@@ -1,17 +1,41 @@
 .root {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-width: 0;
 }
 
 .content {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
 }
 
 .titleGroup {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
 }
 
 .title {
+	margin: 0;
+	color: hsl(var(--color-text));
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.2;
+	overflow-wrap: anywhere;
 }
 
 .description {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	font-size: 14px;
+	line-height: 1.45;
+	overflow-wrap: anywhere;
 }
 
 .status {
+	flex: 0 0 auto;
 }

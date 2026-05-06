@@ -57,14 +57,8 @@ export function DesktopTargetSelector({
 
 			{devices.length > 0 ? (
 				<div className={styles['buttons']}>
-					<button
-						type="button"
-						onClick={onClear}
-						className={styles['clearButton']}
-					>
-						<span className={styles['clearLabel']}>
-							Masaüstü seçilmedi
-						</span>
+					<button type="button" onClick={onClear} className={styles['clearButton']}>
+						<span className={styles['clearLabel']}>Masaüstü seçilmedi</span>
 						<span className={styles['clearDescription']}>
 							Sonraki istek normal sohbet akışında ilerlesin.
 						</span>
@@ -77,9 +71,7 @@ export function DesktopTargetSelector({
 								onClick={() => onSelect(device.connection_id)}
 								className={styles['deviceButton']}
 							>
-								<span className={styles['deviceLabel']}>
-									{getDeviceLabel(device)}
-								</span>
+								<span className={styles['deviceLabel']}>{getDeviceLabel(device)}</span>
 								<span className={styles['deviceMeta']}>
 									{formatConnectedAt(device.connected_at)}
 								</span>
@@ -89,11 +81,7 @@ export function DesktopTargetSelector({
 				</div>
 			) : null}
 
-			{isLoading ? (
-				<div className={styles['loading']}>
-					Açık bir masaüstü aranıyor...
-				</div>
-			) : null}
+			{isLoading ? <div className={styles['loading']}>Açık bir masaüstü aranıyor...</div> : null}
 
 			{errorMessage ? (
 				<div className={styles['errorRow']}>
@@ -101,11 +89,7 @@ export function DesktopTargetSelector({
 						Masaüstü listesi şimdilik yenilenemedi. Sohbet etkilenmeden devam eder.
 					</div>
 					{typeof onRetry === 'function' ? (
-						<button
-							type="button"
-							onClick={onRetry}
-							className={styles['retryButton']}
-						>
+						<button type="button" onClick={onRetry} className={styles['retryButton']}>
 							Tekrar dene
 						</button>
 					) : null}

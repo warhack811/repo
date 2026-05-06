@@ -1,8 +1,8 @@
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import { RunaCard } from '../../ui/RunaCard.js';
-import type { AssetPreviewKind } from './types.js';
 import styles from './AssetPreviewCard.module.css';
+import type { AssetPreviewKind } from './types.js';
 
 export type AssetPreviewCardProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'> & {
@@ -46,21 +46,14 @@ export function AssetPreviewCard({
 	return (
 		<RunaCard
 			{...cardProps}
-			className={[
-				['runa-asset-preview-card', className].filter(Boolean).join(' '),
-				styles['root'],
-			]
+			className={[['runa-asset-preview-card', className].filter(Boolean).join(' '), styles['root']]
 				.filter(Boolean)
 				.join(' ')}
 			tone="subtle"
 		>
 			<div className={styles['previewArea']}>
 				{shouldRenderImage(kind, previewUrl) ? (
-					<img
-						alt={alt ?? ''}
-						src={previewUrl}
-						className={styles['previewImage']}
-					/>
+					<img alt={alt ?? ''} src={previewUrl} className={styles['previewImage']} />
 				) : (
 					<div className={styles['previewPlaceholder']}>
 						{previewUrl ? 'Preview is available for this asset.' : 'Preview will appear here.'}
@@ -70,19 +63,11 @@ export function AssetPreviewCard({
 			<div className={styles['infoRow']}>
 				<div className={styles['titleGroup']}>
 					<div className={styles['title']}>{title}</div>
-					{subtitle ? (
-						<div className={styles['subtitle']}>
-							{subtitle}
-						</div>
-					) : null}
+					{subtitle ? <div className={styles['subtitle']}>{subtitle}</div> : null}
 				</div>
 				<RunaBadge tone="neutral">{formatKindLabel(kind)}</RunaBadge>
 			</div>
-			{metaSlot ? (
-				<div className={styles['metaSlot']}>
-					{metaSlot}
-				</div>
-			) : null}
+			{metaSlot ? <div className={styles['metaSlot']}>{metaSlot}</div> : null}
 			{actionSlot}
 			{children}
 		</RunaCard>

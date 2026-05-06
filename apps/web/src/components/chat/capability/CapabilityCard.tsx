@@ -1,8 +1,8 @@
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { useId } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
-import type { CapabilityStatus, CapabilityTone } from './types.js';
 import styles from './CapabilityCard.module.css';
+import type { CapabilityStatus, CapabilityTone } from './types.js';
 
 export type CapabilityCardElement = 'article' | 'div';
 
@@ -75,31 +75,18 @@ export function CapabilityCard({
 		>
 			<div className={styles['header']}>
 				<div className={styles['titleGroup']}>
-					{eyebrow ? (
-						<div className={styles['eyebrow']}>
-							{eyebrow}
-						</div>
-					) : null}
+					{eyebrow ? <div className={styles['eyebrow']}>{eyebrow}</div> : null}
 					{title ? (
-						<h3
-							id={headingId}
-							className={styles['title']}
-						>
+						<h3 id={headingId} className={styles['title']}>
 							{title}
 						</h3>
 					) : null}
-					{description ? (
-						<p className={styles['description']}>
-							{description}
-						</p>
-					) : null}
+					{description ? <p className={styles['description']}>{description}</p> : null}
 				</div>
 				{headerAside ??
 					(status ? <RunaBadge tone={statusTone}>{formatStatusLabel(status)}</RunaBadge> : null)}
 			</div>
-			{children ? (
-				<div className={styles['content']}>{children}</div>
-			) : null}
+			{children ? <div className={styles['content']}>{children}</div> : null}
 		</CardElement>
 	);
 }
