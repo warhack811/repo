@@ -164,10 +164,22 @@ describe('applyGuardrails', () => {
 		});
 	});
 
-	it('does not apply EN deliberation list in TR locale', () => {
+	it('rejects EN deliberation in TR locale', () => {
 		expect(applyGuardrails('maybe I should inspect package.json', context)).toEqual({
-			accepted: true,
-			sanitized: 'maybe I should inspect package.json',
+			accepted: false,
+			reject_reason: 'deliberation',
+		});
+	});
+
+	it('rejects TR deliberation in EN locale', () => {
+		expect(
+			applyGuardrails('Sanırım package.json dosyasini kontrol etmem gerekiyor', {
+				locale: 'en',
+				previous_narrations: [],
+			}),
+		).toEqual({
+			accepted: false,
+			reject_reason: 'deliberation',
 		});
 	});
 });
