@@ -13,6 +13,14 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-TERMINAL-SESSION-LIFECYCLE-03 - 6 Mayis 2026
+
+- Kapsam: Backend-only terminal session lifecycle eklendi. `shell.session.start`, `shell.session.read` ve `shell.session.stop` built-in registry uzerinden kullanilabilir hale geldi; frontend, desktop-agent, auth ve provider runtime kontratlari degistirilmedi.
+- Uygulama: Session manager in-memory ve bounded calisiyor; aktif session limiti, max runtime timeout, idle timeout, final-session TTL cleanup, process-exit cleanup ve son ciktiyi koruyan stdout/stderr ring buffer davranisi eklendi. Stop yolu idempotent ve Windows'ta force kill icin process-tree hedefli `taskkill` kullaniyor.
+- Guvenlik: Start/read yuzeyleri mevcut `shell-output-redaction.ts` helper'ini kullaniyor; command/args/stdout/stderr ToolResult alanlari raw secret/token/env degeri dondurmuyor. Riskli komutlar `shell.exec` policy cizgisini reuse ederek session baslamadan bloklaniyor.
+- Dogrulama: `pnpm.cmd --filter @runa/server test -- shell-session shell-exec shell-output-redaction registry` PASS (`41` test); `pnpm.cmd --filter @runa/server test -- run-tool-step ingest-tool-result map-tool-result` PASS (`21` test); `pnpm.cmd --filter @runa/server typecheck` PASS; `pnpm.cmd --filter @runa/server lint` PASS (`362` dosya); `pnpm.cmd --filter @runa/server run test:deepseek-live-smoke` PASS.
+- Kalan not: Opsiyonel `pnpm.cmd --filter @runa/server run test:groq-live-smoke` bu kosuda provider HTTP 400 ile FAIL verdi; assistant/tool-schema stage'leri PASS olsa da browser-shape roundtrip basarisiz oldugu icin Groq sonucu yesil sayilmadi. PowerShell profile kaynakli `\` gurultusu command exit code'larini bozmadigi icin urun hatasi olarak ele alinmadi.
+
 ### TASK-TERMINAL-OUTPUT-REDACTION-02 - 6 Mayis 2026
 
 - Kapsam: `shell.exec` ToolResult yuzeyi icin terminal kaynakli secret/env/token sizintisi kapatildi. Stdout, stderr, timeout details ve echo edilen command/args alani ToolResult olusmadan once redaction'dan geciyor.
