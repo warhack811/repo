@@ -11,6 +11,7 @@ import {
 	shell as electronShell,
 	ipcMain,
 	nativeImage,
+	powerMonitor,
 	protocol,
 	safeStorage,
 	session,
@@ -379,6 +380,60 @@ async function submitSession(payload: unknown): Promise<DesktopAgentLaunchContro
 	return controller.getViewModel();
 }
 
+function publishCurrentViewModel(): void {
+	mainWindow?.webContents.send('shell:viewModel', getViewModel());
+	mainWindow?.webContents.send(
+		'shell:stateChanged',
+		projectViewModelToLegacyShellState(getViewModel()),
+	);
+}
+
+async function reconnectControllerAfterPowerResume(): Promise<void> {
+	if (!controller) {
+		logBoot('power:resume-reconnect-skipped', {
+			reason: 'missing_controller',
+		});
+		return;
+	}
+
+	const snapshot = controller.getSnapshot();
+	logBoot('power:resume-detected', {
+		session_present: snapshot.session_present,
+		status: snapshot.status,
+	});
+
+	if (!snapshot.session_present) {
+		logBoot('power:resume-reconnect-skipped', {
+			reason: 'missing_session',
+			status: snapshot.status,
+		});
+		return;
+	}
+
+	try {
+		await controller.stop();
+		await controller.start();
+		publishCurrentViewModel();
+		logBoot('power:resume-reconnect-completed', {
+			status: controller.getSnapshot().status,
+		});
+	} catch (error: unknown) {
+		logBoot('power:resume-reconnect-failed', {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+}
+
+function registerPowerMonitorHandlers(): void {
+	powerMonitor.on('suspend', () => {
+		logBoot('power:suspend-detected');
+	});
+	powerMonitor.on('resume', () => {
+		void reconnectControllerAfterPowerResume();
+	});
+	logBoot('power:monitor-watch-enabled');
+}
+
 function createControllerFromEnvironment(): void {
 	try {
 		const config = readDesktopAgentBootstrapConfigFromEnvironment();
@@ -626,6 +681,7 @@ if (!gotSingleInstanceLock) {
 			});
 			registerRendererProtocol();
 			registerIpcHandlers();
+			registerPowerMonitorHandlers();
 			createTray();
 			createMainWindow();
 			createControllerFromEnvironment();

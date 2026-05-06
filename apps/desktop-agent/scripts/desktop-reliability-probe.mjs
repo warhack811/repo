@@ -112,6 +112,10 @@ async function main() {
 	const powerMonitorHookPresent =
 		electronMainSource.includes('powerMonitor') &&
 		(electronMainSource.includes("'resume'") || electronMainSource.includes('"resume"'));
+	const resumeReconnectHookPresent =
+		powerMonitorHookPresent &&
+		electronMainSource.includes('reconnectControllerAfterPowerResume') &&
+		electronMainSource.includes('power:resume-reconnect-completed');
 	const jitterBackoffPresent =
 		sessionSource.includes('Math.random') ||
 		sessionSource.includes('jitter') ||
@@ -131,7 +135,7 @@ async function main() {
 		boundedJitterBackoffTestPresent;
 	const measuredGaps = [
 		...(jitterBackoffPresent ? [] : ['reconnect_backoff_is_fixed_no_jitter']),
-		...(powerMonitorHookPresent ? [] : ['sleep_wake_resume_hook_missing']),
+		...(resumeReconnectHookPresent ? [] : ['sleep_wake_resume_hook_missing']),
 		...(packagedServerRestartProbePresent ? [] : ['packaged_server_restart_probe_missing']),
 	];
 	const summary = {
@@ -147,6 +151,7 @@ async function main() {
 		phase1_status: measuredGaps.length === 0 ? 'measured_no_gaps' : 'measured_with_gaps',
 		power_monitor_resume_hook_present: powerMonitorHookPresent,
 		reconnect_backoff_has_jitter: jitterBackoffPresent,
+		resume_reconnect_hook_present: resumeReconnectHookPresent,
 		retry_until_server_back_test_present: retryUntilServerBackTestPresent,
 		runtime_reconnect_unit_coverage: runtimeReconnectUnitCoverage,
 		session_unit_test_exit_code: vitestResult.code,
