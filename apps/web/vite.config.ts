@@ -8,22 +8,9 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { type LogErrorOptions, type Plugin, defineConfig } from 'vite';
 
 const shouldAnalyzeBundle = process.env['ANALYZE'] === 'true';
-const resolvedServerPort = Number.parseInt(
-	process.env['RUNA_SERVER_PORT'] ?? process.env['PORT'] ?? '3000',
-	10,
-);
-const serverPort =
-	Number.isInteger(resolvedServerPort) && resolvedServerPort > 0 && resolvedServerPort <= 65_535
-		? resolvedServerPort
-		: 3000;
-const serverTarget = `http://127.0.0.1:${serverPort}`;
-const websocketTarget = `ws://127.0.0.1:${serverPort}`;
-const workspaceRoot = resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
-const normalizedWorkspaceRoot = workspaceRoot.replaceAll('\\', '/').toLowerCase();
-const workspaceAttestationId = createHash('sha256')
-	.update(normalizedWorkspaceRoot)
-	.digest('hex')
-	.slice(0, 16);
+const devServerPort = Number(process.env['RUNA_E2E_SERVER_PORT'] ?? '3000');
+const devHttpTarget = `http://127.0.0.1:${devServerPort}`;
+const devWsTarget = `ws://127.0.0.1:${devServerPort}`;
 
 interface NodeError extends Error {
 	readonly code?: string;
@@ -61,7 +48,7 @@ function suppressExpectedWsProxyShutdownNoise(): Plugin {
 	};
 }
 
-// Dev proxy follows RUNA_SERVER_PORT/PORT so web and backend target the same instance.
+// Dev proxy follows the Fastify server port used by local dev and isolated E2E runs.
 export default defineConfig({
 	define: {
 		'import.meta.env.VITE_RUNA_WORKSPACE_ID': JSON.stringify(workspaceAttestationId),
@@ -90,23 +77,23 @@ export default defineConfig({
 		port: 5173,
 		proxy: {
 			'/auth': {
-				target: serverTarget,
+				target: devHttpTarget,
 			},
 			'/ws': {
-				target: websocketTarget,
+				target: devWsTarget,
 				ws: true,
 			},
 			'/conversations': {
-				target: serverTarget,
+				target: devHttpTarget,
 			},
 			'/desktop': {
-				target: serverTarget,
+				target: devHttpTarget,
 			},
 			'/upload': {
-				target: serverTarget,
+				target: devHttpTarget,
 			},
 			'/storage': {
-				target: serverTarget,
+				target: devHttpTarget,
 			},
 		},
 	},

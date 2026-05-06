@@ -8,8 +8,7 @@ import { ProfileCard } from '../components/auth/ProfileCard.js';
 import { RunaSkeleton } from '../components/ui/RunaSkeleton.js';
 import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
-import { type Theme, applyTheme, getStoredTheme, storeTheme } from '../lib/theme.js';
-import { fetchWorkspaceDirectories } from '../lib/workspace-directories.js';
+import { BRAND_THEME_OPTIONS, type BrandTheme, type Theme } from '../lib/theme.js';
 import { uiCopy } from '../localization/copy.js';
 import '../styles/routes/desktop-device-presence-migration.css';
 import '../styles/routes/settings-migration.css';
@@ -20,8 +19,12 @@ type SettingsPageProps = Readonly<{
 	accessToken: string | null;
 	authContext: AuthContext;
 	authError: string | null;
+	brandTheme: BrandTheme;
 	isAuthPending: boolean;
+	onBrandThemeChange: (theme: BrandTheme) => void;
 	onLogout: () => Promise<void>;
+	onThemeChange: (theme: Theme) => void;
+	theme: Theme;
 }>;
 
 function parseSettingsTab(value: string | null): SettingsTab {
@@ -163,23 +166,18 @@ export function SettingsPage({
 	accessToken,
 	authContext,
 	authError,
+	brandTheme,
 	isAuthPending,
+	onBrandThemeChange,
 	onLogout,
+	onThemeChange,
+	theme,
 }: SettingsPageProps): ReactElement {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [activeTab, setActiveTab] = useState<SettingsTab>(() =>
 		parseSettingsTab(searchParams.get('tab')),
 	);
 	const [approvalMode, setApprovalMode] = useState<ApprovalMode>(() => readStoredApprovalMode());
-	const [workspaceDirectories, setWorkspaceDirectories] = useState<
-		readonly { readonly depth: number; readonly name: string; readonly relative_path: string }[]
-	>([]);
-	const [workspaceDirectoryError, setWorkspaceDirectoryError] = useState<string | null>(null);
-	const [workspaceDirectoryLoading, setWorkspaceDirectoryLoading] = useState(false);
-	const [workspaceDirectoriesReloadNonce, setWorkspaceDirectoriesReloadNonce] = useState(0);
-	const [workspaceRootName, setWorkspaceRootName] = useState('Workspace');
-	const [workingDirectory, setWorkingDirectory] = useState(() => readStoredWorkingDirectory());
-	const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 	const {
 		autoReadEnabled,
 		cancel: cancelTextToSpeech,
@@ -193,91 +191,6 @@ export function SettingsPage({
 	useEffect(() => {
 		setActiveTab(parseSettingsTab(searchParams.get('tab')));
 	}, [searchParams]);
-
-	useEffect(() => {
-		const reloadNonce = workspaceDirectoriesReloadNonce;
-		void reloadNonce;
-		const normalizedAccessToken = accessToken?.trim() ?? '';
-
-		if (normalizedAccessToken.length === 0) {
-			setWorkspaceDirectories([]);
-			setWorkspaceDirectoryError(null);
-			setWorkspaceDirectoryLoading(false);
-			return;
-		}
-
-		const abortController = new AbortController();
-		let isDisposed = false;
-
-		async function loadWorkspaceDirectories(): Promise<void> {
-			setWorkspaceDirectoryLoading(true);
-			setWorkspaceDirectoryError(null);
-
-			try {
-				const response = await fetchWorkspaceDirectories({
-					bearerToken: normalizedAccessToken,
-					signal: abortController.signal,
-				});
-
-				if (isDisposed || abortController.signal.aborted) {
-					return;
-				}
-
-				setWorkspaceDirectories(response.directories);
-				setWorkspaceRootName(response.workspace_root_name);
-			} catch (error: unknown) {
-				if (isDisposed || abortController.signal.aborted) {
-					return;
-				}
-
-				setWorkspaceDirectoryError(
-					error instanceof Error
-						? error.message
-						: 'Çalışma klasörleri yüklenemedi. Bağlantıyı kontrol edip tekrar dene.',
-				);
-			} finally {
-				if (!isDisposed && !abortController.signal.aborted) {
-					setWorkspaceDirectoryLoading(false);
-				}
-			}
-		}
-
-		void loadWorkspaceDirectories();
-
-		return () => {
-			isDisposed = true;
-			abortController.abort();
-		};
-	}, [accessToken, workspaceDirectoriesReloadNonce]);
-
-	useEffect(() => {
-		const normalizedAccessToken = accessToken?.trim() ?? '';
-
-		if (normalizedAccessToken.length === 0 || workspaceDirectoryLoading) {
-			return;
-		}
-
-		if (workingDirectory.trim().length === 0) {
-			return;
-		}
-
-		const existsInDirectoryList = workspaceDirectories.some(
-			(directory) => directory.relative_path === workingDirectory,
-		);
-
-		if (existsInDirectoryList) {
-			return;
-		}
-
-		setWorkingDirectory('');
-		storeWorkingDirectory('');
-	}, [accessToken, workingDirectory, workspaceDirectories, workspaceDirectoryLoading]);
-
-	function selectTheme(nextTheme: Theme): void {
-		setTheme(nextTheme);
-		storeTheme(nextTheme);
-		applyTheme(nextTheme);
-	}
 
 	function selectApprovalMode(nextMode: ApprovalMode): void {
 		setApprovalMode(nextMode);
@@ -349,18 +262,48 @@ export function SettingsPage({
 						<div className="runa-settings-panel-grid">
 							<section className="runa-settings-preference-section" aria-labelledby="theme-heading">
 								<h2 id="theme-heading">Tema</h2>
-								<div className="runa-settings-segmented" role="radiogroup" aria-label="Tema">
-									{themeOptions.map((option) => (
-										<button
-											key={option.value}
-											type="button"
-											aria-pressed={theme === option.value}
-											className={theme === option.value ? 'is-active' : undefined}
-											onClick={() => selectTheme(option.value)}
-										>
-											{option.label}
-										</button>
-									))}
+								<div className="runa-settings-theme-groups">
+									<div className="runa-settings-theme-group">
+										<div className="runa-settings-theme-label">Görünüm</div>
+										<div className="runa-settings-segmented" role="radiogroup" aria-label="Görünüm">
+											{themeOptions.map((option) => (
+												<button
+													key={option.value}
+													type="button"
+													aria-pressed={theme === option.value}
+													className={theme === option.value ? 'is-active' : undefined}
+													onClick={() => onThemeChange(option.value)}
+												>
+													{option.label}
+												</button>
+											))}
+										</div>
+									</div>
+									<div className="runa-settings-theme-group">
+										<div className="runa-settings-theme-label">Renk</div>
+										<div className="runa-settings-brand-themes" role="radiogroup" aria-label="Renk">
+											{BRAND_THEME_OPTIONS.map((option) => (
+												<button
+													key={option.value}
+													type="button"
+													aria-pressed={brandTheme === option.value}
+													className={
+														brandTheme === option.value
+															? 'runa-settings-brand-theme is-active'
+															: 'runa-settings-brand-theme'
+													}
+													onClick={() => onBrandThemeChange(option.value)}
+												>
+													<span
+														className="runa-settings-brand-theme__swatch"
+														data-brand-theme={option.value}
+														aria-hidden="true"
+													/>
+													<span>{option.label}</span>
+												</button>
+											))}
+										</div>
+									</div>
 								</div>
 							</section>
 							<section

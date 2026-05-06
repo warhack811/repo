@@ -20,34 +20,6 @@ type RunProgressPanelProps = Readonly<{
 	progress: CurrentRunProgressSurface;
 }>;
 
-function getPanelAccent(tone: CurrentRunProgressSurface['status_tone']): Readonly<{
-	readonly borderColor: string;
-	readonly eyebrowColor: string;
-}> {
-	switch (tone) {
-		case 'success':
-			return {
-				borderColor: 'rgba(34, 197, 94, 0.26)',
-				eyebrowColor: '#86efac',
-			};
-		case 'warning':
-			return {
-				borderColor: 'rgba(250, 204, 21, 0.26)',
-				eyebrowColor: '#fde68a',
-			};
-		case 'error':
-			return {
-				borderColor: 'rgba(248, 113, 113, 0.26)',
-				eyebrowColor: '#fca5a5',
-			};
-		default:
-			return {
-				borderColor: 'rgba(96, 165, 250, 0.24)',
-				eyebrowColor: '#93c5fd',
-			};
-	}
-}
-
 function getThinkingStepStatus(
 	item: CurrentRunProgressSurface['step_items'][number],
 ): ThinkingStepStatus {

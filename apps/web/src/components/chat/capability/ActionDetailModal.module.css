@@ -1,0 +1,85 @@
+.overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: grid;
+	place-items: center;
+	padding: 20px;
+	background: hsl(var(--color-bg) / 0.76);
+}
+
+.dialog {
+	width: min(720px, 100%);
+	max-height: min(720px, calc(100vh - 40px));
+	padding: 20px;
+	border: 1px solid var(--border-default);
+	border-radius: 8px;
+	background: hsl(var(--color-surface-overlay));
+	color: hsl(var(--color-text));
+	overflow: auto;
+}
+
+.header {
+	display: flex;
+	align-items: start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.titleGroup {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+
+.title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.description {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.detailsList {
+	display: grid;
+	gap: 10px;
+	margin: 18px 0 0;
+}
+
+.detailItem {
+	display: grid;
+	grid-template-columns: minmax(120px, 0.36fr) minmax(0, 1fr);
+	gap: 12px;
+	min-width: 0;
+}
+
+.detailKey {
+	color: hsl(var(--color-text-soft));
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.detailValue {
+	margin: 0;
+	color: hsl(var(--color-text));
+	font-size: 14px;
+	line-height: 1.45;
+	overflow-wrap: anywhere;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 20px;
+}

@@ -176,7 +176,6 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 	await registerDesktopDeviceRoutes(server, {
 		desktopAgentBridgeRegistry: websocketOptions?.desktopAgentBridgeRegistry,
 	});
-	await registerWorkspaceRoutes(server);
 	await registerConversationRoutes(server, conversations);
 	await registerUploadRoutes(server, storageService);
 	serverLogger.info('server.storage_routes.registering');

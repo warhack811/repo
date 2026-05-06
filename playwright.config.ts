@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseUrl = 'http://127.0.0.1:4173';
+const serverPort = Number(process.env.RUNA_E2E_SERVER_PORT ?? '3000');
+const webPort = Number(process.env.RUNA_E2E_WEB_PORT ?? '4173');
+const baseUrl = `http://127.0.0.1:${webPort}`;
+const reuseExistingServer = !process.env.CI && process.env.RUNA_E2E_STRICT_SERVER !== '1';
 
 export default defineConfig({
 	forbidOnly: Boolean(process.env.CI),
@@ -22,14 +25,14 @@ export default defineConfig({
 	webServer: [
 		{
 			command: 'node e2e/serve-runa-e2e.mjs',
-			port: 3000,
-			reuseExistingServer: !process.env.CI,
+			port: serverPort,
+			reuseExistingServer,
 			timeout: 60_000,
 		},
 		{
-			command: 'pnpm --dir apps/web exec vite --host 127.0.0.1 --port 4173 --strictPort',
-			port: 4173,
-			reuseExistingServer: !process.env.CI,
+			command: `pnpm --dir apps/web exec vite --host 127.0.0.1 --port ${webPort} --strictPort`,
+			port: webPort,
+			reuseExistingServer,
 			timeout: 60_000,
 		},
 	],

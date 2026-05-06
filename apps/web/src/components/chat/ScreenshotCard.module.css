@@ -1,0 +1,49 @@
+.root {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+
+.thumbnail {
+	display: block;
+	width: 100%;
+	padding: 0;
+	border: 1px solid var(--border-subtle);
+	border-radius: 8px;
+	background: var(--surface-panel-muted);
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.image {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.caption {
+	margin: 0;
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.modal {
+	width: min(960px, calc(100vw - 32px));
+	padding: 16px;
+	border: 1px solid var(--border-default);
+	border-radius: 8px;
+	background: hsl(var(--color-surface-overlay));
+	color: hsl(var(--color-text));
+}
+
+.modalImage {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 8px;
+}
+
+.closeButton {
+	margin-top: 12px;
+}

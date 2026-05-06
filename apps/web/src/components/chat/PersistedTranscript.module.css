@@ -13,7 +13,7 @@
 }
 
 .meta {
-	color: #94a3b8;
+	color: var(--text-soft);
 	display: flex;
 	flex-wrap: wrap;
 	font-size: 12px;
@@ -21,13 +21,17 @@
 }
 
 .roleLabel {
-	color: #e5e7eb;
+	color: var(--text-primary);
 	font-weight: 500;
 }
 
+.message {
+	min-width: 0;
+}
+
 .bubble {
-	background: hsl(var(--color-surface) / 0.6);
-	border: 1px solid hsl(var(--color-border-soft) / 0.4);
+	background: var(--surface-panel-muted);
+	border: 1px solid var(--border-subtle);
 	border-radius: 14px;
 	font-size: 0.875rem;
 	line-height: 1.6;
@@ -35,13 +39,13 @@
 	padding: 10px 14px;
 }
 
-[data-role="user"] .bubble {
-	background: rgba(37, 99, 235, 0.14);
-	border-color: rgba(59, 130, 246, 0.22);
+.message[data-role="user"] .bubble {
+	background: var(--surface-transcript-user);
+	border-color: var(--border-primary);
 }
 
 .metaRow {
-	color: #94a3b8;
+	color: var(--text-soft);
 	display: flex;
 	flex-wrap: wrap;
 	font-size: 12px;

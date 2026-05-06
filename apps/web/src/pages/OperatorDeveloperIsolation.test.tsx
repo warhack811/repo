@@ -101,8 +101,12 @@ describe('operator/developer hard isolation', () => {
 					accessToken={null}
 					authContext={authContext}
 					authError={null}
+					brandTheme="teal"
 					isAuthPending={false}
+					onBrandThemeChange={() => undefined}
 					onLogout={async () => undefined}
+					onThemeChange={() => undefined}
+					theme="system"
 				/>
 			</MemoryRouter>,
 		);

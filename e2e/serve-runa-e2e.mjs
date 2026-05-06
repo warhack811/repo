@@ -15,6 +15,8 @@ const runtimeConfigStorageKey = 'runa.developer.runtime_config';
 const DEEPSEEK_CHAT_COMPLETIONS_URL = 'https://api.deepseek.com/chat/completions';
 const envFilePath = resolve(workspaceRoot, '.env');
 const envLocalFilePath = resolve(workspaceRoot, '.env.local');
+const e2eServerPort = Number(process.env.RUNA_E2E_SERVER_PORT ?? '3000');
+const e2eWebPort = Number(process.env.RUNA_E2E_WEB_PORT ?? '4173');
 
 mkdirSync(proofDirectory, { recursive: true });
 rmSync(proofFilePath, { force: true });
@@ -247,7 +249,7 @@ function resolveScenarioToolCall(userMessageText) {
 		return createToolCall(
 			'browser_navigate',
 			{
-				url: 'http://127.0.0.1:4173/tests/visual/evidence-sources-fixture.html',
+				url: `http://127.0.0.1:${e2eWebPort}/tests/visual/evidence-sources-fixture.html`,
 				wait_until: 'domcontentloaded',
 			},
 			'call_e2e_browser_navigate',
@@ -525,6 +527,7 @@ function createInMemoryConversationStore() {
 			return [...conversations.values()]
 				.filter((conversation) => matchesScope(conversation.scope, scope))
 				.map((conversation) => ({
+					access_role: 'owner',
 					conversation_id: conversation.conversation_id,
 					created_at: conversation.created_at,
 					last_message_at: conversation.last_message_at,
@@ -640,6 +643,15 @@ server.get('/conversations/:conversationId/messages', async (request, reply) => 
 	}
 });
 
+server.get('/conversations/:conversationId/blocks', async (request) => {
+	requireAuthenticatedRequest(request);
+
+	return {
+		conversation_id: request.params.conversationId,
+		run_surfaces: [],
+	};
+});
+
 server.get('/conversations/:conversationId/members', async (request) => {
 	requireAuthenticatedRequest(request);
 
@@ -706,7 +718,7 @@ process.on('SIGTERM', () => {
 
 await server.listen({
 	host: '127.0.0.1',
-	port: 3000,
+	port: e2eServerPort,
 });
 
 console.log(

@@ -1,3 +1,68 @@
 .list {
 	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.chip {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+	padding: 5px 8px;
+	border: 1px solid var(--border-subtle);
+	border-radius: 999px;
+	background: var(--surface-chip);
+}
+
+.label {
+	color: var(--text-soft);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.value {
+	color: var(--text-strong);
+	font-size: 12px;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.chip[data-tone="success"] {
+	border-color: var(--border-success);
+	background: var(--status-success-bg);
+}
+
+.chip[data-tone="success"] .label {
+	color: var(--status-success-text);
+}
+
+.chip[data-tone="warning"] {
+	border-color: var(--border-warning);
+	background: var(--status-warning-bg);
+}
+
+.chip[data-tone="warning"] .label {
+	color: var(--status-warning-text);
+}
+
+.chip[data-tone="error"] {
+	border-color: var(--border-danger);
+	background: var(--status-danger-bg);
+}
+
+.chip[data-tone="error"] .label {
+	color: var(--status-danger-text);
+}
+
+.chip[data-tone="info"] {
+	border-color: var(--border-info);
+	background: var(--status-info-bg);
+}
+
+.chip[data-tone="info"] .label {
+	color: var(--status-info-text);
 }
