@@ -55,11 +55,21 @@ function extractReconnectDelay(source) {
 }
 
 async function main() {
-	const [sessionSource, sessionTestSource, shellSource, electronMainSource] = await Promise.all([
+	const [
+		sessionSource,
+		sessionTestSource,
+		shellSource,
+		electronMainSource,
+		packagedReconnectSmokeSource,
+	] = await Promise.all([
 		readFile(path.join(packageRoot, 'src', 'session.ts'), 'utf8'),
 		readFile(path.join(packageRoot, 'src', 'session.test.ts'), 'utf8'),
 		readFile(path.join(packageRoot, 'src', 'shell.ts'), 'utf8'),
 		readFile(path.join(packageRoot, 'electron', 'main.ts'), 'utf8').catch(() => ''),
+		readFile(
+			path.join(packageRoot, 'scripts', 'desktop-packaged-reconnect-smoke.mjs'),
+			'utf8',
+		).catch(() => ''),
 	]);
 	const vitestCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 	const vitestResult = await runCommand(vitestCommand, [
@@ -121,10 +131,9 @@ async function main() {
 		sessionSource.includes('jitter') ||
 		sessionSource.includes('backoff');
 	const packagedServerRestartProbePresent =
-		sessionTestSource.includes('server restart') ||
-		sessionTestSource.includes('packaged restart') ||
-		sessionTestSource.includes('sleep') ||
-		sessionTestSource.includes('resume');
+		packagedReconnectSmokeSource.includes('DESKTOP_PACKAGED_RECONNECT_SMOKE_SUMMARY') &&
+		packagedReconnectSmokeSource.includes('server_restart_disconnect_sent') &&
+		packagedReconnectSmokeSource.includes('reconnected_after_server_restart');
 
 	const runtimeReconnectUnitCoverage =
 		vitestResult.code === 0 &&
