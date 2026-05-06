@@ -18,9 +18,9 @@ async function createTempWorkspace(): Promise<string> {
 	return mkdtemp(join(tmpdir(), 'runa-shell-session-'));
 }
 
-function createContext(workingDirectory: string) {
+function createContext(workingDirectory: string, runId = 'run_shell_session') {
 	return {
-		run_id: 'run_shell_session',
+		run_id: runId,
 		trace_id: 'trace_shell_session',
 		working_directory: workingDirectory,
 	};
@@ -139,8 +139,17 @@ describe('shell session tools', () => {
 			sessionId = startResult.output.session_id;
 			expect(startResult.output).toMatchObject({
 				command: process.execPath,
+				next_action_hint: 'read_or_stop',
+				runtime_feedback: expect.stringContaining('started and is running'),
 				status: 'running',
 				working_directory: workspace,
+			});
+			expect(startResult.metadata?.['shell_session']).toMatchObject({
+				kind: 'shell_session_lifecycle',
+				next_action_hint: 'read_or_stop',
+				session_id: sessionId,
+				status: 'running',
+				tool_name: 'shell.session.start',
 			});
 
 			await wait(80);
@@ -156,7 +165,18 @@ describe('shell session tools', () => {
 			expect(readResult.output.status).toBe('running');
 			expect(readResult.output.stdout).toBe('ready');
 			expect(readResult.output.stderr).toBe('warn');
+			expect(readResult.output.has_output).toBe(true);
+			expect(readResult.output.next_action_hint).toBe('read_or_stop');
+			expect(readResult.output.runtime_feedback).toContain('returned buffered output');
 			expect(readResult.output.secret_values_exposed).toBe(false);
+			expect(readResult.metadata?.['shell_session']).toMatchObject({
+				has_output: true,
+				kind: 'shell_session_lifecycle',
+				next_action_hint: 'read_or_stop',
+				session_id: sessionId,
+				status: 'running',
+				tool_name: 'shell.session.read',
+			});
 		} finally {
 			await stopIfStarted(stopTool, sessionId);
 			await rm(workspace, { force: true, recursive: true });
@@ -261,6 +281,14 @@ describe('shell session tools', () => {
 			}
 
 			expect(['stopped', 'killed']).toContain(stopResult.output.status);
+			expect(stopResult.output.next_action_hint).toBe('continue_or_inspect');
+			expect(stopResult.output.runtime_feedback).toContain('final buffer');
+			expect(stopResult.metadata?.['shell_session']).toMatchObject({
+				kind: 'shell_session_lifecycle',
+				next_action_hint: 'continue_or_inspect',
+				session_id: sessionId,
+				tool_name: 'shell.session.stop',
+			});
 			expect(secondStopResult.output.status).toBe(stopResult.output.status);
 
 			const readResult = await readTool.execute(readInput(sessionId), createContext(workspace));
@@ -430,6 +458,67 @@ describe('shell session tools', () => {
 				tool_name: 'shell.session.stop',
 			});
 		} finally {
+			await rm(workspace, { force: true, recursive: true });
+		}
+	});
+
+	it('keeps sessions scoped to their owning run', async () => {
+		const workspace = await createTempWorkspace();
+		const { readTool, startTool, stopTool } = createTools();
+		let sessionId: string | undefined;
+
+		try {
+			const startResult = await startTool.execute(
+				startInput({
+					args: ['-e', 'setTimeout(() => {}, 5000);'],
+					idle_timeout_ms: 1000,
+					max_runtime_ms: 5000,
+				}),
+				createContext(workspace, 'run_shell_session_owner'),
+			);
+
+			expect(startResult.status).toBe('success');
+
+			if (startResult.status !== 'success') {
+				throw new Error('Expected shell.session.start success for owner scoping.');
+			}
+
+			sessionId = startResult.output.session_id;
+
+			const readResult = await readTool.execute(
+				readInput(sessionId),
+				createContext(workspace, 'run_shell_session_intruder'),
+			);
+			const stopResult = await stopTool.execute(
+				stopInput(sessionId),
+				createContext(workspace, 'run_shell_session_intruder'),
+			);
+
+			expect(readResult).toMatchObject({
+				details: {
+					owner_mismatch: true,
+					session_id: sessionId,
+				},
+				error_code: 'PERMISSION_DENIED',
+				status: 'error',
+				tool_name: 'shell.session.read',
+			});
+			expect(stopResult).toMatchObject({
+				details: {
+					owner_mismatch: true,
+					session_id: sessionId,
+				},
+				error_code: 'PERMISSION_DENIED',
+				status: 'error',
+				tool_name: 'shell.session.stop',
+			});
+		} finally {
+			if (sessionId) {
+				await stopTool.execute(
+					stopInput(sessionId, { force: true }),
+					createContext(workspace, 'run_shell_session_owner'),
+				);
+			}
 			await rm(workspace, { force: true, recursive: true });
 		}
 	});

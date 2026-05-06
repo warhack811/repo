@@ -365,6 +365,18 @@
   - `pnpm.cmd test:e2e` PASS (`13` Playwright test; build dahil). Not: Playwright kapanisinda Vite WS proxy `write ECONNABORTED` / `read ECONNRESET` loglari goruldu, fakat komut exit code `0` ve test sonucu PASS.
 - Kapsam disi birakilanlar: `apps/server/**`, `apps/desktop-agent/**`, `packages/**`, auth/WS/provider/runtime/approval persistence contracts ve yeni dependency yok. Secondary surfaces 7.5'e, operator/developer hard isolation 7.4'e, full visual discipline pass 7.6'ya, copy voice pass 7.7'ye birakildi.
 - Worktree notu: gorev basinda checkout zaten genis dirty durumdaydi; task disi silinmis/tasinmis kok dokumanlar, mevcut web UI degisiklikleri, screenshot baseline drift'leri ve `apps/server/approval-e2e-temp.txt` silinmesi geri alinmadi. Bu tur yalniz approval/chat web yuzeyi, task-local visual smoke ve `docs/PROGRESS.md` kaydi icin gerekli dosyalara dokundu.
+
+### TASK-TERMINAL-RUNTIME-INTEGRATION-04 - Shell Session Runtime Integration - 6 Mayis 2026
+
+- `shell.session.start/read/stop` sonuclari runtime tarafinda okunabilir hale getirildi: `runtime_feedback`, `next_action_hint`, stdout/stderr byte durumlari ve redaction-aware `metadata.shell_session` eklendi. Secret redaction kontrati korunuyor; raw secret veya yeni provider/auth yuzeyi eklenmedi.
+- Shell session sahipligi `run_id` ile baglandi. Session'i baslatan run disinda `shell.session.read` ve `shell.session.stop` cagrisina `PERMISSION_DENIED` donuyor; owner run id disari sizdirilmiyor.
+- `runToolStep` tamamlanan tool event'lerine sadece kucuk shell-session lifecycle metadata'sini tasiyor. Ingestion path metadata/output'u model continuation icin koruyor; presentation summary de `runtime_feedback` metnini kullanarak kullaniciya "running / no buffered output / final buffer" durumunu gosteriyor.
+- Polling guardrail'i dar kapsamda ayarlandi: `shell.session.read` uc kez ayni okununca erken `repeated_tool_call` ile kesilmiyor, fakat ayni verimsiz polling 6'lik stagnation penceresinde terminal stop almaya devam ediyor. Max-turn ve tool-failure guardrail'lari degismedi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/server test -- shell-session run-tool-step ingest-tool-result presentation stop-conditions` PASS (`19` dosya / `127` test; komut `tsc` dahil calisti)
+  - `pnpm.cmd --filter @runa/server test -- shell-session run-tool-step ingest-tool-result run-model-turn-loop-adapter agent-loop stop-conditions` PASS (`9` dosya / `94` test; komut `tsc` dahil calisti)
+- Kapsam disi birakilanlar: web UI component redesign, desktop-agent bridge, auth/provider/model routing, yeni dependency, shell command policy redesign ve full E2E browser smoke. Worktree gorev basinda zaten genis dirty durumdaydi; task disi web/desktop/temp degisiklikleri geri alinmadi.
+
 ### Arsivlenen Kayitlar
 
 - 29 Nisan 2026 ve onceki Core Hardening kayitlari `docs/archive/progress-2026-04-core-hardening.md` altina tasindi.

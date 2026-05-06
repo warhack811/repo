@@ -254,6 +254,28 @@ function isTypedToolDefinition(
 	return true;
 }
 
+function extractToolResultEventMetadata(
+	toolResult: ToolResult,
+): Readonly<Record<string, unknown>> | undefined {
+	if (toolResult.status === 'success') {
+		const shellSessionMetadata = toolResult.metadata?.['shell_session'];
+
+		return shellSessionMetadata === undefined
+			? undefined
+			: {
+					shell_session: shellSessionMetadata,
+				};
+	}
+
+	const shellSessionDetails = toolResult.details?.['shell_session'];
+
+	return shellSessionDetails === undefined
+		? undefined
+		: {
+				shell_session: shellSessionDetails,
+			};
+}
+
 export async function runToolStep(input: RunToolStepInput): Promise<RunToolStepResult> {
 	const transitions: ToolStateTransition[] = [];
 	const events: ToolRuntimeEvent[] = [];
@@ -533,6 +555,7 @@ export async function runToolStep(input: RunToolStepInput): Promise<RunToolStepR
 				{
 					actor: input.event_context?.actor,
 					run_id: input.run_id,
+					metadata: extractToolResultEventMetadata(toolResult),
 					sequence_no: sequenceStart + 1,
 					session_id: input.event_context?.session_id,
 					source: input.event_context?.source,
