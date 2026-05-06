@@ -376,7 +376,7 @@ describe('shellExecTool', () => {
 			expect(result.output.secret_values_exposed).toBe(false);
 		} finally {
 			if (previousSecretValue === undefined) {
-				process.env['RUNA_TEST_SECRET_KEY'] = undefined;
+				delete process.env['RUNA_TEST_SECRET_KEY'];
 			} else {
 				process.env['RUNA_TEST_SECRET_KEY'] = previousSecretValue;
 			}
@@ -450,7 +450,7 @@ describe('shellExecTool', () => {
 			});
 		} finally {
 			if (previousSecretValue === undefined) {
-				process.env['RUNA_TIMEOUT_SECRET_KEY'] = undefined;
+				delete process.env['RUNA_TIMEOUT_SECRET_KEY'];
 			} else {
 				process.env['RUNA_TIMEOUT_SECRET_KEY'] = previousSecretValue;
 			}
