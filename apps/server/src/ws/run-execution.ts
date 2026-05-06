@@ -748,6 +748,30 @@ function getStreamingTurnIntent(modelResponse: ModelResponse): 'continuing' | 'd
 	return getOrderedToolCallCandidates(modelResponse).length > 0 ? 'continuing' : 'done';
 }
 
+function shouldUseStreamingForModelRequest(
+	modelRequest: ModelRequest,
+	requestedProvider: RunRequestPayload['provider'] | undefined,
+	capabilities: ProviderCapabilities | undefined,
+): boolean {
+	if (requestedProvider === undefined) {
+		return true;
+	}
+
+	const route = resolveModelRoute({
+		request: modelRequest,
+		requested_provider: requestedProvider,
+	});
+
+	if (route.streaming_eligible) {
+		return true;
+	}
+
+	return (
+		capabilities?.streaming_supported === true &&
+		capabilities.narration_strategy === 'temporal_stream'
+	);
+}
+
 function emitBufferedTextDeltas(
 	socket: WebSocketConnection,
 	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
@@ -1158,13 +1182,7 @@ export async function generateModelResponseWithStreaming(
 
 	const getSequenceNo = options?.getNextSequenceNo ?? (() => 1);
 
-	if (
-		requestedProvider !== undefined &&
-		!resolveModelRoute({
-			request: modelRequest,
-			requested_provider: requestedProvider,
-		}).streaming_eligible
-	) {
+	if (!shouldUseStreamingForModelRequest(modelRequest, requestedProvider, options?.capabilities)) {
 		return modelGateway.generate(modelRequest);
 	}
 
