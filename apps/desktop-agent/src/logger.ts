@@ -23,6 +23,8 @@ const REDACTED_KEYS = new Set([
 
 const BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/giu;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
+const SENSITIVE_QUERY_PARAM_PATTERN =
+	/([?#&](?:access_token|refresh_token|authorization|api_key|apikey|secret|token)=)[^&#\s"]+/giu;
 
 export interface DesktopAgentLogger {
 	debug(message: string, ...data: readonly unknown[]): void;
@@ -66,7 +68,8 @@ export function redactPii(value: unknown): unknown {
 	if (typeof value === 'string') {
 		return value
 			.replace(BEARER_TOKEN_PATTERN, 'Bearer [REDACTED]')
-			.replace(JWT_PATTERN, '[REDACTED_JWT]');
+			.replace(JWT_PATTERN, '[REDACTED_JWT]')
+			.replace(SENSITIVE_QUERY_PARAM_PATTERN, '$1[REDACTED]');
 	}
 
 	if (Array.isArray(value)) {
