@@ -31,7 +31,7 @@ export interface DesktopAgentPersistedSession extends AuthSessionTokens {
 export interface DesktopAgentSessionInputPayload {
 	readonly access_token: string;
 	readonly expires_at?: number;
-	readonly refresh_token: string;
+	readonly refresh_token?: string;
 	readonly token_type?: string;
 }
 
@@ -195,11 +195,7 @@ export function normalizeDesktopAgentSessionInputPayload(
 		throw new Error('Paste your access token to continue.');
 	}
 
-	const refreshToken = sessionInput.refresh_token.trim();
-
-	if (refreshToken.length === 0) {
-		throw new Error('Paste your refresh token to continue.');
-	}
+	const refreshToken = sessionInput.refresh_token?.trim();
 
 	if (
 		typeof sessionInput.expires_at !== 'undefined' &&
@@ -215,7 +211,7 @@ export function normalizeDesktopAgentSessionInputPayload(
 				typeof sessionInput.expires_at === 'number'
 					? Math.trunc(sessionInput.expires_at)
 					: undefined,
-			refresh_token: refreshToken,
+			refresh_token: refreshToken && refreshToken.length > 0 ? refreshToken : undefined,
 			token_type: sessionInput.token_type?.trim() || undefined,
 		},
 		now,
