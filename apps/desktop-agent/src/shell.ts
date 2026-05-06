@@ -182,7 +182,15 @@ class DesktopAgentShellImpl implements DesktopAgentShell {
 	}
 
 	submitSession(session: DesktopAgentPersistedSession): Promise<DesktopAgentShellSnapshot> {
-		return this.#syncFromRuntime(async () => await this.#runtime.setSession(session));
+		return this.#syncFromRuntime(async () => {
+			const sessionSnapshot = await this.#runtime.setSession(session);
+
+			if (sessionSnapshot.status !== 'signed_in') {
+				return sessionSnapshot;
+			}
+
+			return await this.#runtime.start();
+		});
 	}
 
 	subscribe(listener: DesktopAgentShellListener): DesktopAgentShellUnsubscribe {
