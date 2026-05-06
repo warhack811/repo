@@ -50,7 +50,7 @@ function includesAll(source, patterns) {
 }
 
 function extractReconnectDelay(source) {
-	const match = source.match(/BRIDGE_RECONNECT_DELAY_MS\s*=\s*([\d_]+)/u);
+	const match = source.match(/BRIDGE_RECONNECT_INITIAL_DELAY_MS\s*=\s*([\d_]+)/u);
 	return match ? Number.parseInt(match[1].replaceAll('_', ''), 10) : null;
 }
 
@@ -83,6 +83,9 @@ async function main() {
 	);
 	const expiredSessionNoBridgeTestPresent = sessionTestSource.includes(
 		'clears an expired stored session when no refresh token is available',
+	);
+	const boundedJitterBackoffTestPresent = sessionTestSource.includes(
+		'uses bounded exponential reconnect backoff with jitter',
 	);
 	const bridgeLifecycleCloseObserved = includesAll(sessionSource, [
 		"addEventListener('close'",
@@ -124,7 +127,8 @@ async function main() {
 		unexpectedCloseReconnectTestPresent &&
 		retryUntilServerBackTestPresent &&
 		intentionalStopNoReconnectTestPresent &&
-		expiredSessionNoBridgeTestPresent;
+		expiredSessionNoBridgeTestPresent &&
+		boundedJitterBackoffTestPresent;
 	const measuredGaps = [
 		...(jitterBackoffPresent ? [] : ['reconnect_backoff_is_fixed_no_jitter']),
 		...(powerMonitorHookPresent ? [] : ['sleep_wake_resume_hook_missing']),
@@ -133,8 +137,10 @@ async function main() {
 	const summary = {
 		bridge_lifecycle_close_observed: bridgeLifecycleCloseObserved,
 		bridge_lifecycle_error_observed: bridgeLifecycleErrorObserved,
+		bounded_jitter_backoff_test_present: boundedJitterBackoffTestPresent,
 		expired_session_no_bridge_test_present: expiredSessionNoBridgeTestPresent,
-		fixed_reconnect_delay_ms: reconnectDelayMs,
+		fixed_reconnect_delay_ms: null,
+		initial_reconnect_delay_ms: reconnectDelayMs,
 		intentional_stop_no_reconnect_test_present: intentionalStopNoReconnectTestPresent,
 		measured_gaps: measuredGaps,
 		packaged_server_restart_probe_present: packagedServerRestartProbePresent,
