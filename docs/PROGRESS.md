@@ -13,6 +13,14 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-TERMINAL-OUTPUT-REDACTION-02 - 6 Mayis 2026
+
+- Kapsam: `shell.exec` ToolResult yuzeyi icin terminal kaynakli secret/env/token sizintisi kapatildi. Stdout, stderr, timeout details ve echo edilen command/args alani ToolResult olusmadan once redaction'dan geciyor.
+- Uygulama: `apps/server/src/tools/shell-output-redaction.ts` eklendi. Process env ve repo-local `.env.local` / `.env` / `.env.compose` icindeki sensitive key/value corpus'u, yaygin `sk-`, `gsk_`, `sb_publishable_`, JWT ve Postgres URL password pattern'leriyle birlikte maskeleniyor. Kisa/low-signal env degerleri false-positive azaltmak icin corpus'a alinmiyor.
+- Kanit modeli: Shell output metadata artik `redaction_applied`, `redacted_occurrence_count`, `redacted_source_kinds` ve `secret_values_exposed=false` alanlarini tasiyor; raw secret preview veya token degeri metadata'ya girmiyor.
+- Dogrulama: `pnpm.cmd --filter @runa/server test -- shell-exec shell-output-redaction` PASS (`23` test); `pnpm.cmd --filter @runa/server test -- run-tool-step ingest-tool-result map-tool-result` PASS (`21` test); `pnpm.cmd --filter @runa/server typecheck` PASS; `pnpm.cmd --filter @runa/server lint` PASS (`360` dosya); `pnpm.cmd --filter @runa/server run test:deepseek-live-smoke` PASS; `pnpm.cmd --filter @runa/server run test:groq-live-smoke` PASS.
+- Kalan not: PowerShell profile kaynakli `\` gurultusu komut exit code'larini bozmadigi icin urun hatasi olarak ele alinmadi. Existing dirty desktop/web/server dosyalari bu task kapsaminda degistirilmedi.
+
 ### TASK-TERMINAL-ENV-AUTHORITY-01 - 6 Mayis 2026
 
 - Kapsam: Terminal/runtime env otoritesi netlestirildi; provider smoke ve persistence proof ozetleri artik shell env, `.env.local`, `.env`, `.env.compose`, `client_config`, `default` ve `missing` kaynaklarini ayrica raporluyor.

@@ -12,6 +12,14 @@ import type {
 	ToolResultSuccess,
 } from '@runa/types';
 
+import {
+	type ShellOutputRedactionContext,
+	type ShellOutputRedactionMetadata,
+	combineShellOutputRedactionMetadata,
+	loadShellOutputRedactionContext,
+	redactShellOutput,
+} from './shell-output-redaction.js';
+
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_OUTPUT_LIMIT_BYTES = 16_384;
 const FORCE_KILL_GRACE_MS = 250;
@@ -28,6 +36,10 @@ export interface ShellExecSuccessData {
 	readonly command: string;
 	readonly duration_ms: number;
 	readonly exit_code: number | null;
+	readonly redacted_occurrence_count: number;
+	readonly redacted_source_kinds: readonly string[];
+	readonly redaction_applied: boolean;
+	readonly secret_values_exposed: false;
 	readonly signal: NodeJS.Signals | null;
 	readonly stderr: string;
 	readonly stderr_truncated: boolean;
@@ -548,6 +560,58 @@ async function runCommand(
 	});
 }
 
+async function resolveRedactionContext(
+	workspacePath: string,
+): Promise<ShellOutputRedactionContext> {
+	try {
+		return await loadShellOutputRedactionContext(workspacePath);
+	} catch {
+		return {
+			env: process.env,
+			workspace_path: workspacePath,
+		};
+	}
+}
+
+function redactExecutionOutcome(
+	outcome: ProcessExecutionOutcome,
+	redactionContext: ShellOutputRedactionContext,
+): ProcessExecutionOutcome & ShellOutputRedactionMetadata {
+	const stdout = redactShellOutput(outcome.stdout, redactionContext);
+	const stderr = redactShellOutput(outcome.stderr, redactionContext);
+	const metadata = combineShellOutputRedactionMetadata([stdout.metadata, stderr.metadata]);
+
+	return {
+		...outcome,
+		...metadata,
+		stderr: stderr.text,
+		stdout: stdout.text,
+	};
+}
+
+function redactCommandSurface(
+	command: string,
+	args: readonly string[],
+	redactionContext: ShellOutputRedactionContext,
+): {
+	readonly args: readonly string[];
+	readonly command: string;
+	readonly metadata: ShellOutputRedactionMetadata;
+} {
+	const redactedCommand = redactShellOutput(command, redactionContext);
+	const redactedArgs = args.map((arg) => redactShellOutput(arg, redactionContext));
+	const metadata = combineShellOutputRedactionMetadata([
+		redactedCommand.metadata,
+		...redactedArgs.map((arg) => arg.metadata),
+	]);
+
+	return {
+		args: redactedArgs.map((arg) => arg.text),
+		command: redactedCommand.text,
+		metadata,
+	};
+}
+
 function buildSafeEnvironment(): NodeJS.ProcessEnv {
 	const allowedKeys = [
 		'COMSPEC',
@@ -742,7 +806,8 @@ export function createShellExecTool(
 				);
 			}
 
-			const executionResult = await runCommand(
+			const redactionContext = await resolveRedactionContext(contextWorkspacePath);
+			const rawExecutionResult = await runCommand(
 				{
 					...input,
 					arguments: {
@@ -755,19 +820,30 @@ export function createShellExecTool(
 				resolvedDependencies,
 			);
 
-			if (isShellExecErrorResult(executionResult)) {
-				return executionResult;
+			if (isShellExecErrorResult(rawExecutionResult)) {
+				return rawExecutionResult;
 			}
+
+			const executionResult = redactExecutionOutcome(rawExecutionResult, redactionContext);
+			const commandSurface = redactCommandSurface(command, args, redactionContext);
+			const outputRedactionMetadata = combineShellOutputRedactionMetadata([
+				executionResult,
+				commandSurface.metadata,
+			]);
 
 			if (executionResult.timed_out) {
 				return createErrorResult(
 					input,
 					'TIMEOUT',
-					`Command timed out after ${timeoutMs}ms: ${command}`,
+					`Command timed out after ${timeoutMs}ms: ${commandSurface.command}`,
 					{
-						args,
-						command,
+						args: commandSurface.args,
+						command: commandSurface.command,
 						exit_code: executionResult.exit_code,
+						redacted_occurrence_count: outputRedactionMetadata.redacted_occurrence_count,
+						redacted_source_kinds: outputRedactionMetadata.redacted_source_kinds,
+						redaction_applied: outputRedactionMetadata.redaction_applied,
+						secret_values_exposed: outputRedactionMetadata.secret_values_exposed,
 						signal: executionResult.signal,
 						stderr: executionResult.stderr,
 						stderr_truncated: executionResult.stderr_truncated,
@@ -782,10 +858,14 @@ export function createShellExecTool(
 			return {
 				call_id: input.call_id,
 				output: {
-					args,
-					command,
+					args: commandSurface.args,
+					command: commandSurface.command,
 					duration_ms: executionResult.duration_ms,
 					exit_code: executionResult.exit_code,
+					redacted_occurrence_count: outputRedactionMetadata.redacted_occurrence_count,
+					redacted_source_kinds: outputRedactionMetadata.redacted_source_kinds,
+					redaction_applied: outputRedactionMetadata.redaction_applied,
+					secret_values_exposed: outputRedactionMetadata.secret_values_exposed,
 					signal: executionResult.signal,
 					stderr: executionResult.stderr,
 					stderr_truncated: executionResult.stderr_truncated,

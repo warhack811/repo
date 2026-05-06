@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -332,6 +332,123 @@ describe('shellExecTool', () => {
 				timed_out: false,
 			});
 		} finally {
+			await rm(workspace, { force: true, recursive: true });
+		}
+	});
+
+	it('redacts sensitive process env values from stdout and stderr', async () => {
+		const workspace = await createTempWorkspace();
+		const secretValue = 'runa_shell_process_secret_value_123456789';
+		const previousSecretValue = process.env['RUNA_TEST_SECRET_KEY'];
+		process.env['RUNA_TEST_SECRET_KEY'] = secretValue;
+
+		try {
+			const result = await shellExecTool.execute(
+				createInput(process.execPath, {
+					args: [
+						'-e',
+						`process.stdout.write(${JSON.stringify(secretValue)}); process.stderr.write(${JSON.stringify(secretValue)});`,
+					],
+				}),
+				createContext(workspace),
+			);
+
+			expect(result.status).toBe('success');
+
+			if (result.status !== 'success') {
+				throw new Error('Expected shell.exec success for redaction behavior.');
+			}
+
+			expect(result.output.stdout).toBe('[REDACTED_SECRET]');
+			expect(result.output.stderr).toBe('[REDACTED_SECRET]');
+			expect(result.output.stdout).not.toContain(secretValue);
+			expect(result.output.stderr).not.toContain(secretValue);
+			expect(JSON.stringify(result.output)).not.toContain(secretValue);
+			expect(result.output.redaction_applied).toBe(true);
+			expect(result.output.redacted_occurrence_count).toBeGreaterThanOrEqual(2);
+			expect(result.output.redacted_source_kinds).toEqual(['process_env']);
+			expect(result.output.secret_values_exposed).toBe(false);
+		} finally {
+			if (previousSecretValue === undefined) {
+				delete process.env['RUNA_TEST_SECRET_KEY'];
+			} else {
+				process.env['RUNA_TEST_SECRET_KEY'] = previousSecretValue;
+			}
+
+			await rm(workspace, { force: true, recursive: true });
+		}
+	});
+
+	it('redacts sensitive repo env-file values from captured output', async () => {
+		const workspace = await createTempWorkspace();
+		const secretValue = 'runa_shell_file_secret_value_123456789';
+
+		try {
+			await writeFile(join(workspace, '.env.local'), `RUNA_FILE_SECRET_KEY=${secretValue}\n`);
+
+			const result = await shellExecTool.execute(
+				createInput(process.execPath, {
+					args: ['-e', `process.stdout.write(${JSON.stringify(secretValue)});`],
+				}),
+				createContext(workspace),
+			);
+
+			expect(result.status).toBe('success');
+
+			if (result.status !== 'success') {
+				throw new Error('Expected shell.exec success for env-file redaction.');
+			}
+
+			expect(result.output.stdout).toBe('[REDACTED_SECRET]');
+			expect(result.output.stdout).not.toContain(secretValue);
+			expect(JSON.stringify(result.output)).not.toContain(secretValue);
+			expect(result.output.redacted_source_kinds).toEqual(['.env.local']);
+			expect(result.output.secret_values_exposed).toBe(false);
+		} finally {
+			await rm(workspace, { force: true, recursive: true });
+		}
+	});
+
+	it('redacts timed-out command output in the error details', async () => {
+		const workspace = await createTempWorkspace();
+		const secretValue = 'runa_shell_timeout_secret_value_123456789';
+		const previousSecretValue = process.env['RUNA_TIMEOUT_SECRET_KEY'];
+		process.env['RUNA_TIMEOUT_SECRET_KEY'] = secretValue;
+
+		try {
+			const result = await shellExecTool.execute(
+				createInput(process.execPath, {
+					args: [
+						'-e',
+						`require('node:fs').writeSync(1, ${JSON.stringify(secretValue)}); setTimeout(() => {}, 500);`,
+					],
+					timeout_ms: 100,
+				}),
+				createContext(workspace),
+			);
+
+			expect(result.status).toBe('error');
+
+			if (result.status !== 'error') {
+				throw new Error('Expected shell.exec timeout error for redaction behavior.');
+			}
+
+			expect(result.error_code).toBe('TIMEOUT');
+			expect(result.details?.['stdout']).toBe('[REDACTED_SECRET]');
+			expect(result.details?.['stdout']).not.toContain(secretValue);
+			expect(JSON.stringify(result.details)).not.toContain(secretValue);
+			expect(result.details).toMatchObject({
+				redaction_applied: true,
+				redacted_source_kinds: ['process_env'],
+				secret_values_exposed: false,
+			});
+		} finally {
+			if (previousSecretValue === undefined) {
+				delete process.env['RUNA_TIMEOUT_SECRET_KEY'];
+			} else {
+				process.env['RUNA_TIMEOUT_SECRET_KEY'] = previousSecretValue;
+			}
+
 			await rm(workspace, { force: true, recursive: true });
 		}
 	});
