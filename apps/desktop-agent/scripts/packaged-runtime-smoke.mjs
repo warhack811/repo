@@ -494,7 +494,9 @@ async function runCrossAccountTargetRejectionProof(accessToken, targetConnection
 
 			socket.addEventListener('error', (event) => {
 				clearTimeout(timeout);
-				reject(new Error(`Cross-account proof WebSocket error: ${event.message ?? 'unknown error'}`));
+				reject(
+					new Error(`Cross-account proof WebSocket error: ${event.message ?? 'unknown error'}`),
+				);
 			});
 		});
 
@@ -709,8 +711,7 @@ async function spawnPackagedDesktopApp(input) {
 			...accessTokenEnv,
 			ELECTRON_DISABLE_SECURITY_WARNINGS: '1',
 			RUNA_DESKTOP_AGENT_ID: input.agentId ?? smokeAgentId,
-			RUNA_DESKTOP_AGENT_MACHINE_LABEL:
-				input.machineLabel ?? 'Packaged Smoke Workstation',
+			RUNA_DESKTOP_AGENT_MACHINE_LABEL: input.machineLabel ?? 'Packaged Smoke Workstation',
 			RUNA_DESKTOP_AGENT_SERVER_URL: serverBaseUrl,
 			RUNA_DESKTOP_AGENT_SMOKE_SIGN_OUT_FILE: input.signOutFilePath,
 			RUNA_DESKTOP_AGENT_SMOKE_SHUTDOWN_FILE: input.shutdownFilePath,
@@ -763,7 +764,9 @@ async function main() {
 	const devSession = await fetchDevSession();
 	const accessToken = devSession.access_token;
 	if (!secondaryAccessToken) {
-		throw new Error('Packaged smoke requires a secondary authenticated session for cross-account proof.');
+		throw new Error(
+			'Packaged smoke requires a secondary authenticated session for cross-account proof.',
+		);
 	}
 	const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'runa-desktop-packaged-smoke-'));
 	const invalidUserDataDir = await mkdtemp(
@@ -849,11 +852,7 @@ async function main() {
 			userDataDir,
 			webUrl: createDesktopAppWebUrl(),
 		});
-		restartAfterLogoutStayedOffline = await waitForDeviceAbsence(
-			accessToken,
-			smokeAgentId,
-			5_000,
-		);
+		restartAfterLogoutStayedOffline = await waitForDeviceAbsence(accessToken, smokeAgentId, 5_000);
 	} finally {
 		if (invalidChild) {
 			await requestGracefulShutdown(invalidChild, invalidShutdownFilePath);
