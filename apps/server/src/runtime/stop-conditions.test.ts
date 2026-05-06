@@ -232,6 +232,66 @@ describe('evaluateStopConditions', () => {
 		});
 	});
 
+	it('does not stop shell session polling on the early repeated-tool guard', () => {
+		const decision = evaluateStopConditions(
+			createSnapshot({
+				recent_tool_calls: [
+					{
+						args_hash: 'same-session-read',
+						tool_name: 'shell.session.read',
+					},
+					{
+						args_hash: 'same-session-read',
+						tool_name: 'shell.session.read',
+					},
+					{
+						args_hash: 'same-session-read',
+						tool_name: 'shell.session.read',
+					},
+				],
+				turn_count: 3,
+			}),
+		);
+
+		expect(decision).toEqual({
+			decision: 'continue',
+			loop_state: 'RUNNING',
+		});
+	});
+
+	it('still stops unproductive shell session polling through stagnation', () => {
+		const decision = evaluateStopConditions(
+			createSnapshot({
+				config: {
+					max_turns: 10,
+					stop_conditions: {},
+				},
+				recent_tool_calls: [
+					{ args_hash: 'same-session-read', tool_name: 'shell.session.read' },
+					{ args_hash: 'same-session-read', tool_name: 'shell.session.read' },
+					{ args_hash: 'same-session-read', tool_name: 'shell.session.read' },
+					{ args_hash: 'same-session-read', tool_name: 'shell.session.read' },
+					{ args_hash: 'same-session-read', tool_name: 'shell.session.read' },
+					{ args_hash: 'same-session-read', tool_name: 'shell.session.read' },
+				],
+				turn_count: 6,
+			}),
+		);
+
+		expect(decision).toEqual({
+			decision: 'terminal',
+			loop_state: 'FAILED',
+			reason: {
+				disposition: 'terminal',
+				kind: 'stagnation',
+				loop_state: 'FAILED',
+				turn_count: 6,
+				unique_tool_signatures: 1,
+				window_size: 6,
+			},
+		});
+	});
+
 	it('returns continue when identical tool signatures stay below the repeat threshold', () => {
 		const decision = evaluateStopConditions(
 			createSnapshot({

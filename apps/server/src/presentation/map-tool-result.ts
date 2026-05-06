@@ -51,6 +51,18 @@ function getSuccessEffect(output: unknown): 'already_applied' | 'applied' | unde
 	return effect === 'already_applied' || effect === 'applied' ? effect : undefined;
 }
 
+function getRuntimeFeedback(output: unknown): string | undefined {
+	if (!isRecord(output)) {
+		return undefined;
+	}
+
+	const runtimeFeedback = output['runtime_feedback'];
+
+	return typeof runtimeFeedback === 'string' && runtimeFeedback.trim().length > 0
+		? runtimeFeedback
+		: undefined;
+}
+
 function buildSuccessPreview(output: unknown): ToolResultBlockPreview | undefined {
 	if (typeof output === 'string') {
 		return {
@@ -130,6 +142,12 @@ function buildSummary(toolName: ToolName, result: IngestedToolResult | ToolResul
 
 	if (getSuccessEffect(result.output) === 'already_applied') {
 		return `${toolName} already applied; skipped duplicate execution.`;
+	}
+
+	const runtimeFeedback = getRuntimeFeedback(result.output);
+
+	if (runtimeFeedback !== undefined) {
+		return truncateText(runtimeFeedback, STRING_PREVIEW_LIMIT);
 	}
 
 	return `${toolName} completed successfully.`;

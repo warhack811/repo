@@ -323,6 +323,62 @@ describe('runToolStep', () => {
 		});
 	});
 
+	it('threads shell session lifecycle metadata into completed tool events', async () => {
+		const registry = new ToolRegistry();
+		const shellSessionMetadata = {
+			kind: 'shell_session_lifecycle',
+			next_action_hint: 'read_later_or_stop',
+			redacted_occurrence_count: 0,
+			redacted_source_kinds: [],
+			redaction_applied: false,
+			secret_values_exposed: false,
+			session_id: 'session_run_tool_step',
+			status: 'running',
+			tool_name: 'shell.session.read',
+		};
+		const toolResult: ToolResult = {
+			call_id: 'call_tool_step',
+			metadata: {
+				shell_session: shellSessionMetadata,
+			},
+			output: {
+				has_output: false,
+				runtime_feedback: 'Shell session session_run_tool_step is still running.',
+			},
+			status: 'success',
+			tool_name: 'shell.session.read',
+		};
+
+		registry.register(createFakeTool('shell.session.read', async () => toolResult));
+
+		const result = await runToolStep({
+			bypass_approval_gate: true,
+			current_state: 'MODEL_THINKING',
+			execution_context: createExecutionContext(),
+			registry,
+			run_id: 'run_tool_step',
+			tool_input: {
+				arguments: {
+					session_id: 'session_run_tool_step',
+				},
+				call_id: 'call_tool_step',
+				tool_name: 'shell.session.read',
+			},
+			tool_name: 'shell.session.read',
+			trace_id: 'trace_tool_step',
+		});
+
+		expect(result.status).toBe('completed');
+
+		if (result.status !== 'completed') {
+			throw new Error('Expected shell session read to complete.');
+		}
+
+		expect(result.events[1]?.metadata).toEqual({
+			shell_session: shellSessionMetadata,
+		});
+	});
+
 	it('returns approval_required without executing the tool when approval is needed', async () => {
 		const registry = new ToolRegistry();
 		const persistence = createPersistenceRecorder();
