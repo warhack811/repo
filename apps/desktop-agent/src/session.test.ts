@@ -1,5 +1,11 @@
 import type { DesktopAgentPersistedSession } from './auth.js';
-import { type DesktopAgentBridgeFactory, createDesktopAgentSessionRuntime } from './session.js';
+import {
+	type DesktopAgentBridgeFactory,
+	type DesktopAgentSessionStorage,
+	InMemoryDesktopAgentSessionStorage,
+	createDesktopAgentSessionRuntime,
+	resolveDesktopAgentReconnectDelayMs,
+} from './session.js';
 import type { DesktopAgentBridgeSession } from './ws-bridge.js';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -26,6 +32,14 @@ function createSession(): DesktopAgentPersistedSession {
 		access_token: 'desktop-access-token',
 		expires_at: Math.trunc(Date.now() / 1000) + 3600,
 		refresh_token: 'desktop-refresh-token',
+		token_type: 'Bearer',
+	};
+}
+
+function createExpiredSessionWithoutRefreshToken(): DesktopAgentPersistedSession {
+	return {
+		access_token: 'expired-desktop-access-token',
+		expires_at: Math.trunc(Date.now() / 1000) - 60,
 		token_type: 'Bearer',
 	};
 }
@@ -80,7 +94,17 @@ function createFlakyReconnectBridgeFactory(): {
 
 describe('DesktopAgentSessionRuntime', () => {
 	afterEach(() => {
+		vi.restoreAllMocks();
 		vi.useRealTimers();
+	});
+
+	it('uses bounded exponential reconnect backoff with jitter', () => {
+		expect(resolveDesktopAgentReconnectDelayMs(0, 0.5)).toBe(1500);
+		expect(resolveDesktopAgentReconnectDelayMs(1, 0.5)).toBe(3000);
+		expect(resolveDesktopAgentReconnectDelayMs(2, 0.5)).toBe(6000);
+		expect(resolveDesktopAgentReconnectDelayMs(0, 0)).toBe(1200);
+		expect(resolveDesktopAgentReconnectDelayMs(0, 1)).toBe(1800);
+		expect(resolveDesktopAgentReconnectDelayMs(10, 1)).toBe(30000);
 	});
 
 	it('reconnects the desktop bridge after an unexpected socket close', async () => {
@@ -105,7 +129,7 @@ describe('DesktopAgentSessionRuntime', () => {
 			status: 'bridge_error',
 		});
 
-		await vi.advanceTimersByTimeAsync(1500);
+		await vi.advanceTimersByTimeAsync(1800);
 		await vi.waitFor(() => {
 			expect(bridgeFactory).toHaveBeenCalledTimes(2);
 		});
@@ -131,7 +155,7 @@ describe('DesktopAgentSessionRuntime', () => {
 		expect(bridgeFactory).toHaveBeenCalledTimes(1);
 
 		sockets[0]?.close(1012, 'Server restarted.');
-		await vi.advanceTimersByTimeAsync(1500);
+		await vi.advanceTimersByTimeAsync(1800);
 		await vi.waitFor(() => {
 			expect(bridgeFactory).toHaveBeenCalledTimes(2);
 		});
@@ -140,7 +164,7 @@ describe('DesktopAgentSessionRuntime', () => {
 			status: 'bridge_error',
 		});
 
-		await vi.advanceTimersByTimeAsync(1500);
+		await vi.advanceTimersByTimeAsync(3600);
 		await vi.waitFor(() => {
 			expect(bridgeFactory).toHaveBeenCalledTimes(3);
 		});
@@ -168,5 +192,27 @@ describe('DesktopAgentSessionRuntime', () => {
 		expect(runtime.getSnapshot()).toMatchObject({
 			status: 'signed_in',
 		});
+	});
+
+	it('clears an expired stored session when no refresh token is available', async () => {
+		const { bridgeFactory } = createBridgeFactory();
+		const sessionStorage: DesktopAgentSessionStorage = new InMemoryDesktopAgentSessionStorage(
+			createExpiredSessionWithoutRefreshToken(),
+		);
+		const runtime = createDesktopAgentSessionRuntime({
+			agent_id: 'agent-expired',
+			bridge_factory: bridgeFactory,
+			machine_label: 'Expired Host',
+			server_url: 'ws://127.0.0.1:3000/ws/desktop-agent',
+			session_storage: sessionStorage,
+		});
+
+		await expect(runtime.start()).resolves.toMatchObject({
+			reason: 'refresh_failed',
+			status: 'signed_out',
+		});
+
+		expect(bridgeFactory).not.toHaveBeenCalled();
+		await expect(sessionStorage.load()).resolves.toBeNull();
 	});
 });
