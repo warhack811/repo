@@ -75,9 +75,40 @@ describe('applyGuardrails', () => {
 		});
 	});
 
+	it.each([
+		'acaba package.json dosyasina bakiyorum',
+		'belki package.json dosyasina bakiyorum',
+		'sanirim package.json dosyasina bakiyorum',
+		'sanırım package.json dosyasına bakıyorum',
+		'dusunuyorum package.json dosyasina bakiyorum',
+		'düşünüyorum package.json dosyasına bakıyorum',
+	])('rejects TR deliberation keyword: %s', (text) => {
+		expect(applyGuardrails(text, context)).toEqual({
+			accepted: false,
+			reject_reason: 'deliberation',
+		});
+	});
+
 	it('rejects EN deliberation in EN locale', () => {
 		expect(
 			applyGuardrails('maybe I should check the file', {
+				locale: 'en',
+				previous_narrations: [],
+			}),
+		).toEqual({
+			accepted: false,
+			reject_reason: 'deliberation',
+		});
+	});
+
+	it.each([
+		'maybe I should check package.json',
+		'perhaps I should check package.json',
+		'I think I should check package.json',
+		'let me think about package.json',
+	])('rejects EN deliberation keyword: %s', (text) => {
+		expect(
+			applyGuardrails(text, {
 				locale: 'en',
 				previous_narrations: [],
 			}),

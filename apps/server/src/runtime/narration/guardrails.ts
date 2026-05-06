@@ -54,6 +54,13 @@ function normalizeText(value: string): string {
 	return value.trim().toLocaleLowerCase('tr-TR').replace(/\s+/gu, ' ');
 }
 
+function normalizeTextForLocale(value: string, locale: SupportedLocale): string {
+	return value
+		.trim()
+		.toLocaleLowerCase(locale === 'tr' ? 'tr-TR' : 'en-US')
+		.replace(/\s+/gu, ' ');
+}
+
 function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
@@ -63,10 +70,10 @@ function createKeywordPattern(keyword: string): RegExp {
 }
 
 function hasDeliberationKeyword(text: string, locale: SupportedLocale): boolean {
-	const normalized = normalizeText(text);
+	const normalized = normalizeTextForLocale(text, locale);
 
 	return deliberationKeywordsByLocale[locale].some((keyword) =>
-		createKeywordPattern(normalizeText(keyword)).test(normalized),
+		createKeywordPattern(normalizeTextForLocale(keyword, locale)).test(normalized),
 	);
 }
 

@@ -13,6 +13,17 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-WORK-NARRATION-PHASE-6 - 5 Mayis 2026
+
+- Kapsam: Production hardening, observability, reasoning leakage denetimi, docs ve release checklist. Buyuk mimari refactor, yeni UI yuzeyi ve incremental persistence uygulanmadi.
+- Audit: Prompt gate `native_blocks` / `temporal_stream`; unsupported provider'lar prompt ve narration emission disinda. DeepSeek `reasoning_content` normal assistant content'ten ayriliyor ve user-facing narration kaynagi degil.
+- Edge cases: locale-aware deliberation guardrail guclendirildi; EN `I think` bug'i Turkce lowercasing kaynakli kaciyordu ve locale-aware normalize ile duzeltildi. Tool-output quote, long narration truncate, direct-tool/no-narration, synthetic_non_streaming suppression ve observability redaction testleri eklendi.
+- Observability: `narration.started`, `narration.completed`, `narration.superseded`, `narration.guardrail.rejected`, `narration.tool_outcome_linked`, `narration.provider_unsupported` ve `narration.synthetic_ordering_suppressed` log metadata helper'i eklendi. Full narration text, tool output ve reasoning ham icerigi loglanmiyor.
+- Metrics: General server metrics exporter bulunmadigi icin narration metrics kodda sahte counter olarak eklenmedi; future metrics `docs/architecture/work-narration.md` altinda belgelendi.
+- DeepSeek smoke: Shell env'de `DEEPSEEK_API_KEY` yoksa canli smoke skip edilir; API key/log guvenligi geregi key degeri yazilmaz.
+- Docs: `docs/architecture/work-narration.md`, `docs/architecture/reasoning-persistence.md` ve `docs/architecture/work-narration-release-checklist.md` guncellendi.
+- Faz commit zinciri: `6a8548f`, `2ca55f5`, `79e741f`, `5a8add3`, `2f7ebcf`, `899e941`, `f41c4c4`, `fae6ce6`; Faz 6 final commit hash'i commit olustuktan sonra raporda verilir.
+
 ### TASK-WORK-NARRATION-PHASE-2B - 5 Mayis 2026
 
 - Kapsam: Faz 2A/2A.5 altyapisi uzerine backend-only narration runtime emission eklendi. Classifier `ordered_content` pozisyonunu, `turn_intent`, `ordering_origin` ve provider `narration_strategy` gate'ini kullanarak final answer ile work narration adaylarini ayiriyor.

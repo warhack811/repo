@@ -57,6 +57,11 @@ import {
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
 import { classifyNarration } from '../runtime/narration/classify.js';
 import { buildNarrationEmissionEvents } from '../runtime/narration/emission.js';
+import {
+	createNarrationGuardrailRejectionLogFields,
+	createNarrationRuntimeEventLogFields,
+	createNarrationSuppressionLogFields,
+} from '../runtime/narration/observability.js';
 import { orchestrateMemoryWrite } from '../runtime/orchestrate-memory-write.js';
 import { defaultProviderHealthStore } from '../runtime/provider-health.js';
 import { requestApproval } from '../runtime/request-approval.js';
@@ -1509,14 +1514,44 @@ async function runPolicyAwareModelTurn(
 		};
 	}
 
+	if (narrationEmission.emission_decision === 'skip_unsupported') {
+		turnLogger.info(
+			'narration.provider_unsupported',
+			createNarrationSuppressionLogFields({
+				capabilities: input.model_gateway.capabilities,
+				decision: narrationEmission.emission_decision,
+				model: modelResponse.model,
+				provider: modelResponse.provider,
+			}),
+		);
+	}
+
+	if (narrationEmission.emission_decision === 'skip_synthetic') {
+		turnLogger.info(
+			'narration.synthetic_ordering_suppressed',
+			createNarrationSuppressionLogFields({
+				capabilities: input.model_gateway.capabilities,
+				decision: narrationEmission.emission_decision,
+				model: modelResponse.model,
+				provider: modelResponse.provider,
+			}),
+		);
+	}
+
 	for (const rejection of narrationEmission.rejections) {
-		turnLogger.info('narration.guardrail.rejected', {
-			reason: rejection.reason,
-			sequence_no: rejection.sequence_no,
-		});
+		turnLogger.info(
+			'narration.guardrail.rejected',
+			createNarrationGuardrailRejectionLogFields(rejection),
+		);
 	}
 
 	for (const event of narrationEmission.events) {
+		const narrationLogFields = createNarrationRuntimeEventLogFields(event);
+
+		if (narrationLogFields) {
+			turnLogger.info(event.event_type, narrationLogFields);
+		}
+
 		options.on_runtime_event?.(event);
 		sendNarrationServerMessageForRuntimeEvent(
 			socket,
@@ -1538,24 +1573,27 @@ async function runPolicyAwareModelTurn(
 				continue;
 			}
 
-			options.on_runtime_event?.(
-				buildNarrationToolOutcomeLinkedEvent(
-					{
-						locale: options.locale ?? 'tr',
-						linked_tool_call_id: linkedNarration.tool_call_id,
-						narration_id: linkedNarration.narration_id,
-						outcome: toolResult.status === 'success' ? 'success' : 'failure',
-						sequence_no: linkedNarration.sequence_no,
-						tool_call_id: linkedNarration.tool_call_id,
-						turn_index: input.turn_index ?? 1,
-					},
-					{
-						run_id: input.run_id,
-						sequence_no: options.get_next_runtime_sequence_no?.() ?? 1,
-						trace_id: input.trace_id,
-					},
-				),
+			const outcomeEvent = buildNarrationToolOutcomeLinkedEvent(
+				{
+					locale: options.locale ?? 'tr',
+					linked_tool_call_id: linkedNarration.tool_call_id,
+					narration_id: linkedNarration.narration_id,
+					outcome: toolResult.status === 'success' ? 'success' : 'failure',
+					sequence_no: linkedNarration.sequence_no,
+					tool_call_id: linkedNarration.tool_call_id,
+					turn_index: input.turn_index ?? 1,
+				},
+				{
+					run_id: input.run_id,
+					sequence_no: options.get_next_runtime_sequence_no?.() ?? 1,
+					trace_id: input.trace_id,
+				},
 			);
+			turnLogger.info(
+				'narration.tool_outcome_linked',
+				createNarrationRuntimeEventLogFields(outcomeEvent) ?? {},
+			);
+			options.on_runtime_event?.(outcomeEvent);
 		}
 	};
 
