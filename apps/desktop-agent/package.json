@@ -16,6 +16,7 @@
 		"test:presence-release-proof": "pnpm --filter @runa/types build && pnpm --filter @runa/server build && pnpm run dist:win && node scripts/packaged-runtime-smoke.mjs",
 		"smoke:packaged": "node scripts/packaged-runtime-smoke.mjs",
 		"smoke:reliability": "node scripts/desktop-packaged-reconnect-smoke.mjs",
+		"smoke:live-auth": "node scripts/live-auth-companion-smoke.mjs",
 		"start:electron": "node scripts/start-electron.mjs",
 		"test": "vitest run --config ./vitest.config.mjs",
 		"typecheck": "tsc --noEmit",
