@@ -200,7 +200,9 @@ function successOutput(result) {
 	}
 
 	if (result.tool_result.status !== 'success') {
-		throw new Error(`Expected successful ${result.tool_name}, got ${result.tool_result.status}.`);
+		throw new Error(
+			`Expected successful ${result.tool_name}, got ${result.tool_result.status}.`,
+		);
 	}
 
 	return result.tool_result.output;
@@ -356,7 +358,12 @@ async function runDeepSeekSchemaProof(input) {
 	try {
 		response = await gateway.generate(toolSchemaRequest);
 	} catch (error) {
-		if (!(error instanceof Error && error.message.includes('invalid tool call candidate'))) {
+		if (
+			!(
+				error instanceof Error &&
+				error.message.includes('invalid tool call candidate')
+			)
+		) {
 			throw error;
 		}
 
@@ -365,7 +372,8 @@ async function runDeepSeekSchemaProof(input) {
 			max_output_tokens: 64,
 			messages: [
 				{
-					content: 'You are a terse live validation assistant. Reply in one sentence.',
+					content:
+						'You are a terse live validation assistant. Reply in one sentence.',
 					role: 'system',
 				},
 				{

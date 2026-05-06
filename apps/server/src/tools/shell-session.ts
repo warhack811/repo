@@ -912,10 +912,7 @@ function createErrorResult<TInput extends ShellSessionAnyInput>(
 function createSuccessResult<
 	TInput extends ShellSessionAnyInput,
 	TOutput extends ShellSessionReadData | ShellSessionStartData | ShellSessionStopData,
->(
-	input: TInput,
-	output: TOutput,
-): ToolResultSuccess<TInput['tool_name'], TOutput> {
+>(input: TInput, output: TOutput): ToolResultSuccess<TInput['tool_name'], TOutput> {
 	return {
 		call_id: input.call_id,
 		metadata: {
