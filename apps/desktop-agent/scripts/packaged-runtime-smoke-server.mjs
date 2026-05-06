@@ -256,7 +256,7 @@ function createProviderFetchStub() {
 			});
 		}
 
-		throw new Error(`[desktop-packaged-smoke] Unexpected provider fetch state.`);
+		throw new Error('[desktop-packaged-smoke] Unexpected provider fetch state.');
 	};
 }
 
