@@ -2,6 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+	buildProviderAuthoritySummary,
+	loadEnvAuthorityFiles,
+	readEnvValue,
+	resolveEnvAuthority,
+} from './env-authority.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(__dirname, '..');
@@ -15,58 +21,78 @@ const DEFAULT_FAST_MODEL = 'deepseek-v4-flash';
 const DEFAULT_REASONING_MODEL = 'deepseek-v4-pro';
 
 function readEnv(name) {
-	const value = process.env[name];
-
-	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+	return readEnvValue(process.env, name);
 }
 
-function resolveApiKeySource() {
-	const deepSeekApiKey = readEnv(DEEPSEEK_API_KEY_ENV);
+function resolveApiKeySource(files) {
+	const authority = resolveEnvAuthority({
+		env: process.env,
+		files,
+		name: DEEPSEEK_API_KEY_ENV,
+		required: true,
+	});
 
-	if (deepSeekApiKey) {
+	if (!authority.value) {
 		return {
-			apiKey: deepSeekApiKey,
-			envName: DEEPSEEK_API_KEY_ENV,
+			authority,
 		};
 	}
 
-	return undefined;
+	return {
+		apiKey: authority.value,
+		authority,
+		envName: DEEPSEEK_API_KEY_ENV,
+	};
 }
 
-function resolveModelSources() {
+function resolveModelSources(files) {
+	const fast = resolveEnvAuthority({
+		defaultValue: DEFAULT_FAST_MODEL,
+		env: process.env,
+		files,
+		name: DEEPSEEK_FAST_MODEL_ENV,
+	});
+	const reasoning = resolveEnvAuthority({
+		defaultValue: DEFAULT_REASONING_MODEL,
+		env: process.env,
+		files,
+		name: DEEPSEEK_REASONING_MODEL_ENV,
+	});
+
 	return {
 		fast: {
-			envName: readEnv(DEEPSEEK_FAST_MODEL_ENV) ? DEEPSEEK_FAST_MODEL_ENV : undefined,
-			model: readEnv(DEEPSEEK_FAST_MODEL_ENV) ?? DEFAULT_FAST_MODEL,
+			authority: fast,
+			envName: fast.report.resolved_from === 'default' ? undefined : DEEPSEEK_FAST_MODEL_ENV,
+			model: fast.value ?? DEFAULT_FAST_MODEL,
 		},
 		reasoning: {
-			envName: readEnv(DEEPSEEK_REASONING_MODEL_ENV) ? DEEPSEEK_REASONING_MODEL_ENV : undefined,
-			model: readEnv(DEEPSEEK_REASONING_MODEL_ENV) ?? DEFAULT_REASONING_MODEL,
+			authority: reasoning,
+			envName:
+				reasoning.report.resolved_from === 'default' ? undefined : DEEPSEEK_REASONING_MODEL_ENV,
+			model: reasoning.value ?? DEFAULT_REASONING_MODEL,
 		},
 	};
 }
 
 function buildAuthoritySummary(input) {
-	return {
-		api_key_authority: {
-			alias_env: null,
-			authoritative_env: DEEPSEEK_API_KEY_ENV,
-			resolved_from: input.apiKeySource?.envName,
-		},
-		env_example_authoritative: false,
-		model_authority: {
+	return buildProviderAuthoritySummary({
+		apiKeyAuthority: input.apiKeySource.authority,
+		authoritativeEnv: DEEPSEEK_API_KEY_ENV,
+		modelAuthorities: {
 			fast: {
 				authoritative_env: DEEPSEEK_FAST_MODEL_ENV,
 				default_model: DEFAULT_FAST_MODEL,
 				resolved_from: input.modelSources.fast.envName ?? 'default',
+				source: input.modelSources.fast.authority.report.source,
 			},
 			reasoning: {
 				authoritative_env: DEEPSEEK_REASONING_MODEL_ENV,
 				default_model: DEFAULT_REASONING_MODEL,
 				resolved_from: input.modelSources.reasoning.envName ?? 'default',
+				source: input.modelSources.reasoning.authority.report.source,
 			},
 		},
-	};
+	});
 }
 
 function toErrorSummary(error) {
@@ -303,17 +329,24 @@ function printSummary(summary) {
 }
 
 async function main() {
-	const apiKeySource = resolveApiKeySource();
-	const modelSources = resolveModelSources();
+	const envFiles = loadEnvAuthorityFiles(repoRoot);
+	const apiKeySource = resolveApiKeySource(envFiles);
+	const modelSources = resolveModelSources(envFiles);
+	const databaseUrlAuthority = resolveEnvAuthority({
+		env: process.env,
+		files: envFiles,
+		name: 'DATABASE_URL',
+	});
 
-	if (!apiKeySource) {
+	if (!apiKeySource.apiKey) {
 		printSummary({
 			...buildAuthoritySummary({
 				apiKeySource,
 				modelSources,
 			}),
 			blocker_kind: 'credential_missing',
-			database_url_present: readEnv('DATABASE_URL') !== undefined,
+			database_url_authority: databaseUrlAuthority.report,
+			database_url_present: databaseUrlAuthority.report.present,
 			provider: 'deepseek',
 			result: 'BLOCKED',
 			stage_results: [],
@@ -337,14 +370,15 @@ async function main() {
 		stageResults.push(await runReasoningRoundtrip(sharedInput));
 		stageResults.push(await runStreamingRoundtrip(sharedInput));
 		stageResults.push(await runToolSchemaRequest(sharedInput));
-	} catch (error) {
+			} catch (error) {
 		printSummary({
 			...buildAuthoritySummary({
 				apiKeySource,
 				modelSources,
 			}),
 			api_key_env: apiKeySource.envName,
-			database_url_present: readEnv('DATABASE_URL') !== undefined,
+			database_url_authority: databaseUrlAuthority.report,
+			database_url_present: databaseUrlAuthority.report.present,
 			error: toErrorSummary(error),
 			provider: 'deepseek',
 			result: 'FAIL',
@@ -359,10 +393,11 @@ async function main() {
 		...buildAuthoritySummary({
 			apiKeySource,
 			modelSources,
-		}),
-		api_key_env: apiKeySource.envName,
-		database_url_present: readEnv('DATABASE_URL') !== undefined,
-		provider: 'deepseek',
+	}),
+	api_key_env: apiKeySource.envName,
+	database_url_authority: databaseUrlAuthority.report,
+	database_url_present: databaseUrlAuthority.report.present,
+	provider: 'deepseek',
 		result: 'PASS',
 		stage_results: stageResults,
 		working_directory: repoRoot,

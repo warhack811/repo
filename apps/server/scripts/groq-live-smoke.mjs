@@ -2,15 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+	buildProviderAuthoritySummary,
+	loadEnvAuthorityFiles,
+	readEnvValue,
+	resolveEnvAuthority,
+} from './env-authority.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(serverRoot, '..', '..');
 const distRoot = path.resolve(serverRoot, 'dist');
-const localSmokeEnvFiles = [
-	{ label: '.env', path: path.resolve(repoRoot, '.env') },
-	{ label: '.env.local', path: path.resolve(repoRoot, '.env.local') },
-];
+const localSmokeEnvFiles = loadEnvAuthorityFiles(repoRoot);
 
 const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 const GROQ_API_KEY_ENV = 'GROQ_API_KEY';
@@ -76,9 +79,7 @@ const smokeModes = {
 const COMPATIBILITY_MATRIX_REQUEST_DELAY_MS = 15_000;
 
 function readEnv(name) {
-	const value = process.env[name];
-
-	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+	return readEnvValue(process.env, name);
 }
 
 function normalizeEnvValue(rawValue) {
@@ -130,70 +131,58 @@ function readEnvFileValue(filePath, name) {
 }
 
 function resolveLocalSmokeEnvFileValue(name) {
-	for (const envFile of localSmokeEnvFiles) {
-		const value = readEnvFileValue(envFile.path, name);
+	const authority = resolveEnvAuthority({
+		env: {},
+		files: localSmokeEnvFiles,
+		name,
+	});
 
-		if (value) {
-			return {
-				envName: name,
-				source: envFile.label,
-				value,
-			};
-		}
+	if (authority.value) {
+		return {
+			envName: name,
+			source: authority.report.source,
+			value: authority.value,
+		};
 	}
 
 	return undefined;
 }
 
 function resolveApiKeySource() {
-	const groqApiKey = readEnv(GROQ_API_KEY_ENV);
+	const authority = resolveEnvAuthority({
+		env: process.env,
+		files: localSmokeEnvFiles,
+		name: GROQ_API_KEY_ENV,
+		required: true,
+	});
 
-	if (groqApiKey) {
+	if (!authority.value) {
 		return {
-			apiKey: groqApiKey,
-			envName: GROQ_API_KEY_ENV,
-			source: 'process.env',
+			authority,
 		};
 	}
 
-	const fileBackedApiKey = resolveLocalSmokeEnvFileValue(GROQ_API_KEY_ENV);
-
-	if (!fileBackedApiKey) {
-		return undefined;
-	}
-
 	return {
-		apiKey: fileBackedApiKey.value,
-		envName: fileBackedApiKey.envName,
-		source: fileBackedApiKey.source,
+		apiKey: authority.value,
+		authority,
+		envName: GROQ_API_KEY_ENV,
+		source: authority.report.source,
 	};
 }
 
 function resolveModelSource() {
-	const groqModel = readEnv(GROQ_MODEL_ENV);
-
-	if (groqModel) {
-		return {
-			envName: GROQ_MODEL_ENV,
-			model: groqModel,
-			source: 'process.env',
-		};
-	}
-
-	const fileBackedModel = resolveLocalSmokeEnvFileValue(GROQ_MODEL_ENV);
-
-	if (fileBackedModel) {
-		return {
-			envName: fileBackedModel.envName,
-			model: fileBackedModel.value,
-			source: fileBackedModel.source,
-		};
-	}
+	const authority = resolveEnvAuthority({
+		defaultValue: DEFAULT_MODEL,
+		env: process.env,
+		files: localSmokeEnvFiles,
+		name: GROQ_MODEL_ENV,
+	});
 
 	return {
-		envName: undefined,
-		model: DEFAULT_MODEL,
-		source: 'default',
+		authority,
+		envName: authority.report.resolved_from === 'default' ? undefined : GROQ_MODEL_ENV,
+		model: authority.value ?? DEFAULT_MODEL,
+		source: authority.report.source,
 	};
 }
 
@@ -208,23 +197,18 @@ function resolveSmokeMode() {
 }
 
 function buildAuthoritySummary(input) {
-	return {
-		api_key_authority: {
-			alias_env: null,
-			authoritative_env: GROQ_API_KEY_ENV,
-			legacy_non_authoritative_envs: LEGACY_NON_AUTHORITATIVE_GROQ_ENVS,
-			resolved_from: input.apiKeySource?.envName,
-			source: input.apiKeySource?.source ?? null,
-		},
-		env_example_authoritative: false,
-		model_authority: {
+	return buildProviderAuthoritySummary({
+		apiKeyAuthority: input.apiKeySource.authority,
+		authoritativeEnv: GROQ_API_KEY_ENV,
+		legacyNonAuthoritativeEnvs: LEGACY_NON_AUTHORITATIVE_GROQ_ENVS,
+		modelAuthorities: {
 			alias_env: null,
 			authoritative_env: GROQ_MODEL_ENV,
 			default_model: DEFAULT_MODEL,
 			resolved_from: input.modelSource.envName ?? 'default',
 			source: input.modelSource.source,
 		},
-	};
+	});
 }
 
 function toErrorSummary(error) {
@@ -783,15 +767,21 @@ async function main() {
 	const modelSource = resolveModelSource();
 	const model = modelSource.model;
 	const smokeMode = resolveSmokeMode();
+	const databaseUrlAuthority = resolveEnvAuthority({
+		env: process.env,
+		files: localSmokeEnvFiles,
+		name: 'DATABASE_URL',
+	});
 
-	if (!apiKeySource) {
+	if (!apiKeySource.apiKey) {
 		printSummary({
 			...buildAuthoritySummary({
 				apiKeySource,
 				modelSource,
 			}),
 			blocker_kind: 'credential_missing',
-			database_url_present: readEnv('DATABASE_URL') !== undefined,
+			database_url_authority: databaseUrlAuthority.report,
+			database_url_present: databaseUrlAuthority.report.present,
 			model,
 			provider: 'groq',
 			result: 'BLOCKED',
@@ -845,7 +835,8 @@ async function main() {
 				modelSource,
 			}),
 			api_key_env: apiKeySource.envName,
-			database_url_present: readEnv('DATABASE_URL') !== undefined,
+			database_url_authority: databaseUrlAuthority.report,
+			database_url_present: databaseUrlAuthority.report.present,
 			error: toErrorSummary(error),
 			model,
 			provider: 'groq',
@@ -864,10 +855,11 @@ async function main() {
 		...buildAuthoritySummary({
 			apiKeySource,
 			modelSource,
-		}),
-		api_key_env: apiKeySource.envName,
-		database_url_present: readEnv('DATABASE_URL') !== undefined,
-		model,
+	}),
+	api_key_env: apiKeySource.envName,
+	database_url_authority: databaseUrlAuthority.report,
+	database_url_present: databaseUrlAuthority.report.present,
+	model,
 		provider: 'groq',
 		result: hasFailedStage ? 'FAIL' : 'PASS',
 		smoke_mode: smokeMode,

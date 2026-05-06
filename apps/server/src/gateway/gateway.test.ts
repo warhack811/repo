@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.js';
 import { ClaudeGateway } from './claude-gateway.js';
+import { resolveGatewayConfig, resolveGatewayConfigAuthority } from './config-resolver.js';
 import { DeepSeekGateway } from './deepseek-gateway.js';
 import { GatewayConfigurationError, GatewayResponseError } from './errors.js';
 import { createModelGateway, getGatewayProviderCapabilities } from './factory.js';
@@ -623,6 +624,61 @@ describe('gateway factory', () => {
 			provider: 'groq',
 		});
 
+		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayConfigurationError);
+	});
+
+	it('reports client config as the gateway API key authority when provided', () => {
+		const authority = resolveGatewayConfigAuthority(
+			'groq',
+			{
+				apiKey: 'client-key',
+			},
+			{
+				GROQ_API_KEY: 'server-key',
+			},
+		);
+		const resolvedConfig = resolveGatewayConfig('groq', {
+			apiKey: 'client-key',
+		});
+
+		expect(authority.api_key_authority.source).toBe('client_config');
+		expect(authority.api_key_authority.resolved_from).toBe('client_config');
+		expect(authority.api_key_authority.masked_preview).not.toContain('client-key');
+		expect(resolvedConfig.apiKey).toBe('client-key');
+	});
+
+	it('reports process env as the gateway API key authority when client config is empty', () => {
+		const authority = resolveGatewayConfigAuthority(
+			'deepseek',
+			{
+				apiKey: ' ',
+			},
+			{
+				DEEPSEEK_API_KEY: 'server-deepseek-key',
+			},
+		);
+
+		expect(authority.api_key_authority.source).toBe('process_env');
+		expect(authority.api_key_authority.resolved_from).toBe('DEEPSEEK_API_KEY');
+	});
+
+	it('reports missing gateway API key authority without changing missing-key behavior', async () => {
+		const authority = resolveGatewayConfigAuthority(
+			'groq',
+			{
+				apiKey: ' ',
+			},
+			{},
+		);
+		const gateway = createModelGateway({
+			config: {
+				apiKey: '   ',
+			},
+			provider: 'groq',
+		});
+
+		expect(authority.api_key_authority.source).toBe('missing');
+		expect(authority.api_key_authority.missing_required_names).toEqual(['GROQ_API_KEY']);
 		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayConfigurationError);
 	});
 });

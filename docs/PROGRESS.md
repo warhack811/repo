@@ -13,6 +13,16 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Önemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) başarıyla tamamlandı; Runa artık bozuk model çıktılarını kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter içinde kullanabiliyor ve DeepSeek ana üretim yolu (primary baseline) olarak onaylandı.
 
+### TASK-TERMINAL-ENV-AUTHORITY-01 - 6 Mayis 2026
+
+- Kapsam: Terminal/runtime env otoritesi netlestirildi; provider smoke ve persistence proof ozetleri artik shell env, `.env.local`, `.env`, `.env.compose`, `client_config`, `default` ve `missing` kaynaklarini ayrica raporluyor.
+- Uygulama: TypeScript resolver `apps/server/src/config/env-authority.ts` ve script helper `apps/server/scripts/env-authority.mjs` eklendi. Precedence `client_config > process_env > .env.local > .env > .env.compose > default > missing`; secret degerleri yalnizca maskeli preview ile cikiyor.
+- Gateway: `resolveGatewayConfigAuthority` eklendi; mevcut `resolveGatewayConfig` davranisi ve public kontrat bozulmadi. Client config ve env-backed provider key kaynaklari testlerle ayrildi.
+- Smoke/proof: DeepSeek ve Groq live smoke summaryleri API key, model ve `DATABASE_URL` otoritesini maskeli ve kanitlanabilir sekilde raporluyor. Persistence/approval proof scriptleri file-backed env yuklemesini ayni authority ozetiyle yapiyor.
+- Canli kanit: DeepSeek live smoke PASS; API key `.env`, DeepSeek model secimleri `.env`, `DATABASE_URL` `.env.local` olarak raporlandi. Groq live smoke PASS; API key `.env`, model `default`, `DATABASE_URL` `.env.local` olarak raporlandi.
+- Dogrulama: `node --check apps/server/scripts/deepseek-live-smoke.mjs` PASS; `node --check apps/server/scripts/groq-live-smoke.mjs` PASS; `pnpm.cmd --filter @runa/server run test:deepseek-live-smoke` PASS; `pnpm.cmd --filter @runa/server run test:groq-live-smoke` PASS; `pnpm.cmd --filter @runa/server typecheck` PASS; `pnpm.cmd --filter @runa/server test -- env-authority gateway model-router` PASS (`164` test); `pnpm.cmd --filter @runa/server lint` PASS (`358` dosya).
+- Not: Server lint baselineini kapatmak icin `apps/server/src/presentation/map-run-timeline.ts` uzerinde format-only duzeltme de dahil edildi. PowerShell profile kaynakli `\` gurultusu komut exit codelarini bozmadigi icin urun hatasi olarak ele alinmadi.
+
 ### TASK-WORK-NARRATION-PHASE-6 - 5 Mayis 2026
 
 - Kapsam: Production hardening, observability, reasoning leakage denetimi, docs ve release checklist. Buyuk mimari refactor, yeni UI yuzeyi ve incremental persistence uygulanmadi.

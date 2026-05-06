@@ -4,6 +4,11 @@ import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'n
 import os from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+	applyFileBackedEnvironment,
+	loadEnvAuthorityFiles,
+	resolveEnvAuthority,
+} from './env-authority.mjs';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const serverRoot = resolve(scriptDirectory, '..');
@@ -120,33 +125,34 @@ function readEnvironmentFile(filePath) {
 }
 
 function createLoadedEnvironment() {
-	const shellGroqApiKey = process.env.GROQ_API_KEY?.trim() || undefined;
-	const envValues = readEnvironmentFile(envFilePath);
-	const envLocalValues = readEnvironmentFile(envLocalFilePath);
-	const mergedFileValues = {
-		...envValues,
-		...envLocalValues,
-	};
+	const envFiles = loadEnvAuthorityFiles(workspaceRoot);
+	const authority = resolveEnvAuthority({
+		env: process.env,
+		files: envFiles,
+		name: 'GROQ_API_KEY',
+		required: true,
+	});
+	const loaded = applyFileBackedEnvironment(process.env, envFiles);
 	const environment = {
-		...process.env,
-		...mergedFileValues,
+		...loaded.env,
 		NODE_ENV: process.env.NODE_ENV ?? 'development',
 		RUNA_DEV_AUTH_ENABLED: process.env.RUNA_DEV_AUTH_ENABLED ?? '1',
 		RUNA_DEV_AUTH_SECRET: process.env.RUNA_DEV_AUTH_SECRET ?? randomUUID(),
 		RUNA_DEV_AUTH_EMAIL: process.env.RUNA_DEV_AUTH_EMAIL ?? 'dev@runa.local',
 	};
-	const fileBackedGroqApiKey = mergedFileValues.GROQ_API_KEY?.trim() || undefined;
 
 	return {
 		environment,
-		file_backed_groq_api_key_present: fileBackedGroqApiKey !== undefined,
-		groq_api_key_source:
-			shellGroqApiKey !== undefined
-				? 'shell_env'
-				: fileBackedGroqApiKey !== undefined
-					? 'file_backed_env'
-					: 'missing',
-		shell_groq_api_key_present: shellGroqApiKey !== undefined,
+		env_authority: {
+			...loaded.summary,
+			groq_api_key_authority: authority.report,
+		},
+		file_backed_groq_api_key_present:
+			authority.report.source === '.env' ||
+			authority.report.source === '.env.local' ||
+			authority.report.source === '.env.compose',
+		groq_api_key_source: authority.report.source,
+		shell_groq_api_key_present: authority.report.source === 'process_env',
 	};
 }
 
@@ -839,6 +845,7 @@ async function main() {
 
 	if (envState.groq_api_key_source === 'missing') {
 		printSummary({
+			env_authority: envState.env_authority,
 			groq_api_key_source: 'missing',
 			prompt_variant: promptVariant.id,
 			result: 'BLOCKED',
@@ -854,6 +861,7 @@ async function main() {
 
 	if (!existsSync(edgePath)) {
 		printSummary({
+			env_authority: envState.env_authority,
 			groq_api_key_source: envState.groq_api_key_source,
 			prompt_variant: promptVariant.id,
 			result: 'BLOCKED',
@@ -1023,6 +1031,7 @@ async function main() {
 		printSummary({
 			browser_runtime_config_model: configuredModel,
 			chain: summarizeBrowserChain(authorityOutcome),
+			env_authority: envState.env_authority,
 			groq_api_key_source: envState.groq_api_key_source,
 			prompt_variant: promptVariant.id,
 			result: 'PASS',
@@ -1079,6 +1088,7 @@ async function main() {
 				runRequestMessage: authorityOutcome.runRequestMessage,
 				serverLogs: combinedServerLogs,
 			}),
+			env_authority: envState.env_authority,
 			groq_api_key_source: envState.groq_api_key_source,
 			provider_error_debug: summarizeProviderErrorDebugPayload(lastProviderErrorDebugPayload),
 			prompt_variant: promptVariant.id,

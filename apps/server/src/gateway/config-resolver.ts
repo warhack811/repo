@@ -1,4 +1,18 @@
+import { type EnvAuthorityReport, resolveEnvAuthority } from '../config/env-authority.js';
 import type { GatewayProviderConfig } from './providers.js';
+
+const envKeyMap: Record<string, string> = {
+	claude: 'ANTHROPIC_API_KEY',
+	deepseek: 'DEEPSEEK_API_KEY',
+	gemini: 'GEMINI_API_KEY',
+	groq: 'GROQ_API_KEY',
+	openai: 'OPENAI_API_KEY',
+	sambanova: 'SAMBANOVA_API_KEY',
+};
+
+export interface GatewayConfigAuthority {
+	readonly api_key_authority: EnvAuthorityReport;
+}
 
 /**
  * GatewayConfigResolver
@@ -13,14 +27,6 @@ export function resolveGatewayConfig(
 	const env = process.env as NodeJS.ProcessEnv & {
 		readonly OPENAI_BASE_URL?: string;
 		readonly RUNA_OPENAI_BASE_URL?: string;
-	};
-	const envKeyMap: Record<string, string> = {
-		claude: 'ANTHROPIC_API_KEY',
-		deepseek: 'DEEPSEEK_API_KEY',
-		gemini: 'GEMINI_API_KEY',
-		groq: 'GROQ_API_KEY',
-		openai: 'OPENAI_API_KEY',
-		sambanova: 'SAMBANOVA_API_KEY',
 	};
 
 	const envKeyName = envKeyMap[provider];
@@ -44,5 +50,23 @@ export function resolveGatewayConfig(
 		...clientConfig,
 		apiKey: effectiveApiKey?.trim() ?? '',
 		baseUrl: effectiveBaseUrl,
+	};
+}
+
+export function resolveGatewayConfigAuthority(
+	provider: string,
+	clientConfig: GatewayProviderConfig,
+	env: Readonly<Record<string, string | undefined>> = process.env,
+): GatewayConfigAuthority {
+	const envKeyName = envKeyMap[provider];
+	const authority = resolveEnvAuthority({
+		clientValue: clientConfig.apiKey,
+		env,
+		name: envKeyName ?? `${provider.toUpperCase()}_API_KEY`,
+		required: true,
+	});
+
+	return {
+		api_key_authority: authority.report,
 	};
 }

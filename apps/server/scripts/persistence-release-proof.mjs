@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -13,78 +13,46 @@ import {
 } from '@runa/db';
 
 import { classifyChainFailure, runSummaryScript } from './approval-release-rehearsal-lib.mjs';
+import {
+	applyFileBackedEnvironment,
+	loadEnvAuthorityFiles,
+	resolveEnvAuthority,
+} from './env-authority.mjs';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const serverRoot = resolve(scriptDirectory, '..');
 const workspaceRoot = resolve(serverRoot, '..', '..');
 const distRoot = resolve(serverRoot, 'dist');
-const envFilePath = resolve(workspaceRoot, '.env');
-const envLocalFilePath = resolve(workspaceRoot, '.env.local');
 const SUMMARY_TOKEN = 'PERSISTENCE_RELEASE_PROOF_SUMMARY';
 
-function normalizeEnvValue(rawValue) {
-	const trimmedValue = rawValue.trim();
-
-	if (
-		(trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
-		(trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))
-	) {
-		return trimmedValue.slice(1, -1);
-	}
-
-	return trimmedValue;
-}
-
-function loadEnvironmentFile(filePath, fileOwnedKeys) {
-	if (!existsSync(filePath)) {
-		return 0;
-	}
-
-	const envFileContents = readFileSync(filePath, 'utf8');
-	const envLines = envFileContents.split(/\r?\n/u);
-	let loadedKeys = 0;
-
-	for (const envLine of envLines) {
-		const trimmedLine = envLine.trim();
-
-		if (trimmedLine.length === 0 || trimmedLine.startsWith('#') || trimmedLine.startsWith('//')) {
-			continue;
-		}
-
-		const separatorIndex = trimmedLine.indexOf('=');
-
-		if (separatorIndex <= 0) {
-			continue;
-		}
-
-		const key = trimmedLine.slice(0, separatorIndex).trim();
-		const rawValue = trimmedLine.slice(separatorIndex + 1);
-		const keyAlreadyOwnedByFile = fileOwnedKeys.has(key);
-
-		if (key.length === 0 || (process.env[key] !== undefined && !keyAlreadyOwnedByFile)) {
-			continue;
-		}
-
-		process.env[key] = normalizeEnvValue(rawValue);
-		fileOwnedKeys.add(key);
-		loadedKeys += 1;
-	}
-
-	return loadedKeys;
-}
-
 function loadControllerEnvironment() {
-	const fileOwnedKeys = new Set();
-	const envLoaded = loadEnvironmentFile(envFilePath, fileOwnedKeys);
-	const envLocalLoaded = loadEnvironmentFile(envLocalFilePath, fileOwnedKeys);
+	const files = loadEnvAuthorityFiles(workspaceRoot);
+	const shellEnv = { ...process.env };
+	const loaded = applyFileBackedEnvironment(process.env, files);
+	Object.assign(process.env, loaded.env);
 	process.env.NODE_ENV ??= 'development';
 	process.env.RUNA_DEV_AUTH_ENABLED ??= '1';
 	process.env.RUNA_DEV_AUTH_SECRET ??= randomUUID();
 	process.env.RUNA_DEV_AUTH_EMAIL ??= 'dev@runa.local';
 
 	return {
-		dot_env_loaded_keys: envLoaded,
-		dot_env_local_loaded_keys: envLocalLoaded,
+		...loaded.summary,
+		database_url_authority: resolveEnvAuthority({
+			env: shellEnv,
+			files,
+			name: 'DATABASE_URL',
+			required: true,
+		}).report,
+		deepseek_api_key_authority: resolveEnvAuthority({
+			env: shellEnv,
+			files,
+			name: 'DEEPSEEK_API_KEY',
+		}).report,
+		groq_api_key_authority: resolveEnvAuthority({
+			env: shellEnv,
+			files,
+			name: 'GROQ_API_KEY',
+		}).report,
 	};
 }
 

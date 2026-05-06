@@ -66,7 +66,9 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
 }
 
 function capitalizeSentence(value: string): string {
-	return value.length === 0 ? value : `${value.charAt(0).toLocaleUpperCase('tr-TR')}${value.slice(1)}`;
+	return value.length === 0
+		? value
+		: `${value.charAt(0).toLocaleUpperCase('tr-TR')}${value.slice(1)}`;
 }
 
 function createCandidate(
