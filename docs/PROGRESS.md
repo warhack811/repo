@@ -377,6 +377,20 @@
   - `pnpm.cmd --filter @runa/server test -- shell-session run-tool-step ingest-tool-result run-model-turn-loop-adapter agent-loop stop-conditions` PASS (`9` dosya / `94` test; komut `tsc` dahil calisti)
 - Kapsam disi birakilanlar: web UI component redesign, desktop-agent bridge, auth/provider/model routing, yeni dependency, shell command policy redesign ve full E2E browser smoke. Worktree gorev basinda zaten genis dirty durumdaydi; task disi web/desktop/temp degisiklikleri geri alinmadi.
 
+### TASK-TERMINAL-E2E-LIVE-AGENT-PROOF-05 - Shell Session Live Agent Proof - 6 Mayis 2026
+
+- Backend-only live proof eklendi: `apps/server/scripts/terminal-session-live-proof.mjs` DeepSeek env otoritesini maskeli raporluyor, dist runtime modullerini yukluyor ve `ToolRegistry` uzerinden `shell.session.start -> shell.session.read -> shell.session.stop` zincirini calistiriyor.
+- Proof summary `TERMINAL_SESSION_LIVE_PROOF_SUMMARY` alanlariyla PASS/FAIL/BLOCKED, provider/model, API key authority, run/trace id, final `run.finished`, start/read/stop gorulme durumu, runtime feedback, presentation feedback, tool event metadata, secret leak ve polling guardrail sonucunu tek satir JSON olarak raporluyor.
+- Secret kaniti: proof komutu intentionally sentinel secret'i child stdout/stderr ve start args yuzeyine sokuyor; tool result, ingestion, presentation block, runtime event ve final message yuzeyleri taranarak `raw_secret_leak_detected=false` ve `secret_values_exposed=false` dogrulaniyor.
+- Guardrail kaniti: `shell.session.read` polling uc tekrar ile erken `repeated_tool_call` stop almiyor, fakat 6'lik stagnation penceresinde terminal stop uretmeye devam ediyor. Bu proof unit testlerin yaninda live summary icinde de `polling_guardrail_observed=true` olarak raporlaniyor.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/server test -- shell-session run-tool-step ingest-tool-result presentation stop-conditions` PASS (`19` dosya / `127` test; komut `tsc` dahil calisti)
+  - `pnpm.cmd --filter @runa/server test -- run-model-turn-loop-adapter agent-loop` PASS (`5` dosya / `45` test; komut `tsc` dahil calisti)
+  - `pnpm.cmd --filter @runa/server run test:terminal-session-live-proof` PASS (`result="PASS"`, DeepSeek API key `.env`, model `.env`, `start_seen/read_seen/stop_seen=true`, `raw_secret_leak_detected=false`)
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS (`362` dosya)
+- Kapsam disi birakilanlar: `apps/web/**`, `apps/desktop-agent/**`, auth/subscription/router/provider public contracts, yeni dependency, `.env*` editleri ve public type contract degisikligi. Not: DeepSeek tool schema denemesi provider tarafinda `unparseable_tool_input` sapmasi verdiginde script bunu summary'de `tool_schema_fallback` olarak raporlayip ayri DeepSeek text roundtrip ile ModelGateway canli kanitini koruyor.
+
 ### Arsivlenen Kayitlar
 
 - 29 Nisan 2026 ve onceki Core Hardening kayitlari `docs/archive/progress-2026-04-core-hardening.md` altina tasindi.

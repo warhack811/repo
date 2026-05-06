@@ -17,6 +17,7 @@
 		"test:groq-demo-rehearsal": "node scripts/groq-demo-rehearsal.mjs",
 		"test:groq-live-smoke": "pnpm exec tsc && node scripts/groq-live-smoke.mjs",
 		"test:deepseek-live-smoke": "pnpm exec tsc && node scripts/deepseek-live-smoke.mjs",
+		"test:terminal-session-live-proof": "pnpm exec tsc && node scripts/terminal-session-live-proof.mjs",
 		"test:lmstudio-vision-smoke": "pnpm exec tsc && node scripts/lmstudio-vision-smoke.mjs",
 		"typecheck": "tsc --noEmit",
 		"test": "pnpm exec tsc && node scripts/copy-test-fixtures.mjs && vitest run --config ./vitest.config.mjs --configLoader runner"
