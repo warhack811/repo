@@ -2205,8 +2205,10 @@ var require_src = __commonJS({
 });
 
 // electron/main.ts
+var import_node_crypto2 = require("node:crypto");
 var import_node_fs2 = require("node:fs");
 var import_promises5 = require("node:fs/promises");
+var import_node_os2 = require("node:os");
 var import_node_path5 = require("node:path");
 var import_electron = require("electron");
 
@@ -2569,10 +2571,7 @@ function normalizeDesktopAgentSessionInputPayload(sessionInput, now = /* @__PURE
   if (accessToken.length === 0) {
     throw new Error("Paste your access token to continue.");
   }
-  const refreshToken = sessionInput.refresh_token.trim();
-  if (refreshToken.length === 0) {
-    throw new Error("Paste your refresh token to continue.");
-  }
+  const refreshToken = sessionInput.refresh_token?.trim();
   if (typeof sessionInput.expires_at !== "undefined" && (typeof sessionInput.expires_at !== "number" || !Number.isFinite(sessionInput.expires_at))) {
     throw new Error("Use a valid session expiry to continue.");
   }
@@ -2580,7 +2579,7 @@ function normalizeDesktopAgentSessionInputPayload(sessionInput, now = /* @__PURE
     {
       access_token: accessToken,
       expires_at: typeof sessionInput.expires_at === "number" ? Math.trunc(sessionInput.expires_at) : void 0,
-      refresh_token: refreshToken,
+      refresh_token: refreshToken && refreshToken.length > 0 ? refreshToken : void 0,
       token_type: sessionInput.token_type?.trim() || void 0
     },
     now
@@ -2935,6 +2934,7 @@ var REDACTED_KEYS = /* @__PURE__ */ new Set([
 ]);
 var BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/giu;
 var JWT_PATTERN = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
+var SENSITIVE_QUERY_PARAM_PATTERN = /([?#&](?:access_token|refresh_token|authorization|api_key|apikey|secret|token)=)[^&#\s"]+/giu;
 function rotateLogFiles(logFilePath) {
   const oldestPath = `${logFilePath}.5`;
   if ((0, import_node_fs.existsSync)(oldestPath)) {
@@ -2958,7 +2958,7 @@ function shouldRedactKey(key) {
 }
 function redactPii(value) {
   if (typeof value === "string") {
-    return value.replace(BEARER_TOKEN_PATTERN, "Bearer [REDACTED]").replace(JWT_PATTERN, "[REDACTED_JWT]");
+    return value.replace(BEARER_TOKEN_PATTERN, "Bearer [REDACTED]").replace(JWT_PATTERN, "[REDACTED_JWT]").replace(SENSITIVE_QUERY_PARAM_PATTERN, "$1[REDACTED]");
   }
   if (Array.isArray(value)) {
     return value.map((item) => redactPii(item));
@@ -3305,6 +3305,10 @@ function renderDesktopAgentLaunchDocument(viewModel) {
 </html>`
   };
 }
+
+// ../../packages/types/dist/redacted.js
+var REDACTED_BRAND = Symbol("runa.redacted.brand");
+var REDACTED_VALUE = Symbol("runa.redacted.value");
 
 // ../../packages/types/dist/ws.js
 var desktopAgentProtocolVersion = 1;
@@ -4529,7 +4533,9 @@ async function startDesktopAgentBridge(options) {
 
 // src/session.ts
 var SESSION_EXPIRING_WINDOW_SECONDS = 90;
-var BRIDGE_RECONNECT_DELAY_MS = 1500;
+var BRIDGE_RECONNECT_INITIAL_DELAY_MS = 1500;
+var BRIDGE_RECONNECT_MAX_DELAY_MS = 3e4;
+var BRIDGE_RECONNECT_JITTER_RATIO = 0.2;
 function createSignedOutSnapshot(config, reason, error_message) {
   return {
     agent_id: config.agent_id,
@@ -4610,6 +4616,17 @@ function shouldRefreshSession(session2) {
   const nowSeconds = Math.trunc(Date.now() / 1e3);
   return session2.expires_at <= nowSeconds + SESSION_EXPIRING_WINDOW_SECONDS;
 }
+function resolveDesktopAgentReconnectDelayMs(attempt, randomValue = Math.random()) {
+  const safeAttempt = Math.max(0, Math.trunc(attempt));
+  const exponentialDelayMs = Math.min(
+    BRIDGE_RECONNECT_INITIAL_DELAY_MS * 2 ** safeAttempt,
+    BRIDGE_RECONNECT_MAX_DELAY_MS
+  );
+  const clampedRandomValue = Math.min(1, Math.max(0, randomValue));
+  const jitterWindowMs = Math.round(exponentialDelayMs * BRIDGE_RECONNECT_JITTER_RATIO);
+  const jitterMs = Math.round((clampedRandomValue * 2 - 1) * jitterWindowMs);
+  return Math.min(BRIDGE_RECONNECT_MAX_DELAY_MS, Math.max(0, exponentialDelayMs + jitterMs));
+}
 var InMemoryDesktopAgentSessionStorage = class {
   #session;
   constructor(initialSession = null) {
@@ -4632,6 +4649,7 @@ var DesktopAgentSessionRuntimeImpl = class {
   #bridgeCleanup;
   #bridgeSession;
   #operation;
+  #reconnectAttempt;
   #reconnectTimeout;
   #snapshot;
   constructor(options) {
@@ -4649,6 +4667,7 @@ var DesktopAgentSessionRuntimeImpl = class {
     this.#bridgeCleanup = null;
     this.#bridgeSession = null;
     this.#operation = Promise.resolve();
+    this.#reconnectAttempt = 0;
     this.#reconnectTimeout = null;
     this.#snapshot = createSignedOutSnapshot(
       this.#options,
@@ -4681,6 +4700,7 @@ var DesktopAgentSessionRuntimeImpl = class {
         });
         this.#bridgeSession = bridgeSession;
         this.#attachBridgeLifecycle(bridgeSession, resolvedSession);
+        this.#reconnectAttempt = 0;
         this.#setSnapshot(
           createBridgeConnectedSnapshot(this.#options, resolvedSession, (/* @__PURE__ */ new Date()).toISOString())
         );
@@ -4701,6 +4721,7 @@ var DesktopAgentSessionRuntimeImpl = class {
   stop() {
     return this.#enqueue(async () => {
       this.#clearReconnectTimeout();
+      this.#reconnectAttempt = 0;
       this.#closeBridgeSession(1e3, "Desktop runtime stopped.");
       if (this.#activeSession) {
         this.#setSnapshot(createSignedInSnapshot(this.#options, this.#activeSession));
@@ -4714,6 +4735,7 @@ var DesktopAgentSessionRuntimeImpl = class {
     return this.#enqueue(async () => {
       const normalizedSession = normalizeDesktopAgentPersistedSession(session2);
       this.#clearReconnectTimeout();
+      this.#reconnectAttempt = 0;
       this.#closeBridgeSession(1e3, "Desktop runtime session updated.");
       await this.#options.session_storage.save(normalizedSession);
       this.#activeSession = cloneSession(normalizedSession);
@@ -4725,7 +4747,8 @@ var DesktopAgentSessionRuntimeImpl = class {
   signOut() {
     return this.#enqueue(async () => {
       this.#clearReconnectTimeout();
-      await this.stop();
+      this.#reconnectAttempt = 0;
+      this.#closeBridgeSession(1e3, "Desktop runtime signed out.");
       await this.#options.session_storage.clear();
       this.#activeSession = null;
       this.#bootstrapSession = null;
@@ -4744,6 +4767,9 @@ var DesktopAgentSessionRuntimeImpl = class {
       let normalizedSession = normalizeDesktopAgentPersistedSession(candidateSession);
       if (shouldRefreshSession(normalizedSession)) {
         if (!normalizedSession.refresh_token) {
+          await this.#options.session_storage.clear();
+          this.#activeSession = null;
+          this.#bootstrapSession = null;
           this.#setSnapshot(
             createSignedOutSnapshot(
               this.#options,
@@ -4855,6 +4881,8 @@ var DesktopAgentSessionRuntimeImpl = class {
       return;
     }
     const reconnectSession = cloneSession(session2);
+    const reconnectDelayMs = resolveDesktopAgentReconnectDelayMs(this.#reconnectAttempt);
+    this.#reconnectAttempt += 1;
     this.#reconnectTimeout = setTimeout(() => {
       this.#reconnectTimeout = null;
       if (this.#activeSession === null) {
@@ -4862,7 +4890,7 @@ var DesktopAgentSessionRuntimeImpl = class {
       }
       this.#bootstrapSession = reconnectSession;
       void this.start();
-    }, BRIDGE_RECONNECT_DELAY_MS);
+    }, reconnectDelayMs);
   }
   #setSnapshot(snapshot) {
     this.#snapshot = cloneSnapshot(snapshot);
@@ -4977,7 +5005,13 @@ var DesktopAgentShellImpl = class {
     return this.#syncFromRuntime(async () => await this.#runtime.stop());
   }
   submitSession(session2) {
-    return this.#syncFromRuntime(async () => await this.#runtime.setSession(session2));
+    return this.#syncFromRuntime(async () => {
+      const sessionSnapshot = await this.#runtime.setSession(session2);
+      if (sessionSnapshot.status !== "signed_in") {
+        return sessionSnapshot;
+      }
+      return await this.#runtime.start();
+    });
   }
   subscribe(listener) {
     this.#listeners.add(listener);
@@ -5811,8 +5845,8 @@ function readAllowedExternalUrlPolicy(environment = process.env) {
     allowed_domains: configuredDomains && configuredDomains.length > 0 ? configuredDomains : DEFAULT_ALLOWED_EXTERNAL_DOMAINS
   };
 }
-function matchesAllowedDomain(hostname, allowedDomain) {
-  const normalizedHostname = hostname.toLowerCase();
+function matchesAllowedDomain(hostname2, allowedDomain) {
+  const normalizedHostname = hostname2.toLowerCase();
   if (allowedDomain.startsWith("*.")) {
     const suffix = allowedDomain.slice(2);
     return normalizedHostname !== suffix && normalizedHostname.endsWith(`.${suffix}`);
@@ -5914,10 +5948,25 @@ var mainWindow = null;
 var isQuitting = false;
 var controller = null;
 var configurationErrorMessage = null;
+var configuredDesktopWebUrl = null;
+var rendererFallbackErrorMessage = null;
 var insecureStorageWarning = false;
+var smokeShutdownWatchHandle = null;
+var smokeSignOutWatchHandle = null;
+var smokeShutdownInProgress = false;
+var smokeSignOutInProgress = false;
 var gotSingleInstanceLock = import_electron.app.requestSingleInstanceLock();
 var allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
 var startHidden = process.argv.includes("--hidden");
+var sensitiveDesktopWebUrlParams = /* @__PURE__ */ new Set([
+  "access_token",
+  "refresh_token",
+  "authorization",
+  "api_key",
+  "apikey",
+  "secret",
+  "token"
+]);
 var currentSettings = {
   autoStart: true,
   openWindowOnStart: false,
@@ -5943,11 +5992,275 @@ function getMainLogFilePath() {
 function getCrashpadDirectoryPath() {
   return (0, import_node_path5.join)(import_electron.app.getPath("userData"), "Crashpad");
 }
+function getDeviceIdentityFilePath() {
+  return (0, import_node_path5.join)(import_electron.app.getPath("userData"), "device-identity.json");
+}
 function logBoot(message, data) {
   const safeData = data === void 0 ? void 0 : redactPii(data);
   const payload = safeData === void 0 ? "" : ` ${JSON.stringify(safeData)}`;
   console.log(`[boot:${message}]${payload}`);
   desktopLogger.info(`[boot:${message}]`, safeData ?? {});
+}
+function isRecord8(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function isDesktopAgentDeviceIdentityRecord(value) {
+  if (!isRecord8(value)) {
+    return false;
+  }
+  return typeof value["agent_id"] === "string" && value["agent_id"].trim().length > 0 && (value["machine_label"] === void 0 || typeof value["machine_label"] === "string");
+}
+async function readDeviceIdentityRecord() {
+  try {
+    const rawValue = await (0, import_promises5.readFile)(getDeviceIdentityFilePath(), "utf8");
+    const parsedValue = JSON.parse(rawValue);
+    if (!isDesktopAgentDeviceIdentityRecord(parsedValue)) {
+      return null;
+    }
+    return {
+      agent_id: parsedValue.agent_id.trim(),
+      machine_label: parsedValue.machine_label?.trim() || void 0
+    };
+  } catch {
+    return null;
+  }
+}
+async function writeDeviceIdentityRecord(record) {
+  const filePath = getDeviceIdentityFilePath();
+  await (0, import_promises5.mkdir)((0, import_node_path5.dirname)(filePath), { recursive: true });
+  await (0, import_promises5.writeFile)(filePath, JSON.stringify(record, null, 2), "utf8");
+}
+function createDefaultMachineLabel() {
+  const normalizedHostname = (0, import_node_os2.hostname)().trim();
+  return normalizedHostname.length > 0 ? normalizedHostname : "Runa Desktop";
+}
+function sanitizeDesktopWebUrl(url) {
+  const sanitizedUrl = new URL(url.toString());
+  for (const paramName of [...sanitizedUrl.searchParams.keys()]) {
+    if (sensitiveDesktopWebUrlParams.has(paramName.toLowerCase())) {
+      sanitizedUrl.searchParams.delete(paramName);
+    }
+  }
+  if (sanitizedUrl.hash.length > 1) {
+    const hashParams = new URLSearchParams(sanitizedUrl.hash.slice(1));
+    let removedHashSecret = false;
+    for (const paramName of [...hashParams.keys()]) {
+      if (sensitiveDesktopWebUrlParams.has(paramName.toLowerCase())) {
+        hashParams.delete(paramName);
+        removedHashSecret = true;
+      }
+    }
+    if (removedHashSecret) {
+      const nextHash = hashParams.toString();
+      sanitizedUrl.hash = nextHash.length > 0 ? nextHash : "";
+    }
+  }
+  return sanitizedUrl;
+}
+function readDesktopWebUrlFromEnvironment() {
+  const explicitCandidate = process.env.RUNA_DESKTOP_WEB_URL !== void 0 ? process.env.RUNA_DESKTOP_WEB_URL : process.env.RUNA_WEB_URL;
+  const candidate = explicitCandidate !== void 0 ? explicitCandidate.trim() : import_electron.app.isPackaged && process.env.RUNA_DESKTOP_DISABLE_WEB_FALLBACK !== "1" ? "https://app.runa.app" : "";
+  if (candidate.length === 0) {
+    configurationErrorMessage = "Runa web app is not configured yet. Set the desktop web URL and try again.";
+    return null;
+  }
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(candidate);
+  } catch {
+    configurationErrorMessage = "Runa web app URL is invalid. Check the desktop configuration and try again.";
+    return null;
+  }
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    configurationErrorMessage = "Runa web app URL must use http or https. Check the desktop configuration and try again.";
+    return null;
+  }
+  configurationErrorMessage = null;
+  return sanitizeDesktopWebUrl(parsedUrl);
+}
+function readDesktopWebUrlForLog(url) {
+  if (!url) {
+    return {
+      mode: "internal"
+    };
+  }
+  return {
+    mode: "web",
+    origin: url.origin,
+    pathname: url.pathname
+  };
+}
+function readUrlForLog(rawUrl) {
+  try {
+    const parsedUrl = new URL(rawUrl);
+    return {
+      has_hash: parsedUrl.hash.length > 0,
+      has_search: parsedUrl.search.length > 0,
+      origin: parsedUrl.origin,
+      pathname: parsedUrl.pathname,
+      protocol: parsedUrl.protocol
+    };
+  } catch {
+    return {
+      pathname: "unparseable"
+    };
+  }
+}
+function readSmokeShutdownFileFromEnvironment() {
+  const candidate = process.env.RUNA_DESKTOP_AGENT_SMOKE_SHUTDOWN_FILE?.trim();
+  return candidate && candidate.length > 0 ? candidate : null;
+}
+function readSmokeSignOutFileFromEnvironment() {
+  const candidate = process.env.RUNA_DESKTOP_AGENT_SMOKE_SIGN_OUT_FILE?.trim();
+  return candidate && candidate.length > 0 ? candidate : null;
+}
+async function signOutFromSmokeControl(signOutFilePath) {
+  if (smokeSignOutInProgress) {
+    return;
+  }
+  smokeSignOutInProgress = true;
+  logBoot("smoke:sign-out-requested");
+  try {
+    await (0, import_promises5.rm)(signOutFilePath, { force: true });
+  } catch (error) {
+    logBoot("smoke:sign-out-file-remove-failed", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+  try {
+    await controller?.signOut();
+  } catch (error) {
+    logBoot("smoke:sign-out-failed", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    smokeSignOutInProgress = false;
+  }
+}
+async function shutdownFromSmokeControl(shutdownFilePath) {
+  if (smokeShutdownInProgress) {
+    return;
+  }
+  smokeShutdownInProgress = true;
+  isQuitting = true;
+  logBoot("smoke:shutdown-requested");
+  if (smokeShutdownWatchHandle) {
+    clearInterval(smokeShutdownWatchHandle);
+    smokeShutdownWatchHandle = null;
+  }
+  try {
+    await (0, import_promises5.rm)(shutdownFilePath, { force: true });
+  } catch (error) {
+    logBoot("smoke:shutdown-file-remove-failed", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+  try {
+    await controller?.stop();
+  } catch (error) {
+    logBoot("smoke:shutdown-stop-failed", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+  import_electron.app.quit();
+}
+function registerSmokeShutdownFileWatcher() {
+  const shutdownFilePath = readSmokeShutdownFileFromEnvironment();
+  if (!shutdownFilePath || smokeShutdownWatchHandle) {
+    return;
+  }
+  smokeShutdownWatchHandle = setInterval(() => {
+    if (!(0, import_node_fs2.existsSync)(shutdownFilePath)) {
+      return;
+    }
+    void shutdownFromSmokeControl(shutdownFilePath);
+  }, 250);
+  smokeShutdownWatchHandle.unref?.();
+  logBoot("smoke:shutdown-watch-enabled");
+}
+function registerSmokeSignOutFileWatcher() {
+  const signOutFilePath = readSmokeSignOutFileFromEnvironment();
+  if (!signOutFilePath || smokeSignOutWatchHandle) {
+    return;
+  }
+  smokeSignOutWatchHandle = setInterval(() => {
+    if (!(0, import_node_fs2.existsSync)(signOutFilePath)) {
+      return;
+    }
+    void signOutFromSmokeControl(signOutFilePath);
+  }, 250);
+  smokeSignOutWatchHandle.unref?.();
+  logBoot("smoke:sign-out-watch-enabled");
+}
+async function reconnectControllerAfterPowerResume() {
+  if (!controller) {
+    logBoot("power:resume-reconnect-skipped", {
+      reason: "missing_controller"
+    });
+    return;
+  }
+  const snapshot = controller.getSnapshot();
+  logBoot("power:resume-detected", {
+    session_present: snapshot.session_present,
+    status: snapshot.status
+  });
+  if (!snapshot.session_present) {
+    logBoot("power:resume-reconnect-skipped", {
+      reason: "missing_session",
+      status: snapshot.status
+    });
+    return;
+  }
+  try {
+    await controller.stop();
+    await controller.start();
+    publishCurrentViewModel();
+    logBoot("power:resume-reconnect-completed", {
+      status: controller.getSnapshot().status
+    });
+  } catch (error) {
+    logBoot("power:resume-reconnect-failed", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+function registerPowerMonitorHandlers() {
+  import_electron.powerMonitor.on("suspend", () => {
+    logBoot("power:suspend-detected");
+  });
+  import_electron.powerMonitor.on("resume", () => {
+    void reconnectControllerAfterPowerResume();
+  });
+  logBoot("power:monitor-watch-enabled");
+}
+function describeSessionPayloadForLog(payload) {
+  if (!isRecord8(payload)) {
+    return {
+      payload_type: typeof payload
+    };
+  }
+  return {
+    has_access_token: typeof payload["access_token"] === "string",
+    has_expires_at: typeof payload["expires_at"] === "number",
+    has_refresh_token: typeof payload["refresh_token"] === "string",
+    has_token_type: typeof payload["token_type"] === "string",
+    payload_type: "object"
+  };
+}
+async function ensureDesktopAgentBootstrapEnvironment(webUrl) {
+  const existingAgentId = process.env.RUNA_DESKTOP_AGENT_ID?.trim();
+  const existingMachineLabel = process.env.RUNA_DESKTOP_AGENT_MACHINE_LABEL?.trim();
+  const storedIdentity = await readDeviceIdentityRecord();
+  const nextIdentity = {
+    agent_id: existingAgentId && existingAgentId.length > 0 ? existingAgentId : storedIdentity?.agent_id ?? `runa-desktop-${(0, import_node_crypto2.randomUUID)()}`,
+    machine_label: existingMachineLabel && existingMachineLabel.length > 0 ? existingMachineLabel : storedIdentity?.machine_label ?? createDefaultMachineLabel()
+  };
+  process.env.RUNA_DESKTOP_AGENT_ID = nextIdentity.agent_id;
+  process.env.RUNA_DESKTOP_AGENT_MACHINE_LABEL = nextIdentity.machine_label;
+  await writeDeviceIdentityRecord(nextIdentity);
+  if (!process.env.RUNA_DESKTOP_AGENT_SERVER_URL?.trim() && webUrl) {
+    process.env.RUNA_DESKTOP_AGENT_SERVER_URL = webUrl.origin;
+  }
 }
 var bootLogger = {
   warn: (message) => {
@@ -5978,17 +6291,20 @@ function createFallbackViewModel() {
   return {
     agent_id: "unconfigured",
     awaiting_session_input: false,
-    message: configurationErrorMessage ?? "Desktop runtime setup failed.",
+    message: rendererFallbackErrorMessage ?? configurationErrorMessage ?? "Desktop runtime setup failed.",
     primary_action: {
       id: "retry",
       label: "Try again"
     },
     session_present: false,
     status: "error",
-    title: "Connection failed"
+    title: rendererFallbackErrorMessage ? "Runa Desktop needs setup" : "Connection failed"
   };
 }
 function getViewModel() {
+  if (rendererFallbackErrorMessage) {
+    return createFallbackViewModel();
+  }
   return controller?.getViewModel() ?? createFallbackViewModel();
 }
 function projectViewModelToLegacyShellState(viewModel) {
@@ -6028,15 +6344,12 @@ function projectViewModelToLegacyShellState(viewModel) {
       };
   }
 }
-function isRecord8(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 function isDesktopAgentSessionInputPayload(value) {
   if (!isRecord8(value)) {
     return false;
   }
   const expiresAt = value.expires_at;
-  return typeof value.access_token === "string" && typeof value.refresh_token === "string" && (expiresAt === void 0 || typeof expiresAt === "number") && (value.token_type === void 0 || typeof value.token_type === "string");
+  return typeof value.access_token === "string" && (value.refresh_token === void 0 || typeof value.refresh_token === "string") && (expiresAt === void 0 || typeof expiresAt === "number") && (value.token_type === void 0 || typeof value.token_type === "string");
 }
 function isShellInvokeActionPayload(value) {
   if (!isRecord8(value)) {
@@ -6135,6 +6448,24 @@ function registerRendererProtocol() {
     }
   });
 }
+function publishCurrentViewModel() {
+  mainWindow?.webContents.send("shell:viewModel", getViewModel());
+  mainWindow?.webContents.send(
+    "shell:stateChanged",
+    projectViewModelToLegacyShellState(getViewModel())
+  );
+}
+async function loadInternalRendererFallback(message) {
+  if (!mainWindow || rendererFallbackErrorMessage) {
+    return;
+  }
+  rendererFallbackErrorMessage = message;
+  logBoot("window:fallback-renderer-selected", {
+    reason: message
+  });
+  await mainWindow.loadURL("runa-desktop://app/index.html");
+  publishCurrentViewModel();
+}
 async function invokeControllerAction(actionId) {
   if (!controller) {
     return getViewModel();
@@ -6151,20 +6482,43 @@ async function stopController() {
 }
 async function signOutController() {
   if (!controller) {
+    logBoot("session:sign-out-skipped", { reason: "missing_controller" });
     return getViewModel();
   }
   await controller.signOut();
+  logBoot("session:sign-out-handled");
   return controller.getViewModel();
 }
 async function submitSession(payload) {
-  if (!controller || !isDesktopAgentSessionInputPayload(payload)) {
+  logBoot("session:submit-received", describeSessionPayloadForLog(payload));
+  if (!controller) {
+    logBoot("session:submit-rejected", { reason: "missing_controller" });
+    return getViewModel();
+  }
+  if (!isDesktopAgentSessionInputPayload(payload)) {
+    logBoot("session:submit-rejected", { reason: "invalid_payload" });
     return getViewModel();
   }
   await controller.submitSession(payload);
+  logBoot("session:submit-handled", {
+    view_model_status: controller.getViewModel().status
+  });
   return controller.getViewModel();
 }
-function createControllerFromEnvironment() {
+function isConfiguredDesktopWebNavigation(url) {
+  if (!configuredDesktopWebUrl) {
+    return false;
+  }
   try {
+    const parsedUrl = new URL(url);
+    return (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") && parsedUrl.origin === configuredDesktopWebUrl.origin;
+  } catch {
+    return false;
+  }
+}
+async function createControllerFromEnvironment() {
+  try {
+    await ensureDesktopAgentBootstrapEnvironment(configuredDesktopWebUrl);
     const config = readDesktopAgentBootstrapConfigFromEnvironment();
     const sessionStorageSelection = createDesktopAgentSessionStorageForSafeStorage({
       logger: bootLogger,
@@ -6172,8 +6526,11 @@ function createControllerFromEnvironment() {
       userDataDirectory: import_electron.app.getPath("userData")
     });
     insecureStorageWarning = sessionStorageSelection.insecure_storage;
+    const storedSession = await readStoredSessionForBootstrap(sessionStorageSelection.storage);
+    const initialSession = config.initial_session ?? storedSession ?? void 0;
     controller = createDesktopAgentLaunchController({
       ...config,
+      initial_session: initialSession,
       bridge_factory: async (bridgeOptions) => await startDesktopAgentBridge({
         ...bridgeOptions,
         web_socket_factory: createNodeWebSocket
@@ -6189,15 +6546,26 @@ function createControllerFromEnvironment() {
     configurationErrorMessage = null;
     logBoot("runtime:configured", {
       agent_id: config.agent_id,
-      has_initial_session: config.initial_session !== void 0,
+      has_initial_session: initialSession !== void 0,
       machine_label: config.machine_label,
-      server_url: config.server_url
+      server_url: config.server_url,
+      storage_mode: insecureStorageWarning ? "plaintext" : "encrypted"
     });
   } catch (error) {
     configurationErrorMessage = error instanceof Error ? error.message : "Desktop runtime setup failed.";
     logBoot("runtime:configuration-error", {
       error: configurationErrorMessage
     });
+  }
+}
+async function readStoredSessionForBootstrap(sessionStorage) {
+  try {
+    return await sessionStorage.load();
+  } catch (error) {
+    logBoot("runtime:stored-session-load-failed", {
+      error: error instanceof Error ? error.message : "Stored desktop session could not be loaded."
+    });
+    return null;
   }
 }
 function createTray() {
@@ -6293,22 +6661,36 @@ function createMainWindow() {
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (isConfiguredDesktopWebNavigation(url)) {
+      return;
+    }
     event.preventDefault();
     if (isAllowedExternalUrl(url, allowedExternalUrlPolicy)) {
       void import_electron.shell.openExternal(url);
     }
   });
-  mainWindow.loadURL("runa-desktop://app/index.html");
+  mainWindow.webContents.on("did-finish-load", () => {
+    logBoot("window:did-finish-load", readUrlForLog(mainWindow?.webContents.getURL() ?? ""));
+  });
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (_event, errorCode, _errorDescription, validatedUrl, isMainFrame) => {
+      if (!isMainFrame || errorCode === -3 || !isConfiguredDesktopWebNavigation(validatedUrl)) {
+        return;
+      }
+      void loadInternalRendererFallback(
+        "Runa web app is unavailable right now. Check your desktop server/web configuration and try again."
+      );
+    }
+  );
+  const initialRendererUrl = configuredDesktopWebUrl?.toString() ?? "runa-desktop://app/index.html";
+  mainWindow.loadURL(initialRendererUrl);
   mainWindow.once("ready-to-show", () => {
-    logBoot("window:ready-to-show");
+    logBoot("window:ready-to-show", readDesktopWebUrlForLog(configuredDesktopWebUrl));
     if (!startHidden) {
       mainWindow?.show();
     }
-    mainWindow?.webContents.send("shell:viewModel", getViewModel());
-    mainWindow?.webContents.send(
-      "shell:stateChanged",
-      projectViewModelToLegacyShellState(getViewModel())
-    );
+    publishCurrentViewModel();
   });
   mainWindow.on("close", (event) => {
     if (!isQuitting) {
@@ -6380,11 +6762,16 @@ if (!gotSingleInstanceLock) {
     logBoot("electron-version", {
       electron_version: process.versions.electron
     });
+    configuredDesktopWebUrl = readDesktopWebUrlFromEnvironment();
+    logBoot("window:renderer-selected", readDesktopWebUrlForLog(configuredDesktopWebUrl));
     registerRendererProtocol();
     registerIpcHandlers();
+    registerSmokeShutdownFileWatcher();
+    registerSmokeSignOutFileWatcher();
+    registerPowerMonitorHandlers();
     createTray();
     createMainWindow();
-    createControllerFromEnvironment();
+    await createControllerFromEnvironment();
     await handleDeepLinkArgv(process.argv);
     await controller?.start();
     logBoot("main-process:boot-complete");
@@ -6400,6 +6787,14 @@ import_electron.app.on("window-all-closed", () => {
 });
 import_electron.app.on("before-quit", () => {
   isQuitting = true;
+  if (smokeShutdownWatchHandle) {
+    clearInterval(smokeShutdownWatchHandle);
+    smokeShutdownWatchHandle = null;
+  }
+  if (smokeSignOutWatchHandle) {
+    clearInterval(smokeSignOutWatchHandle);
+    smokeSignOutWatchHandle = null;
+  }
   logBoot("app:before-quit");
   tray?.destroy();
   tray = null;
