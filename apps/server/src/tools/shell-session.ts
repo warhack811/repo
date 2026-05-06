@@ -47,33 +47,6 @@ export type ShellSessionStatus =
 
 type ShellSessionStreamSelection = 'both' | 'stderr' | 'stdout';
 
-export type ShellSessionNextActionHint =
-	| 'continue_or_inspect'
-	| 'fix_or_retry'
-	| 'read_later_or_stop'
-	| 'read_or_stop';
-
-export interface ShellSessionRuntimeMetadata {
-	readonly kind: 'shell_session_lifecycle';
-	readonly exit_code?: number | null;
-	readonly has_output?: boolean;
-	readonly next_action_hint: ShellSessionNextActionHint;
-	readonly redacted_occurrence_count: number;
-	readonly redacted_source_kinds: readonly string[];
-	readonly redaction_applied: boolean;
-	readonly secret_values_exposed: false;
-	readonly session_id: string;
-	readonly signal?: NodeJS.Signals | null;
-	readonly status: ShellSessionStatus;
-	readonly stderr_available_bytes?: number;
-	readonly stderr_buffer_overflow?: boolean;
-	readonly stderr_truncated?: boolean;
-	readonly stdout_available_bytes?: number;
-	readonly stdout_buffer_overflow?: boolean;
-	readonly stdout_truncated?: boolean;
-	readonly tool_name: ShellSessionToolName;
-}
-
 export type ShellSessionStartArguments = ToolArguments & {
 	readonly args?: readonly string[];
 	readonly command: string;
@@ -99,8 +72,6 @@ export interface ShellSessionStartData extends ShellOutputRedactionMetadata {
 	readonly command: string;
 	readonly idle_timeout_ms: number;
 	readonly max_runtime_ms: number;
-	readonly next_action_hint: ShellSessionNextActionHint;
-	readonly runtime_feedback: string;
 	readonly session_id: string;
 	readonly started_at: string;
 	readonly status: 'running';
@@ -113,27 +84,20 @@ export interface ShellSessionReadData extends ShellOutputRedactionMetadata {
 	readonly duration_ms: number;
 	readonly ended_at?: string;
 	readonly exit_code: number | null;
-	readonly has_output: boolean;
-	readonly next_action_hint: ShellSessionNextActionHint;
-	readonly runtime_feedback: string;
 	readonly session_id: string;
 	readonly signal: NodeJS.Signals | null;
 	readonly started_at: string;
 	readonly status: ShellSessionStatus;
 	readonly stderr: string;
-	readonly stderr_available_bytes: number;
 	readonly stderr_buffer_overflow: boolean;
 	readonly stderr_truncated: boolean;
 	readonly stdout: string;
-	readonly stdout_available_bytes: number;
 	readonly stdout_buffer_overflow: boolean;
 	readonly stdout_truncated: boolean;
 }
 
 export interface ShellSessionStopData extends ShellOutputRedactionMetadata {
 	readonly exit_code: number | null;
-	readonly next_action_hint: ShellSessionNextActionHint;
-	readonly runtime_feedback: string;
 	readonly session_id: string;
 	readonly signal: NodeJS.Signals | null;
 	readonly status: Exclude<ShellSessionStatus, 'running'>;
@@ -239,8 +203,6 @@ interface InternalShellSession {
 	readonly created_at_ms: number;
 	readonly idle_timeout_ms: number;
 	readonly max_runtime_ms: number;
-	readonly owner_run_id: string;
-	readonly owner_trace_id?: string;
 	readonly redaction_context: ShellOutputRedactionContext;
 	readonly session_id: string;
 	readonly started_at: string;
@@ -440,8 +402,6 @@ export class ShellSessionManager {
 			exit_code: null,
 			idle_timeout_ms: idleTimeoutMs,
 			max_runtime_ms: maxRuntimeMs,
-			owner_run_id: context.run_id,
-			owner_trace_id: context.trace_id,
 			redaction_context: redactionContext,
 			session_id: sessionId,
 			signal: null,
@@ -486,55 +446,35 @@ export class ShellSessionManager {
 		});
 
 		this.#sessions.set(sessionId, session);
-
-		// Immediately flush any available stdout/stderr
-		const flushAvailableOutput = (stream: Readable, buffer: BoundedOutputBuffer): void => {
-			try {
-				while (true) {
-					const chunk = stream.read();
-					if (chunk === null) {
-						break;
-					}
-					buffer.append(chunk);
-				}
-			} catch {
-				// Stream closed or not ready yet
-			}
-		};
-
-		flushAvailableOutput(child.stdout, session.stdout);
-		flushAvailableOutput(child.stderr, session.stderr);
-
 		this.#resetIdleTimer(session);
 		session.max_runtime_handle = setTimeout(() => {
 			this.#terminateForTimeout(session);
 		}, maxRuntimeMs);
-		const output: ShellSessionStartData = {
-			args: commandSurface.args,
-			command: commandSurface.command,
-			idle_timeout_ms: idleTimeoutMs,
-			max_runtime_ms: maxRuntimeMs,
-			next_action_hint: 'read_or_stop',
-			redacted_occurrence_count: commandSurface.metadata.redacted_occurrence_count,
-			redacted_source_kinds: commandSurface.metadata.redacted_source_kinds,
-			redaction_applied: commandSurface.metadata.redaction_applied,
-			runtime_feedback: `Shell session ${sessionId} started and is running. Use shell.session.read to inspect output or shell.session.stop to end it.`,
-			secret_values_exposed: false,
-			session_id: sessionId,
-			started_at: startedAt,
-			status: 'running',
-			stderr_available_bytes: 0,
-			stdout_available_bytes: 0,
-			working_directory: workingDirectory,
-		};
 
-		return createSuccessResult(input, output);
+		return {
+			call_id: input.call_id,
+			output: {
+				args: commandSurface.args,
+				command: commandSurface.command,
+				idle_timeout_ms: idleTimeoutMs,
+				max_runtime_ms: maxRuntimeMs,
+				redacted_occurrence_count: commandSurface.metadata.redacted_occurrence_count,
+				redacted_source_kinds: commandSurface.metadata.redacted_source_kinds,
+				redaction_applied: commandSurface.metadata.redaction_applied,
+				secret_values_exposed: false,
+				session_id: sessionId,
+				started_at: startedAt,
+				status: 'running',
+				stderr_available_bytes: 0,
+				stdout_available_bytes: 0,
+				working_directory: workingDirectory,
+			},
+			status: 'success',
+			tool_name: 'shell.session.start',
+		};
 	}
 
-	async readSession(
-		input: ShellSessionReadInput,
-		context: ToolExecutionContext,
-	): Promise<ShellSessionReadResult> {
+	async readSession(input: ShellSessionReadInput): Promise<ShellSessionReadResult> {
 		this.#cleanupExpiredFinalSessions();
 
 		const sessionId = input.arguments.session_id.trim();
@@ -573,19 +513,15 @@ export class ShellSessionManager {
 			});
 		}
 
-		const ownershipError = validateSessionOwnership(input, session, context);
-
-		if (ownershipError) {
-			return ownershipError;
-		}
-
-		return createSuccessResult(input, this.#buildReadData(session, maxBytes, stream));
+		return {
+			call_id: input.call_id,
+			output: this.#buildReadData(session, maxBytes, stream),
+			status: 'success',
+			tool_name: 'shell.session.read',
+		};
 	}
 
-	async stopSession(
-		input: ShellSessionStopInput,
-		context: ToolExecutionContext,
-	): Promise<ShellSessionStopResult> {
+	async stopSession(input: ShellSessionStopInput): Promise<ShellSessionStopResult> {
 		this.#cleanupExpiredFinalSessions();
 
 		const sessionId = input.arguments.session_id.trim();
@@ -610,33 +546,29 @@ export class ShellSessionManager {
 			});
 		}
 
-		const ownershipError = validateSessionOwnership(input, session, context);
-
-		if (ownershipError) {
-			return ownershipError;
-		}
-
 		if (session.status === 'running') {
 			await this.#requestStop(session, force);
 		}
 
 		const status = toFinalSessionStatus(session.status);
 		const metadata = combineShellOutputRedactionMetadata([]);
-		const output: ShellSessionStopData = {
-			exit_code: session.exit_code,
-			next_action_hint: 'continue_or_inspect',
-			redacted_occurrence_count: metadata.redacted_occurrence_count,
-			redacted_source_kinds: metadata.redacted_source_kinds,
-			redaction_applied: metadata.redaction_applied,
-			runtime_feedback: `Shell session ${sessionId} is ${status}. Use shell.session.read while the final buffer is still available if you need the captured output.`,
-			secret_values_exposed: false,
-			session_id: sessionId,
-			signal: session.signal,
-			status,
-			stopped_at: new Date(this.#dependencies.now()).toISOString(),
-		};
 
-		return createSuccessResult(input, output);
+		return {
+			call_id: input.call_id,
+			output: {
+				exit_code: session.exit_code,
+				redacted_occurrence_count: metadata.redacted_occurrence_count,
+				redacted_source_kinds: metadata.redacted_source_kinds,
+				redaction_applied: metadata.redaction_applied,
+				secret_values_exposed: false,
+				session_id: sessionId,
+				signal: session.signal,
+				status,
+				stopped_at: new Date(this.#dependencies.now()).toISOString(),
+			},
+			status: 'success',
+			tool_name: 'shell.session.stop',
+		};
 	}
 
 	stopAllForProcessExit(): void {
@@ -725,39 +657,23 @@ export class ShellSessionManager {
 			redactedStdout.metadata,
 			redactedStderr.metadata,
 		]);
-		const hasOutput = stdoutSnapshot.byte_length > 0 || stderrSnapshot.byte_length > 0;
-		const nextActionHint: ShellSessionNextActionHint =
-			session.status === 'running'
-				? hasOutput
-					? 'read_or_stop'
-					: 'read_later_or_stop'
-				: 'continue_or_inspect';
 
 		return {
 			duration_ms: this.#getDurationMs(session),
 			ended_at: session.ended_at,
 			exit_code: session.exit_code,
-			has_output: hasOutput,
-			next_action_hint: nextActionHint,
 			redacted_occurrence_count: metadata.redacted_occurrence_count,
 			redacted_source_kinds: metadata.redacted_source_kinds,
 			redaction_applied: metadata.redaction_applied,
-			runtime_feedback: buildReadRuntimeFeedback({
-				has_output: hasOutput,
-				session_id: session.session_id,
-				status: session.status,
-			}),
 			secret_values_exposed: false,
 			session_id: session.session_id,
 			signal: session.signal,
 			started_at: session.started_at,
 			status: session.status,
 			stderr: redactedStderr.text,
-			stderr_available_bytes: stderrSnapshot.byte_length,
 			stderr_buffer_overflow: stderrSnapshot.buffer_overflow,
 			stderr_truncated: stderrSnapshot.truncated,
 			stdout: redactedStdout.text,
-			stdout_available_bytes: stdoutSnapshot.byte_length,
 			stdout_buffer_overflow: stdoutSnapshot.buffer_overflow,
 			stdout_truncated: stdoutSnapshot.truncated,
 		};
@@ -928,102 +844,6 @@ function createErrorResult<TInput extends ShellSessionAnyInput>(
 	};
 }
 
-function createSuccessResult<
-	TInput extends ShellSessionAnyInput,
-	TOutput extends ShellSessionReadData | ShellSessionStartData | ShellSessionStopData,
->(input: TInput, output: TOutput): ToolResultSuccess<TInput['tool_name'], TOutput> {
-	return {
-		call_id: input.call_id,
-		metadata: {
-			shell_session: buildShellSessionRuntimeMetadata(input.tool_name, output),
-		},
-		output,
-		status: 'success',
-		tool_name: input.tool_name,
-	};
-}
-
-function buildShellSessionRuntimeMetadata(
-	toolName: ShellSessionToolName,
-	output: ShellSessionReadData | ShellSessionStartData | ShellSessionStopData,
-): ShellSessionRuntimeMetadata {
-	const readOutput = isShellSessionReadData(output) ? output : undefined;
-
-	return {
-		exit_code: 'exit_code' in output ? output.exit_code : undefined,
-		has_output: readOutput?.has_output,
-		kind: 'shell_session_lifecycle',
-		next_action_hint: output.next_action_hint,
-		redacted_occurrence_count: output.redacted_occurrence_count,
-		redacted_source_kinds: output.redacted_source_kinds,
-		redaction_applied: output.redaction_applied,
-		secret_values_exposed: false,
-		session_id: output.session_id,
-		signal: 'signal' in output ? output.signal : undefined,
-		status: output.status,
-		stderr_available_bytes:
-			'stderr_available_bytes' in output ? output.stderr_available_bytes : undefined,
-		stderr_buffer_overflow: readOutput?.stderr_buffer_overflow,
-		stderr_truncated: readOutput?.stderr_truncated,
-		stdout_available_bytes:
-			'stdout_available_bytes' in output ? output.stdout_available_bytes : undefined,
-		stdout_buffer_overflow: readOutput?.stdout_buffer_overflow,
-		stdout_truncated: readOutput?.stdout_truncated,
-		tool_name: toolName,
-	};
-}
-
-function isShellSessionReadData(
-	output: ShellSessionReadData | ShellSessionStartData | ShellSessionStopData,
-): output is ShellSessionReadData {
-	return 'stdout' in output && 'stderr' in output;
-}
-
-function buildReadRuntimeFeedback(input: {
-	readonly has_output: boolean;
-	readonly session_id: string;
-	readonly status: ShellSessionStatus;
-}): string {
-	if (input.status === 'running') {
-		if (!input.has_output) {
-			return `Shell session ${input.session_id} is still running. No buffered output is available for the selected stream yet. Read again later or stop it if the command is no longer needed.`;
-		}
-
-		return `Shell session ${input.session_id} is still running and returned buffered output. Continue only if more output is expected, otherwise stop the session.`;
-	}
-
-	if (input.status === 'timed_out') {
-		return `Shell session ${input.session_id} timed out. Inspect the captured output, then decide whether a shorter or different command is needed.`;
-	}
-
-	if (input.status === 'error') {
-		return `Shell session ${input.session_id} finished with an error status. Inspect stdout, stderr, exit_code, and signal before retrying.`;
-	}
-
-	return `Shell session ${input.session_id} is ${input.status}. Inspect the captured output and continue with the next model step.`;
-}
-
-function validateSessionOwnership<TInput extends ShellSessionReadInput | ShellSessionStopInput>(
-	input: TInput,
-	session: InternalShellSession,
-	context: ToolExecutionContext,
-): ToolResultError<TInput['tool_name']> | undefined {
-	if (session.owner_run_id === context.run_id) {
-		return undefined;
-	}
-
-	return createErrorResult(
-		input,
-		'PERMISSION_DENIED',
-		'Shell session belongs to a different run and cannot be accessed from this run.',
-		{
-			owner_mismatch: true,
-			session_id: session.session_id,
-		},
-		false,
-	);
-}
-
 function createToolMetadata() {
 	return {
 		capability_class: 'shell',
@@ -1176,7 +996,7 @@ function createShellSessionReadTool(
 			},
 		},
 		description: 'Reads bounded, redacted output from a shell session.',
-		execute: (input, context) => manager.readSession(input, context),
+		execute: (input) => manager.readSession(input),
 		metadata: createToolMetadata(),
 		name: 'shell.session.read',
 	};
@@ -1200,7 +1020,7 @@ function createShellSessionStopTool(
 			},
 		},
 		description: 'Stops a shell session and keeps final output readable until cleanup.',
-		execute: (input, context) => manager.stopSession(input, context),
+		execute: (input) => manager.stopSession(input),
 		metadata: createToolMetadata(),
 		name: 'shell.session.stop',
 	};
