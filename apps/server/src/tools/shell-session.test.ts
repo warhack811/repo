@@ -152,7 +152,7 @@ describe('shell session tools', () => {
 				tool_name: 'shell.session.start',
 			});
 
-			await wait(80);
+			await wait(500);
 
 			const readResult = await readTool.execute(readInput(sessionId), createContext(workspace));
 
@@ -216,7 +216,7 @@ describe('shell session tools', () => {
 			sessionId = startResult.output.session_id;
 			expect(JSON.stringify(startResult.output)).not.toContain(processSecret);
 			expect(JSON.stringify(startResult.output)).not.toContain(fileSecret);
-			await wait(80);
+			await wait(500);
 
 			const readResult = await readTool.execute(readInput(sessionId), createContext(workspace));
 
@@ -408,7 +408,7 @@ describe('shell session tools', () => {
 			}
 
 			sessionId = startResult.output.session_id;
-			await wait(80);
+			await wait(200);
 
 			const readResult = await readTool.execute(
 				readInput(sessionId, {

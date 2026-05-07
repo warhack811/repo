@@ -486,6 +486,22 @@ export class ShellSessionManager {
 		});
 
 		this.#sessions.set(sessionId, session);
+
+		// Immediately flush any available stdout/stderr
+		const flushAvailableOutput = (stream: Readable, buffer: BoundedOutputBuffer): void => {
+			try {
+				let chunk: Buffer | string | null;
+				while ((chunk = stream.read()) !== null) {
+					buffer.append(chunk);
+				}
+			} catch {
+				// Stream closed or not ready yet
+			}
+		};
+
+		flushAvailableOutput(child.stdout, session.stdout);
+		flushAvailableOutput(child.stderr, session.stderr);
+
 		this.#resetIdleTimer(session);
 		session.max_runtime_handle = setTimeout(() => {
 			this.#terminateForTimeout(session);
