@@ -70,11 +70,13 @@ function createKeywordPattern(keyword: string): RegExp {
 }
 
 function hasDeliberationKeyword(text: string, locale: SupportedLocale): boolean {
-	const normalized = normalizeTextForLocale(text, locale);
+	return (Object.keys(deliberationKeywordsByLocale) as SupportedLocale[]).some((keywordLocale) => {
+		const normalized = normalizeTextForLocale(text, keywordLocale);
 
-	return deliberationKeywordsByLocale[locale].some((keyword) =>
-		createKeywordPattern(normalizeTextForLocale(keyword, locale)).test(normalized),
-	);
+		return deliberationKeywordsByLocale[keywordLocale].some((keyword) =>
+			createKeywordPattern(normalizeTextForLocale(keyword, keywordLocale)).test(normalized),
+		);
+	});
 }
 
 function jaccardSimilarity(left: string, right: string): number {

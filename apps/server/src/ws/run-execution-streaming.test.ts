@@ -263,4 +263,102 @@ describe('generateModelResponseWithStreaming', () => {
 		expect(sentMessages.filter((message) => message.type === 'narration.completed').length).toBe(0);
 		expect(sentMessages.filter((message) => message.type === 'text.delta').length).toBe(0);
 	});
+
+	it('keeps DeepSeek temporal_stream on the streaming path for tool-heavy live requests', async () => {
+		const mockResponse = createResponse({
+			content: 'saati kontrol ediyorum.',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'wire_streaming',
+					text: 'saati kontrol ediyorum.',
+				},
+				{
+					index: 1,
+					input: { command: 'date' },
+					kind: 'tool_use',
+					ordering_origin: 'wire_streaming',
+					tool_call_id: 'call_time',
+					tool_name: 'shell.exec',
+				},
+			],
+			tool_call_candidates: [
+				{ call_id: 'call_time', tool_input: { command: 'date' }, tool_name: 'shell.exec' },
+			],
+		});
+		let streamCalled = false;
+		let generateCalled = false;
+		const mockGateway = {
+			capabilities: supportedCapabilities,
+			async *stream(): AsyncIterableIterator<
+				Parameters<typeof createMockStreamingGateway>[0]['chunks'][number]
+			> {
+				streamCalled = true;
+				yield { content_part_index: 0, text_delta: 'saati', type: 'text.delta' };
+				yield { content_part_index: 0, text_delta: ' kontrol ediyorum.', type: 'text.delta' };
+				yield { response: mockResponse, type: 'response.completed' };
+			},
+			async generate(): Promise<ModelResponse> {
+				generateCalled = true;
+				return createResponse({
+					content: 'saati kontrol ediyorum.',
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							ordering_origin: 'synthetic_non_streaming',
+							text: 'saati kontrol ediyorum.',
+						},
+					],
+				});
+			},
+		};
+		const { socket, sentMessages } = createMockSocket();
+		const runtimeEvents: RuntimeEvent[] = [];
+		let seqCounter = 0;
+
+		await generateModelResponseWithStreaming(
+			socket,
+			{ run_id: 'run_test', trace_id: 'trace_test' },
+			mockGateway,
+			{
+				available_tools: [
+					{
+						description: 'Read files.',
+						name: 'file.read',
+						parameters: { path: { required: true, type: 'string' } },
+					},
+					{
+						description: 'Run shell commands.',
+						name: 'shell.exec',
+						parameters: { command: { required: true, type: 'string' } },
+					},
+				],
+				messages: [{ content: 'Istanbul saatini shell ile kontrol et.', role: 'user' }],
+				model: 'deepseek-v4-flash',
+				run_id: 'run_test',
+				trace_id: 'trace_test',
+			},
+			'deepseek',
+			{
+				capabilities: mockGateway.capabilities,
+				getNextSequenceNo: () => ++seqCounter,
+				locale: 'tr',
+				onRuntimeEvent: (event) => runtimeEvents.push(event),
+				runId: 'run_test',
+				traceId: 'trace_test',
+				turnIndex: 1,
+			},
+		);
+
+		expect(streamCalled).toBe(true);
+		expect(generateCalled).toBe(false);
+		expect(sentMessages.filter((message) => message.type === 'narration.delta').length).toBe(2);
+		const completed = sentMessages.filter((message) => message.type === 'narration.completed');
+		expect(completed.length).toBe(1);
+		expect(completed[0]?.payload.linked_tool_call_id).toBe('call_time');
+		expect(runtimeEvents.some((event) => event.event_type === 'narration.started')).toBe(true);
+		expect(sentMessages.filter((message) => message.type === 'text.delta').length).toBe(0);
+	});
 });

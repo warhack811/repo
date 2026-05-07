@@ -1386,7 +1386,7 @@ describe('register-ws', () => {
 		});
 	});
 
-	it('bypasses streaming for DeepSeek tool-heavy live run requests by default', async () => {
+	it('keeps DeepSeek temporal-stream tool-heavy live run requests on streaming path', async () => {
 		const socket = new MockSocket();
 		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
 		const registry = new ToolRegistry();
@@ -1402,10 +1402,22 @@ describe('register-ws', () => {
 					requestBodies.push(JSON.parse(init.body) as Readonly<Record<string, unknown>>);
 				}
 
-				return createDeepSeekAssistantResponse({
-					content: 'Generated without streaming for tool-heavy intent.',
-					response_id: 'chatcmpl_deepseek_ws_bypass',
-				});
+				return new Response(
+					[
+						'data: {"id":"chatcmpl_deepseek_ws_stream","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","content":"Streaming "},"finish_reason":null}]}',
+						'',
+						'data: {"id":"chatcmpl_deepseek_ws_stream","model":"deepseek-v4-flash","choices":[{"delta":{"content":"stays enabled"},"finish_reason":"stop"}],"usage":{"prompt_tokens":8,"completion_tokens":12,"total_tokens":20}}',
+						'',
+						'data: [DONE]',
+						'',
+					].join('\n'),
+					{
+						headers: {
+							'content-type': 'text/event-stream',
+						},
+						status: 200,
+					},
+				);
 			}),
 		);
 
@@ -1434,11 +1446,18 @@ describe('register-ws', () => {
 		);
 
 		const messages = parseMessages(socket);
+		const textDeltaMessages = messages.filter(
+			(message): message is Extract<WebSocketServerBridgeMessage, { type: 'text.delta' }> =>
+				message.type === 'text.delta',
+		);
 		const finishedMessage = messages.find((message) => message.type === 'run.finished');
 
 		expect(requestBodies).toHaveLength(1);
-		expect(requestBodies[0]?.['stream']).toBeUndefined();
-		expect(messages.some((message) => message.type === 'text.delta')).toBe(false);
+		expect(requestBodies[0]?.['stream']).toBe(true);
+		expect(textDeltaMessages.map((message) => message.payload.text_delta)).toEqual([
+			'Streaming ',
+			'stays enabled',
+		]);
 		expect(finishedMessage).toMatchObject({
 			payload: {
 				final_state: 'COMPLETED',
