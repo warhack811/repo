@@ -93,7 +93,9 @@ async function assertTrustFirstPending(page: Page, label: string): Promise<void>
 	await expect(card).toBeVisible();
 	await expect(card.getByText(/Güven kararı/i)).toBeVisible();
 	await expect(card.getByText(/Dosyaya yazma iste/i)).toBeVisible();
-	await expect(card.getByText(/Bu onayda net hedef bilgisi|Hedef dosya|Hedef komut/i)).toBeVisible();
+	await expect(
+		card.getByText(/Bu onayda net hedef bilgisi|Hedef dosya|Hedef komut/i),
+	).toBeVisible();
 	await expect(card.getByText(/Bu i.lem bir dosyan.n i.eri.ini de.i.tirebilir/i)).toBeVisible();
 	await expect(card.getByRole('button', { name: /approve|onayla|kabul et/i })).toBeVisible();
 	await expect(card.getByRole('button', { name: /reject|reddet/i })).toBeVisible();
