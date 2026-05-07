@@ -1,5 +1,6 @@
 import type { RenderBlock } from './blocks.js';
 import type { ModelAttachment } from './gateway.js';
+import { supportedLocales } from './locale.js';
 import type {
 	ApprovalResolveClientMessage,
 	ApprovalResolvePayload,
@@ -16,6 +17,9 @@ import type {
 	DesktopAgentSessionAcceptedServerMessage,
 	InspectionRequestClientMessage,
 	InspectionRequestPayload,
+	NarrationCompletedServerMessage,
+	NarrationDeltaServerMessage,
+	NarrationSupersededServerMessage,
 	PresentationBlocksServerMessage,
 	RunAcceptedServerMessage,
 	RunApprovalPolicy,
@@ -79,6 +83,7 @@ interface RunRequestPayloadCandidate {
 	readonly conversation_id?: unknown;
 	readonly desktop_target_connection_id?: unknown;
 	readonly include_presentation_blocks?: unknown;
+	readonly locale?: unknown;
 	readonly provider?: unknown;
 	readonly provider_config?: unknown;
 	readonly request?: unknown;
@@ -225,12 +230,52 @@ interface TextDeltaMessageCandidate {
 }
 
 interface TextDeltaPayloadCandidate {
+	readonly content_part_index?: unknown;
 	readonly run_id?: unknown;
 	readonly text_delta?: unknown;
 	readonly trace_id?: unknown;
 }
 
 interface TextDeltaDiscardPayloadCandidate {
+	readonly run_id?: unknown;
+	readonly trace_id?: unknown;
+}
+
+interface NarrationDeltaMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface NarrationDeltaPayloadCandidate {
+	readonly locale?: unknown;
+	readonly narration_id?: unknown;
+	readonly run_id?: unknown;
+	readonly sequence_no?: unknown;
+	readonly text_delta?: unknown;
+	readonly trace_id?: unknown;
+	readonly turn_index?: unknown;
+}
+
+interface NarrationCompletedMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface NarrationCompletedPayloadCandidate {
+	readonly full_text?: unknown;
+	readonly linked_tool_call_id?: unknown;
+	readonly narration_id?: unknown;
+	readonly run_id?: unknown;
+	readonly trace_id?: unknown;
+}
+
+interface NarrationSupersededMessageCandidate {
+	readonly payload?: unknown;
+	readonly type?: unknown;
+}
+
+interface NarrationSupersededPayloadCandidate {
+	readonly narration_id?: unknown;
 	readonly run_id?: unknown;
 	readonly trace_id?: unknown;
 }
@@ -424,6 +469,16 @@ interface ToolResultBlockPayloadCandidate {
 	readonly tool_name?: unknown;
 }
 
+interface WorkNarrationBlockPayloadCandidate {
+	readonly linked_tool_call_id?: unknown;
+	readonly locale?: unknown;
+	readonly run_id?: unknown;
+	readonly sequence_no?: unknown;
+	readonly status?: unknown;
+	readonly text?: unknown;
+	readonly turn_index?: unknown;
+}
+
 interface ApprovalBlockPayloadCandidate {
 	readonly action_kind?: unknown;
 	readonly approval_id?: unknown;
@@ -611,6 +666,38 @@ function isTextDeltaDiscardPayloadCandidate(
 	return isRecord(value);
 }
 
+function isNarrationDeltaMessageCandidate(value: unknown): value is NarrationDeltaMessageCandidate {
+	return isRecord(value);
+}
+
+function isNarrationDeltaPayloadCandidate(value: unknown): value is NarrationDeltaPayloadCandidate {
+	return isRecord(value);
+}
+
+function isNarrationCompletedMessageCandidate(
+	value: unknown,
+): value is NarrationCompletedMessageCandidate {
+	return isRecord(value);
+}
+
+function isNarrationCompletedPayloadCandidate(
+	value: unknown,
+): value is NarrationCompletedPayloadCandidate {
+	return isRecord(value);
+}
+
+function isNarrationSupersededMessageCandidate(
+	value: unknown,
+): value is NarrationSupersededMessageCandidate {
+	return isRecord(value);
+}
+
+function isNarrationSupersededPayloadCandidate(
+	value: unknown,
+): value is NarrationSupersededPayloadCandidate {
+	return isRecord(value);
+}
+
 function isRunAcceptedMessageCandidate(value: unknown): value is RunAcceptedMessageCandidate {
 	return isRecord(value);
 }
@@ -652,6 +739,12 @@ function isPresentationBlocksPayloadCandidate(
 }
 
 function isToolResultPreviewCandidate(value: unknown): value is ToolResultPreviewCandidate {
+	return isRecord(value);
+}
+
+function isWorkNarrationBlockPayloadCandidate(
+	value: unknown,
+): value is WorkNarrationBlockPayloadCandidate {
 	return isRecord(value);
 }
 
@@ -803,6 +896,15 @@ function isApprovalMode(value: unknown): value is RunApprovalPolicy['mode'] {
 	return typeof value === 'string' && approvalModes.includes(value as RunApprovalPolicy['mode']);
 }
 
+function isSupportedLocale(
+	value: unknown,
+): value is NarrationDeltaServerMessage['payload']['locale'] {
+	return (
+		typeof value === 'string' &&
+		supportedLocales.includes(value as (typeof supportedLocales)[number])
+	);
+}
+
 function isRunApprovalPolicy(value: unknown): value is RunApprovalPolicy {
 	if (!isRecord(value)) {
 		return false;
@@ -839,6 +941,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 		conversation_id: conversationId,
 		desktop_target_connection_id: desktopTargetConnectionId,
 		include_presentation_blocks: includePresentationBlocks,
+		locale,
 		provider,
 		provider_config: providerConfig,
 		request,
@@ -858,6 +961,7 @@ export function isRunRequestPayload(value: unknown): value is RunRequestPayload 
 		(conversationId === undefined || typeof conversationId === 'string') &&
 		(desktopTargetConnectionId === undefined || typeof desktopTargetConnectionId === 'string') &&
 		(includePresentationBlocks === undefined || typeof includePresentationBlocks === 'boolean') &&
+		(locale === undefined || isSupportedLocale(locale)) &&
 		isGatewayProvider(provider) &&
 		isProviderConfig(providerConfig) &&
 		typeof runId === 'string' &&
@@ -1245,6 +1349,24 @@ export function isRenderBlock(value: unknown): value is RenderBlock {
 						typeof preview.summary_text === 'string'))
 			);
 		}
+		case 'work_narration': {
+			const narrationPayload = payload as WorkNarrationBlockPayloadCandidate;
+
+			return (
+				isWorkNarrationBlockPayloadCandidate(narrationPayload) &&
+				typeof narrationPayload.run_id === 'string' &&
+				typeof narrationPayload.turn_index === 'number' &&
+				typeof narrationPayload.sequence_no === 'number' &&
+				typeof narrationPayload.text === 'string' &&
+				isSupportedLocale(narrationPayload.locale) &&
+				(narrationPayload.status === 'streaming' ||
+					narrationPayload.status === 'completed' ||
+					narrationPayload.status === 'superseded' ||
+					narrationPayload.status === 'tool_failed') &&
+				(narrationPayload.linked_tool_call_id === undefined ||
+					typeof narrationPayload.linked_tool_call_id === 'string')
+			);
+		}
 		case 'approval_block': {
 			const approvalPayload = payload as ApprovalBlockPayloadCandidate;
 
@@ -1289,7 +1411,9 @@ export function isTextDeltaServerMessage(value: unknown): value is TextDeltaServ
 		isTextDeltaPayloadCandidate(value.payload) &&
 		typeof value.payload.run_id === 'string' &&
 		typeof value.payload.trace_id === 'string' &&
-		typeof value.payload.text_delta === 'string'
+		typeof value.payload.text_delta === 'string' &&
+		(value.payload.content_part_index === undefined ||
+			typeof value.payload.content_part_index === 'number')
 	);
 }
 
@@ -1302,6 +1426,52 @@ export function isTextDeltaDiscardServerMessage(
 		isTextDeltaDiscardPayloadCandidate(value.payload) &&
 		typeof value.payload.run_id === 'string' &&
 		typeof value.payload.trace_id === 'string'
+	);
+}
+
+export function isNarrationDeltaServerMessage(
+	value: unknown,
+): value is NarrationDeltaServerMessage {
+	return (
+		isNarrationDeltaMessageCandidate(value) &&
+		value.type === 'narration.delta' &&
+		isNarrationDeltaPayloadCandidate(value.payload) &&
+		typeof value.payload.run_id === 'string' &&
+		typeof value.payload.trace_id === 'string' &&
+		typeof value.payload.narration_id === 'string' &&
+		typeof value.payload.turn_index === 'number' &&
+		typeof value.payload.sequence_no === 'number' &&
+		typeof value.payload.text_delta === 'string' &&
+		isSupportedLocale(value.payload.locale)
+	);
+}
+
+export function isNarrationCompletedServerMessage(
+	value: unknown,
+): value is NarrationCompletedServerMessage {
+	return (
+		isNarrationCompletedMessageCandidate(value) &&
+		value.type === 'narration.completed' &&
+		isNarrationCompletedPayloadCandidate(value.payload) &&
+		typeof value.payload.run_id === 'string' &&
+		typeof value.payload.trace_id === 'string' &&
+		typeof value.payload.narration_id === 'string' &&
+		typeof value.payload.full_text === 'string' &&
+		(value.payload.linked_tool_call_id === undefined ||
+			typeof value.payload.linked_tool_call_id === 'string')
+	);
+}
+
+export function isNarrationSupersededServerMessage(
+	value: unknown,
+): value is NarrationSupersededServerMessage {
+	return (
+		isNarrationSupersededMessageCandidate(value) &&
+		value.type === 'narration.superseded' &&
+		isNarrationSupersededPayloadCandidate(value.payload) &&
+		typeof value.payload.run_id === 'string' &&
+		typeof value.payload.trace_id === 'string' &&
+		typeof value.payload.narration_id === 'string'
 	);
 }
 
@@ -1463,6 +1633,9 @@ export function isWebSocketServerBridgeMessage(
 		isRuntimeEventServerMessage(value) ||
 		isTextDeltaServerMessage(value) ||
 		isTextDeltaDiscardServerMessage(value) ||
+		isNarrationDeltaServerMessage(value) ||
+		isNarrationCompletedServerMessage(value) ||
+		isNarrationSupersededServerMessage(value) ||
 		isRunRejectedServerMessage(value) ||
 		isRunFinishedServerMessage(value) ||
 		isPresentationBlocksServerMessage(value)

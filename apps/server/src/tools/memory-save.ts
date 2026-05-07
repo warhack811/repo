@@ -242,6 +242,7 @@ export function createMemorySaveTool(
 		},
 		metadata: {
 			capability_class: 'memory',
+			narration_policy: 'required',
 			requires_approval: false,
 			risk_level: 'medium',
 			side_effect_level: 'write',

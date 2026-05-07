@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react';
 
 import type { PresentationRunSurface, RunTransportSummary } from '../../lib/chat-runtime/types.js';
-import styles from './PresentationRunSurfaceCard.module.css';
 import type { ApprovalResolveDecision, InspectionTargetKind, RenderBlock } from '../../ws-types.js';
 import type {
 	GetInspectionActionState,
 	InspectionActionState,
 } from './PresentationBlockRenderer.js';
+import styles from './PresentationRunSurfaceCard.module.css';
 import {
 	buildInspectionCorrelationLabel,
 	buildInspectionDetailRelations,
@@ -76,6 +76,7 @@ export function PresentationRunSurfaceCard({
 					inspectionDetailRelations,
 					surfaceCorrelationLabel,
 					isDeveloperMode,
+					surface.replayMode === true,
 				),
 			)}
 		</div>
@@ -85,9 +86,7 @@ export function PresentationRunSurfaceCard({
 		surfaceMeta || surfaceStatusChip || surfacePendingDetailCount > 0 ? (
 			<div className={styles['metaChips']}>
 				{surfaceStatusChip ? (
-					<code className={styles['statusChip']}>
-						{surfaceStatusChip.label}
-					</code>
+					<code className={styles['statusChip']}>{surfaceStatusChip.label}</code>
 				) : null}
 				{surfacePendingDetailCount > 0 ? (
 					<code className={styles['pendingChip']}>
@@ -124,30 +123,19 @@ export function PresentationRunSurfaceCard({
 		}
 
 		return (
-			<div
-				key={surface.run_id}
-				className={styles['card']}
-			>
+			<div key={surface.run_id} className={styles['card']}>
 				<div className={styles['summary']}>
 					<div className={styles['summaryContent']}>
-						<div className={styles['eyebrow']}>
-							mevcut çalışma
-						</div>
+						<div className={styles['eyebrow']}>mevcut çalışma</div>
 						<div className={styles['row']}>
-							<strong className={styles['title']}>
-								Canlı çalışma
-							</strong>
-							<code className={styles['correlationChip']}>
-								ana akış
-							</code>
+							<strong className={styles['title']}>Canlı çalışma</strong>
+							<code className={styles['correlationChip']}>ana akış</code>
 						</div>
 						<div className={styles['description']}>
 							Sonuçlar ve gereken onaylar sohbetten kopmadan ilerler.
 						</div>
 						{visibleCorrelationLabel ? (
-							<code className={styles['correlationChip']}>
-								{visibleCorrelationLabel}
-							</code>
+							<code className={styles['correlationChip']}>{visibleCorrelationLabel}</code>
 						) : null}
 					</div>
 					{metaChips}
@@ -167,17 +155,11 @@ export function PresentationRunSurfaceCard({
 			<summary className={styles['summary']}>
 				<div className={styles['summaryContent']}>
 					<div className={styles['pastCardContent']}>
-						<div className={styles['pastEyebrow']}>
-							geçmiş çalışma
-						</div>
+						<div className={styles['pastEyebrow']}>geçmiş çalışma</div>
 						<div className={styles['pastRow']}>
-							<strong className={styles['pastTitle']}>
-								Önceki çalışma özeti
-							</strong>
+							<strong className={styles['pastTitle']}>Önceki çalışma özeti</strong>
 							{visibleCorrelationLabel ? (
-								<code className={styles['pastCorrelationChip']}>
-									{visibleCorrelationLabel}
-								</code>
+								<code className={styles['pastCorrelationChip']}>{visibleCorrelationLabel}</code>
 							) : null}
 						</div>
 						<div className={styles['pastDescription']}>

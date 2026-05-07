@@ -29,6 +29,11 @@ import { memorySearchTool } from './memory-search.js';
 import { searchCodebaseTool } from './search-codebase.js';
 import { searchGrepTool } from './search-grep.js';
 import { shellExecTool } from './shell-exec.js';
+import {
+	shellSessionReadTool,
+	shellSessionStartTool,
+	shellSessionStopTool,
+} from './shell-session.js';
 import { webSearchTool } from './web-search.js';
 
 export class ToolAlreadyRegisteredError extends Error {
@@ -127,6 +132,9 @@ export const builtInTools = [
 	searchGrepTool,
 	webSearchTool,
 	shellExecTool,
+	shellSessionStartTool,
+	shellSessionReadTool,
+	shellSessionStopTool,
 	gitStatusTool,
 	gitDiffTool,
 	editPatchTool,

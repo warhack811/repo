@@ -10,7 +10,7 @@ type PastRunSurfacesProps = Readonly<{
 	inspectionAnchorIdsByDetailId: ReadonlyMap<string, string | undefined>;
 	isDeveloperMode?: boolean;
 	onRequestInspection: (runId: string, targetKind: InspectionTargetKind, targetId?: string) => void;
-	onResolveApproval: (approvalId: string, decision: ApprovalResolveDecision) => void;
+	onResolveApproval?: (approvalId: string, decision: ApprovalResolveDecision) => void;
 	onToggleExpanded: (runId: string, nextOpen: boolean) => void;
 	pastPresentationSurfaces: readonly PresentationRunSurface[];
 	pendingInspectionRequestKeys: readonly string[];

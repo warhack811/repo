@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { getDatabaseSchemaBootstrapStatements } from './client.js';
 import { createRlsPlan } from './rls.js';
 import {
+	agentReasoningTracesTable,
 	approvalsTable,
 	checkpointsTable,
 	conversationMembersTable,
@@ -32,6 +33,7 @@ describe('schema scope columns', () => {
 		const memoryColumns = getTableColumns(memoriesTable);
 		const checkpointColumns = getTableColumns(checkpointsTable);
 		const policyStateColumns = getTableColumns(policyStatesTable);
+		const reasoningTraceColumns = getTableColumns(agentReasoningTracesTable);
 
 		expect(getColumnNames(runtimeEventColumns)).toEqual(
 			expect.arrayContaining(['tenant_id', 'workspace_id']),
@@ -114,6 +116,20 @@ describe('schema scope columns', () => {
 				'workspace_id',
 			]),
 		);
+		expect(getColumnNames(reasoningTraceColumns)).toEqual(
+			expect.arrayContaining([
+				'created_at',
+				'expires_at',
+				'model',
+				'provider',
+				'reasoning_content',
+				'retention_policy',
+				'run_id',
+				'trace_id',
+				'trace_record_id',
+				'turn_index',
+			]),
+		);
 
 		expect(runtimeEventColumns.tenant_id.notNull).toBe(false);
 		expect(runColumns.conversation_id.notNull).toBe(false);
@@ -183,6 +199,9 @@ describe('schema scope columns', () => {
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS retrieval_text text'),
 				expect.stringContaining('ADD COLUMN IF NOT EXISTS embedding_metadata jsonb'),
 				expect.stringContaining('CREATE TABLE IF NOT EXISTS checkpoints'),
+				expect.stringContaining('CREATE TABLE IF NOT EXISTS agent_reasoning_traces'),
+				expect.stringContaining('agent_reasoning_traces_run_id_idx'),
+				expect.stringContaining('agent_reasoning_traces_expires_at_idx'),
 			]),
 		);
 	});

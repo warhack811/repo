@@ -97,6 +97,60 @@ describe('ingestToolResult', () => {
 		expect(result.tool_result).toBe(toolResult);
 	});
 
+	it('preserves shell session runtime feedback and lifecycle metadata for model continuation', () => {
+		const toolResult: ToolResult = {
+			call_id: 'call_ingest_shell_session',
+			metadata: {
+				shell_session: {
+					kind: 'shell_session_lifecycle',
+					next_action_hint: 'read_later_or_stop',
+					session_id: 'session_ingest_shell',
+					status: 'running',
+					tool_name: 'shell.session.read',
+				},
+			},
+			output: {
+				has_output: false,
+				next_action_hint: 'read_later_or_stop',
+				runtime_feedback:
+					'Shell session session_ingest_shell is still running. No buffered output is available for the selected stream yet.',
+				session_id: 'session_ingest_shell',
+				status: 'running',
+			},
+			status: 'success',
+			tool_name: 'shell.session.read',
+		};
+
+		const result = ingestToolResult({
+			call_id: 'call_ingest_shell_session',
+			current_state: 'TOOL_RESULT_INGESTING',
+			run_id: 'run_ingest_shell_session',
+			tool_name: 'shell.session.read',
+			tool_result: toolResult,
+			trace_id: 'trace_ingest_shell_session',
+		});
+
+		expect(result.status).toBe('completed');
+
+		if (result.status !== 'completed') {
+			throw new Error('Expected completed shell session ingestion.');
+		}
+
+		expect(result.ingested_result).toMatchObject({
+			metadata: {
+				shell_session: {
+					next_action_hint: 'read_later_or_stop',
+					session_id: 'session_ingest_shell',
+				},
+			},
+			output: {
+				runtime_feedback: expect.stringContaining('No buffered output'),
+			},
+			result_status: 'success',
+			tool_name: 'shell.session.read',
+		});
+	});
+
 	it('returns an explicit failure for an invalid starting state', () => {
 		const toolResult: ToolResult = {
 			call_id: 'call_ingest_invalid_state',

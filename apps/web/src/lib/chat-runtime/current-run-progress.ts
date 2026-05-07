@@ -36,8 +36,16 @@ function humanizeProvider(provider: RunTransportSummary['provider']): string {
 	switch (provider) {
 		case 'claude':
 			return 'Claude';
+		case 'deepseek':
+			return 'DeepSeek';
+		case 'gemini':
+			return 'Gemini';
 		case 'groq':
 			return 'Groq';
+		case 'openai':
+			return 'OpenAI';
+		case 'sambanova':
+			return 'SambaNova';
 		default:
 			return 'Bilinmiyor';
 	}
@@ -67,9 +75,9 @@ function humanizeApprovalStatus(status: ApprovalBlock['payload']['status']): str
 		case 'approved':
 			return uiCopy.approval.approved;
 		case 'cancelled':
-			return 'Cancelled';
+			return 'İptal edildi';
 		case 'expired':
-			return 'Expired';
+			return 'Süresi doldu';
 		case 'pending':
 			return 'Bekliyor';
 		case 'rejected':
@@ -131,6 +139,27 @@ function hasTimelineToolActivity(items: readonly RunTimelineItem[]): boolean {
 
 function hasTimelineToolCompletion(items: readonly RunTimelineItem[]): boolean {
 	return items.some((item) => item.kind === 'tool_completed' || item.kind === 'tool_failed');
+}
+
+function hasTimelineRunCompletion(items: readonly RunTimelineItem[]): boolean {
+	return items.some(
+		(item) => item.kind === 'assistant_completed' || item.kind === 'model_completed',
+	);
+}
+
+function hasTimelineRunFailure(items: readonly RunTimelineItem[]): boolean {
+	return items.some((item) => item.kind === 'run_failed');
+}
+
+function hasTimelineToolFailure(items: readonly RunTimelineItem[]): boolean {
+	return items.some((item) => item.kind === 'tool_failed');
+}
+
+function isStoppedByApprovalRejection(
+	approvalBlock: ApprovalBlock | null,
+	stepItems: readonly RunTimelineItem[],
+): boolean {
+	return approvalBlock?.payload.status === 'rejected' && !hasTimelineToolFailure(stepItems);
 }
 
 function hasModelProgress(
@@ -201,7 +230,16 @@ function getRuntimeMetaItem(
 	runSummary: RunTransportSummary | undefined,
 	feedback: RunFeedbackState | null,
 	approvalBlock: ApprovalBlock | null,
+	stepItems: readonly RunTimelineItem[],
 ): RunStatusChipItem {
+	if (isStoppedByApprovalRejection(approvalBlock, stepItems)) {
+		return {
+			label: 'Runtime',
+			tone: 'warning',
+			value: 'Stopped',
+		};
+	}
+
 	if (runSummary?.final_state === 'FAILED' || feedback?.tone === 'error') {
 		return {
 			label: 'Runtime',
@@ -272,6 +310,8 @@ function createPhaseItems(
 	const latestState = input.run_summary?.latest_runtime_state;
 	const hasToolActivity = hasTimelineToolActivity(input.step_items);
 	const hasToolCompletion = hasTimelineToolCompletion(input.step_items);
+	const hasRunCompletion = hasTimelineRunCompletion(input.step_items);
+	const hasRunFailure = hasTimelineRunFailure(input.step_items);
 	const hasApproval = input.approval_block !== null;
 
 	return [
@@ -301,7 +341,7 @@ function createPhaseItems(
 			: input.approval_block?.payload.status === 'approved'
 				? { label: 'Approval', tone: 'success', value: 'Approved' }
 				: input.approval_block?.payload.status === 'rejected'
-					? { label: 'Approval', tone: 'error', value: 'Rejected' }
+					? { label: 'Approval', tone: 'warning', value: 'Rejected' }
 					: input.approval_block
 						? {
 								label: 'Approval',
@@ -313,11 +353,13 @@ function createPhaseItems(
 								value: humanizeApprovalStatus(input.approval_block.payload.status),
 							}
 						: { label: 'Approval', tone: 'neutral', value: 'Not needed' },
-		finalState === 'COMPLETED'
-			? { label: 'Outcome', tone: 'success', value: 'Completed' }
-			: finalState === 'FAILED' || input.feedback?.tone === 'error'
-				? { label: 'Outcome', tone: 'error', value: 'Failed' }
-				: { label: 'Outcome', tone: 'neutral', value: 'In progress' },
+		isStoppedByApprovalRejection(input.approval_block, input.step_items)
+			? { label: 'Outcome', tone: 'warning', value: 'Stopped' }
+			: finalState === 'COMPLETED' || hasRunCompletion
+				? { label: 'Outcome', tone: 'success', value: 'Completed' }
+				: finalState === 'FAILED' || hasRunFailure || input.feedback?.tone === 'error'
+					? { label: 'Outcome', tone: 'error', value: 'Failed' }
+					: { label: 'Outcome', tone: 'neutral', value: 'In progress' },
 	];
 }
 
@@ -325,12 +367,25 @@ function getStatusTone(
 	feedback: RunFeedbackState | null,
 	approvalBlock: ApprovalBlock | null,
 	runSummary: RunTransportSummary | undefined,
+	stepItems: readonly RunTimelineItem[],
 ): RunStatusChipTone {
+	if (isStoppedByApprovalRejection(approvalBlock, stepItems)) {
+		return 'warning';
+	}
+
+	if (runSummary?.final_state === 'FAILED' || hasTimelineRunFailure(stepItems)) {
+		return 'error';
+	}
+
 	if (
 		approvalBlock?.payload.status === 'pending' ||
 		runSummary?.latest_runtime_state === 'WAITING_APPROVAL'
 	) {
 		return 'warning';
+	}
+
+	if (runSummary?.final_state === 'COMPLETED' || hasTimelineRunCompletion(stepItems)) {
+		return 'success';
 	}
 
 	switch (feedback?.tone) {
@@ -381,6 +436,14 @@ function getFallbackHeadline(runSummary: RunTransportSummary | undefined): strin
 	}
 
 	return uiCopy.run.currentRunProgress;
+}
+
+function getApprovalRejectedHeadline(): string {
+	return 'Onay reddedildi';
+}
+
+function getApprovalRejectedDetail(): string {
+	return 'Çalışma güven kararınla durduruldu. İstersen isteği değiştirip yeniden gönderebilirsin.';
 }
 
 function getFallbackDetail(
@@ -436,6 +499,7 @@ export function deriveCurrentRunProgressSurface(
 	const stepItems = timelineBlock?.payload.items ?? [];
 	const visibleStepItems = stepItems.slice(-5);
 	const blockCounts = countBlocksByType(input.current_presentation_surface);
+	const stoppedByApprovalRejection = isStoppedByApprovalRejection(approvalBlock, stepItems);
 	const correlationLabel = buildCorrelationLabel(
 		runId,
 		input.current_run_feedback?.trace_id ??
@@ -443,7 +507,7 @@ export function deriveCurrentRunProgressSurface(
 			input.run_summary?.trace_id,
 	);
 	const metaItems: RunStatusChipItem[] = [
-		getRuntimeMetaItem(input.run_summary, input.current_run_feedback, approvalBlock),
+		getRuntimeMetaItem(input.run_summary, input.current_run_feedback, approvalBlock, stepItems),
 	];
 
 	if (input.run_summary?.provider) {
@@ -481,9 +545,12 @@ export function deriveCurrentRunProgressSurface(
 	return {
 		approval_block: approvalBlock,
 		correlation_label: correlationLabel,
-		detail:
-			input.current_run_feedback?.detail ?? getFallbackDetail(input.run_summary, approvalBlock),
-		headline: input.current_run_feedback?.title ?? getFallbackHeadline(input.run_summary),
+		detail: stoppedByApprovalRejection
+			? getApprovalRejectedDetail()
+			: (input.current_run_feedback?.detail ?? getFallbackDetail(input.run_summary, approvalBlock)),
+		headline: stoppedByApprovalRejection
+			? getApprovalRejectedHeadline()
+			: (input.current_run_feedback?.title ?? getFallbackHeadline(input.run_summary)),
 		hidden_step_count: Math.max(stepItems.length - visibleStepItems.length, 0),
 		meta_items: metaItems,
 		phase_items: createPhaseItems({
@@ -493,7 +560,12 @@ export function deriveCurrentRunProgressSurface(
 			step_items: stepItems,
 		}),
 		run_id: runId,
-		status_tone: getStatusTone(input.current_run_feedback, approvalBlock, input.run_summary),
+		status_tone: getStatusTone(
+			input.current_run_feedback,
+			approvalBlock,
+			input.run_summary,
+			stepItems,
+		),
 		step_items: visibleStepItems,
 	};
 }

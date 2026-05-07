@@ -285,6 +285,7 @@ export function createBrowserNavigateTool(
 		},
 		metadata: {
 			capability_class: 'browser',
+			narration_policy: 'optional',
 			requires_approval: false,
 			risk_level: 'low',
 			side_effect_level: 'read',

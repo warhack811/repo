@@ -492,6 +492,7 @@ export function createRunModelTurnLoopExecutor(
 			tool_call_repair_recovery: repairRecovery,
 			tool_names: input.tool_names,
 			trace_id: turnInput.trace_id,
+			turn_index: turnInput.turn_index,
 		});
 
 		return mapRunModelTurnResultToAgentLoopTurnResult(turnInput, runModelTurnResult, {

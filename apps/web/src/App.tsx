@@ -1,8 +1,17 @@
 import type { AuthContext } from '@runa/types';
-import { type ReactElement, Suspense, lazy } from 'react';
+import { type ReactElement, Suspense, lazy, useCallback, useEffect, useState } from 'react';
 
 import { RunaSkeleton } from './components/ui/RunaSkeleton.js';
 import { useAuth } from './hooks/useAuth.js';
+import {
+	type BrandTheme,
+	type Theme,
+	applyAppearance,
+	getStoredBrandTheme,
+	getStoredTheme,
+	storeBrandTheme,
+	storeTheme,
+} from './lib/theme.js';
 import { LoginPage } from './pages/LoginPage.js';
 
 const AuthenticatedApp = lazy(() =>
@@ -14,11 +23,15 @@ export type AuthenticatedAppProps = Readonly<{
 	authError: string | null;
 	authStatus: 'authenticated' | 'service';
 	bearerToken: string | null;
+	brandTheme: BrandTheme;
 	hasStoredBearerToken: boolean;
 	isAuthPending: boolean;
+	onBrandThemeChange: (theme: BrandTheme) => void;
 	onClearAuthToken: () => Promise<void>;
 	onLogout: () => Promise<void>;
 	onRefreshAuthContext: () => Promise<void>;
+	onThemeChange: (theme: Theme) => void;
+	theme: Theme;
 }>;
 
 function AuthenticatedFallback(): ReactElement {
@@ -35,6 +48,8 @@ function AuthenticatedFallback(): ReactElement {
 }
 
 export function App(): ReactElement {
+	const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
+	const [brandTheme, setBrandTheme] = useState<BrandTheme>(() => getStoredBrandTheme());
 	const {
 		authContext,
 		authError,
@@ -53,6 +68,28 @@ export function App(): ReactElement {
 		startOAuthSignIn,
 	} = useAuth();
 
+	useEffect(() => {
+		applyAppearance(theme, brandTheme);
+	}, [brandTheme, theme]);
+
+	const selectTheme = useCallback(
+		(nextTheme: Theme): void => {
+			setTheme(nextTheme);
+			storeTheme(nextTheme);
+			applyAppearance(nextTheme, brandTheme);
+		},
+		[brandTheme],
+	);
+
+	const selectBrandTheme = useCallback(
+		(nextTheme: BrandTheme): void => {
+			setBrandTheme(nextTheme);
+			storeBrandTheme(nextTheme);
+			applyAppearance(theme, nextTheme);
+		},
+		[theme],
+	);
+
 	const isAuthenticatedSurface =
 		(authStatus === 'authenticated' || authStatus === 'service') && authContext !== null;
 
@@ -64,11 +101,15 @@ export function App(): ReactElement {
 					authError={authError}
 					authStatus={authStatus === 'service' ? 'service' : 'authenticated'}
 					bearerToken={bearerToken}
+					brandTheme={brandTheme}
 					hasStoredBearerToken={hasStoredBearerToken}
 					isAuthPending={isAuthPending}
+					onBrandThemeChange={selectBrandTheme}
 					onClearAuthToken={clearAuthToken}
 					onLogout={logout}
 					onRefreshAuthContext={refreshAuthContext}
+					onThemeChange={selectTheme}
+					theme={theme}
 				/>
 			</Suspense>
 		);

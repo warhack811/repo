@@ -1,6 +1,6 @@
 .textarea {
-	background: hsl(var(--color-surface-overlay) / 0.72);
-	border: 1px solid rgba(148, 163, 184, 0.18);
+	background: var(--surface-input);
+	border: 1px solid var(--border-default);
 	border-radius: var(--radius-soft);
 	box-shadow: none;
 	box-sizing: border-box;
@@ -18,7 +18,7 @@
 }
 
 .textarea:focus-visible {
-	border-color: rgba(245, 158, 11, 0.5);
+	border-color: var(--border-focus);
 	box-shadow: none;
 	outline: none;
 }

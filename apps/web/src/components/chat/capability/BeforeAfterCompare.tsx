@@ -1,8 +1,8 @@
 import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
 import { AssetPreviewCard } from './AssetPreviewCard.js';
-import type { AssetPreviewItem } from './types.js';
 import styles from './BeforeAfterCompare.module.css';
+import type { AssetPreviewItem } from './types.js';
 
 export type BeforeAfterCompareProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {

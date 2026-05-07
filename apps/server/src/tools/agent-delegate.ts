@@ -230,6 +230,7 @@ export const agentDelegateTool: ToolDefinition<AgentDelegateCallInput> = {
 	description: 'Delegate one bounded task to a conservative sequential sub-agent.',
 	metadata: {
 		capability_class: 'agent',
+		narration_policy: 'optional',
 		requires_approval: false,
 		risk_level: 'medium',
 		side_effect_level: 'execute',

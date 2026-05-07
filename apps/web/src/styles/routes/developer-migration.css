@@ -1,8 +1,8 @@
 /* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
 
 .runa-migrated-components-developer-operatorcontrolspanel-1 {
-	background: rgba(10, 15, 28, 0.72);
-	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: var(--surface-chip);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	padding: clamp(16px, 3vw, 20px);
@@ -20,7 +20,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: #94a3b8;
+	color: var(--text-soft);
 }
 
 .runa-migrated-components-developer-operatorcontrolspanel-4 {
@@ -29,7 +29,7 @@
 }
 
 .runa-migrated-components-developer-operatorcontrolspanel-5 {
-	color: #cbd5e1;
+	color: var(--text-muted);
 	line-height: 1.6;
 }
 
@@ -63,9 +63,9 @@
 	width: 100%;
 	padding: 10px 12px;
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.3);
-	background: rgba(15, 23, 42, 0.8);
-	color: #f8fafc;
+	border: 1px solid var(--border-strong);
+	background: var(--surface-chip);
+	color: var(--text-strong);
 	font-size: 14px;
 	box-sizing: border-box;
 	min-width: 0px;
@@ -80,9 +80,9 @@
 	width: 100%;
 	padding: 10px 12px;
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.3);
-	background: rgba(15, 23, 42, 0.8);
-	color: #f8fafc;
+	border: 1px solid var(--border-strong);
+	background: var(--surface-chip);
+	color: var(--text-strong);
 	font-size: 14px;
 	box-sizing: border-box;
 	min-width: 0px;
@@ -97,9 +97,9 @@
 	width: 100%;
 	padding: 10px 12px;
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.3);
-	background: rgba(15, 23, 42, 0.8);
-	color: #f8fafc;
+	border: 1px solid var(--border-strong);
+	background: var(--surface-chip);
+	color: var(--text-strong);
 	font-size: 14px;
 	box-sizing: border-box;
 	min-width: 0px;
@@ -109,13 +109,13 @@
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
-	color: #cbd5e1;
+	color: var(--text-muted);
 	font-size: 14px;
 	flex-wrap: wrap;
 }
 
 .runa-migrated-components-developer-operatorcontrolspanel-17 {
-	color: #94a3b8;
+	color: var(--text-soft);
 	font-size: 14px;
 	line-height: 1.6;
 }
@@ -163,7 +163,7 @@
 }
 
 .runa-migrated-components-developer-transportmessagespanel-7 {
-	color: #94a3b8;
+	color: var(--text-soft);
 	font-size: 14px;
 }
 
@@ -187,9 +187,9 @@
 	padding: var(--space-subcard);
 	border-radius: var(--radius-soft);
 	min-width: 0;
-	background: rgba(127, 29, 29, 0.35);
-	border: 1px solid rgba(248, 113, 113, 0.4);
-	color: #fecaca;
+	background: var(--status-danger-bg);
+	border: 1px solid var(--border-danger);
+	color: var(--status-danger-text);
 }
 
 .runa-migrated-components-developer-transportmessagespanel-11 {
@@ -204,18 +204,18 @@
 	padding: var(--space-panel);
 	border-radius: var(--radius-panel);
 	border: 1px dashed hsl(var(--color-border-soft) / 0.7);
-	background: rgba(8, 13, 24, 0.44);
+	background: var(--surface-subtle);
 	color: hsl(var(--color-text-muted));
 }
 
 .runa-migrated-components-developer-transportmessagespanel-13 {
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.18);
+	border: 1px solid var(--border-subtle);
 	background: hsl(var(--color-surface) / 0.72);
 	padding: 16px;
 	min-width: 0;
 	box-shadow: none;
-	border-color: rgba(148, 163, 184, 0.14);
+	border-color: var(--border-subtle);
 }
 
 .runa-migrated-components-developer-transportmessagespanel-14 {
@@ -228,7 +228,7 @@
 }
 
 .runa-migrated-components-developer-transportmessagespanel-15 {
-	color: #94a3b8;
+	color: var(--text-soft);
 	font-size: 12px;
 }
 
@@ -237,17 +237,17 @@
 	background: hsl(var(--color-surface) / 0.72);
 	padding: 12px;
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.16);
+	border: 1px solid var(--border-subtle);
 	overflow-x: auto;
 	font-size: 12px;
 	line-height: 1.55;
-	color: #cbd5e1;
+	color: var(--text-muted);
 	white-space: pre-wrap;
 	word-break: break-word;
 }
 
 .runa-migrated-components-developer-transportmessagespanel-17 {
-	color: #94a3b8;
+	color: var(--text-soft);
 	line-height: 1.5;
 }
 
@@ -313,7 +313,7 @@
 .runa-migrated-pages-developerpage-9 {
 	font-size: 16px;
 	font-weight: 600;
-	color: #f8fafc;
+	color: var(--text-strong);
 }
 
 .runa-migrated-pages-developerpage-10 {
@@ -337,7 +337,7 @@
 .runa-migrated-pages-developerpage-12 {
 	font-size: 16px;
 	font-weight: 600;
-	color: #f8fafc;
+	color: var(--text-strong);
 }
 
 .runa-migrated-pages-developerpage-13 {
@@ -361,7 +361,7 @@
 .runa-migrated-pages-developerpage-15 {
 	font-size: 16px;
 	font-weight: 600;
-	color: #f8fafc;
+	color: var(--text-strong);
 }
 
 .runa-migrated-pages-developerpage-16 {
@@ -462,9 +462,9 @@
 	margin-top: 16px;
 	padding: 12px 14px;
 	border-radius: var(--radius-soft);
-	background: rgba(127, 29, 29, 0.28);
-	border: 1px solid rgba(248, 113, 113, 0.36);
-	color: #fecaca;
+	background: var(--status-danger-bg);
+	border: 1px solid var(--border-danger);
+	color: var(--status-danger-text);
 	line-height: 1.5;
 }
 
@@ -501,9 +501,9 @@
 	display: block;
 	padding: 10px 12px;
 	border-radius: var(--radius-soft);
-	background: rgba(2, 6, 23, 0.68);
-	border: 1px solid rgba(148, 163, 184, 0.16);
-	color: #bfdbfe;
+	background: hsl(var(--color-surface-overlay) / 0.68);
+	border: 1px solid var(--border-subtle);
+	color: var(--status-info-text);
 	font-size: 14px;
 	overflow-x: auto;
 	max-height: 240px;
@@ -536,9 +536,9 @@
 	display: block;
 	padding: 10px 12px;
 	border-radius: var(--radius-soft);
-	background: rgba(2, 6, 23, 0.68);
-	border: 1px solid rgba(148, 163, 184, 0.16);
-	color: #bfdbfe;
+	background: hsl(var(--color-surface-overlay) / 0.68);
+	border: 1px solid var(--border-subtle);
+	color: var(--status-info-text);
 	font-size: 14px;
 	overflow-x: auto;
 	max-height: 240px;
@@ -571,9 +571,9 @@
 	display: block;
 	padding: 10px 12px;
 	border-radius: var(--radius-soft);
-	background: rgba(2, 6, 23, 0.68);
-	border: 1px solid rgba(148, 163, 184, 0.16);
-	color: #bfdbfe;
+	background: hsl(var(--color-surface-overlay) / 0.68);
+	border: 1px solid var(--border-subtle);
+	color: var(--status-info-text);
 	font-size: 14px;
 	overflow-x: auto;
 	max-height: 240px;

@@ -1,3 +1,4 @@
+import type { SupportedLocale } from './locale.js';
 import type { ApprovalActionKind, ApprovalDecisionKind } from './policy.js';
 import type { RuntimeState } from './state.js';
 import type { ToolName } from './tools.js';
@@ -80,6 +81,35 @@ export interface ApprovalResolvedEventPayload {
 	readonly resolved_at: string;
 }
 
+export interface NarrationEventPayloadBase {
+	readonly locale: SupportedLocale;
+	readonly narration_id: string;
+	readonly run_id: string;
+	readonly sequence_no: number;
+	readonly timestamp: string;
+	readonly turn_index: number;
+	readonly linked_tool_call_id?: string;
+}
+
+export interface NarrationStartedEventPayload extends NarrationEventPayloadBase {}
+
+export interface NarrationTokenEventPayload extends NarrationEventPayloadBase {
+	readonly text_delta: string;
+}
+
+export interface NarrationCompletedEventPayload extends NarrationEventPayloadBase {
+	readonly full_text: string;
+}
+
+export interface NarrationSupersededEventPayload extends NarrationEventPayloadBase {}
+
+export type NarrationToolOutcome = 'failure' | 'success';
+
+export interface NarrationToolOutcomeLinkedEventPayload extends NarrationEventPayloadBase {
+	readonly outcome: NarrationToolOutcome;
+	readonly tool_call_id: string;
+}
+
 export interface EventPayloadMap {
 	readonly 'run.started': RunStartedEventPayload;
 	readonly 'state.entered': StateEnteredEventPayload;
@@ -91,6 +121,11 @@ export interface EventPayloadMap {
 	readonly 'tool.call.failed': ToolCallFailedEventPayload;
 	readonly 'approval.requested': ApprovalRequestedEventPayload;
 	readonly 'approval.resolved': ApprovalResolvedEventPayload;
+	readonly 'narration.started': NarrationStartedEventPayload;
+	readonly 'narration.token': NarrationTokenEventPayload;
+	readonly 'narration.completed': NarrationCompletedEventPayload;
+	readonly 'narration.superseded': NarrationSupersededEventPayload;
+	readonly 'narration.tool_outcome_linked': NarrationToolOutcomeLinkedEventPayload;
 }
 
 export type EventType = keyof EventPayloadMap;
@@ -147,12 +182,42 @@ export type ApprovalResolvedEvent = EventEnvelope<
 	ApprovalResolvedEventPayload
 >;
 
+export type NarrationStartedEvent = EventEnvelope<
+	'narration.started',
+	NarrationStartedEventPayload
+>;
+
+export type NarrationTokenEvent = EventEnvelope<'narration.token', NarrationTokenEventPayload>;
+
+export type NarrationCompletedEvent = EventEnvelope<
+	'narration.completed',
+	NarrationCompletedEventPayload
+>;
+
+export type NarrationSupersededEvent = EventEnvelope<
+	'narration.superseded',
+	NarrationSupersededEventPayload
+>;
+
+export type NarrationToolOutcomeLinkedEvent = EventEnvelope<
+	'narration.tool_outcome_linked',
+	NarrationToolOutcomeLinkedEventPayload
+>;
+
+export type NarrationRuntimeEvent =
+	| NarrationStartedEvent
+	| NarrationTokenEvent
+	| NarrationCompletedEvent
+	| NarrationSupersededEvent
+	| NarrationToolOutcomeLinkedEvent;
+
 export type RuntimeEvent =
 	| RunStartedEvent
 	| StateEnteredEvent
 	| ModelCompletedEvent
 	| RunCompletedEvent
-	| RunFailedEvent;
+	| RunFailedEvent
+	| NarrationRuntimeEvent;
 
 export type ToolRuntimeEvent = ToolCallStartedEvent | ToolCallCompletedEvent | ToolCallFailedEvent;
 

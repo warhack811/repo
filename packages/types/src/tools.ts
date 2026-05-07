@@ -45,7 +45,10 @@ export type KnownToolName =
 	| 'search.memory'
 	| 'search.grep'
 	| 'web.search'
-	| 'shell.exec';
+	| 'shell.exec'
+	| 'shell.session.read'
+	| 'shell.session.start'
+	| 'shell.session.stop';
 
 export type ToolName = KnownToolName | `${ToolNamespace}.${string}`;
 
@@ -54,6 +57,8 @@ export type ToolArguments = Readonly<Record<string, unknown>>;
 export type ToolRiskLevel = 'low' | 'medium' | 'high';
 
 export type ToolSideEffectLevel = 'none' | 'read' | 'write' | 'execute';
+
+export type ToolNarrationPolicy = 'none' | 'optional' | 'required';
 
 export type ToolCapabilityClass =
 	| 'agent'
@@ -175,6 +180,7 @@ export interface ToolExecutionContext {
 
 export interface ToolMetadata {
 	readonly capability_class: ToolCapabilityClass;
+	readonly narration_policy?: ToolNarrationPolicy;
 	readonly requires_approval: boolean;
 	readonly risk_level: ToolRiskLevel;
 	readonly side_effect_level: ToolSideEffectLevel;

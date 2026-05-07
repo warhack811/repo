@@ -1,5 +1,6 @@
 import type { RuntimeEvent } from './events.js';
 import type { EvidencePack, EvidenceSource } from './evidence.js';
+import type { SupportedLocale } from './locale.js';
 import type {
 	ApprovalActionKind,
 	ApprovalDecisionKind,
@@ -29,6 +30,7 @@ export type RenderBlockType =
 	| 'trace_debug_block'
 	| 'tool_result'
 	| 'web_search_result_block'
+	| 'work_narration'
 	| 'workspace_inspection_block';
 
 export interface RenderBlockBase<TType extends RenderBlockType> {
@@ -250,6 +252,18 @@ export interface ToolResultBlockPayload {
 	readonly tool_name: ToolName;
 }
 
+export type WorkNarrationBlockStatus = 'completed' | 'streaming' | 'superseded' | 'tool_failed';
+
+export interface WorkNarrationBlockPayload {
+	readonly locale: SupportedLocale;
+	readonly run_id: string;
+	readonly sequence_no: number;
+	readonly status: WorkNarrationBlockStatus;
+	readonly text: string;
+	readonly turn_index: number;
+	readonly linked_tool_call_id?: string;
+}
+
 export interface ApprovalBlockPayload {
 	readonly action_kind: ApprovalActionKind;
 	readonly approval_id: string;
@@ -282,6 +296,7 @@ export interface RenderBlockMap {
 	readonly trace_debug_block: TraceDebugBlockPayload;
 	readonly tool_result: ToolResultBlockPayload;
 	readonly web_search_result_block: WebSearchResultBlockPayload;
+	readonly work_narration: WorkNarrationBlockPayload;
 	readonly workspace_inspection_block: WorkspaceInspectionBlockPayload;
 }
 
@@ -324,6 +339,8 @@ export type ToolResultBlock = RenderBlockOf<'tool_result'>;
 
 export type WebSearchResultBlock = RenderBlockOf<'web_search_result_block'>;
 
+export type WorkNarrationBlock = RenderBlockOf<'work_narration'>;
+
 export type WorkspaceInspectionBlock = RenderBlockOf<'workspace_inspection_block'>;
 
 export type ApprovalBlock = RenderBlockOf<'approval_block'>;
@@ -345,5 +362,6 @@ export type RenderBlock =
 	| TraceDebugBlock
 	| ToolResultBlock
 	| WebSearchResultBlock
+	| WorkNarrationBlock
 	| WorkspaceInspectionBlock
 	| ApprovalBlock;

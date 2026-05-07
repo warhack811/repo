@@ -97,6 +97,9 @@ describe('ToolRegistry', () => {
 		expect(registry.has('memory.list')).toBe(true);
 		expect(registry.has('memory.save')).toBe(true);
 		expect(registry.has('memory.search')).toBe(true);
+		expect(registry.has('shell.session.read')).toBe(true);
+		expect(registry.has('shell.session.start')).toBe(true);
+		expect(registry.has('shell.session.stop')).toBe(true);
 		expect(registry.listNames()).toContain('browser.click');
 		expect(registry.listNames()).toContain('browser.extract');
 		expect(registry.listNames()).toContain('browser.fill');
@@ -117,6 +120,30 @@ describe('ToolRegistry', () => {
 		expect(registry.listNames()).toContain('memory.list');
 		expect(registry.listNames()).toContain('memory.save');
 		expect(registry.listNames()).toContain('memory.search');
+		expect(registry.listNames()).toContain('shell.session.read');
+		expect(registry.listNames()).toContain('shell.session.start');
+		expect(registry.listNames()).toContain('shell.session.stop');
+	});
+
+	it('declares an explicit narration policy for every built-in tool', () => {
+		const registry = createBuiltInToolRegistry();
+		const policiesByToolName = new Map(
+			registry.list().map((entry) => [entry.name, entry.metadata.narration_policy] as const),
+		);
+
+		expect(registry.list().every((entry) => entry.metadata.narration_policy !== undefined)).toBe(
+			true,
+		);
+		expect(policiesByToolName.get('memory.list')).toBe('none');
+		expect(policiesByToolName.get('memory.search')).toBe('none');
+		expect(policiesByToolName.get('file.write')).toBe('required');
+		expect(policiesByToolName.get('shell.exec')).toBe('required');
+		expect(policiesByToolName.get('shell.session.read')).toBe('required');
+		expect(policiesByToolName.get('shell.session.start')).toBe('required');
+		expect(policiesByToolName.get('shell.session.stop')).toBe('required');
+		expect(policiesByToolName.get('edit.patch')).toBe('required');
+		expect(policiesByToolName.get('file.read')).toBe('optional');
+		expect(policiesByToolName.get('search.codebase')).toBe('optional');
 	});
 
 	it('keeps built-in names authoritative when another tool tries to reuse them', () => {

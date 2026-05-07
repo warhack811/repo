@@ -3,9 +3,13 @@ import { useCallback, useEffect } from 'react';
 import { useChatRuntime } from './useChatRuntime.js';
 import { useConversations } from './useConversations.js';
 
-export function useConversationBackedChatRuntime(accessToken: string | null) {
+export function useConversationBackedChatRuntime(
+	accessToken: string | null,
+	options: Readonly<{ startInDraft?: boolean }> = {},
+) {
 	const conversations = useConversations({
 		accessToken,
+		startInDraft: options.startInDraft,
 	});
 	const onRunAccepted = useCallback(
 		({ conversationId, prompt }: { conversationId?: string; prompt: string }) => {
@@ -38,6 +42,25 @@ export function useConversationBackedChatRuntime(accessToken: string | null) {
 	const { store } = runtime;
 
 	useEffect(() => {
+		if (
+			conversations.activeConversationId !== null ||
+			activeConversationRunSurfaces.length > 0 ||
+			runtime.isSubmitting ||
+			runtime.currentStreamingRunId !== null
+		) {
+			return;
+		}
+
+		runtime.resetRunState();
+	}, [
+		activeConversationRunSurfaces.length,
+		conversations.activeConversationId,
+		runtime.currentStreamingRunId,
+		runtime.isSubmitting,
+		runtime.resetRunState,
+	]);
+
+	useEffect(() => {
 		if (activeConversationRunSurfaces.length === 0) {
 			return;
 		}
@@ -58,7 +81,10 @@ export function useConversationBackedChatRuntime(accessToken: string | null) {
 
 			return {
 				...current,
-				presentationRunSurfaces: activeConversationRunSurfaces,
+				presentationRunSurfaces: activeConversationRunSurfaces.map((surface) => ({
+					...surface,
+					replayMode: true,
+				})),
 			};
 		});
 	}, [activeConversationRunSurfaces, store]);

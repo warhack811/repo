@@ -9,6 +9,10 @@ import {
 	createInspectionRequestIdentity,
 } from '../lib/chat-runtime/inspection-relations.js';
 import {
+	type LiveNarrationUpdate,
+	deriveLiveNarrationCompletedUpdate,
+	deriveLiveNarrationDeltaUpdate,
+	deriveLiveNarrationSupersededUpdate,
 	derivePresentationBlocksUpdate,
 	derivePresentationSurfaceState,
 	findPresentationRunSurface,
@@ -106,6 +110,7 @@ export interface UseChatRuntimeResult {
 	submitRunRequest: (event: FormEvent<HTMLFormElement>) => void;
 	requestInspection: (runId: string, targetKind: InspectionTargetKind, targetId?: string) => void;
 	resolveApproval: (approvalId: string, decision: ApprovalResolveDecision) => void;
+	resetRunState: () => void;
 	retryTransport: () => void;
 }
 
@@ -590,6 +595,18 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			}));
 		}
 
+		function commitLiveNarrationUpdate(nextNarrationUpdate: LiveNarrationUpdate): void {
+			commitExpandedPastRunIds(nextNarrationUpdate.expandedPastRunIds);
+			expectedPresentationRunIdsRef.current = new Set(nextNarrationUpdate.expectedRunIds);
+			presentationRunIdRef.current = nextNarrationUpdate.presentationRunId;
+			presentationRunSurfacesRef.current = nextNarrationUpdate.presentationRunSurfaces;
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				presentationRunId: nextNarrationUpdate.presentationRunId,
+				presentationRunSurfaces: nextNarrationUpdate.presentationRunSurfaces,
+			}));
+		}
+
 		function scheduleReconnect(
 			message?: string,
 			transportErrorCode: TransportErrorCode = 'ws-disconnect',
@@ -761,9 +778,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 							commitPendingInspectionRequestKeys(
 								nextPresentationUpdate.pendingInspectionRequestKeys,
 							);
-							commitStaleInspectionRequestKeys(
-								nextPresentationUpdate.staleInspectionRequestKeys,
-							);
+							commitStaleInspectionRequestKeys(nextPresentationUpdate.staleInspectionRequestKeys);
 							commitExpandedPastRunIds(nextPresentationUpdate.expandedPastRunIds);
 
 							inspectionAnchorIdsByDetailIdRef.current = new Map(
@@ -776,8 +791,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								nextPresentationUpdate.expectedRunIds,
 							);
 							presentationRunIdRef.current = nextPresentationUpdate.presentationRunId;
-							presentationRunSurfacesRef.current =
-								nextPresentationUpdate.presentationRunSurfaces;
+							presentationRunSurfacesRef.current = nextPresentationUpdate.presentationRunSurfaces;
 							chatStore.setPresentationState((currentPresentationState) => ({
 								...currentPresentationState,
 								presentationRunId: nextPresentationUpdate.presentationRunId,
@@ -795,6 +809,51 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 										scrollToPresentationBlock(latestDetailBlockId);
 									}
 								});
+							}
+
+							return;
+						}
+
+						if (parsedMessage.type === 'narration.delta') {
+							const nextNarrationUpdate = deriveLiveNarrationDeltaUpdate(parsedMessage, {
+								expandedPastRunIds: expandedPastRunIdsRef.current,
+								expectedRunIds: expectedPresentationRunIdsRef.current,
+								presentationRunId: presentationRunIdRef.current,
+								presentationRunSurfaces: presentationRunSurfacesRef.current,
+							});
+
+							if (nextNarrationUpdate) {
+								commitLiveNarrationUpdate(nextNarrationUpdate);
+							}
+
+							return;
+						}
+
+						if (parsedMessage.type === 'narration.completed') {
+							const nextNarrationUpdate = deriveLiveNarrationCompletedUpdate(parsedMessage, {
+								expandedPastRunIds: expandedPastRunIdsRef.current,
+								expectedRunIds: expectedPresentationRunIdsRef.current,
+								presentationRunId: presentationRunIdRef.current,
+								presentationRunSurfaces: presentationRunSurfacesRef.current,
+							});
+
+							if (nextNarrationUpdate) {
+								commitLiveNarrationUpdate(nextNarrationUpdate);
+							}
+
+							return;
+						}
+
+						if (parsedMessage.type === 'narration.superseded') {
+							const nextNarrationUpdate = deriveLiveNarrationSupersededUpdate(parsedMessage, {
+								expandedPastRunIds: expandedPastRunIdsRef.current,
+								expectedRunIds: expectedPresentationRunIdsRef.current,
+								presentationRunId: presentationRunIdRef.current,
+								presentationRunSurfaces: presentationRunSurfacesRef.current,
+							});
+
+							if (nextNarrationUpdate) {
+								commitLiveNarrationUpdate(nextNarrationUpdate);
 							}
 
 							return;
@@ -1358,6 +1417,62 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		reconnectNowRef.current();
 	}, [chatStore]);
 
+	const resetRunState = useCallback((): void => {
+		expectedPresentationRunIdsRef.current.clear();
+		expandedPastRunIdsRef.current.clear();
+		inspectionAnchorIdsByDetailIdRef.current.clear();
+		inspectionRequestKeysByDetailIdRef.current.clear();
+		pendingInspectionRequestKeysRef.current.clear();
+		presentationRunSurfacesRef.current = [];
+		presentationRunIdRef.current = null;
+		staleInspectionRequestKeysRef.current.clear();
+		conversationIdByRunIdRef.current.clear();
+		submittedPromptByRunIdRef.current.clear();
+		firstTokenSeenRunIdsRef.current.clear();
+		reportedSearchRunIdsRef.current.clear();
+		reportedToolCallIdsRef.current.clear();
+		runSubmittedAtRef.current.clear();
+
+		chatStore.setPresentationState((currentPresentationState) => {
+			if (
+				currentPresentationState.currentStreamingRunId === null &&
+				currentPresentationState.currentStreamingText.length === 0 &&
+				currentPresentationState.expandedPastRunIds.length === 0 &&
+				currentPresentationState.pendingInspectionRequestKeys.length === 0 &&
+				currentPresentationState.presentationRunId === null &&
+				currentPresentationState.presentationRunSurfaces.length === 0 &&
+				currentPresentationState.staleInspectionRequestKeys.length === 0
+			) {
+				return currentPresentationState;
+			}
+
+			return {
+				currentStreamingRunId: null,
+				currentStreamingText: '',
+				expandedPastRunIds: [],
+				pendingInspectionRequestKeys: [],
+				presentationRunId: null,
+				presentationRunSurfaces: [],
+				staleInspectionRequestKeys: [],
+			};
+		});
+		chatStore.setTransportState((currentTransportState) => {
+			if (
+				currentTransportState.latestRunRequestIncludesPresentationBlocks === null &&
+				currentTransportState.messages.length === 0 &&
+				currentTransportState.runTransportSummaries.size === 0
+			) {
+				return currentTransportState;
+			}
+
+			return {
+				latestRunRequestIncludesPresentationBlocks: null,
+				messages: [],
+				runTransportSummaries: new Map(),
+			};
+		});
+	}, [chatStore]);
+
 	return useMemo(
 		() => ({
 			accessToken,
@@ -1385,6 +1500,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			prompt,
 			provider,
 			requestInspection,
+			resetRunState,
 			resolveApproval,
 			retryTransport,
 			runTransportSummaries,
@@ -1424,6 +1540,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			prompt,
 			provider,
 			requestInspection,
+			resetRunState,
 			resolveApproval,
 			retryTransport,
 			runTransportSummaries,

@@ -1,11 +1,12 @@
-import type { ModelRequest } from '@runa/types';
+import { type ModelRequest, type ModelStreamChunk, redact, unwrapRedacted } from '@runa/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.js';
 import { ClaudeGateway } from './claude-gateway.js';
+import { resolveGatewayConfig, resolveGatewayConfigAuthority } from './config-resolver.js';
 import { DeepSeekGateway } from './deepseek-gateway.js';
 import { GatewayConfigurationError, GatewayResponseError } from './errors.js';
-import { createModelGateway } from './factory.js';
+import { createModelGateway, getGatewayProviderCapabilities } from './factory.js';
 import { GeminiGateway } from './gemini-gateway.js';
 import { GroqGateway } from './groq-gateway.js';
 import { OpenAiGateway } from './openai-gateway.js';
@@ -593,6 +594,28 @@ describe('gateway factory', () => {
 		expect(typeof gateway.stream).toBe('function');
 	});
 
+	it('exposes provider-owned narration capability metadata', () => {
+		expect(getGatewayProviderCapabilities('claude')).toEqual({
+			emits_reasoning_content: false,
+			narration_strategy: 'native_blocks',
+			streaming_supported: true,
+			tool_call_fallthrough_risk: 'none',
+		});
+		expect(getGatewayProviderCapabilities('openai')).toMatchObject({
+			narration_strategy: 'temporal_stream',
+			tool_call_fallthrough_risk: 'none',
+		});
+		expect(getGatewayProviderCapabilities('deepseek')).toEqual({
+			emits_reasoning_content: true,
+			narration_strategy: 'temporal_stream',
+			streaming_supported: true,
+			tool_call_fallthrough_risk: 'known_intermittent',
+		});
+		expect(getGatewayProviderCapabilities('gemini').narration_strategy).toBe('unsupported');
+		expect(getGatewayProviderCapabilities('groq').narration_strategy).toBe('unsupported');
+		expect(getGatewayProviderCapabilities('sambanova').narration_strategy).toBe('unsupported');
+	});
+
 	it('throws a typed error when generate() is attempted without a usable api key', async () => {
 		const gateway = createModelGateway({
 			config: {
@@ -601,6 +624,61 @@ describe('gateway factory', () => {
 			provider: 'groq',
 		});
 
+		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayConfigurationError);
+	});
+
+	it('reports client config as the gateway API key authority when provided', () => {
+		const authority = resolveGatewayConfigAuthority(
+			'groq',
+			{
+				apiKey: 'client-key',
+			},
+			{
+				GROQ_API_KEY: 'server-key',
+			},
+		);
+		const resolvedConfig = resolveGatewayConfig('groq', {
+			apiKey: 'client-key',
+		});
+
+		expect(authority.api_key_authority.source).toBe('client_config');
+		expect(authority.api_key_authority.resolved_from).toBe('client_config');
+		expect(authority.api_key_authority.masked_preview).not.toContain('client-key');
+		expect(resolvedConfig.apiKey).toBe('client-key');
+	});
+
+	it('reports process env as the gateway API key authority when client config is empty', () => {
+		const authority = resolveGatewayConfigAuthority(
+			'deepseek',
+			{
+				apiKey: ' ',
+			},
+			{
+				DEEPSEEK_API_KEY: 'server-deepseek-key',
+			},
+		);
+
+		expect(authority.api_key_authority.source).toBe('process_env');
+		expect(authority.api_key_authority.resolved_from).toBe('DEEPSEEK_API_KEY');
+	});
+
+	it('reports missing gateway API key authority without changing missing-key behavior', async () => {
+		const authority = resolveGatewayConfigAuthority(
+			'groq',
+			{
+				apiKey: ' ',
+			},
+			{},
+		);
+		const gateway = createModelGateway({
+			config: {
+				apiKey: '   ',
+			},
+			provider: 'groq',
+		});
+
+		expect(authority.api_key_authority.source).toBe('missing');
+		expect(authority.api_key_authority.missing_required_names).toEqual(['GROQ_API_KEY']);
 		await expect(gateway.generate(groqRequest)).rejects.toThrowError(GatewayConfigurationError);
 	});
 });
@@ -646,6 +724,14 @@ describe('DeepSeekGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from DeepSeek',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'Hello from DeepSeek',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'deepseek-v4-flash',
@@ -687,6 +773,52 @@ describe('DeepSeekGateway', () => {
 		expect(requestBody.thinking?.type).toBe('enabled');
 		expect(requestBody.reasoning_effort).toBe('high');
 		expect(response.message.content).toBe('Reasoned answer');
+		const internalReasoning = response.message.internal_reasoning;
+		if (internalReasoning === undefined) {
+			throw new Error('Expected internal reasoning to be redacted.');
+		}
+		expect(unwrapRedacted(internalReasoning)).toBe('hidden internal reasoning');
+		expect(JSON.stringify(response.message.ordered_content)).not.toContain(
+			'hidden internal reasoning',
+		);
+	});
+
+	it('sends preserved DeepSeek reasoning content only on assistant messages', async () => {
+		const { calls } = installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'stop',
+						message: {
+							content: 'Recovered answer',
+							role: 'assistant',
+						},
+					},
+				],
+				id: 'chatcmpl_deepseek_reasoning_request',
+				model: 'deepseek-v4-pro',
+			}),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+
+		await gateway.generate({
+			...deepSeekRequest,
+			messages: [
+				{
+					content: 'Previous action',
+					internal_reasoning: redact('hidden chain'),
+					role: 'assistant',
+				},
+				{ content: 'Continue', role: 'user' },
+			],
+			model: 'deepseek-v4-pro',
+		});
+		const requestBody = JSON.parse(calls[0]?.body ?? '{}') as GroqRequestBodyAssertion;
+
+		expect(requestBody.messages).toEqual([
+			{ content: 'Previous action', reasoning_content: 'hidden chain', role: 'assistant' },
+			{ content: 'Continue', role: 'user' },
+		]);
 	});
 
 	it('includes available_tools, deterministic tool temperature, and tool call parsing', async () => {
@@ -764,6 +896,16 @@ describe('DeepSeekGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: '',
+						ordered_content: [
+							{
+								index: 0,
+								input: {},
+								kind: 'tool_use',
+								ordering_origin: 'wire_streaming',
+								tool_call_id: 'call_deepseek_screenshot',
+								tool_name: 'desktop.screenshot',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'deepseek-v4-flash',
@@ -783,6 +925,232 @@ describe('DeepSeekGateway', () => {
 				type: 'response.completed',
 			},
 		]);
+	});
+
+	it('preserves DeepSeek streaming wire order across text, tool calls, and later text', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"role":"assistant","content":"Checking time."},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_deepseek_time","type":"function","function":{"name":"file_read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"README.md\\"}"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_wire_order","model":"deepseek-v4-flash","choices":[{"delta":{"content":" Then I will summarize."},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+			}),
+		);
+
+		expect(chunks[0]).toEqual({
+			content_part_index: 0,
+			text_delta: 'Checking time.',
+			type: 'text.delta',
+		});
+		expect(chunks[1]).toEqual({
+			content_part_index: 2,
+			text_delta: ' Then I will summarize.',
+			type: 'text.delta',
+		});
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: 'Checking time. Then I will summarize.',
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text: 'Checking time.',
+						},
+						{
+							index: 1,
+							input: {
+								path: 'README.md',
+							},
+							kind: 'tool_use',
+							ordering_origin: 'wire_streaming',
+							tool_call_id: 'call_deepseek_time',
+							tool_name: 'file.read',
+						},
+						{
+							index: 2,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text: ' Then I will summarize.',
+						},
+					],
+				},
+			},
+			type: 'response.completed',
+		});
+	});
+
+	it('isolates DeepSeek streaming reasoning_content from ordered content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_reasoning_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","reasoning_content":"hidden "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_deepseek_reasoning_stream","model":"deepseek-v4-pro","choices":[{"delta":{"reasoning_content":"trace","content":"Visible answer"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+		const completed = chunks.at(-1) as ModelStreamChunk | undefined;
+
+		expect(completed).toMatchObject({
+			response: {
+				message: {
+					content: 'Visible answer',
+					internal_reasoning: expect.any(Object),
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text: 'Visible answer',
+						},
+					],
+				},
+			},
+		});
+		if (completed?.type !== 'response.completed') {
+			throw new Error('Expected response.completed chunk.');
+		}
+		const streamingInternalReasoning = completed.response.message.internal_reasoning;
+		if (streamingInternalReasoning === undefined) {
+			throw new Error('Expected streaming internal reasoning to be redacted.');
+		}
+		expect(unwrapRedacted(streamingInternalReasoning)).toBe('hidden trace');
+		expect(JSON.stringify(completed)).not.toContain('reasoning_content');
+	});
+
+	it('drops DeepSeek streaming tool-call fallthrough text from ordered content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_deepseek_fallthrough_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","content":"{\\"name\\":\\"file.read\\",\\"arguments\\":{\\"path\\":\\"README.md\\"}}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+
+		expect(chunks[0]).toEqual({
+			content_part_index: 0,
+			text_delta: '{"name":"file.read","arguments":{"path":"README.md"}}',
+			type: 'text.delta',
+		});
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: '',
+					fallthrough_detected: [
+						{
+							confidence: 'high',
+							matched_pattern: expect.any(String),
+							suspected_tool_name: 'file.read',
+						},
+					],
+					ordered_content: [],
+				},
+			},
+			type: 'response.completed',
+		});
+	});
+
+	it('keeps medium-confidence DeepSeek fallthrough text but suppresses narration eligibility', async () => {
+		const text =
+			'I will call file.read tool with parameters {"path":"README.md"} before answering.';
+		installFetchMock(
+			mockSseResponse([
+				`data: {"id":"chatcmpl_deepseek_medium_fallthrough_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","content":${JSON.stringify(text)}},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}`,
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: text,
+					fallthrough_detected: [
+						{
+							confidence: 'medium',
+							matched_pattern: expect.any(String),
+							suspected_tool_name: 'file.read',
+						},
+					],
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							narration_eligible: false,
+							ordering_origin: 'wire_streaming',
+							text,
+						},
+					],
+				},
+			},
+			type: 'response.completed',
+		});
+	});
+
+	it('keeps low-confidence DeepSeek fallthrough observations without metadata flags', async () => {
+		const text = 'I will use the tool after checking the file.';
+		installFetchMock(
+			mockSseResponse([
+				`data: {"id":"chatcmpl_deepseek_low_fallthrough_stream","model":"deepseek-v4-pro","choices":[{"delta":{"role":"assistant","content":${JSON.stringify(text)}},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}`,
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new DeepSeekGateway({ apiKey: 'deepseek-key' });
+		const chunks = await collectStreamChunks(
+			gateway.stream({
+				...deepSeekRequest,
+				available_tools: callableToolsRequest,
+				model: 'deepseek-v4-pro',
+			}),
+		);
+
+		expect(chunks.at(-1)).toMatchObject({
+			response: {
+				message: {
+					content: text,
+					ordered_content: [
+						{
+							index: 0,
+							kind: 'text',
+							ordering_origin: 'wire_streaming',
+							text,
+						},
+					],
+				},
+			},
+			type: 'response.completed',
+		});
+		expect(JSON.stringify(chunks.at(-1))).not.toContain('fallthrough_detected');
+		expect(JSON.stringify(chunks.at(-1))).not.toContain('narration_eligible');
 	});
 
 	it('surfaces missing call id as a structured DeepSeek streaming tool call rejection', async () => {
@@ -915,10 +1283,12 @@ describe('DeepSeekGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from DeepSeek',
 				type: 'text.delta',
 			},
@@ -927,6 +1297,14 @@ describe('DeepSeekGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from DeepSeek',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								ordering_origin: 'wire_streaming',
+								text: 'Hello from DeepSeek',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'deepseek-v4-flash',
@@ -1002,6 +1380,14 @@ describe('SambaNovaGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from SambaNova',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'Hello from SambaNova',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'DeepSeek-V3.1-cb',
@@ -1324,10 +1710,12 @@ describe('SambaNovaGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from SambaNova',
 				type: 'text.delta',
 			},
@@ -1336,6 +1724,14 @@ describe('SambaNovaGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from SambaNova',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								ordering_origin: 'synthetic_non_streaming',
+								text: 'Hello from SambaNova',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'DeepSeek-V3.1-cb',
@@ -1392,6 +1788,14 @@ describe('GroqGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from Groq',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'Hello from Groq',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'llama-3.3-70b-versatile',
@@ -1978,6 +2382,18 @@ describe('GroqGateway', () => {
 
 		expect(response.message).toEqual({
 			content: '',
+			ordered_content: [
+				{
+					index: 0,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
+					tool_call_id: 'call_groq_tool',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -2038,6 +2454,34 @@ describe('GroqGateway', () => {
 
 		expect(response.message).toEqual({
 			content: 'Calling tools',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
+					text: 'Calling tools',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
+					tool_call_id: 'call_groq_multi_1',
+					tool_name: 'file.read',
+				},
+				{
+					index: 2,
+					input: {
+						path: 'docs/vision.md',
+					},
+					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
+					tool_call_id: 'call_groq_multi_2',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -2161,6 +2605,24 @@ describe('GroqGateway', () => {
 		]);
 		expect(response.message).toEqual({
 			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
+					tool_call_id: 'call_groq_roundtrip',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -2200,6 +2662,14 @@ describe('GroqGateway', () => {
 		expect(requestBody.tools).toBeDefined();
 		expect(response.message).toEqual({
 			content: 'No tool needed.',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
+					text: 'No tool needed.',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toBeUndefined();
@@ -2596,10 +3066,12 @@ describe('GroqGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from Groq',
 				type: 'text.delta',
 			},
@@ -2608,6 +3080,14 @@ describe('GroqGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from Groq',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								ordering_origin: 'synthetic_non_streaming',
+								text: 'Hello from Groq',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'llama-3.3-70b-versatile',
@@ -2646,6 +3126,28 @@ describe('GroqGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: '',
+						ordered_content: [
+							{
+								index: 0,
+								input: {
+									path: 'src/example.ts',
+								},
+								kind: 'tool_use',
+								ordering_origin: 'synthetic_non_streaming',
+								tool_call_id: 'call_stream_groq_1',
+								tool_name: 'file.read',
+							},
+							{
+								index: 1,
+								input: {
+									path: 'docs/vision.md',
+								},
+								kind: 'tool_use',
+								ordering_origin: 'synthetic_non_streaming',
+								tool_call_id: 'call_stream_groq_2',
+								tool_name: 'file.read',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'llama-3.3-70b-versatile',
@@ -2797,6 +3299,14 @@ describe('ClaudeGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from Claude',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'native_blocks',
+						text: 'Hello from Claude',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'claude-sonnet-4-5',
@@ -2934,12 +3444,116 @@ describe('ClaudeGateway', () => {
 
 		expect(response.message).toEqual({
 			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'native_blocks',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					ordering_origin: 'native_blocks',
+					tool_call_id: 'toolu_123',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
 			call_id: 'toolu_123',
 			tool_input: {
 				path: 'src/example.ts',
+			},
+			tool_name: 'file.read',
+		});
+	});
+
+	it('preserves Claude interleaved text and tool use blocks in ordered_content', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				content: [
+					{ text: 'Checking the first file', type: 'text' },
+					{
+						id: 'toolu_first',
+						input: {
+							path: 'README.md',
+						},
+						name: 'file.read',
+						type: 'tool_use',
+					},
+					{ text: 'Checking the second file', type: 'text' },
+					{
+						id: 'toolu_second',
+						input: {
+							path: 'docs/PROGRESS.md',
+						},
+						name: 'file.read',
+						type: 'tool_use',
+					},
+					{ text: 'Done checking', type: 'text' },
+				],
+				id: 'msg_tool_interleaved',
+				model: 'claude-sonnet-4-5',
+				role: 'assistant',
+				stop_reason: 'end_turn',
+			}),
+		);
+		const gateway = new ClaudeGateway({ apiKey: 'claude-key' });
+
+		const response = await gateway.generate(claudeRequest);
+
+		expect(response.message.ordered_content).toEqual([
+			{
+				index: 0,
+				kind: 'text',
+				ordering_origin: 'native_blocks',
+				text: 'Checking the first file',
+			},
+			{
+				index: 1,
+				input: {
+					path: 'README.md',
+				},
+				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
+				tool_call_id: 'toolu_first',
+				tool_name: 'file.read',
+			},
+			{
+				index: 2,
+				kind: 'text',
+				ordering_origin: 'native_blocks',
+				text: 'Checking the second file',
+			},
+			{
+				index: 3,
+				input: {
+					path: 'docs/PROGRESS.md',
+				},
+				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
+				tool_call_id: 'toolu_second',
+				tool_name: 'file.read',
+			},
+			{
+				index: 4,
+				kind: 'text',
+				ordering_origin: 'native_blocks',
+				text: 'Done checking',
+			},
+		]);
+		expect(response.message.content).toBe(
+			'Checking the first file\nChecking the second file\nDone checking',
+		);
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'toolu_first',
+			tool_input: {
+				path: 'README.md',
 			},
 			tool_name: 'file.read',
 		});
@@ -2975,6 +3589,24 @@ describe('ClaudeGateway', () => {
 		expect(requestBody.tools?.map((tool) => tool.name)).toEqual(['file.read', 'shell.exec']);
 		expect(response.message).toEqual({
 			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'native_blocks',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'src/example.ts',
+					},
+					kind: 'tool_use',
+					ordering_origin: 'native_blocks',
+					tool_call_id: 'toolu_roundtrip_123',
+					tool_name: 'file.read',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toEqual({
@@ -3006,6 +3638,14 @@ describe('ClaudeGateway', () => {
 		expect(requestBody.tools).toBeDefined();
 		expect(response.message).toEqual({
 			content: 'No tool needed.',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'native_blocks',
+					text: 'No tool needed.',
+				},
+			],
 			role: 'assistant',
 		});
 		expect(response.tool_call_candidate).toBeUndefined();
@@ -3224,10 +3864,12 @@ describe('ClaudeGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from Claude',
 				type: 'text.delta',
 			},
@@ -3236,6 +3878,14 @@ describe('ClaudeGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from Claude',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								ordering_origin: 'native_blocks',
+								text: 'Hello from Claude',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'claude-sonnet-4-5',
@@ -3350,6 +4000,14 @@ describe('OpenAiGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from OpenAI',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'Hello from OpenAI',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'gpt-4.1-mini',
@@ -3404,6 +4062,82 @@ describe('OpenAiGateway', () => {
 		]);
 		expect(response.tool_call_candidate).toEqual({
 			call_id: 'call_openai_tool',
+			tool_input: {
+				path: 'README.md',
+			},
+			tool_name: 'file.read',
+		});
+		expect(response.message.ordered_content).toEqual([
+			{
+				index: 0,
+				input: {
+					path: 'README.md',
+				},
+				kind: 'tool_use',
+				ordering_origin: 'synthetic_non_streaming',
+				tool_call_id: 'call_openai_tool',
+				tool_name: 'file.read',
+			},
+		]);
+	});
+
+	it('preserves OpenAI text before tool calls in ordered_content for generate()', async () => {
+		installFetchMock(
+			mockJsonResponse(200, {
+				choices: [
+					{
+						finish_reason: 'tool_calls',
+						message: {
+							content: 'Calling file.read',
+							role: 'assistant',
+							tool_calls: [
+								{
+									function: {
+										arguments: '{"path":"README.md"}',
+										name: 'file.read',
+									},
+									id: 'call_openai_ordered_tool',
+									type: 'function',
+								},
+							],
+						},
+					},
+				],
+				id: 'chatcmpl_openai_ordered_tool',
+				model: 'gpt-4.1-mini',
+			}),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+
+		const response = await gateway.generate({
+			...openAiRequest,
+			available_tools: callableToolsRequest,
+		});
+
+		expect(response.message).toEqual({
+			content: 'Calling file.read',
+			ordered_content: [
+				{
+					index: 0,
+					kind: 'text',
+					ordering_origin: 'synthetic_non_streaming',
+					text: 'Calling file.read',
+				},
+				{
+					index: 1,
+					input: {
+						path: 'README.md',
+					},
+					kind: 'tool_use',
+					ordering_origin: 'synthetic_non_streaming',
+					tool_call_id: 'call_openai_ordered_tool',
+					tool_name: 'file.read',
+				},
+			],
+			role: 'assistant',
+		});
+		expect(response.tool_call_candidate).toEqual({
+			call_id: 'call_openai_ordered_tool',
 			tool_input: {
 				path: 'README.md',
 			},
@@ -3579,6 +4313,148 @@ describe('OpenAiGateway', () => {
 		});
 	});
 
+	it('preserves OpenAI streaming text and tool call order in ordered_content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_openai_stream_order","model":"gpt-4.1-mini","choices":[{"delta":{"role":"assistant","content":"Checking "},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_order","model":"gpt-4.1-mini","choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_openai_stream_order","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_order","model":"gpt-4.1-mini","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"README.md\\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+		const chunks = [];
+
+		for await (const chunk of gateway.stream({
+			...openAiRequest,
+			available_tools: callableToolsRequest,
+		})) {
+			chunks.push(chunk);
+		}
+
+		expect(chunks).toEqual([
+			{
+				content_part_index: 0,
+				text_delta: 'Checking ',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Checking ',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								ordering_origin: 'wire_streaming',
+								text: 'Checking ',
+							},
+							{
+								index: 1,
+								input: {
+									path: 'README.md',
+								},
+								kind: 'tool_use',
+								ordering_origin: 'wire_streaming',
+								tool_call_id: 'call_openai_stream_order',
+								tool_name: 'file.read',
+							},
+						],
+						role: 'assistant',
+					},
+					model: 'gpt-4.1-mini',
+					provider: 'openai',
+					response_id: 'chatcmpl_openai_stream_order',
+					tool_call_candidate: {
+						call_id: 'call_openai_stream_order',
+						tool_input: {
+							path: 'README.md',
+						},
+						tool_name: 'file.read',
+					},
+					usage: {
+						input_tokens: 7,
+						output_tokens: 9,
+						total_tokens: 16,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
+	it('preserves OpenAI streaming tool call chunks before later text chunks in ordered_content', async () => {
+		installFetchMock(
+			mockSseResponse([
+				'data: {"id":"chatcmpl_openai_stream_tool_before_text","model":"gpt-4.1-mini","choices":[{"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_openai_stream_tool_before_text","type":"function","function":{"name":"file.read","arguments":"{\\"path\\""}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_tool_before_text","model":"gpt-4.1-mini","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"README.md\\"}"}}]},"finish_reason":null}]}',
+				'data: {"id":"chatcmpl_openai_stream_tool_before_text","model":"gpt-4.1-mini","choices":[{"delta":{"content":"Then summarize"},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}',
+				'data: [DONE]',
+			]),
+		);
+		const gateway = new OpenAiGateway({ apiKey: 'openai-key' });
+		const chunks = [];
+
+		for await (const chunk of gateway.stream({
+			...openAiRequest,
+			available_tools: callableToolsRequest,
+		})) {
+			chunks.push(chunk);
+		}
+
+		expect(chunks).toEqual([
+			{
+				content_part_index: 1,
+				text_delta: 'Then summarize',
+				type: 'text.delta',
+			},
+			{
+				response: {
+					finish_reason: 'stop',
+					message: {
+						content: 'Then summarize',
+						ordered_content: [
+							{
+								index: 0,
+								input: {
+									path: 'README.md',
+								},
+								kind: 'tool_use',
+								ordering_origin: 'wire_streaming',
+								tool_call_id: 'call_openai_stream_tool_before_text',
+								tool_name: 'file.read',
+							},
+							{
+								index: 1,
+								kind: 'text',
+								ordering_origin: 'wire_streaming',
+								text: 'Then summarize',
+							},
+						],
+						role: 'assistant',
+					},
+					model: 'gpt-4.1-mini',
+					provider: 'openai',
+					response_id: 'chatcmpl_openai_stream_tool_before_text',
+					tool_call_candidate: {
+						call_id: 'call_openai_stream_tool_before_text',
+						tool_input: {
+							path: 'README.md',
+						},
+						tool_name: 'file.read',
+					},
+					usage: {
+						input_tokens: 7,
+						output_tokens: 9,
+						total_tokens: 16,
+					},
+				},
+				type: 'response.completed',
+			},
+		]);
+	});
+
 	it('streams OpenAI text deltas and returns a terminal response chunk', async () => {
 		const { calls } = installFetchMock(
 			mockSseResponse([
@@ -3600,10 +4476,12 @@ describe('OpenAiGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from OpenAI',
 				type: 'text.delta',
 			},
@@ -3612,6 +4490,14 @@ describe('OpenAiGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from OpenAI',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								ordering_origin: 'wire_streaming',
+								text: 'Hello from OpenAI',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'gpt-4.1-mini',
@@ -3734,6 +4620,14 @@ describe('GeminiGateway', () => {
 			finish_reason: 'stop',
 			message: {
 				content: 'Hello from Gemini',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'Hello from Gemini',
+					},
+				],
 				role: 'assistant',
 			},
 			model: 'gemini-3-flash-preview',
@@ -3984,10 +4878,12 @@ describe('GeminiGateway', () => {
 		expect(requestBody.stream).toBe(true);
 		expect(chunks).toEqual([
 			{
+				content_part_index: 0,
 				text_delta: 'Hello ',
 				type: 'text.delta',
 			},
 			{
+				content_part_index: 0,
 				text_delta: 'from Gemini',
 				type: 'text.delta',
 			},
@@ -3996,6 +4892,14 @@ describe('GeminiGateway', () => {
 					finish_reason: 'stop',
 					message: {
 						content: 'Hello from Gemini',
+						ordered_content: [
+							{
+								index: 0,
+								kind: 'text',
+								ordering_origin: 'synthetic_non_streaming',
+								text: 'Hello from Gemini',
+							},
+						],
 						role: 'assistant',
 					},
 					model: 'gemini-3-flash-preview',

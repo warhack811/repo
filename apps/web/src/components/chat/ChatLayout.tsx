@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 type ChatLayoutProps = Readonly<{
 	composer: ReactNode;
+	insights?: ReactNode;
 	isSidebarOpen: boolean;
 	messages: ReactNode;
 	onCloseSidebar: () => void;
@@ -12,6 +13,7 @@ type ChatLayoutProps = Readonly<{
 
 export function ChatLayout({
 	composer,
+	insights = null,
 	isSidebarOpen,
 	messages,
 	onCloseSidebar,
@@ -50,6 +52,7 @@ export function ChatLayout({
 				<div className="runa-chat-layout__work">{messages}</div>
 				<div className="runa-chat-layout__composer">{composer}</div>
 			</div>
+			{insights ? <div className="runa-chat-layout__insights">{insights}</div> : null}
 		</div>
 	);
 }

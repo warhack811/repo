@@ -11,10 +11,12 @@ type ChatRuntimePageProps = Readonly<{
 }>;
 
 export function ChatRuntimePage({ bearerToken }: ChatRuntimePageProps): ReactElement {
-	const { conversations, runtime } = useConversationBackedChatRuntime(bearerToken);
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const shouldStartNewConversation = searchParams.get('new') === '1';
+	const { conversations, runtime } = useConversationBackedChatRuntime(bearerToken, {
+		startInDraft: shouldStartNewConversation,
+	});
 
 	useEffect(() => {
 		if (!shouldStartNewConversation) {

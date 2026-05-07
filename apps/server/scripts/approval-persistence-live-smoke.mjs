@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -8,76 +8,45 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createDatabaseConnection, ensureDatabaseSchema, resolveDatabaseConfig } from '@runa/db';
 
+import {
+	applyFileBackedEnvironment,
+	loadEnvAuthorityFiles,
+	resolveEnvAuthority,
+} from './env-authority.mjs';
+
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const serverRoot = resolve(scriptDirectory, '..');
 const workspaceRoot = resolve(serverRoot, '..', '..');
 const distRoot = resolve(serverRoot, 'dist');
-const envFilePath = resolve(workspaceRoot, '.env');
-const envLocalFilePath = resolve(workspaceRoot, '.env.local');
 const READY_TOKEN = 'APPROVAL_SMOKE_SERVER_READY';
 const SUMMARY_TOKEN = 'APPROVAL_PERSISTENCE_LIVE_SMOKE_SUMMARY';
 const LOCAL_HOST = '127.0.0.1';
 const WAIT_TIMEOUT_MS = 20_000;
 
-function normalizeEnvValue(rawValue) {
-	const trimmedValue = rawValue.trim();
-
-	if (
-		(trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
-		(trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))
-	) {
-		return trimmedValue.slice(1, -1);
-	}
-
-	return trimmedValue;
-}
-
-function loadEnvironmentFile(filePath, fileOwnedKeys) {
-	if (!existsSync(filePath)) {
-		return 0;
-	}
-
-	const envFileContents = readFileSync(filePath, 'utf8');
-	const envLines = envFileContents.split(/\r?\n/u);
-	let loadedKeys = 0;
-
-	for (const envLine of envLines) {
-		const trimmedLine = envLine.trim();
-
-		if (trimmedLine.length === 0 || trimmedLine.startsWith('#') || trimmedLine.startsWith('//')) {
-			continue;
-		}
-
-		const separatorIndex = trimmedLine.indexOf('=');
-
-		if (separatorIndex <= 0) {
-			continue;
-		}
-
-		const key = trimmedLine.slice(0, separatorIndex).trim();
-		const rawValue = trimmedLine.slice(separatorIndex + 1);
-		const keyAlreadyOwnedByFile = fileOwnedKeys.has(key);
-
-		if (key.length === 0 || (process.env[key] !== undefined && !keyAlreadyOwnedByFile)) {
-			continue;
-		}
-
-		process.env[key] = normalizeEnvValue(rawValue);
-		fileOwnedKeys.add(key);
-		loadedKeys += 1;
-	}
-
-	return loadedKeys;
-}
-
 function loadControllerEnvironment() {
-	const fileOwnedKeys = new Set();
-	loadEnvironmentFile(envFilePath, fileOwnedKeys);
-	loadEnvironmentFile(envLocalFilePath, fileOwnedKeys);
+	const files = loadEnvAuthorityFiles(workspaceRoot);
+	const shellEnv = { ...process.env };
+	const loaded = applyFileBackedEnvironment(process.env, files);
+	Object.assign(process.env, loaded.env);
 	process.env.NODE_ENV ??= 'development';
 	process.env.RUNA_DEV_AUTH_ENABLED ??= '1';
 	process.env.RUNA_DEV_AUTH_SECRET ??= randomUUID();
 	process.env.RUNA_DEV_AUTH_EMAIL ??= 'dev@runa.local';
+
+	return {
+		...loaded.summary,
+		database_url_authority: resolveEnvAuthority({
+			env: shellEnv,
+			files,
+			name: 'DATABASE_URL',
+			required: true,
+		}).report,
+		provider_api_key_authority: resolveEnvAuthority({
+			env: shellEnv,
+			files,
+			name: 'GROQ_API_KEY',
+		}).report,
+	};
 }
 
 function ensureDistFile(relativePath) {
@@ -648,7 +617,7 @@ async function runAutoContinueRestartScenario(input) {
 }
 
 async function main() {
-	loadControllerEnvironment();
+	const envSummary = loadControllerEnvironment();
 
 	let databaseConfig;
 
@@ -656,6 +625,7 @@ async function main() {
 		databaseConfig = resolveDatabaseConfig(process.env);
 	} catch (error) {
 		printSummary({
+			environment: envSummary,
 			error:
 				error instanceof Error
 					? {
@@ -707,6 +677,7 @@ async function main() {
 			database_target: databaseConfig.target,
 			database_url_source: databaseConfig.database_url_source,
 			database_target_supported: true,
+			environment: envSummary,
 			local_dev_auth: 'enabled',
 			result: 'PASS',
 			scenarios: [toolApproval, autoContinue],
@@ -715,6 +686,7 @@ async function main() {
 		printSummary({
 			database_target: databaseConfig.target,
 			database_url_source: databaseConfig.database_url_source,
+			environment: envSummary,
 			error:
 				error instanceof Error
 					? {

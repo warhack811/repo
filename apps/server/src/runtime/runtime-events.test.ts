@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildModelCompletedEvent,
+	buildNarrationCompletedEvent,
+	buildNarrationStartedEvent,
+	buildNarrationSupersededEvent,
+	buildNarrationTokenEvent,
+	buildNarrationToolOutcomeLinkedEvent,
 	buildRunCompletedEvent,
 	buildRunFailedEvent,
 	buildRunStartedEvent,
@@ -197,6 +202,145 @@ describe('runtime-events', () => {
 			state_before: 'MODEL_THINKING',
 			timestamp: '2026-04-12T16:16:00.000Z',
 			trace_id: 'trace_runtime_terminal_2',
+		});
+	});
+
+	it('builds narration runtime events with payload timestamps', () => {
+		const started = buildNarrationStartedEvent(
+			{
+				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
+				narration_id: 'narration_1',
+				sequence_no: 1,
+				turn_index: 2,
+			},
+			{
+				run_id: 'run_narration_1',
+				sequence_no: 10,
+				timestamp: '2026-05-05T09:00:00.000Z',
+				trace_id: 'trace_narration_1',
+			},
+		);
+		const token = buildNarrationTokenEvent(
+			{
+				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
+				narration_id: 'narration_1',
+				sequence_no: 1,
+				text_delta: 'Dosyayi okuyorum.',
+				turn_index: 2,
+			},
+			{
+				run_id: 'run_narration_1',
+				sequence_no: 11,
+				timestamp: '2026-05-05T09:00:01.000Z',
+				trace_id: 'trace_narration_1',
+			},
+		);
+		const completed = buildNarrationCompletedEvent(
+			{
+				full_text: 'Dosyayi okuyorum.',
+				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
+				narration_id: 'narration_1',
+				sequence_no: 1,
+				turn_index: 2,
+			},
+			{
+				run_id: 'run_narration_1',
+				sequence_no: 12,
+				timestamp: '2026-05-05T09:00:02.000Z',
+				trace_id: 'trace_narration_1',
+			},
+		);
+		const superseded = buildNarrationSupersededEvent(
+			{
+				locale: 'tr',
+				narration_id: 'narration_2',
+				sequence_no: 2,
+				turn_index: 2,
+			},
+			{
+				run_id: 'run_narration_1',
+				sequence_no: 13,
+				timestamp: '2026-05-05T09:00:03.000Z',
+				trace_id: 'trace_narration_1',
+			},
+		);
+		const linked = buildNarrationToolOutcomeLinkedEvent(
+			{
+				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
+				narration_id: 'narration_1',
+				outcome: 'success',
+				sequence_no: 1,
+				tool_call_id: 'call_narration_1',
+				turn_index: 2,
+			},
+			{
+				run_id: 'run_narration_1',
+				sequence_no: 14,
+				timestamp: '2026-05-05T09:00:04.000Z',
+				trace_id: 'trace_narration_1',
+			},
+		);
+
+		expect(started).toEqual({
+			event_id: 'run_narration_1:narration.started:narration_1:10',
+			event_type: 'narration.started',
+			event_version: 1,
+			payload: {
+				linked_tool_call_id: 'call_narration_1',
+				locale: 'tr',
+				narration_id: 'narration_1',
+				run_id: 'run_narration_1',
+				sequence_no: 1,
+				timestamp: '2026-05-05T09:00:00.000Z',
+				turn_index: 2,
+			},
+			run_id: 'run_narration_1',
+			sequence_no: 10,
+			timestamp: '2026-05-05T09:00:00.000Z',
+			trace_id: 'trace_narration_1',
+		});
+		expect(token.payload).toEqual({
+			linked_tool_call_id: 'call_narration_1',
+			locale: 'tr',
+			narration_id: 'narration_1',
+			run_id: 'run_narration_1',
+			sequence_no: 1,
+			text_delta: 'Dosyayi okuyorum.',
+			timestamp: '2026-05-05T09:00:01.000Z',
+			turn_index: 2,
+		});
+		expect(completed.payload).toEqual({
+			full_text: 'Dosyayi okuyorum.',
+			linked_tool_call_id: 'call_narration_1',
+			locale: 'tr',
+			narration_id: 'narration_1',
+			run_id: 'run_narration_1',
+			sequence_no: 1,
+			timestamp: '2026-05-05T09:00:02.000Z',
+			turn_index: 2,
+		});
+		expect(superseded.payload).toEqual({
+			locale: 'tr',
+			narration_id: 'narration_2',
+			run_id: 'run_narration_1',
+			sequence_no: 2,
+			timestamp: '2026-05-05T09:00:03.000Z',
+			turn_index: 2,
+		});
+		expect(linked.payload).toEqual({
+			linked_tool_call_id: 'call_narration_1',
+			locale: 'tr',
+			narration_id: 'narration_1',
+			outcome: 'success',
+			run_id: 'run_narration_1',
+			sequence_no: 1,
+			timestamp: '2026-05-05T09:00:04.000Z',
+			tool_call_id: 'call_narration_1',
+			turn_index: 2,
 		});
 	});
 });

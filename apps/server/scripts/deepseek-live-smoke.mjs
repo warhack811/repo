@@ -2,6 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+	buildProviderAuthoritySummary,
+	loadEnvAuthorityFiles,
+	readEnvValue,
+	resolveEnvAuthority,
+} from './env-authority.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(__dirname, '..');
@@ -15,58 +21,78 @@ const DEFAULT_FAST_MODEL = 'deepseek-v4-flash';
 const DEFAULT_REASONING_MODEL = 'deepseek-v4-pro';
 
 function readEnv(name) {
-	const value = process.env[name];
-
-	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+	return readEnvValue(process.env, name);
 }
 
-function resolveApiKeySource() {
-	const deepSeekApiKey = readEnv(DEEPSEEK_API_KEY_ENV);
+function resolveApiKeySource(files) {
+	const authority = resolveEnvAuthority({
+		env: process.env,
+		files,
+		name: DEEPSEEK_API_KEY_ENV,
+		required: true,
+	});
 
-	if (deepSeekApiKey) {
+	if (!authority.value) {
 		return {
-			apiKey: deepSeekApiKey,
-			envName: DEEPSEEK_API_KEY_ENV,
+			authority,
 		};
 	}
 
-	return undefined;
+	return {
+		apiKey: authority.value,
+		authority,
+		envName: DEEPSEEK_API_KEY_ENV,
+	};
 }
 
-function resolveModelSources() {
+function resolveModelSources(files) {
+	const fast = resolveEnvAuthority({
+		defaultValue: DEFAULT_FAST_MODEL,
+		env: process.env,
+		files,
+		name: DEEPSEEK_FAST_MODEL_ENV,
+	});
+	const reasoning = resolveEnvAuthority({
+		defaultValue: DEFAULT_REASONING_MODEL,
+		env: process.env,
+		files,
+		name: DEEPSEEK_REASONING_MODEL_ENV,
+	});
+
 	return {
 		fast: {
-			envName: readEnv(DEEPSEEK_FAST_MODEL_ENV) ? DEEPSEEK_FAST_MODEL_ENV : undefined,
-			model: readEnv(DEEPSEEK_FAST_MODEL_ENV) ?? DEFAULT_FAST_MODEL,
+			authority: fast,
+			envName: fast.report.resolved_from === 'default' ? undefined : DEEPSEEK_FAST_MODEL_ENV,
+			model: fast.value ?? DEFAULT_FAST_MODEL,
 		},
 		reasoning: {
-			envName: readEnv(DEEPSEEK_REASONING_MODEL_ENV) ? DEEPSEEK_REASONING_MODEL_ENV : undefined,
-			model: readEnv(DEEPSEEK_REASONING_MODEL_ENV) ?? DEFAULT_REASONING_MODEL,
+			authority: reasoning,
+			envName:
+				reasoning.report.resolved_from === 'default' ? undefined : DEEPSEEK_REASONING_MODEL_ENV,
+			model: reasoning.value ?? DEFAULT_REASONING_MODEL,
 		},
 	};
 }
 
 function buildAuthoritySummary(input) {
-	return {
-		api_key_authority: {
-			alias_env: null,
-			authoritative_env: DEEPSEEK_API_KEY_ENV,
-			resolved_from: input.apiKeySource?.envName,
-		},
-		env_example_authoritative: false,
-		model_authority: {
+	return buildProviderAuthoritySummary({
+		apiKeyAuthority: input.apiKeySource.authority,
+		authoritativeEnv: DEEPSEEK_API_KEY_ENV,
+		modelAuthorities: {
 			fast: {
 				authoritative_env: DEEPSEEK_FAST_MODEL_ENV,
 				default_model: DEFAULT_FAST_MODEL,
 				resolved_from: input.modelSources.fast.envName ?? 'default',
+				source: input.modelSources.fast.authority.report.source,
 			},
 			reasoning: {
 				authoritative_env: DEEPSEEK_REASONING_MODEL_ENV,
 				default_model: DEFAULT_REASONING_MODEL,
 				resolved_from: input.modelSources.reasoning.envName ?? 'default',
+				source: input.modelSources.reasoning.authority.report.source,
 			},
 		},
-	};
+	});
 }
 
 function toErrorSummary(error) {
@@ -190,12 +216,12 @@ async function runReasoningRoundtrip(input) {
 	});
 	const response = await gateway.generate(
 		buildRequest({
-			maxOutputTokens: 128,
+			maxOutputTokens: 768,
 			runId: ids.runId,
 			systemPrompt: 'You are a terse smoke-validation assistant.',
 			traceId: ids.traceId,
 			userPrompt:
-				'Analyze this architecture choice deeply in two concise bullets: cheap model routing versus always using the strongest model.',
+				'Analyze this architecture choice in exactly two short bullets, max 80 words total: cheap model routing versus always using the strongest model.',
 		}),
 	);
 
@@ -205,12 +231,21 @@ async function runReasoningRoundtrip(input) {
 		);
 	}
 
+	if (response.finish_reason !== 'stop' || response.message.content.trim().length === 0) {
+		throw new Error(
+			`Reasoning roundtrip produced no public answer. finish_reason=${response.finish_reason} content_length=${response.message.content.length}`,
+		);
+	}
+
 	return {
+		content_length: response.message.content.length,
+		finish_reason: response.finish_reason,
 		model: response.model,
 		provider: response.provider,
 		response_preview: response.message.content.slice(0, 120),
 		stage: 'reasoning_roundtrip',
 		status: 'PASS',
+		max_output_tokens: 768,
 	};
 }
 
@@ -242,7 +277,18 @@ async function runStreamingRoundtrip(input) {
 		throw new Error('Streaming roundtrip did not produce a completed DeepSeek response.');
 	}
 
+	if (
+		completed.response.finish_reason !== 'stop' ||
+		completed.response.message.content.trim().length === 0
+	) {
+		throw new Error(
+			`Streaming roundtrip produced no public answer. finish_reason=${completed.response.finish_reason} content_length=${completed.response.message.content.length}`,
+		);
+	}
+
 	return {
+		content_length: completed.response.message.content.length,
+		finish_reason: completed.response.finish_reason,
 		model: completed.response.model,
 		provider: completed.response.provider,
 		response_preview: completed.response.message.content.slice(0, 120),
@@ -274,13 +320,12 @@ async function runToolSchemaRequest(input) {
 					},
 				},
 			],
-			maxOutputTokens: 128,
+			maxOutputTokens: 768,
 			runId: ids.runId,
 			systemPrompt:
-				'You are validating tool schema acceptance. Use tools only if needed; otherwise answer tersely.',
+				'You are validating tool schema acceptance. Call the requested tool when it is available. If you cannot call it, reply with one visible sentence explaining that the schema was accepted.',
 			traceId: ids.traceId,
-			userPrompt:
-				'If the file.read tool is available, either call it for README.md or briefly confirm the tool schema was accepted.',
+			userPrompt: 'Use the file.read tool for README.md.',
 		}),
 	);
 
@@ -288,13 +333,25 @@ async function runToolSchemaRequest(input) {
 		throw new Error(`Tool schema request returned unexpected provider=${response.provider}`);
 	}
 
+	if (
+		response.tool_call_candidate === undefined &&
+		(response.finish_reason !== 'stop' || response.message.content.trim().length === 0)
+	) {
+		throw new Error(
+			`Tool schema request produced neither a tool call nor public assistant content. finish_reason=${response.finish_reason} content_length=${response.message.content.length}`,
+		);
+	}
+
 	return {
+		content_length: response.message.content.length,
+		finish_reason: response.finish_reason,
 		model: response.model,
 		outcome_kind: response.tool_call_candidate ? 'tool_call_candidate' : 'assistant_response',
 		provider: response.provider,
 		response_preview: response.message.content.slice(0, 120),
 		stage: 'tool_schema_request',
 		status: 'PASS',
+		tool_name: response.tool_call_candidate?.tool_name,
 	};
 }
 
@@ -303,17 +360,24 @@ function printSummary(summary) {
 }
 
 async function main() {
-	const apiKeySource = resolveApiKeySource();
-	const modelSources = resolveModelSources();
+	const envFiles = loadEnvAuthorityFiles(repoRoot);
+	const apiKeySource = resolveApiKeySource(envFiles);
+	const modelSources = resolveModelSources(envFiles);
+	const databaseUrlAuthority = resolveEnvAuthority({
+		env: process.env,
+		files: envFiles,
+		name: 'DATABASE_URL',
+	});
 
-	if (!apiKeySource) {
+	if (!apiKeySource.apiKey) {
 		printSummary({
 			...buildAuthoritySummary({
 				apiKeySource,
 				modelSources,
 			}),
 			blocker_kind: 'credential_missing',
-			database_url_present: readEnv('DATABASE_URL') !== undefined,
+			database_url_authority: databaseUrlAuthority.report,
+			database_url_present: databaseUrlAuthority.report.present,
 			provider: 'deepseek',
 			result: 'BLOCKED',
 			stage_results: [],
@@ -344,7 +408,8 @@ async function main() {
 				modelSources,
 			}),
 			api_key_env: apiKeySource.envName,
-			database_url_present: readEnv('DATABASE_URL') !== undefined,
+			database_url_authority: databaseUrlAuthority.report,
+			database_url_present: databaseUrlAuthority.report.present,
 			error: toErrorSummary(error),
 			provider: 'deepseek',
 			result: 'FAIL',
@@ -361,7 +426,8 @@ async function main() {
 			modelSources,
 		}),
 		api_key_env: apiKeySource.envName,
-		database_url_present: readEnv('DATABASE_URL') !== undefined,
+		database_url_authority: databaseUrlAuthority.report,
+		database_url_present: databaseUrlAuthority.report.present,
 		provider: 'deepseek',
 		result: 'PASS',
 		stage_results: stageResults,

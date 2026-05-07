@@ -189,19 +189,18 @@ describe('map-run-timeline', () => {
 				items: [
 					{
 						kind: 'run_started',
-						label: 'Run started',
+						label: 'Runa işi başlattı',
 					},
 					{
-						detail: 'openai / gpt-5.4',
 						kind: 'model_completed',
-						label: 'Model planned the next step',
+						label: 'Sonraki adım belirlendi',
 						state: 'completed',
 					},
 					{
 						call_id: 'call_tool_1',
 						detail: 'Found 1 codebase match for "needle".',
 						kind: 'tool_completed',
-						label: 'Searched the codebase',
+						label: 'Kod tabanında arama yapıldı',
 						state: 'success',
 						tool_name: 'search.codebase',
 					},
@@ -209,7 +208,7 @@ describe('map-run-timeline', () => {
 						call_id: 'call_approval_1',
 						detail: 'Write changes to src/example.ts',
 						kind: 'approval_requested',
-						label: 'Approval requested for file.write',
+						label: 'Dosya yazma için onay bekleniyor',
 						state: 'pending',
 						tool_name: 'file.write',
 					},
@@ -217,13 +216,13 @@ describe('map-run-timeline', () => {
 						call_id: 'call_approval_1',
 						detail: 'Approved by reviewer',
 						kind: 'approval_resolved',
-						label: 'Approval approved for file.write',
+						label: 'Dosya yazma onaylandı',
 						state: 'approved',
 						tool_name: 'file.write',
 					},
 				],
-				summary: 'Timeline shows codebase search and approval resolution for file write.',
-				title: 'Run Timeline',
+				summary: 'Runa kod araması adımını yürüttü ve dosya yazma onayı aldı.',
+				title: 'Çalışma akışı',
 			},
 			schema_version: 1,
 			type: 'run_timeline_block',
@@ -269,16 +268,16 @@ describe('map-run-timeline', () => {
 			items: [
 				{
 					kind: 'run_started',
-					label: 'Run started',
+					label: 'Runa işi başlattı',
 				},
 				{
 					kind: 'assistant_completed',
-					label: 'Assistant finished the turn',
+					label: 'Yanıt tamamlandı',
 					state: 'completed',
 				},
 			],
-			summary: 'Timeline shows a direct assistant completion.',
-			title: 'Run Timeline',
+			summary: 'Runa yanıtı doğrudan tamamladı.',
+			title: 'Çalışma akışı',
 		});
 	});
 
@@ -324,23 +323,23 @@ describe('map-run-timeline', () => {
 		});
 
 		expect(block?.payload.summary).toBe(
-			'Timeline shows codebase search, git diff inspection, then assistant completion.',
+			'Runa kod araması yaptı, değişiklikleri inceledi ve yanıtı tamamladı.',
 		);
 		expect(block?.payload.items).toEqual([
 			{
 				kind: 'run_started',
-				label: 'Run started',
+				label: 'Runa işi başlattı',
 			},
 			{
 				kind: 'assistant_completed',
-				label: 'Assistant finished the turn',
+				label: 'Yanıt tamamlandı',
 				state: 'completed',
 			},
 			{
 				call_id: 'call_search',
 				detail: 'Found 4 codebase matches for "auth".',
 				kind: 'tool_completed',
-				label: 'Searched the codebase',
+				label: 'Kod tabanında arama yapıldı',
 				state: 'success',
 				tool_name: 'search.codebase',
 			},
@@ -348,7 +347,7 @@ describe('map-run-timeline', () => {
 				call_id: 'call_diff',
 				detail: 'Diff preview for 2 changed paths.',
 				kind: 'tool_completed',
-				label: 'Inspected the git diff',
+				label: 'Değişiklikler incelendi',
 				state: 'success',
 				tool_name: 'git.diff',
 			},
@@ -369,7 +368,7 @@ describe('map-run-timeline', () => {
 			run_id: 'run_timeline_test',
 		});
 
-		expect(block?.payload.summary).toBe('Timeline shows codebase search and public web search.');
+		expect(block?.payload.summary).toBe('Runa kod araması ve web araması yaptı.');
 	});
 
 	it('deduplicates tool-request noise and surfaces failed runs clearly', () => {
@@ -412,25 +411,25 @@ describe('map-run-timeline', () => {
 			items: [
 				{
 					kind: 'run_started',
-					label: 'Run started',
+					label: 'Runa işi başlattı',
 				},
 				{
 					call_id: 'call_diff_failed',
 					detail: 'git.diff failed.',
 					kind: 'tool_failed',
-					label: 'Git diff inspection failed',
+					label: 'Değişiklikler incelenemedi',
 					state: 'error',
 					tool_name: 'git.diff',
 				},
 				{
 					detail: 'Diff could not be prepared.',
 					kind: 'run_failed',
-					label: 'Run failed',
+					label: 'Çalışma tamamlanamadı',
 					state: 'failed',
 				},
 			],
-			summary: 'Timeline shows git diff failure before run failure.',
-			title: 'Run Timeline',
+			summary: 'Runa, çalışma durmadan önce git diff adımında sorunla karşılaştı.',
+			title: 'Çalışma akışı',
 		});
 	});
 
@@ -456,21 +455,23 @@ describe('map-run-timeline', () => {
 			],
 		});
 
-		expect(block?.payload.summary).toBe('Timeline shows tool activity. Showing 10 of 12 steps.');
+		expect(block?.payload.summary).toBe(
+			'Runa araç kullanımı adımını yürüttü. Son 10/12 adım gösteriliyor.',
+		);
 		expect(block?.payload.items).toHaveLength(10);
 		expect(block?.payload.items[0]).toMatchObject({
 			kind: 'run_started',
-			label: 'Run started',
+			label: 'Runa işi başlattı',
 		});
 		expect(block?.payload.items[1]).toMatchObject({
 			call_id: 'call_many_3',
 			kind: 'tool_completed',
-			label: 'Read file contents',
+			label: 'Dosya okundu',
 		});
 		expect(block?.payload.items[9]).toMatchObject({
 			call_id: 'call_many_11',
 			kind: 'tool_completed',
-			label: 'Read file contents',
+			label: 'Dosya okundu',
 		});
 	});
 
@@ -495,17 +496,17 @@ describe('map-run-timeline', () => {
 			],
 		});
 
-		expect(block?.payload.summary).toBe('Timeline shows approval wait for file write.');
+		expect(block?.payload.summary).toBe('Runa dosya yazma için onay bekleyişi durumunda.');
 		expect(block?.payload.items).toEqual([
 			{
 				kind: 'run_started',
-				label: 'Run started',
+				label: 'Runa işi başlattı',
 			},
 			{
 				call_id: 'call_approval_wait',
 				detail: 'Write changes to src/example.ts',
 				kind: 'approval_requested',
-				label: 'Approval requested for file.write',
+				label: 'Dosya yazma için onay bekleniyor',
 				state: 'pending',
 				tool_name: 'file.write',
 			},

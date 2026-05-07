@@ -38,16 +38,14 @@ export function PersistedTranscript({
 			{activeConversationMessages.map((message) => (
 				<div
 					key={message.message_id}
-					className={`runa-transcript-message runa-transcript-message--${message.role}`}
+					className={`${styles['message']} runa-transcript-message runa-transcript-message--${message.role}`}
 					data-role={message.role}
 				>
 					<div className={styles['bubble']}>
 						<StreamdownMessage>{message.content}</StreamdownMessage>
 					</div>
 					<div className={styles['metaRow']}>
-						<span className={styles['roleLabel']}>
-							{getRoleLabel(message.role)}
-						</span>
+						<span className={styles['roleLabel']}>{getRoleLabel(message.role)}</span>
 						<span className={styles['time']}>
 							{new Date(message.created_at).toLocaleString('tr-TR')}
 						</span>

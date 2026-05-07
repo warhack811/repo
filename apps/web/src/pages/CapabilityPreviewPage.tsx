@@ -27,12 +27,6 @@ import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
 import '../styles/routes/capability-migration.css';
 import styles from './CapabilityPreviewPage.module.css';
 
-function createPreviewDataUri(label: string, primary: string, secondary: string): string {
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-label="${label}"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="${primary}"/><stop offset="1" stop-color="${secondary}"/></linearGradient></defs><rect width="960" height="600" fill="#020617"/><rect x="56" y="56" width="848" height="488" rx="34" fill="url(#g)" opacity="0.9"/><circle cx="760" cy="156" r="82" fill="rgba(255,255,255,0.22)"/><rect x="112" y="380" width="420" height="28" rx="14" fill="rgba(255,255,255,0.72)"/><rect x="112" y="432" width="300" height="22" rx="11" fill="rgba(255,255,255,0.46)"/><text x="112" y="180" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="56" font-weight="700">${label}</text></svg>`;
-
-	return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
 const progressSteps: readonly CapabilityProgressStep[] = [
 	{
 		description: 'Query plan and source scope are locked for review.',
@@ -94,7 +88,6 @@ const sourceAsset: AssetPreviewItem = {
 	alt: 'Research source preview placeholder',
 	id: 'source-card',
 	kind: 'image',
-	previewUrl: createPreviewDataUri('Source Map', '#0ea5e9', '#f59e0b'),
 	subtitle: 'Research board',
 	title: 'Source cluster',
 };
@@ -103,7 +96,6 @@ const desktopAsset: AssetPreviewItem = {
 	alt: 'Desktop screenshot preview placeholder',
 	id: 'desktop-shot',
 	kind: 'screenshot',
-	previewUrl: createPreviewDataUri('Desktop', '#22c55e', '#0f172a'),
 	subtitle: 'Captured state',
 	title: 'Desktop snapshot',
 };

@@ -407,6 +407,7 @@ export function createDesktopVerifyStateTool(
 		},
 		metadata: {
 			capability_class: 'desktop',
+			narration_policy: 'optional',
 			requires_approval: false,
 			risk_level: 'medium',
 			side_effect_level: 'read',

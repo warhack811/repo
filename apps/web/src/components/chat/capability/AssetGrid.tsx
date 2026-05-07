@@ -1,7 +1,7 @@
 import type { HTMLAttributes, KeyboardEvent, ReactElement } from 'react';
+import styles from './AssetGrid.module.css';
 import { AssetPreviewCard } from './AssetPreviewCard.js';
 import type { AssetPreviewItem } from './types.js';
-import styles from './AssetGrid.module.css';
 
 export type AssetGridProps = Readonly<
 	Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'onSelect'> & {
@@ -33,18 +33,13 @@ export function AssetGrid({
 	...gridProps
 }: AssetGridProps): ReactElement | null {
 	if (items.length === 0) {
-		return emptyLabel ? (
-			<div className={styles['empty']}>{emptyLabel}</div>
-		) : null;
+		return emptyLabel ? <div className={styles['empty']}>{emptyLabel}</div> : null;
 	}
 
 	return (
 		<div
 			{...gridProps}
-			className={[
-				['runa-asset-grid', className].filter(Boolean).join(' '),
-				styles['grid'],
-			]
+			className={[['runa-asset-grid', className].filter(Boolean).join(' '), styles['grid']]
 				.filter(Boolean)
 				.join(' ')}
 		>

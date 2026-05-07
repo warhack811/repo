@@ -3,29 +3,29 @@
 	gap: 12px;
 	min-width: 0;
 	padding: 16px;
-	border: 1px solid rgba(148, 163, 184, 0.14);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-soft);
-	background: rgba(8, 14, 24, 0.52);
+	background: var(--surface-subtle);
 	animation: runa-message-arrival 220ms var(--ease-emphasized, ease) both;
 }
 
 .blockMuted {
-	background: rgba(15, 23, 42, 0.36);
+	background: var(--surface-panel-muted);
 }
 
 .blockSuccess {
-	border-color: rgba(34, 197, 94, 0.28);
-	background: rgba(20, 83, 45, 0.16);
+	border-color: var(--border-success);
+	background: var(--status-success-bg);
 }
 
 .blockWarning {
-	border-color: rgba(245, 158, 11, 0.3);
-	background: rgba(120, 53, 15, 0.16);
+	border-color: var(--border-warning);
+	background: var(--status-warning-bg);
 }
 
 .blockDanger {
-	border-color: rgba(248, 113, 113, 0.3);
-	background: rgba(127, 29, 29, 0.18);
+	border-color: var(--border-danger);
+	background: var(--status-danger-bg);
 }
 
 .header {
@@ -84,9 +84,9 @@
 	max-width: 100%;
 	min-height: 28px;
 	padding: 5px 9px;
-	border: 1px solid rgba(148, 163, 184, 0.18);
+	border: 1px solid var(--border-subtle);
 	border-radius: 999px;
-	background: rgba(15, 23, 42, 0.6);
+	background: var(--surface-chip);
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
 	font-weight: 600;
@@ -109,9 +109,9 @@
 	gap: 5px;
 	min-width: 0;
 	padding: 10px 12px;
-	border: 1px solid rgba(148, 163, 184, 0.12);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
-	background: rgba(15, 23, 42, 0.38);
+	background: var(--surface-panel-muted);
 }
 
 .metaLabel {
@@ -124,9 +124,9 @@
 
 .codePanel {
 	overflow: hidden;
-	border: 1px solid rgba(56, 189, 248, 0.22);
+	border: 1px solid var(--border-info);
 	border-radius: var(--radius-soft);
-	background: rgba(4, 9, 19, 0.88);
+	background: var(--surface-canvas);
 }
 
 .codeToolbar {
@@ -136,8 +136,8 @@
 	justify-content: space-between;
 	gap: 10px;
 	padding: 10px 12px;
-	border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-	background: rgba(15, 23, 42, 0.64);
+	border-bottom: 1px solid var(--border-hairline);
+	background: var(--surface-panel-muted);
 }
 
 .codeScroller {
@@ -152,7 +152,7 @@
 .pre {
 	margin: 0;
 	padding: 12px 0;
-	color: #dbeafe;
+	color: var(--text-primary);
 	font-size: 14px;
 	line-height: 1.6;
 	tab-size: 2;
@@ -175,7 +175,7 @@
 }
 
 .lineNumber {
-	color: rgba(148, 163, 184, 0.62);
+	color: var(--text-soft);
 	text-align: right;
 	user-select: none;
 }
@@ -201,9 +201,9 @@
 	max-height: 360px;
 	margin: 0;
 	padding: 12px;
-	border: 1px solid rgba(148, 163, 184, 0.12);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
-	background: rgba(2, 6, 23, 0.54);
+	background: var(--surface-subtle);
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
 	line-height: 1.6;
@@ -213,9 +213,9 @@
 .smallButton {
 	min-height: 36px;
 	padding: 8px 11px;
-	border: 1px solid rgba(148, 163, 184, 0.22);
+	border: 1px solid var(--border-default);
 	border-radius: var(--radius-soft);
-	background: rgba(15, 23, 42, 0.62);
+	background: var(--surface-chip);
 	color: hsl(var(--color-text));
 	cursor: pointer;
 	font-weight: 600;
@@ -239,9 +239,9 @@
 	align-items: center;
 	gap: 8px;
 	padding: 10px 12px;
-	border: 1px solid rgba(148, 163, 184, 0.12);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
-	background: rgba(15, 23, 42, 0.34);
+	background: var(--surface-panel-muted);
 	color: hsl(var(--color-text-muted));
 }
 
@@ -254,7 +254,7 @@
 
 .tableWrap {
 	overflow-x: auto;
-	border: 1px solid rgba(148, 163, 184, 0.16);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-soft);
 }
 
@@ -267,7 +267,7 @@
 .table th,
 .table td {
 	padding: 10px 12px;
-	border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+	border-bottom: 1px solid var(--border-hairline);
 	text-align: left;
 	vertical-align: top;
 }
@@ -279,7 +279,7 @@
 }
 
 .approvalPending {
-	border-color: rgba(245, 158, 11, 0.36);
+	border-color: var(--border-warning);
 	animation: runa-approval-reveal 220ms var(--ease-emphasized, ease) both, approval-pulse 1.8s
 		ease-in-out infinite;
 }
@@ -287,23 +287,23 @@
 .approvalCard {
 	gap: 14px;
 	border-radius: var(--radius-soft);
-	border-color: rgba(245, 158, 11, 0.3);
+	border-color: var(--border-warning);
 	background: hsl(var(--color-surface) / 0.72);
 }
 
 .approvalApproved {
-	border-color: rgba(34, 197, 94, 0.3);
+	border-color: var(--border-success);
 	background: hsl(var(--color-surface) / 0.72);
 }
 
 .approvalRejected {
-	border-color: rgba(251, 146, 60, 0.28);
+	border-color: var(--border-warning);
 	background: hsl(var(--color-surface) / 0.72);
 }
 
 .approvalClosed {
-	border-color: rgba(148, 163, 184, 0.2);
-	background: rgba(15, 23, 42, 0.44);
+	border-color: var(--border-default);
+	background: var(--surface-panel-muted);
 }
 
 .approvalHeader {
@@ -328,9 +328,9 @@
 	min-width: 112px;
 	min-height: 30px;
 	padding: 5px 10px;
-	border: 1px solid rgba(148, 163, 184, 0.18);
+	border: 1px solid var(--border-subtle);
 	border-radius: 999px;
-	background: rgba(15, 23, 42, 0.64);
+	background: var(--surface-chip);
 	color: hsl(var(--color-text));
 	font-size: 12px;
 	font-weight: 600;
@@ -339,18 +339,18 @@
 }
 
 .approvalPending .approvalStatusChip {
-	border-color: rgba(245, 158, 11, 0.3);
-	color: #fcd34d;
+	border-color: var(--border-warning);
+	color: var(--status-warning-text);
 }
 
 .approvalApproved .approvalStatusChip {
-	border-color: rgba(34, 197, 94, 0.28);
-	color: #86efac;
+	border-color: var(--border-success);
+	color: var(--status-success-text);
 }
 
 .approvalRejected .approvalStatusChip {
-	border-color: rgba(251, 146, 60, 0.28);
-	color: #fdba74;
+	border-color: var(--border-warning);
+	color: var(--status-warning-text);
 }
 
 .approvalDecision {
@@ -358,9 +358,9 @@
 	gap: 6px;
 	min-width: 0;
 	padding: 14px;
-	border: 1px solid rgba(148, 163, 184, 0.12);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
-	background: rgba(3, 7, 18, 0.34);
+	background: var(--surface-subtle);
 }
 
 .approvalDecision strong {
@@ -388,13 +388,13 @@
 	flex-wrap: wrap;
 	align-items: baseline;
 	gap: 4px 8px;
-	font-size: 0.85rem;
+	font-size: 0.875rem;
 	padding: 0 0 8px;
 }
 
 .approvalRisk {
 	color: hsl(var(--color-text-muted));
-	font-size: 0.85rem;
+	font-size: 0.875rem;
 	margin: 0;
 	padding: 0 0 8px;
 }
@@ -410,21 +410,21 @@
 	display: grid;
 	gap: 4px;
 	padding: 12px 14px;
-	border: 1px solid rgba(245, 158, 11, 0.18);
+	border: 1px solid var(--border-warning);
 	border-radius: var(--radius-soft);
-	background: rgba(120, 53, 15, 0.12);
+	background: var(--status-warning-bg);
 	color: hsl(var(--color-text));
 	line-height: 1.5;
 }
 
 .approvalApproved .approvalStateFeedback {
-	border-color: rgba(34, 197, 94, 0.18);
-	background: rgba(20, 83, 45, 0.14);
+	border-color: var(--border-success);
+	background: var(--status-success-bg);
 }
 
 .approvalRejected .approvalStateFeedback {
-	border-color: rgba(251, 146, 60, 0.18);
-	background: rgba(67, 20, 7, 0.14);
+	border-color: var(--border-warning);
+	background: var(--status-warning-bg);
 }
 
 .approvalActions {
@@ -452,6 +452,68 @@
 	width: 100%;
 }
 
+.toolResultCard {
+	display: grid;
+	gap: 14px;
+	min-width: 0;
+	padding: 16px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-soft);
+	background: var(--surface-panel);
+	box-shadow: none;
+	animation: runa-message-arrival 220ms var(--ease-emphasized, ease) both;
+}
+
+.toolResultSuccess {
+	border-color: var(--border-success);
+	background: var(--status-success-bg);
+}
+
+.toolResultError {
+	border-color: var(--border-danger);
+	background: var(--status-danger-bg);
+}
+
+.toolResultHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	min-width: 0;
+}
+
+.toolResultStatus {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 30px;
+	padding: 5px 10px;
+	border: 1px solid var(--border-subtle);
+	border-radius: 999px;
+	background: var(--surface-chip);
+	color: hsl(var(--color-text));
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.toolResultSuccess .toolResultStatus {
+	border-color: var(--border-success);
+	color: var(--status-success-text);
+}
+
+.toolResultError .toolResultStatus {
+	border-color: var(--border-danger);
+	color: var(--status-danger-text);
+}
+
+.toolResultBody {
+	display: grid;
+	gap: 12px;
+	min-width: 0;
+}
+
 @keyframes approval-pulse {
 	0%,
 	100% {
@@ -464,7 +526,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.block {
+	.block,
+	.toolResultCard {
 		animation-name: runa-fade-in;
 	}
 
@@ -480,8 +543,13 @@
 
 	.header,
 	.approvalHeader,
-	.resultHeader {
+	.resultHeader,
+	.toolResultHeader {
 		display: grid;
+	}
+
+	.toolResultStatus {
+		justify-self: start;
 	}
 
 	.approvalStatusChip {

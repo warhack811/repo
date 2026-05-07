@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactElement } from 'react';
 import { RunaBadge } from '../../ui/RunaBadge.js';
-import type { CapabilityProgressStep, CapabilityStatus, CapabilityTone } from './types.js';
 import styles from './CapabilityProgressList.module.css';
+import type { CapabilityProgressStep, CapabilityStatus, CapabilityTone } from './types.js';
 
 export type CapabilityProgressListProps = Readonly<
 	Omit<HTMLAttributes<HTMLOListElement>, 'children'> & {
@@ -49,18 +49,11 @@ export function CapabilityProgressList({
 				.join(' ')}
 		>
 			{steps.map((step) => (
-				<li
-					key={step.id}
-					className={styles['item']}
-				>
+				<li key={step.id} className={styles['item']}>
 					<div>
-						<div className={styles['label']}>
-							{step.label}
-						</div>
+						<div className={styles['label']}>{step.label}</div>
 						{step.description ? (
-							<div className={styles['description']}>
-								{step.description}
-							</div>
+							<div className={styles['description']}>{step.description}</div>
 						) : null}
 					</div>
 					<RunaBadge tone={getStatusTone(step.status)}>{formatStatusLabel(step.status)}</RunaBadge>

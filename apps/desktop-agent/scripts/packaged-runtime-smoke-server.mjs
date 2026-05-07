@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -8,6 +9,7 @@ const desktopAgentRoot = resolve(scriptDirectory, '..');
 const workspaceRoot = resolve(desktopAgentRoot, '..', '..');
 const serverRoot = resolve(workspaceRoot, 'apps', 'server');
 const serverDistRoot = resolve(serverRoot, 'dist');
+const webDistRoot = resolve(workspaceRoot, 'apps', 'web', 'dist');
 const envFilePath = resolve(workspaceRoot, '.env');
 const envLocalFilePath = resolve(workspaceRoot, '.env.local');
 const READY_TOKEN = 'DESKTOP_PACKAGED_SMOKE_SERVER_READY';
@@ -16,6 +18,89 @@ const DEEPSEEK_CHAT_COMPLETIONS_URL = 'https://api.deepseek.com/chat/completions
 
 let activeServer = null;
 let shuttingDown = false;
+
+function createInMemoryConversationStore() {
+	const conversations = new Map();
+
+	return {
+		async appendConversationMessage(input) {
+			const createdAt = input.created_at ?? new Date().toISOString();
+			const message = {
+				content: input.content,
+				conversation_id: input.conversation_id,
+				created_at: createdAt,
+				message_id: randomUUID(),
+				role: input.role,
+				run_id: input.run_id,
+				trace_id: input.trace_id,
+			};
+
+			conversations.get(input.conversation_id)?.messages.push(message);
+
+			return message;
+		},
+		async appendConversationRunBlocks(input) {
+			const createdAt = input.created_at ?? new Date().toISOString();
+			const runBlocks = {
+				blocks: input.blocks,
+				conversation_id: input.conversation_id,
+				created_at: createdAt,
+				run_blocks_id: randomUUID(),
+				run_id: input.run_id,
+				trace_id: input.trace_id,
+			};
+
+			conversations.get(input.conversation_id)?.run_blocks.push(runBlocks);
+
+			return runBlocks;
+		},
+		async ensureConversation(input) {
+			const conversationId = input.conversation_id ?? randomUUID();
+			const createdAt = input.created_at ?? new Date().toISOString();
+			const existing = conversations.get(conversationId);
+
+			if (existing) {
+				return existing.summary;
+			}
+
+			const summary = {
+				conversation_id: conversationId,
+				created_at: createdAt,
+				initial_preview: input.initial_preview,
+				updated_at: createdAt,
+			};
+
+			conversations.set(conversationId, {
+				messages: [],
+				run_blocks: [],
+				summary,
+			});
+
+			return summary;
+		},
+	};
+}
+
+function createInMemoryApprovalStore() {
+	const pendingApprovals = new Map();
+
+	return {
+		async getPendingApprovalById(approvalId) {
+			return pendingApprovals.get(approvalId) ?? null;
+		},
+		async persistApprovalRequest(input) {
+			pendingApprovals.set(input.approval_request.approval_id, {
+				approval_request: input.approval_request,
+				auto_continue_context: input.auto_continue_context,
+				next_sequence_no: input.next_sequence_no ?? 0,
+				pending_tool_call: input.pending_tool_call,
+			});
+		},
+		async persistApprovalResolution(input) {
+			pendingApprovals.delete(input.approval_request.approval_id);
+		},
+	};
+}
 
 function normalizeEnvValue(rawValue) {
 	const trimmedValue = rawValue.trim();
@@ -79,6 +164,13 @@ function loadServerEnvironment() {
 	process.env.DEEPSEEK_API_KEY ??= 'packaged-runtime-smoke-key';
 }
 
+function disableDatabaseBackedPersistenceForSmoke() {
+	process.env.DATABASE_TARGET = undefined;
+	process.env.DATABASE_URL = undefined;
+	process.env.LOCAL_DATABASE_URL = undefined;
+	process.env.SUPABASE_DATABASE_URL = undefined;
+}
+
 function ensureServerDistFile(relativePath) {
 	const absolutePath = resolve(serverDistRoot, relativePath);
 
@@ -112,7 +204,7 @@ function createProviderFetchStub() {
 
 		requestCount += 1;
 
-		if (requestCount === 1) {
+		if (requestCount % 2 === 1) {
 			return createJsonResponse({
 				choices: [
 					{
@@ -133,7 +225,7 @@ function createProviderFetchStub() {
 						},
 					},
 				],
-				id: 'chatcmpl_desktop_packaged_smoke_1',
+				id: `chatcmpl_desktop_packaged_smoke_${String(requestCount)}`,
 				model: 'deepseek-v4-flash',
 				usage: {
 					completion_tokens: 8,
@@ -143,7 +235,7 @@ function createProviderFetchStub() {
 			});
 		}
 
-		if (requestCount === 2) {
+		if (requestCount % 2 === 0) {
 			return createJsonResponse({
 				choices: [
 					{
@@ -154,7 +246,7 @@ function createProviderFetchStub() {
 						},
 					},
 				],
-				id: 'chatcmpl_desktop_packaged_smoke_2',
+				id: `chatcmpl_desktop_packaged_smoke_${String(requestCount)}`,
 				model: 'deepseek-v4-flash',
 				usage: {
 					completion_tokens: 8,
@@ -164,15 +256,88 @@ function createProviderFetchStub() {
 			});
 		}
 
-		throw new Error(
-			`[desktop-packaged-smoke] Unexpected provider fetch request ${String(requestCount)}.`,
-		);
+		throw new Error('[desktop-packaged-smoke] Unexpected provider fetch state.');
 	};
 }
 
+function resolveSmokeWebContentType(filePath) {
+	switch (extname(filePath)) {
+		case '.css':
+			return 'text/css; charset=utf-8';
+		case '.html':
+			return 'text/html; charset=utf-8';
+		case '.js':
+			return 'text/javascript; charset=utf-8';
+		case '.json':
+			return 'application/json; charset=utf-8';
+		case '.png':
+			return 'image/png';
+		case '.svg':
+			return 'image/svg+xml';
+		case '.txt':
+			return 'text/plain; charset=utf-8';
+		case '.webp':
+			return 'image/webp';
+		default:
+			return 'application/octet-stream';
+	}
+}
+
+function resolveSmokeWebAssetPath(requestUrl) {
+	const parsedUrl = new URL(requestUrl, 'http://localhost');
+	const pathname = decodeURIComponent(parsedUrl.pathname);
+
+	if (pathname.split('/').includes('..')) {
+		return null;
+	}
+
+	if (pathname.startsWith('/assets/')) {
+		return join(webDistRoot, pathname.slice(1));
+	}
+
+	return join(webDistRoot, 'index.html');
+}
+
+async function registerSmokeWebRoutes(server) {
+	const indexPath = join(webDistRoot, 'index.html');
+
+	if (!existsSync(indexPath)) {
+		throw new Error(`Expected built web app at ${indexPath}. Run @runa/web build first.`);
+	}
+
+	server.get('/*', async (request, reply) => {
+		const assetPath = resolveSmokeWebAssetPath(request.url);
+
+		if (!assetPath) {
+			reply.code(404).type('text/plain; charset=utf-8').send('Not found');
+			return;
+		}
+
+		try {
+			const body = await readFile(assetPath);
+			reply.type(resolveSmokeWebContentType(assetPath)).send(body);
+		} catch {
+			reply.code(404).type('text/plain; charset=utf-8').send('Not found');
+		}
+	});
+}
+
 async function loadStartServer() {
+	const authModule = await import(
+		pathToFileURL(ensureServerDistFile('auth/supabase-auth.js')).href
+	);
 	const indexModule = await import(pathToFileURL(ensureServerDistFile('index.js')).href);
-	return indexModule.startServer;
+	const appModule = await import(pathToFileURL(ensureServerDistFile('app.js')).href);
+	const policyWiringModule = await import(
+		pathToFileURL(ensureServerDistFile('ws/policy-wiring.js')).href
+	);
+
+	return {
+		buildServer: appModule.buildServer,
+		createLocalDevSessionToken: authModule.createLocalDevSessionToken,
+		createWebSocketPolicyWiring: policyWiringModule.createWebSocketPolicyWiring,
+		startServer: indexModule.startServer,
+	};
 }
 
 async function stopServerAndExit(exitCode) {
@@ -193,10 +358,34 @@ async function stopServerAndExit(exitCode) {
 
 async function main() {
 	loadServerEnvironment();
+	disableDatabaseBackedPersistenceForSmoke();
 	globalThis.fetch = createProviderFetchStub();
 
-	const startServer = await loadStartServer();
+	const { buildServer, createLocalDevSessionToken, createWebSocketPolicyWiring, startServer } =
+		await loadStartServer();
+	const approvalStore = createInMemoryApprovalStore();
+	const conversationStore = createInMemoryConversationStore();
+	const policyWiring = createWebSocketPolicyWiring({
+		policy_state_store: null,
+	});
 	activeServer = await startServer({
+		build_server: async (options) => {
+			const server = await buildServer({
+				...options,
+				websocket: {
+					runtime: {
+						approvalStore,
+						conversationStore,
+						policy_wiring: policyWiring,
+						persistEvents: async () => {},
+						persistRunState: async () => {},
+					},
+				},
+			});
+
+			await registerSmokeWebRoutes(server);
+			return server;
+		},
 		host: LOCAL_HOST,
 		port: 0,
 	});
@@ -210,6 +399,12 @@ async function main() {
 	process.stdout.write(
 		`${READY_TOKEN} ${JSON.stringify({
 			port: address.port,
+			secondary_access_token: createLocalDevSessionToken({
+				email: 'other@runa.local',
+				secret: process.env.RUNA_DEV_AUTH_SECRET,
+				session_id: 'packaged-smoke-secondary-session',
+				user_id: 'local-dev-user-2',
+			}).access_token,
 			server_base_url: `http://${LOCAL_HOST}:${String(address.port)}`,
 		})}\n`,
 	);

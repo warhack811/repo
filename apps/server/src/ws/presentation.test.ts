@@ -2,7 +2,10 @@ import type { ApprovalRequest, RunRequestPayload, ToolResult } from '@runa/types
 
 import { describe, expect, it } from 'vitest';
 
-import { createAutomaticApprovalPresentationInputs } from './presentation.js';
+import {
+	createAutomaticApprovalPresentationInputs,
+	createAutomaticTurnPresentationBlocks,
+} from './presentation.js';
 
 function createPayload(): RunRequestPayload {
 	return {
@@ -54,6 +57,34 @@ function createToolResult(callId: string, toolName: ToolResult['tool_name']): To
 }
 
 describe('createAutomaticApprovalPresentationInputs', () => {
+	it('surfaces shell session runtime feedback in automatic tool presentation', () => {
+		const toolResult: ToolResult = {
+			call_id: 'call_shell_session_read',
+			output: {
+				runtime_feedback:
+					'Shell session session_present is still running. No buffered output is available for the selected stream yet.',
+				session_id: 'session_present',
+				status: 'running',
+			},
+			status: 'success',
+			tool_name: 'shell.session.read',
+		};
+
+		const blocks = createAutomaticTurnPresentationBlocks({
+			created_at: '2026-04-25T10:00:00.000Z',
+			tool_result: toolResult,
+			working_directory: 'd:\\ai\\Runa',
+		});
+
+		expect(blocks[0]).toMatchObject({
+			payload: {
+				summary: expect.stringContaining('No buffered output'),
+				tool_name: 'shell.session.read',
+			},
+			type: 'tool_result',
+		});
+	});
+
 	it('persists desktop approval continuation context with prior tool result history', () => {
 		const screenshotResult = createToolResult('call_before_screenshot', 'desktop.screenshot');
 		const visionResult = createToolResult('call_vision_analyze', 'desktop.vision_analyze');

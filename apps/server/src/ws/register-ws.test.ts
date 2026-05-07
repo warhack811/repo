@@ -2542,8 +2542,8 @@ describe('register-ws', () => {
 			});
 			expect(presentationMessage.payload.blocks[6]).toMatchObject({
 				payload: {
-					summary: 'Timeline shows approval resolution for file write, then assistant completion.',
-					title: 'Run Timeline',
+					summary: 'Runa dosya yazma onayı aldı ve yanıtı tamamladı.',
+					title: 'Çalışma akışı',
 				},
 				type: 'run_timeline_block',
 			});
@@ -2569,13 +2569,13 @@ describe('register-ws', () => {
 				expect.arrayContaining([
 					expect.objectContaining({
 						kind: 'approval_requested',
-						label: 'Approval requested for shell.exec',
+						label: 'Terminal komutu için onay bekleniyor',
 						state: 'pending',
 						tool_name: 'shell.exec',
 					}),
 					expect.objectContaining({
 						kind: 'approval_resolved',
-						label: 'Approval approved for file.write',
+						label: 'Dosya yazma onaylandı',
 						state: 'approved',
 						tool_name: 'file.write',
 					}),
@@ -3102,25 +3102,24 @@ describe('register-ws', () => {
 				).toEqual([
 					{
 						kind: 'run_started',
-						label: 'Run started',
+						label: 'Runa işi başlattı',
 					},
 					{
-						detail: 'groq / llama-3.3-70b-versatile',
 						kind: 'model_completed',
-						label: 'Model planned the next step',
+						label: 'Sonraki adım belirlendi',
 						state: 'completed',
 					},
 					{
 						call_id: 'call_ws_live_tool_call_1',
 						detail: 'file.read completed successfully.',
 						kind: 'tool_completed',
-						label: 'Read file contents',
+						label: 'Dosya okundu',
 						state: 'success',
 						tool_name: 'file.read',
 					},
 					{
 						kind: 'assistant_completed',
-						label: 'Assistant finished the turn',
+						label: 'Yanıt tamamlandı',
 						state: 'completed',
 					},
 				]);
@@ -4788,8 +4787,8 @@ describe('register-ws', () => {
 				});
 				expect(presentationMessage.payload.blocks[6]).toMatchObject({
 					payload: {
-						summary: 'Timeline shows codebase search before assistant completion.',
-						title: 'Run Timeline',
+						summary: 'Runa kod araması yaptı ve yanıtı tamamladı.',
+						title: 'Çalışma akışı',
 					},
 					type: 'run_timeline_block',
 				});
@@ -4803,25 +4802,24 @@ describe('register-ws', () => {
 				).toEqual([
 					{
 						kind: 'run_started',
-						label: 'Run started',
+						label: 'Runa işi başlattı',
 					},
 					{
-						detail: 'groq / llama-3.3-70b-versatile',
 						kind: 'model_completed',
-						label: 'Model planned the next step',
+						label: 'Sonraki adım belirlendi',
 						state: 'completed',
 					},
 					{
 						call_id: 'call_ws_live_search_codebase_1',
 						detail: `Found 1 codebase match for "${query}".`,
 						kind: 'tool_completed',
-						label: 'Searched the codebase',
+						label: 'Kod tabanında arama yapıldı',
 						state: 'success',
 						tool_name: 'search.codebase',
 					},
 					{
 						kind: 'assistant_completed',
-						label: 'Assistant finished the turn',
+						label: 'Yanıt tamamlandı',
 						state: 'completed',
 					},
 				]);
@@ -5118,7 +5116,7 @@ describe('register-ws', () => {
 				});
 				expect(presentationMessage.payload.blocks[6]).toMatchObject({
 					payload: {
-						summary: 'Timeline shows public web search before assistant completion.',
+						summary: 'Runa web araması yaptı ve yanıtı tamamladı.',
 					},
 					type: 'run_timeline_block',
 				});
@@ -6875,8 +6873,8 @@ describe('register-ws', () => {
 			});
 			expect(initialPresentationMessage.payload.blocks[4]).toMatchObject({
 				payload: {
-					summary: 'Timeline shows approval wait for file write.',
-					title: 'Run Timeline',
+					summary: 'Runa dosya yazma için onay bekleyişi durumunda.',
+					title: 'Çalışma akışı',
 				},
 				type: 'run_timeline_block',
 			});
@@ -6888,7 +6886,7 @@ describe('register-ws', () => {
 				expect.arrayContaining([
 					expect.objectContaining({
 						kind: 'approval_requested',
-						label: 'Approval requested for file.write',
+						label: 'Dosya yazma için onay bekleniyor',
 						state: 'pending',
 						tool_name: 'file.write',
 					}),

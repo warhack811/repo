@@ -1,6 +1,7 @@
 import type { DialogHTMLAttributes, MouseEvent, ReactElement, ReactNode } from 'react';
 import { useId } from 'react';
 import { RunaButton } from '../../ui/RunaButton.js';
+import styles from './ActionDetailModal.module.css';
 import { ActionRiskBadge } from './ActionRiskBadge.js';
 import { CapabilityResultActions } from './CapabilityResultActions.js';
 import type {
@@ -9,7 +10,6 @@ import type {
 	CapabilityResultAction,
 	CapabilityTone,
 } from './types.js';
-import styles from './ActionDetailModal.module.css';
 
 export type ActionDetailModalProps = Readonly<
 	Omit<DialogHTMLAttributes<HTMLDialogElement>, 'children' | 'open' | 'title'> & {
@@ -72,18 +72,11 @@ export function ActionDetailModal({
 				<div className={styles['header']}>
 					<div className={styles['titleGroup']}>
 						<div className={styles['title']}>
-							<h2
-								id={titleId}
-							>
-								{title}
-							</h2>
+							<h2 id={titleId}>{title}</h2>
 							{riskLevel ? <ActionRiskBadge riskLevel={riskLevel} /> : null}
 						</div>
 						{description ? (
-							<p
-								id={descriptionId}
-								className={styles['description']}
-							>
+							<p id={descriptionId} className={styles['description']}>
 								{description}
 							</p>
 						) : null}
@@ -95,16 +88,9 @@ export function ActionDetailModal({
 				{details.length > 0 ? (
 					<dl className={styles['detailsList']}>
 						{details.map((detail) => (
-							<div
-								key={detail.id}
-								className={styles['detailItem']}
-							>
-								<dt className={styles['detailKey']}>
-									{detail.label}
-								</dt>
-								<dd className={styles['detailValue']}>
-									{detail.value}
-								</dd>
+							<div key={detail.id} className={styles['detailItem']}>
+								<dt className={styles['detailKey']}>{detail.label}</dt>
+								<dd className={styles['detailValue']}>{detail.value}</dd>
 							</div>
 						))}
 					</dl>

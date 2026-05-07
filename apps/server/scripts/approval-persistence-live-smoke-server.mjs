@@ -1,74 +1,21 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { applyFileBackedEnvironment, loadEnvAuthorityFiles } from './env-authority.mjs';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const serverRoot = resolve(scriptDirectory, '..');
 const workspaceRoot = resolve(serverRoot, '..', '..');
 const distRoot = resolve(serverRoot, 'dist');
-const envFilePath = resolve(workspaceRoot, '.env');
-const envLocalFilePath = resolve(workspaceRoot, '.env.local');
 const READY_TOKEN = 'APPROVAL_SMOKE_SERVER_READY';
 const LOCAL_HOST = '127.0.0.1';
 
 let activeServer = null;
 let shuttingDown = false;
 
-function normalizeEnvValue(rawValue) {
-	const trimmedValue = rawValue.trim();
-
-	if (
-		(trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
-		(trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))
-	) {
-		return trimmedValue.slice(1, -1);
-	}
-
-	return trimmedValue;
-}
-
-function loadEnvironmentFile(filePath, fileOwnedKeys) {
-	if (!existsSync(filePath)) {
-		return 0;
-	}
-
-	const envFileContents = readFileSync(filePath, 'utf8');
-	const envLines = envFileContents.split(/\r?\n/u);
-	let loadedKeys = 0;
-
-	for (const envLine of envLines) {
-		const trimmedLine = envLine.trim();
-
-		if (trimmedLine.length === 0 || trimmedLine.startsWith('#') || trimmedLine.startsWith('//')) {
-			continue;
-		}
-
-		const separatorIndex = trimmedLine.indexOf('=');
-
-		if (separatorIndex <= 0) {
-			continue;
-		}
-
-		const key = trimmedLine.slice(0, separatorIndex).trim();
-		const rawValue = trimmedLine.slice(separatorIndex + 1);
-		const keyAlreadyOwnedByFile = fileOwnedKeys.has(key);
-
-		if (key.length === 0 || (process.env[key] !== undefined && !keyAlreadyOwnedByFile)) {
-			continue;
-		}
-
-		process.env[key] = normalizeEnvValue(rawValue);
-		fileOwnedKeys.add(key);
-		loadedKeys += 1;
-	}
-
-	return loadedKeys;
-}
-
 function loadServerEnvironment() {
-	const fileOwnedKeys = new Set();
-	loadEnvironmentFile(envFilePath, fileOwnedKeys);
-	loadEnvironmentFile(envLocalFilePath, fileOwnedKeys);
+	const loaded = applyFileBackedEnvironment(process.env, loadEnvAuthorityFiles(workspaceRoot));
+	Object.assign(process.env, loaded.env);
 	process.env.NODE_ENV ??= 'development';
 	process.env.RUNA_DEV_AUTH_ENABLED ??= '1';
 }

@@ -115,8 +115,12 @@ describe('secondary surfaces reframe', () => {
 				<SettingsPage
 					authContext={authContext}
 					authError={null}
+					brandTheme="teal"
 					isAuthPending={false}
+					onBrandThemeChange={() => undefined}
 					onLogout={async () => undefined}
+					onThemeChange={() => undefined}
+					theme="system"
 				/>
 			</MemoryRouter>,
 		);

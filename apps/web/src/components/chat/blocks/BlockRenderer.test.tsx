@@ -117,9 +117,9 @@ const sampleBlocks: readonly RenderBlock[] = [
 		created_at: createdAt,
 		id: 'timeline:block',
 		payload: {
-			items: [{ kind: 'run_started', label: 'Run started', state: 'active' }],
+			items: [{ kind: 'run_started', label: 'Runa işi başlattı', state: 'active' }],
 			summary: 'Runa started the work.',
-			title: 'Run timeline',
+			title: 'Çalışma akışı',
 		},
 		schema_version: 1,
 		type: 'run_timeline_block',
@@ -253,6 +253,21 @@ const sampleBlocks: readonly RenderBlock[] = [
 		schema_version: 1,
 		type: 'tool_result',
 	},
+	{
+		created_at: createdAt,
+		id: 'work-narration:block',
+		payload: {
+			locale: 'tr',
+			run_id: 'run_renderer',
+			sequence_no: 7,
+			status: 'completed',
+			text: 'package.json dosyasını kontrol ediyorum.',
+			turn_index: 1,
+			linked_tool_call_id: 'call_renderer',
+		},
+		schema_version: 1,
+		type: 'work_narration',
+	},
 ];
 
 describe('BlockRenderer', () => {
@@ -295,8 +310,60 @@ describe('BlockRenderer', () => {
 		expect(BlockRenderer({ block: eventBlock })).toEqual(null);
 		expect(BlockRenderer({ block: statusBlock })).toEqual(null);
 		expect(BlockRenderer({ block: traceBlock })).toEqual(null);
-		expect(BlockRenderer({ block: timelineBlock })).toEqual(null);
+		expect(renderToStaticMarkup(<BlockRenderer block={timelineBlock} />)).toContain(
+			'Canlı çalışma notları',
+		);
 		expect(BlockRenderer({ block: workspaceBlock })).toEqual(null);
+	});
+
+	it('renders tool results as user-facing work cards outside developer mode', () => {
+		const toolBlock = sampleBlocks.find((block) => block.type === 'tool_result');
+
+		if (!toolBlock) {
+			throw new Error('Expected tool result fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={toolBlock} />);
+		const developerMarkup = renderToStaticMarkup(
+			<BlockRenderer block={toolBlock} isDeveloperMode />,
+		);
+
+		expect(markup).toContain('İşlem sonucu');
+		expect(markup).toContain('Dosya okundu');
+		expect(markup).toContain('Dosya okuma tamamlandı.');
+		expect(markup).toContain('tamamlandı');
+		expect(markup).not.toContain('file.read');
+		expect(markup).not.toContain('call_renderer');
+		expect(markup).not.toContain('Object{ok}');
+		expect(developerMarkup).toContain('file.read');
+		expect(developerMarkup).toContain('call_renderer');
+	});
+
+	it('renders work narration without exposing technical identifiers', () => {
+		const narrationBlock = sampleBlocks.find((block) => block.type === 'work_narration');
+
+		if (!narrationBlock || narrationBlock.type !== 'work_narration') {
+			throw new Error('Expected work narration fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={narrationBlock} replayMode />);
+
+		expect(markup).toContain('package.json dosyasını kontrol ediyorum.');
+		expect(markup).toContain('_replay_');
+		expect(markup).not.toContain('run_renderer');
+		expect(markup).not.toContain('call_renderer');
+		expect(markup).not.toContain('work-narration:block');
+
+		const supersededMarkup = renderToStaticMarkup(
+			<BlockRenderer
+				block={{
+					...narrationBlock,
+					payload: { ...narrationBlock.payload, status: 'superseded' },
+				}}
+			/>,
+		);
+
+		expect(supersededMarkup).toBe('');
 	});
 
 	it('renders code copy affordance and collapsed diff affordance', () => {
@@ -341,13 +408,13 @@ describe('BlockRenderer', () => {
 						call_id: 'call_file_write',
 						detail: 'file.write completed successfully.',
 						kind: 'tool_completed',
-						label: 'Wrote file changes',
+						label: 'Dosya güncellendi',
 						state: 'success',
 						tool_name: 'file.write',
 					},
 				],
-				summary: 'Timeline shows approval resolution for file write.',
-				title: 'Run timeline',
+				summary: 'Runa dosya yazma onayı aldı.',
+				title: 'Çalışma akışı',
 			},
 			schema_version: 1,
 			type: 'run_timeline_block',
@@ -370,9 +437,9 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Runa şunu yapmak istiyor');
+		expect(markup).toContain('Güven kararı');
 		expect(markup).toContain('Dosyaya yazma isteği');
-		expect(markup).toContain('Bu onayda net hedef bilgisi gönderilmedi.');
+		expect(markup).toContain('Dosya yazma');
 		expect(markup).not.toContain('Ayrıntılar');
 		expect(markup).not.toContain('file.write');
 		expect(markup).not.toContain('Approval required');
@@ -382,7 +449,80 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} isDeveloperMode onResolveApproval={() => undefined} />,
 		);
 		expect(developerMarkup).toContain('Ayrıntılar');
-		expect(developerMarkup).toContain('Approve file write.');
+	});
+
+	it('keeps desktop approval targets user-facing in normal mode', () => {
+		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
+
+		if (!approvalBlock || approvalBlock.type !== 'approval_block') {
+			throw new Error('Expected approval fixture block.');
+		}
+
+		const clipboardReadBlock: RenderBlock = {
+			...approvalBlock,
+			payload: {
+				...approvalBlock.payload,
+				approval_id: 'approval_desktop_clipboard_read',
+				summary: 'Allow desktop.clipboard.read.',
+				target_kind: 'tool_call',
+				target_label: 'desktop.clipboard.read',
+				title: 'Allow desktop.clipboard.read?',
+				tool_name: 'desktop.clipboard.read',
+			},
+		};
+
+		const markup = renderToStaticMarkup(
+			<BlockRenderer block={clipboardReadBlock} onResolveApproval={() => undefined} />,
+		);
+
+		expect(markup).toContain('Pano okuma isteği');
+		expect(markup).toContain('Pano okuma');
+		expect(markup).not.toContain('desktop.clipboard.read');
+		expect(markup).not.toContain('Allow desktop.clipboard.read');
+	});
+
+	it('infers desktop approval copy from the target when tool name is omitted', () => {
+		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
+
+		if (!approvalBlock || approvalBlock.type !== 'approval_block') {
+			throw new Error('Expected approval fixture block.');
+		}
+
+		const keypressBlock: RenderBlock = {
+			...approvalBlock,
+			payload: {
+				...approvalBlock.payload,
+				approval_id: 'approval_desktop_keypress',
+				target_kind: 'tool_call',
+				target_label: 'desktop.keypress',
+				title: 'Araç çalıştırma isteği',
+				tool_name: undefined,
+			},
+		};
+
+		const markup = renderToStaticMarkup(
+			<BlockRenderer block={keypressBlock} onResolveApproval={() => undefined} />,
+		);
+
+		expect(markup).toContain('Klavye kısayolu isteği');
+		expect(markup).toContain('Klavye kısayolu');
+		expect(markup).not.toContain('Araç çalıştırma isteği');
+		expect(markup).not.toContain('desktop.keypress');
+	});
+
+	it('does not offer actions for historical pending approval cards', () => {
+		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
+
+		if (!approvalBlock) {
+			throw new Error('Expected approval fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={approvalBlock} />);
+
+		expect(markup).toContain('geçmiş çalışma kaydından geldi');
+		expect(markup).not.toContain('Onayla</button>');
+		expect(markup).not.toContain('Reddet</button>');
+		expect(markup).not.toContain('aria-busy="true"');
 	});
 
 	it('announces resolved approval state without pending actions', () => {

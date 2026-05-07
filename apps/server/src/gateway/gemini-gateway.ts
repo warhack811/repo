@@ -4,11 +4,13 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
+import { createOrderedContentFromTextAndToolCalls } from './model-content.js';
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import { serializeCallableTool } from './request-tools.js';
@@ -16,6 +18,13 @@ import {
 	type ToolCallCandidateRejectionReason,
 	parseToolCallCandidatePartsDetailed,
 } from './tool-call-candidate.js';
+
+export const geminiProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'unsupported',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'low',
+};
 
 interface GeminiChatCompletionRequest {
 	readonly max_completion_tokens?: number;
@@ -305,6 +314,10 @@ function parseGeminiResponse(payload: unknown): ModelResponse {
 		finish_reason: mapGeminiFinishReason(choice.finish_reason),
 		message: {
 			content: messageContent,
+			ordered_content: createOrderedContentFromTextAndToolCalls(
+				messageContent,
+				toolCallCandidate ? [toolCallCandidate] : [],
+			),
 			role: 'assistant',
 		},
 		model: response.model,
@@ -409,6 +422,7 @@ function parseGeminiToolCallAccumulator(
 }
 
 export class GeminiGateway implements ModelGateway {
+	readonly capabilities = geminiProviderCapabilities;
 	readonly provider = 'gemini';
 	readonly #config: GatewayProviderConfig;
 
@@ -547,6 +561,7 @@ export class GeminiGateway implements ModelGateway {
 			if (typeof delta?.content === 'string' && delta.content.length > 0) {
 				outputText += delta.content;
 				yield {
+					content_part_index: 0,
 					text_delta: delta.content,
 					type: 'text.delta',
 				};
@@ -582,6 +597,10 @@ export class GeminiGateway implements ModelGateway {
 				finish_reason: mapGeminiFinishReason(finishReason),
 				message: {
 					content: outputText.length > 0 ? outputText : toolCallCandidate ? '' : outputText,
+					ordered_content: createOrderedContentFromTextAndToolCalls(
+						outputText,
+						toolCallCandidate ? [toolCallCandidate] : [],
+					),
 					role: 'assistant',
 				},
 				model: resolvedModel,

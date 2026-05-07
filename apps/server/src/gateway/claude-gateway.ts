@@ -1,9 +1,11 @@
 import type {
 	ModelAttachment,
+	ModelContentPart,
 	ModelGateway,
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { describeAttachmentForTextPart } from './attachment-text.js';
@@ -125,6 +127,13 @@ interface ClaudeStreamToolUseAccumulator {
 
 const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
+
+export const claudeProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'native_blocks',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'none',
+};
 
 function readBase64DataUrlPayload(dataUrl: string): {
 	readonly data: string;
@@ -331,6 +340,39 @@ function parseClaudeToolCallCandidate(
 	return parseResult.candidate;
 }
 
+function createClaudeOrderedContent(response: ClaudeMessagesResponse): readonly ModelContentPart[] {
+	const parts: ModelContentPart[] = [];
+
+	for (const [index, block] of (response.content ?? []).entries()) {
+		if (block.type === 'text' && typeof block.text === 'string' && block.text.length > 0) {
+			parts.push({
+				index,
+				kind: 'text',
+				ordering_origin: 'native_blocks',
+				text: block.text,
+			});
+			continue;
+		}
+
+		if (
+			block.type === 'tool_use' &&
+			typeof block.id === 'string' &&
+			typeof block.name === 'string'
+		) {
+			parts.push({
+				index,
+				input: block.input,
+				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
+				tool_call_id: block.id,
+				tool_name: block.name,
+			});
+		}
+	}
+
+	return parts;
+}
+
 function parseClaudeResponse(payload: unknown): ModelResponse {
 	if (!payload || typeof payload !== 'object') {
 		throw new GatewayResponseError('claude', 'Claude response must be an object.');
@@ -338,6 +380,7 @@ function parseClaudeResponse(payload: unknown): ModelResponse {
 
 	const response = payload as ClaudeMessagesResponse;
 	const toolCallCandidate = parseClaudeToolCallCandidate(response);
+	const orderedContent = createClaudeOrderedContent(response);
 	const textContent = response.content
 		?.filter((block) => block.type === 'text' && typeof block.text === 'string')
 		.map((block) => block.text)
@@ -362,6 +405,7 @@ function parseClaudeResponse(payload: unknown): ModelResponse {
 		finish_reason: mapClaudeFinishReason(response.stop_reason),
 		message: {
 			content: messageContent,
+			ordered_content: orderedContent,
 			role: 'assistant',
 		},
 		model: response.model,
@@ -477,7 +521,61 @@ function parseClaudeStreamToolCallCandidate(
 	return parseResult.candidate;
 }
 
+function parseClaudeStreamToolInput(toolUse: ClaudeStreamToolUseAccumulator): unknown {
+	if (toolUse.input_text.length === 0) {
+		return toolUse.input_object;
+	}
+
+	try {
+		return JSON.parse(toolUse.input_text) as unknown;
+	} catch {
+		return toolUse.input_text;
+	}
+}
+
+function createClaudeStreamOrderedContent(
+	textPartsByIndex: ReadonlyMap<number, string>,
+	toolUsesByIndex: ReadonlyMap<number, ClaudeStreamToolUseAccumulator>,
+): readonly ModelContentPart[] {
+	const orderedIndexes = new Set<number>([...textPartsByIndex.keys(), ...toolUsesByIndex.keys()]);
+	const parts: ModelContentPart[] = [];
+
+	for (const index of [...orderedIndexes].sort((left, right) => left - right)) {
+		const text = textPartsByIndex.get(index);
+
+		if (text !== undefined && text.length > 0) {
+			parts.push({
+				index,
+				kind: 'text',
+				ordering_origin: 'native_blocks',
+				text,
+			});
+			continue;
+		}
+
+		const toolUse = toolUsesByIndex.get(index);
+
+		if (
+			toolUse !== undefined &&
+			typeof toolUse.call_id === 'string' &&
+			typeof toolUse.tool_name === 'string'
+		) {
+			parts.push({
+				index,
+				input: parseClaudeStreamToolInput(toolUse),
+				kind: 'tool_use',
+				ordering_origin: 'native_blocks',
+				tool_call_id: toolUse.call_id,
+				tool_name: toolUse.tool_name,
+			});
+		}
+	}
+
+	return parts;
+}
+
 export class ClaudeGateway implements ModelGateway {
+	readonly capabilities = claudeProviderCapabilities;
 	readonly provider = 'claude';
 	readonly #config: GatewayProviderConfig;
 
@@ -583,6 +681,7 @@ export class ClaudeGateway implements ModelGateway {
 		let outputTokens: number | undefined;
 		let responseModel: string | undefined;
 		let stopReason: string | null | undefined;
+		const textPartsByIndex = new Map<number, string>();
 		const toolUsesByIndex = new Map<number, ClaudeStreamToolUseAccumulator>();
 
 		for await (const eventEnvelope of parseClaudeSseEvents(response.body)) {
@@ -602,6 +701,15 @@ export class ClaudeGateway implements ModelGateway {
 				case 'content_block_start': {
 					const eventPayload = JSON.parse(eventEnvelope.data) as ClaudeContentBlockStartEvent;
 					const blockIndex = eventPayload.index ?? 0;
+
+					if (eventPayload.content_block?.type === 'text') {
+						const text = eventPayload.content_block.text;
+
+						if (typeof text === 'string' && text.length > 0) {
+							textPartsByIndex.set(blockIndex, `${textPartsByIndex.get(blockIndex) ?? ''}${text}`);
+						}
+						break;
+					}
 
 					if (eventPayload.content_block?.type !== 'tool_use') {
 						break;
@@ -624,8 +732,15 @@ export class ClaudeGateway implements ModelGateway {
 						typeof delta.text === 'string' &&
 						delta.text.length > 0
 					) {
+						const blockIndex = eventPayload.index ?? 0;
+
 						outputText += delta.text;
+						textPartsByIndex.set(
+							blockIndex,
+							`${textPartsByIndex.get(blockIndex) ?? ''}${delta.text}`,
+						);
 						yield {
+							content_part_index: blockIndex,
 							text_delta: delta.text,
 							type: 'text.delta',
 						};
@@ -659,6 +774,7 @@ export class ClaudeGateway implements ModelGateway {
 		}
 
 		const toolCallCandidate = parseClaudeStreamToolCallCandidate(toolUsesByIndex);
+		const orderedContent = createClaudeStreamOrderedContent(textPartsByIndex, toolUsesByIndex);
 		const resolvedModel = responseModel ?? request.model ?? this.#config.defaultModel;
 
 		if (!resolvedModel) {
@@ -673,6 +789,7 @@ export class ClaudeGateway implements ModelGateway {
 				finish_reason: mapClaudeFinishReason(stopReason),
 				message: {
 					content: outputText.length > 0 ? outputText : toolCallCandidate ? '' : outputText,
+					ordered_content: orderedContent,
 					role: 'assistant',
 				},
 				model: resolvedModel,

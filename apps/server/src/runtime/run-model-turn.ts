@@ -1,12 +1,13 @@
-import type {
-	ApprovalRequest,
-	ModelGateway,
-	ModelRequest,
-	ModelResponse,
-	RuntimeState,
-	ToolExecutionContext,
-	ToolName,
-	ToolResult,
+import {
+	type ApprovalRequest,
+	type ModelGateway,
+	type ModelRequest,
+	type ModelResponse,
+	type RuntimeState,
+	type ToolExecutionContext,
+	type ToolName,
+	type ToolResult,
+	unwrapRedacted,
 } from '@runa/types';
 
 import type { RunRecordWriter } from '../persistence/run-store.js';
@@ -24,6 +25,7 @@ import type { ToolCallRepairRecovery } from './tool-call-repair-recovery.js';
 
 import type { ToolRegistry } from '../tools/registry.js';
 
+import { persistReasoningTrace } from '../persistence/reasoning-store.js';
 import { hasRunStoreConfiguration, persistRunState } from '../persistence/run-store.js';
 import { adaptModelResponseToTurnOutcome } from './adapt-model-response-to-turn-outcome.js';
 import { bindAvailableTools } from './bind-available-tools.js';
@@ -56,6 +58,7 @@ export interface RunModelTurnInput {
 	readonly tool_call_repair_recovery?: ToolCallRepairRecovery;
 	readonly tool_names?: readonly ToolName[];
 	readonly trace_id: string;
+	readonly turn_index?: number;
 }
 
 export interface RunModelTurnAssistantResponseResult {
@@ -239,6 +242,32 @@ function resolveModelRequest(input: RunModelTurnInput):
 		},
 		status: 'completed',
 	};
+}
+
+async function persistInternalReasoningIfPresent(
+	input: RunModelTurnInput,
+	modelResponse: ModelResponse,
+): Promise<void> {
+	const internalReasoning = modelResponse.message.internal_reasoning;
+
+	if (internalReasoning === undefined) {
+		return;
+	}
+
+	const reasoningContent = unwrapRedacted(internalReasoning);
+
+	if (reasoningContent.trim().length === 0) {
+		return;
+	}
+
+	await persistReasoningTrace({
+		model: modelResponse.model,
+		provider: modelResponse.provider,
+		reasoning_content: reasoningContent,
+		run_id: input.run_id,
+		trace_id: input.trace_id,
+		turn_index: input.turn_index ?? 1,
+	});
 }
 
 function toSuccessResult(
@@ -495,6 +524,8 @@ export async function runModelTurn(input: RunModelTurnInput): Promise<RunModelTu
 			});
 		}
 	}
+
+	await persistInternalReasoningIfPresent(input, modelResponse);
 
 	const adaptedOutcomeResult = adaptModelResponseToTurnOutcome({
 		model_response: modelResponse,

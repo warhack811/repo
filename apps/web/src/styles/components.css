@@ -31,55 +31,7 @@
 	 * - .runa-attachment-preview: Inline content that shouldn't feel like cards
 	 * - Avoid using card classes for every container; prefer flat/semi-transparent styles
 	 */
-	:root {
-	--font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
-	--font-body: var(--font-sans);
-	--font-heading: var(--font-sans);
-	--color-bg: 221 39% 8%;
-	--color-bg-elevated: 222 33% 12%;
-	--color-bg-soft: 217 28% 17%;
-	--color-surface: 222 31% 15%;
-	--color-surface-strong: 222 31% 18%;
-	--color-surface-overlay: 222 27% 10%;
-	--color-border: 215 20% 65%;
-	--color-border-soft: 215 18% 30%;
-	--color-text: 210 40% 96%;
-	--color-text-muted: 215 20% 75%;
-	--color-text-soft: 215 16% 60%;
-	--color-accent: 38 92% 50%;
-	--color-accent-strong: 32 95% 44%;
-	--color-accent-foreground: 222 47% 11%;
-	--color-info: 199 89% 64%;
-	--color-success: 142 71% 45%;
-	--color-warning: 38 92% 50%;
-	--color-danger: 0 84% 67%;
-	--shadow-panel: none;
-	--shadow-panel-soft: none;
-	--shadow-glow: 0 0 0 1px hsl(var(--color-accent) / 0.22);
-	--shadow-inset: none;
-	--radius-panel: 16px;
-	--radius-soft: 12px;
-	--radius-pill: 999px;
-	--space-page-y: clamp(18px, 4vw, 32px);
-	--space-page-x: clamp(12px, 3vw, 16px);
-	--space-panel: clamp(18px, 3vw, 24px);
-	--space-subcard: 16px;
-	--page-background: hsl(var(--color-bg));
-	--gradient-panel: hsl(var(--color-surface) / 0.72);
-	--gradient-panel-strong: hsl(var(--color-surface-strong) / 0.78);
-	--gradient-subcard: hsl(var(--color-surface-overlay) / 0.5);
-	--gradient-input: hsl(var(--color-surface-overlay) / 0.72);
-	--gradient-primary-button: hsl(var(--color-accent));
-	--gradient-secondary-button: hsl(var(--color-surface) / 0.58);
-	--gradient-secondary-button-active: hsl(var(--color-accent) / 0.16);
-	--safe-area-top: env(safe-area-inset-top, 0px);
-	--safe-area-right: env(safe-area-inset-right, 0px);
-	--safe-area-bottom: env(safe-area-inset-bottom, 0px);
-	--safe-area-left: env(safe-area-inset-left, 0px);
-	--app-shell-sticky-offset: calc(var(--safe-area-top) + 12px);
-}
-
-*,
+	*,
 *::before,
 *::after {
 	box-sizing: border-box;
@@ -88,7 +40,7 @@
 html {
 	color-scheme: dark;
 	scroll-behavior: smooth;
-	background: #090d16;
+	background: var(--page-background);
 }
 
 body {
@@ -162,8 +114,8 @@ body::before {
 }
 
 .runa-shell-frame--chat {
-	max-width: 1080px;
-	width: min(100%, 1080px);
+	max-width: 1520px;
+	width: min(100%, 1520px);
 }
 
 .runa-page--app-shell {
@@ -232,16 +184,16 @@ body::before {
 	min-width: 0;
 	min-height: 48px;
 	padding: 10px 12px;
-	border: 1px solid rgba(148, 163, 184, 0.14);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-soft);
-	background: rgba(15, 23, 42, 0.4);
+	background: var(--surface-panel-muted);
 	color: hsl(var(--color-text-muted));
 	text-decoration: none;
 }
 
 .runa-app-nav__item--active {
-	border-color: rgba(245, 158, 11, 0.34);
-	background: rgba(120, 53, 15, 0.18);
+	border-color: var(--border-primary);
+	background: var(--status-warning-bg);
 	color: hsl(var(--color-text));
 }
 
@@ -253,7 +205,7 @@ body::before {
 	width: 28px;
 	height: 28px;
 	border-radius: 8px;
-	background: rgba(2, 6, 23, 0.34);
+	background: var(--surface-chip);
 }
 
 .runa-app-nav__copy {
@@ -287,7 +239,7 @@ body::before {
 	gap: 16px;
 	padding: var(--space-panel);
 	border-radius: var(--radius-panel);
-	border: 1px solid rgba(148, 163, 184, 0.2);
+	border: 1px solid var(--border-default);
 	background: hsl(var(--color-surface) / 0.72);
 	box-shadow: none;
 	backdrop-filter: blur(12px);
@@ -297,7 +249,7 @@ body::before {
 }
 
 .runa-card--hero {
-	border-color: rgba(245, 158, 11, 0.24);
+	border-color: var(--border-primary);
 	background: hsl(var(--color-surface) / 0.72);
 }
 
@@ -307,7 +259,7 @@ body::before {
 
 /* DENSITY REDUCTION: Chat cards use lighter background for less visual weight in the chat surface */
 .runa-card--chat {
-	background: rgba(12, 18, 31, 0.6);
+	background: var(--surface-panel-muted);
 	box-shadow: none;
 	backdrop-filter: blur(8px);
 }
@@ -318,8 +270,8 @@ body::before {
 .runa-card--subtle {
 	padding: var(--space-subcard);
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.1);
-	background: rgba(8, 14, 24, 0.5);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-subtle);
 	box-shadow: none;
 }
 
@@ -366,7 +318,7 @@ body::before {
 	box-sizing: border-box;
 	padding: 10px 12px;
 	border-radius: var(--radius-soft);
-	border: 1px solid rgba(148, 163, 184, 0.24);
+	border: 1px solid var(--border-default);
 	background: hsl(var(--color-surface-overlay) / 0.72);
 	color: hsl(var(--color-text));
 	font-size: 14px;
@@ -380,7 +332,7 @@ body::before {
 }
 
 .runa-input:hover {
-	border-color: rgba(148, 163, 184, 0.36);
+	border-color: var(--border-strong);
 }
 
 .runa-input--textarea {
@@ -426,22 +378,22 @@ body::before {
 }
 
 .runa-button--secondary {
-	border: 1px solid rgba(148, 163, 184, 0.28);
+	border: 1px solid var(--border-strong);
 	background: hsl(var(--color-surface) / 0.58);
 	color: hsl(var(--color-text));
 	box-shadow: none;
 }
 
 .runa-button--secondary-active {
-	border-color: rgba(245, 158, 11, 0.34);
+	border-color: var(--border-primary);
 	background: hsl(var(--color-accent) / 0.16);
 	color: hsl(var(--color-text));
 	box-shadow: none;
 }
 
 .runa-button--danger {
-	border-color: rgba(248, 113, 113, 0.36);
-	color: #fecaca;
+	border-color: var(--border-danger);
+	color: var(--status-danger-text);
 }
 
 .runa-pill {
@@ -450,9 +402,9 @@ body::before {
 	gap: 8px;
 	padding: 8px 12px;
 	border-radius: var(--radius-pill);
-	border: 1px solid rgba(245, 158, 11, 0.28);
-	background: rgba(36, 24, 8, 0.7);
-	color: #fde68a;
+	border: 1px solid var(--border-warning);
+	background: var(--status-warning-bg);
+	color: var(--status-warning-text);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -469,21 +421,21 @@ body::before {
 }
 
 .runa-alert--info {
-	background: rgba(8, 47, 73, 0.28);
-	border: 1px solid rgba(56, 189, 248, 0.36);
-	color: #bae6fd;
+	background: var(--status-info-bg);
+	border: 1px solid var(--border-info);
+	color: var(--status-info-text);
 }
 
 .runa-alert--warning {
-	background: rgba(120, 53, 15, 0.16);
-	border: 1px solid rgba(250, 204, 21, 0.32);
-	color: #fde68a;
+	background: var(--status-warning-bg);
+	border: 1px solid var(--border-warning);
+	color: var(--status-warning-text);
 }
 
 .runa-alert--danger {
-	background: rgba(127, 29, 29, 0.28);
-	border: 1px solid rgba(248, 113, 113, 0.36);
-	color: #fecaca;
+	background: var(--status-danger-bg);
+	border: 1px solid var(--border-danger);
+	color: var(--status-danger-text);
 }
 
 .runa-developer-details {
@@ -507,7 +459,7 @@ body::before {
 	gap: 8px;
 	padding: 14px 16px;
 	border-radius: var(--radius-panel);
-	border: 1px solid rgba(148, 163, 184, 0.16);
+	border: 1px solid var(--border-subtle);
 	background: hsl(var(--color-surface) / 0.72);
 	min-width: 0;
 	overflow-wrap: anywhere;
@@ -524,7 +476,7 @@ body::before {
 
 .runa-empty-state {
 	border-radius: var(--radius-soft);
-	border: 1px dashed rgba(148, 163, 184, 0.24);
+	border: 1px dashed var(--border-default);
 	padding: 20px;
 	color: hsl(var(--color-text-soft));
 }
@@ -599,12 +551,12 @@ pre {
 }
 
 ::selection {
-	background: rgba(245, 158, 11, 0.28);
+	background: var(--border-warning);
 	color: hsl(var(--color-text));
 }
 
 :focus-visible {
-	outline: 2px solid rgba(245, 158, 11, 0.9);
+	outline: 2px solid hsl(var(--color-focus) / 0.9);
 	outline-offset: 3px;
 	box-shadow: none;
 }
@@ -630,7 +582,48 @@ pre {
 
 .runa-app-shell-main--chat {
 	margin: 0 auto;
-	width: min(100%, 1280px);
+	width: min(100%, 1520px);
+}
+
+@media (min-width: 769px) {
+	.runa-page--chat-product .runa-app-nav {
+		display: flex;
+		justify-content: center;
+	}
+
+	.runa-page--chat-product .runa-app-nav__items {
+		display: inline-flex;
+		width: auto;
+		max-width: 100%;
+		gap: 4px;
+		padding: 4px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 18px;
+		background: var(--surface-canvas);
+		backdrop-filter: blur(16px);
+	}
+
+	.runa-page--chat-product .runa-app-nav__item {
+		min-height: 40px;
+		padding: 8px 12px;
+		border: 0;
+		border-radius: 14px;
+		background: transparent;
+	}
+
+	.runa-page--chat-product .runa-app-nav__item--active {
+		background: var(--surface-subtle);
+	}
+
+	.runa-page--chat-product .runa-app-nav__icon {
+		width: 24px;
+		height: 24px;
+		background: transparent;
+	}
+
+	.runa-page--chat-product .runa-app-nav__description {
+		display: none;
+	}
 }
 
 /* DENSITY REDUCTION: Chat header simplified to reduce card feeling.
@@ -639,9 +632,9 @@ pre {
  * - Softer shadow to keep it present but not heavy */
 .runa-chat-header {
 	align-items: center;
-	background: rgba(6, 11, 21, 0.7);
+	background: var(--surface-canvas);
 	backdrop-filter: blur(12px);
-	border: 1px solid rgba(148, 163, 184, 0.12);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	display: flex;
@@ -668,7 +661,7 @@ pre {
 }
 
 .runa-chat-header__brand strong {
-	color: #f8fafc;
+	color: var(--text-strong);
 	font-family: var(--font-heading);
 	font-size: 16px;
 }
@@ -684,8 +677,8 @@ pre {
 /* DENSITY REDUCTION: Icon buttons simplified - smaller border-radius and softer styling */
 .runa-chat-icon-button {
 	align-items: center;
-	background: rgba(15, 23, 42, 0.5);
-	border: 1px solid rgba(148, 163, 184, 0.14);
+	background: var(--surface-panel-muted);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text));
 	cursor: pointer;
@@ -698,13 +691,13 @@ pre {
 }
 
 .runa-chat-icon-button:hover {
-	background: rgba(30, 41, 59, 0.6);
-	border-color: rgba(245, 158, 11, 0.25);
+	background: var(--surface-hover);
+	border-color: var(--border-primary);
 	transform: translateY(-1px);
 }
 
 .runa-chat-presence {
-	border: 1px solid rgba(148, 163, 184, 0.18);
+	border: 1px solid var(--border-subtle);
 	border-radius: 999px;
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
@@ -717,16 +710,16 @@ pre {
 }
 
 .runa-chat-presence--open {
-	background: rgba(20, 83, 45, 0.24);
-	border-color: rgba(34, 197, 94, 0.3);
-	color: #bbf7d0;
+	background: var(--status-success-bg);
+	border-color: var(--border-success);
+	color: var(--status-success-text);
 }
 
 .runa-chat-layout {
 	align-items: start;
 	display: grid;
 	gap: 16px;
-	grid-template-columns: minmax(0, 1fr);
+	grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(250px, 304px);
 	margin-top: 10px;
 	min-width: 0;
 }
@@ -734,6 +727,7 @@ pre {
 .runa-chat-layout__sidebar,
 .runa-chat-layout__main,
 .runa-chat-layout__composer,
+.runa-chat-layout__insights,
 .runa-chat-layout__work {
 	min-width: 0;
 }
@@ -742,8 +736,8 @@ pre {
 	display: grid;
 	gap: 16px;
 	margin: 0 auto;
-	max-width: 920px;
-	width: min(100%, 920px);
+	max-width: none;
+	width: min(100%, 900px);
 }
 
 .runa-chat-layout__composer {
@@ -760,6 +754,22 @@ pre {
 	top: calc(var(--safe-area-top) + 12px);
 }
 
+@media (min-width: 1025px) {
+	.runa-chat-layout__sidebar .runa-conversation-sidebar {
+		position: sticky;
+		top: calc(var(--safe-area-top) + 92px);
+		width: 100%;
+		max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 112px);
+		opacity: 1;
+		pointer-events: auto;
+		transform: none;
+	}
+
+	.runa-chat-layout__sidebar .runa-sidebar-backdrop {
+		display: none;
+	}
+}
+
 /* DENSITY REDUCTION: Simplified transcript-details to feel integrated, not a floating card.
  * - Removed heavy background, border, and border-radius that made it feel like a panel
  * - Now uses subtle border only when open, minimal padding
@@ -769,7 +779,7 @@ pre {
 	display: grid;
 	gap: 12px;
 	padding: 12px 0;
-	border-left: 1px solid rgba(148, 163, 184, 0.12);
+	border-left: 1px solid var(--border-hairline);
 	padding-left: 12px;
 	margin-left: 4px;
 }
@@ -796,7 +806,7 @@ pre {
  * - No background, border-radius, or shadow that would create card-in-card feeling
  * - Minimal padding to keep it lightweight and connected */
 .runa-composer-options {
-	border-top: 1px solid rgba(148, 163, 184, 0.14);
+	border-top: 1px solid var(--border-subtle);
 	display: grid;
 	gap: 12px;
 	padding-top: 4px;
@@ -830,7 +840,7 @@ pre {
 }
 
 .runa-composer-options > summary:hover {
-	background: rgba(148, 163, 184, 0.06);
+	background: var(--surface-hover);
 	color: hsl(var(--color-text));
 }
 
@@ -883,8 +893,8 @@ pre {
  * - Minimal background that hints at presence without creating a panel
  * - Use these classes for any inline content that shouldn't feel like a nested card */
 .runa-attachment-preview {
-	background: rgba(15, 23, 42, 0.42);
-	border: 1px solid rgba(148, 163, 184, 0.1);
+	background: var(--surface-hover);
+	border: 1px solid var(--border-hairline);
 	padding: 12px 14px;
 	display: flex;
 	align-items: center;
@@ -954,8 +964,8 @@ pre {
 	gap: 12px;
 	align-items: flex-start;
 	min-height: 92px;
-	background: rgba(15, 23, 42, 0.32);
-	border: 1px solid rgba(148, 163, 184, 0.12);
+	background: var(--surface-panel-muted);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text-muted));
 	cursor: pointer;
@@ -969,7 +979,7 @@ pre {
 
 .runa-chat-suggestion svg {
 	flex: 0 0 auto;
-	color: #fbbf24;
+	color: var(--status-warning-text);
 	margin-top: 2px;
 }
 
@@ -984,8 +994,8 @@ pre {
 }
 
 .runa-chat-suggestion:hover {
-	background: rgba(15, 23, 42, 0.42);
-	border-color: rgba(148, 163, 184, 0.2);
+	background: var(--surface-hover);
+	border-color: var(--border-default);
 	color: hsl(var(--color-text));
 }
 
@@ -1003,8 +1013,8 @@ pre {
 	gap: 10px;
 	padding: 10px 14px;
 	border-radius: 999px;
-	border: 1px solid rgba(148, 163, 184, 0.24);
-	background: rgba(9, 14, 25, 0.82);
+	border: 1px solid var(--border-default);
+	background: var(--surface-chip);
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
 	font-weight: 600;
@@ -1018,7 +1028,7 @@ pre {
 	width: 42px;
 	height: 24px;
 	border-radius: 999px;
-	background: rgba(71, 85, 105, 0.8);
+	background: var(--border-strong);
 	transition: background-color 180ms ease;
 }
 
@@ -1030,15 +1040,15 @@ pre {
 	width: 18px;
 	height: 18px;
 	border-radius: 50%;
-	background: white;
+	background: hsl(var(--color-bg-elevated));
 	box-shadow: none;
 	transition: transform 180ms ease;
 }
 
 .runa-developer-toggle--active {
-	border-color: rgba(245, 158, 11, 0.45);
-	background: rgba(38, 26, 8, 0.78);
-	color: #fde68a;
+	border-color: var(--border-primary);
+	background: var(--status-warning-bg);
+	color: var(--status-warning-text);
 	box-shadow: none;
 }
 
@@ -1054,7 +1064,7 @@ pre {
 	font-size: 12px;
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
-	color: #fbbf24;
+	color: var(--status-warning-text);
 }
 
 .runa-subtle-copy {
@@ -1094,8 +1104,8 @@ pre {
 	width: 100%;
 	overflow-x: auto;
 	border-radius: var(--radius-panel);
-	border: 1px solid rgba(148, 163, 184, 0.18);
-	background: rgba(8, 14, 24, 0.56);
+	border: 1px solid var(--border-subtle);
+	background: var(--surface-subtle);
 }
 
 .runa-markdown__table {
@@ -1107,17 +1117,17 @@ pre {
 .runa-markdown__table th,
 .runa-markdown__table td {
 	padding: 10px 12px;
-	border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+	border-bottom: 1px solid var(--border-subtle);
 	text-align: left;
 	vertical-align: top;
 }
 
 .runa-markdown__table th {
-	color: #f8fafc;
+	color: var(--text-strong);
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	background: rgba(15, 23, 42, 0.6);
+	background: var(--surface-chip);
 }
 
 .runa-markdown__table tbody tr:last-child td {
@@ -1129,9 +1139,9 @@ pre {
 	padding: 0.08rem 0.42rem;
 	margin: 0 0.1rem;
 	border-radius: 999px;
-	border: 1px solid rgba(148, 163, 184, 0.22);
-	background: rgba(15, 23, 42, 0.76);
-	color: #fde68a;
+	border: 1px solid var(--border-default);
+	background: var(--surface-chip);
+	color: var(--status-warning-text);
 	font-size: 12px;
 }
 
@@ -1140,7 +1150,7 @@ pre {
 	gap: 10px;
 	padding: 14px 16px;
 	border-radius: var(--radius-panel);
-	border: 1px solid rgba(56, 189, 248, 0.2);
+	border: 1px solid var(--border-info);
 	background: hsl(var(--color-surface) / 0.72);
 	box-shadow: none;
 	overflow-x: auto;
@@ -1148,11 +1158,11 @@ pre {
 }
 
 .runa-markdown__code-block code {
-	color: #dbeafe;
+	color: var(--text-primary);
 }
 
 .runa-markdown__code-label {
-	color: #7dd3fc;
+	color: var(--text-link);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -1160,14 +1170,14 @@ pre {
 }
 
 .runa-markdown__link {
-	color: #7dd3fc;
+	color: var(--text-link);
 	text-decoration: underline;
-	text-decoration-color: rgba(125, 211, 252, 0.42);
+	text-decoration-color: var(--border-info);
 	text-underline-offset: 0.18rem;
 }
 
 .runa-markdown__link:hover {
-	color: #bae6fd;
+	color: var(--status-info-text);
 }
 
 .runa-streaming-response {
@@ -1178,10 +1188,10 @@ pre {
 
 .transport-error {
 	align-items: center;
-	background: rgba(120, 53, 15, 0.18);
-	border: 1px solid rgba(250, 204, 21, 0.32);
+	background: var(--status-warning-bg);
+	border: 1px solid var(--border-warning);
 	border-radius: var(--radius-soft);
-	color: #fde68a;
+	color: var(--status-warning-text);
 	display: flex;
 	flex-wrap: wrap;
 	font-size: 14px;
@@ -1196,7 +1206,7 @@ pre {
 
 .runa-code-block {
 	background: hsl(var(--color-surface) / 0.72);
-	border: 1px solid rgba(56, 189, 248, 0.2);
+	border: 1px solid var(--border-info);
 	border-radius: var(--radius-panel);
 	display: grid;
 	gap: 10px;
@@ -1215,7 +1225,7 @@ pre {
 }
 
 .runa-code-block figcaption {
-	color: #7dd3fc;
+	color: var(--text-link);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -1230,7 +1240,7 @@ pre {
 }
 
 .runa-code-block.plain pre {
-	background: rgba(3, 7, 18, 0.62);
+	background: var(--surface-canvas);
 	border-radius: var(--radius-soft);
 }
 
@@ -1257,7 +1267,7 @@ pre {
 }
 
 .runa-chat-layout__sidebar .runa-sidebar-backdrop {
-	background: rgba(2, 6, 23, 0.62);
+	background: hsl(var(--color-surface-overlay) / 0.62);
 	border: 0;
 	display: block;
 	inset: 0;
@@ -1294,7 +1304,7 @@ pre {
 .runa-conversation-sidebar__header,
 .runa-conversation-sidebar__footer {
 	align-items: center;
-	background: rgba(4, 9, 19, 0.58);
+	background: var(--surface-subtle);
 	backdrop-filter: blur(12px);
 	display: flex;
 	flex-wrap: wrap;
@@ -1332,8 +1342,8 @@ pre {
 
 /* DENSITY REDUCTION: Conversation items use softer styling to reduce card stacking */
 .runa-conversation-item {
-	background: rgba(7, 11, 20, 0.4);
-	border: 1px solid rgba(148, 163, 184, 0.1);
+	background: var(--surface-subtle);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text));
 	cursor: pointer;
@@ -1352,8 +1362,8 @@ pre {
 
 /* DENSITY REDUCTION: Active conversation items use subtler highlight */
 .runa-conversation-item--active {
-	background: rgba(245, 158, 11, 0.12);
-	border-color: rgba(245, 158, 11, 0.3);
+	background: var(--status-warning-bg);
+	border-color: var(--border-primary);
 }
 
 .runa-conversation-item__top {
@@ -1383,9 +1393,9 @@ pre {
 }
 
 .runa-conversation-role {
-	background: rgba(59, 130, 246, 0.18);
+	background: var(--status-info-bg);
 	border-radius: 999px;
-	color: #bfdbfe;
+	color: var(--status-info-text);
 	flex: 0 0 auto;
 	font-size: 12px;
 	font-weight: 600;
@@ -1393,7 +1403,7 @@ pre {
 }
 
 .runa-conversation-members {
-	border-top: 1px solid rgba(148, 163, 184, 0.14);
+	border-top: 1px solid var(--border-subtle);
 	padding-top: 12px;
 }
 
@@ -1405,8 +1415,8 @@ pre {
 /* DENSITY REDUCTION: Conversation members use subtle styling */
 .runa-conversation-member {
 	align-items: center;
-	background: rgba(15, 23, 42, 0.4);
-	border: 1px solid rgba(148, 163, 184, 0.08);
+	background: var(--surface-panel-muted);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
 	display: flex;
 	gap: 12px;
@@ -1440,8 +1450,8 @@ pre {
 /* DENSITY REDUCTION: Settings rows use subtler styling for less card stacking */
 .runa-settings-row {
 	align-items: center;
-	background: rgba(9, 14, 25, 0.5);
-	border: 1px solid rgba(148, 163, 184, 0.1);
+	background: var(--surface-subtle);
+	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-soft);
 	display: flex;
 	gap: 16px;
@@ -1480,7 +1490,7 @@ pre {
 
 .runa-login-hero,
 .runa-login-panel {
-	border: 1px solid rgba(148, 163, 184, 0.16);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-panel);
 	background: hsl(var(--color-surface) / 0.72);
 	box-shadow: none;
@@ -1551,9 +1561,9 @@ pre {
 .runa-settings-tabs__list button,
 .runa-settings-segmented button,
 .runa-onboarding__segments button {
-	border: 1px solid rgba(148, 163, 184, 0.18);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-soft);
-	background: rgba(15, 23, 42, 0.5);
+	background: var(--surface-panel-muted);
 	color: hsl(var(--color-text-muted));
 	cursor: pointer;
 	min-height: 44px;
@@ -1564,8 +1574,8 @@ pre {
 .runa-settings-tabs__list button.is-active,
 .runa-settings-segmented button.is-active,
 .runa-onboarding__segments button.is-active {
-	border-color: rgba(245, 158, 11, 0.38);
-	background: rgba(120, 53, 15, 0.2);
+	border-color: var(--border-warning);
+	background: var(--status-warning-bg);
 	color: hsl(var(--color-text));
 }
 
@@ -1597,10 +1607,30 @@ pre {
 
 /* ---- Onboarding ---- */
 
+.runa-onboarding-shell {
+	position: fixed;
+	bottom: max(18px, var(--safe-area-bottom));
+	left: max(18px, var(--safe-area-left));
+	z-index: 90;
+	width: min(420px, calc(100vw - 36px));
+	pointer-events: none;
+}
+
 .runa-onboarding,
 .runa-onboarding__page {
 	display: grid;
 	gap: 18px;
+}
+
+.runa-onboarding {
+	max-height: min(520px, calc(100dvh - var(--safe-area-top) - 36px));
+	overflow: auto;
+	padding: 18px;
+	border: 1px solid var(--border-warning);
+	border-radius: 8px;
+	background: hsl(var(--color-surface-strong) / 0.92);
+	box-shadow: 0 20px 80px hsl(var(--color-surface-overlay) / 0.36);
+	pointer-events: auto;
 }
 
 .runa-onboarding__progress {
@@ -1612,7 +1642,7 @@ pre {
 .runa-onboarding__progress span {
 	border-radius: 999px;
 	height: 5px;
-	background: rgba(148, 163, 184, 0.2);
+	background: var(--border-default);
 }
 
 .runa-onboarding__progress span.is-active {
@@ -1620,7 +1650,8 @@ pre {
 }
 
 .runa-onboarding__page h2 {
-	font-size: 28px;
+	font-size: 20px;
+	line-height: 1.15;
 }
 
 .runa-onboarding__page p {
@@ -1641,8 +1672,8 @@ pre {
 
 .runa-onboarding__prompt-grid button {
 	align-items: center;
-	background: rgba(15, 23, 42, 0.56);
-	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: var(--surface-panel-muted);
+	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-soft);
 	color: hsl(var(--color-text));
 	cursor: pointer;
@@ -1667,7 +1698,7 @@ pre {
 }
 
 .runa-settings-tabs__list {
-	border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+	border-bottom: 1px solid var(--border-subtle);
 	padding-bottom: 10px;
 }
 
@@ -1767,8 +1798,46 @@ pre {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
+	.runa-chat-layout__insights {
+		order: 3;
+	}
+
 	.runa-chat-layout__sidebar {
 		display: contents;
+	}
+
+	.runa-conversation-sidebar-trigger {
+		display: block;
+	}
+
+	.runa-sidebar-backdrop {
+		background: hsl(var(--color-surface-overlay) / 0.62);
+		border: 0;
+		display: block;
+		inset: 0;
+		position: fixed;
+		z-index: 35;
+	}
+
+	.runa-conversation-sidebar {
+		animation: none;
+		bottom: calc(var(--safe-area-bottom) + 10px);
+		left: 10px;
+		max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 20px);
+		opacity: 0;
+		overflow: auto;
+		pointer-events: none;
+		position: fixed;
+		right: 10px;
+		top: calc(var(--safe-area-top) + 10px);
+		transform: translateY(16px);
+		z-index: 40;
+	}
+
+	.runa-conversation-sidebar--open {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
 	}
 
 	.runa-app-shell-header__top {
@@ -1842,16 +1911,24 @@ pre {
 	.runa-chat-layout__composer {
 		order: 2;
 		position: sticky;
-		bottom: calc(var(--safe-area-bottom) + 8px);
+		bottom: calc(var(--safe-area-bottom) + 78px);
+	}
+
+	.runa-chat-layout__insights {
+		order: 3;
 	}
 
 	.runa-chat-layout__work {
 		order: 1;
 	}
 
+	.runa-chat-composer-surface--empty .runa-chat-suggestion-grid {
+		padding-bottom: calc(72px + var(--safe-area-bottom));
+	}
+
 	.runa-page--chat-product,
 	.runa-page--app-shell {
-		padding-bottom: calc(84px + var(--safe-area-bottom));
+		padding-bottom: calc(148px + var(--safe-area-bottom));
 	}
 
 	.runa-app-nav {
@@ -1859,16 +1936,18 @@ pre {
 		left: calc(10px + var(--safe-area-left));
 		right: calc(10px + var(--safe-area-right));
 		bottom: calc(8px + var(--safe-area-bottom));
+		width: auto;
 		z-index: 60;
 	}
 
 	.runa-app-nav__items {
+		box-sizing: border-box;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 6px;
 		padding: 6px;
-		border: 1px solid rgba(148, 163, 184, 0.16);
+		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-panel);
-		background: rgba(4, 9, 19, 0.86);
+		background: var(--surface-canvas);
 		backdrop-filter: blur(16px);
 		box-shadow: none;
 	}
@@ -1893,7 +1972,7 @@ pre {
 	}
 
 	.runa-sidebar-backdrop {
-		background: rgba(2, 6, 23, 0.62);
+		background: hsl(var(--color-surface-overlay) / 0.62);
 		border: 0;
 		display: block;
 		inset: 0;
@@ -1924,6 +2003,10 @@ pre {
 
 	.runa-input {
 		font-size: 16px;
+	}
+
+	.runa-chat-composer-surface--empty .runa-input--textarea {
+		min-height: 108px;
 	}
 
 	.runa-chat-icon-button,
@@ -1970,6 +2053,13 @@ pre {
 
 	.runa-markdown__table {
 		min-width: 280px;
+	}
+
+	.runa-onboarding-shell {
+		position: static;
+		width: auto;
+		margin: 12px 10px calc(var(--safe-area-bottom) + 12px);
+		pointer-events: auto;
 	}
 
 	.runa-onboarding__prompt-grid {
@@ -2027,15 +2117,15 @@ pre {
 
 .runa-tool-activity-icon--spin {
 	animation: runa-spin 1s linear infinite;
-	color: #60a5fa;
+	color: var(--status-info-text);
 }
 
 .runa-tool-activity-icon--done {
-	color: #4ade80;
+	color: var(--status-success-text);
 }
 
 .runa-tool-activity-icon--fail {
-	color: #f87171;
+	color: var(--status-danger-text);
 }
 
 /* ─── PersistedTranscript: message alignment ─────────────────── */

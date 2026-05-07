@@ -4,12 +4,17 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelStreamChunk,
+	ProviderCapabilities,
 } from '@runa/types';
 
 import { createLogger } from '../utils/logger.js';
 import { describeAttachmentForTextPart } from './attachment-text.js';
 import { formatCompiledContext } from './compiled-context.js';
 import { GatewayConfigurationError, GatewayRequestError, GatewayResponseError } from './errors.js';
+import {
+	createOrderedContentFromTextAndToolCalls,
+	getOrderedToolCallCandidates,
+} from './model-content.js';
 import { postJson } from './provider-http.js';
 import type { GatewayProviderConfig } from './providers.js';
 import type { ToolJsonSchemaObject } from './request-tools.js';
@@ -18,6 +23,13 @@ import {
 	type ToolCallCandidateRejectionReason,
 	parseToolCallCandidatePartsDetailed,
 } from './tool-call-candidate.js';
+
+export const groqProviderCapabilities: ProviderCapabilities = {
+	emits_reasoning_content: false,
+	narration_strategy: 'unsupported',
+	streaming_supported: true,
+	tool_call_fallthrough_risk: 'low',
+};
 
 interface GroqChatCompletionRequest {
 	readonly max_completion_tokens?: number;
@@ -583,6 +595,13 @@ function parseGroqResponse(payload: unknown): ModelResponse {
 		finish_reason: mapGroqFinishReason(choice.finish_reason),
 		message: {
 			content: messageContent,
+			ordered_content: createOrderedContentFromTextAndToolCalls(
+				messageContent,
+				getOrderedToolCallCandidates(
+					parsedToolCalls.tool_call_candidate,
+					parsedToolCalls.tool_call_candidates,
+				),
+			),
 			role: 'assistant',
 		},
 		model: response.model,
@@ -668,6 +687,7 @@ function parseGroqToolCallAccumulator(
 }
 
 export class GroqGateway implements ModelGateway {
+	readonly capabilities = groqProviderCapabilities;
 	readonly provider = 'groq';
 	readonly #config: GatewayProviderConfig;
 
@@ -819,6 +839,7 @@ export class GroqGateway implements ModelGateway {
 			if (typeof delta?.content === 'string' && delta.content.length > 0) {
 				outputText += delta.content;
 				yield {
+					content_part_index: 0,
 					text_delta: delta.content,
 					type: 'text.delta',
 				};
@@ -859,6 +880,13 @@ export class GroqGateway implements ModelGateway {
 							: parsedToolCalls.tool_call_candidate
 								? ''
 								: outputText,
+					ordered_content: createOrderedContentFromTextAndToolCalls(
+						outputText,
+						getOrderedToolCallCandidates(
+							parsedToolCalls.tool_call_candidate,
+							parsedToolCalls.tool_call_candidates,
+						),
+					),
 					role: 'assistant',
 				},
 				model: resolvedModel,

@@ -19,17 +19,8 @@ export function ScreenshotCard({
 
 	return (
 		<article className={styles['root']}>
-			<button
-				type="button"
-				onClick={() => setIsOpen(true)}
-				className={styles['thumbnail']}
-			>
-				<img
-					alt={alt}
-					loading="lazy"
-					src={imageUrl}
-					className={styles['image']}
-				/>
+			<button type="button" onClick={() => setIsOpen(true)} className={styles['thumbnail']}>
+				<img alt={alt} loading="lazy" src={imageUrl} className={styles['image']} />
 			</button>
 			{caption || timestamp ? (
 				<div className={styles['caption']}>
@@ -39,16 +30,8 @@ export function ScreenshotCard({
 			) : null}
 			{isOpen ? (
 				<dialog open className={styles['modal']}>
-					<img
-						alt={alt}
-						src={imageUrl}
-						className={styles['modalImage']}
-					/>
-					<button
-						type="button"
-						onClick={() => setIsOpen(false)}
-						className={styles['closeButton']}
-					>
+					<img alt={alt} src={imageUrl} className={styles['modalImage']} />
+					<button type="button" onClick={() => setIsOpen(false)} className={styles['closeButton']}>
 						Close
 					</button>
 				</dialog>

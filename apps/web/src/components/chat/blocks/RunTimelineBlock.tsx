@@ -1,6 +1,13 @@
 import type { ReactElement } from 'react';
 
 import type { RenderBlock } from '../../../ws-types.js';
+import {
+	formatWorkDetail,
+	formatWorkStateLabel,
+	formatWorkSummary,
+	formatWorkTimelineLabel,
+	formatWorkToolLabel,
+} from '../workNarrationFormat.js';
 import styles from './BlockRenderer.module.css';
 import type { BlockComponentProps } from './block-types.js';
 import {
@@ -13,33 +20,15 @@ import {
 
 type RunTimelineBlockProps = BlockComponentProps<
 	Extract<RenderBlock, { type: 'run_timeline_block' }>
->;
-
-const technicalToolLabels = new Map<string, string>([
-	['desktop.screenshot', 'Ekran goruntusu'],
-	['file.read', 'Dosya okuma'],
-	['file.write', 'Dosya yazma'],
-	['search.codebase', 'Kod arama'],
-	['web.search', 'Web arama'],
-]);
-
-function formatTimelineToolLabel(toolName: string): string {
-	return technicalToolLabels.get(toolName) ?? toolName.replace(/\./gu, ' ');
-}
-
-function formatTimelineDetail(detail: string): string {
-	let formattedDetail = detail;
-
-	for (const [technicalLabel, friendlyLabel] of technicalToolLabels) {
-		formattedDetail = formattedDetail.replaceAll(technicalLabel, friendlyLabel);
-	}
-
-	return formattedDetail;
-}
+> &
+	Readonly<{
+		isDeveloperMode?: boolean;
+	}>;
 
 export function RunTimelineBlock({
 	block,
 	getInspectionActionState,
+	isDeveloperMode = false,
 	onRequestInspection,
 	presentationCorrelationLabel,
 }: RunTimelineBlockProps): ReactElement {
@@ -53,32 +42,40 @@ export function RunTimelineBlock({
 		>
 			<div className={styles['header']}>
 				<div className={styles['headerStack']}>
-					<span className={styles['eyebrow']}>Timeline summary</span>
+					<span className={styles['eyebrow']}>Canlı çalışma notları</span>
 					<h3 className={styles['title']} id={getPresentationBlockTitleDomId(block.id)}>
-						{block.payload.title}
+						{block.payload.title === 'Run Timeline' ? 'Çalışma akışı' : block.payload.title}
 					</h3>
 				</div>
-				{renderInspectionAction(block, 'timeline', onRequestInspection, getInspectionActionState)}
+				{isDeveloperMode
+					? renderInspectionAction(block, 'timeline', onRequestInspection, getInspectionActionState)
+					: null}
 			</div>
 			<p className={styles['summary']} id={getPresentationBlockSummaryDomId(block.id)}>
-				{block.payload.summary}
+				{formatWorkSummary(block.payload.summary)}
 			</p>
-			{renderInspectionCorrelationContext(presentationCorrelationLabel ?? null)}
+			{isDeveloperMode
+				? renderInspectionCorrelationContext(presentationCorrelationLabel ?? null)
+				: null}
 			<div className={styles['grid']}>
 				{block.payload.items.map((item, index) => (
 					<div className={styles['metaBox']} key={`${block.id}:${index}:${item.kind}`}>
 						<div className={styles['header']}>
-							<strong>{item.label}</strong>
-							{item.state ? <span className={styles['chip']}>{item.state}</span> : null}
+							<strong>{formatWorkTimelineLabel(item.label)}</strong>
+							{item.state ? (
+								<span className={styles['chip']}>{formatWorkStateLabel(item.state)}</span>
+							) : null}
 						</div>
 						{item.detail ? (
-							<p className={styles['summary']}>{formatTimelineDetail(item.detail)}</p>
+							<p className={styles['summary']}>{formatWorkDetail(item.detail)}</p>
 						) : null}
 						<div className={styles['chipRow']}>
 							{item.tool_name ? (
-								<span className={styles['chip']}>{formatTimelineToolLabel(item.tool_name)}</span>
+								<span className={styles['chip']}>{formatWorkToolLabel(item.tool_name)}</span>
 							) : null}
-							{item.call_id ? <code className={styles['chip']}>{item.call_id}</code> : null}
+							{isDeveloperMode && item.call_id ? (
+								<code className={styles['chip']}>{item.call_id}</code>
+							) : null}
 						</div>
 					</div>
 				))}

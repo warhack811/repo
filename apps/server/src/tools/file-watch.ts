@@ -411,6 +411,7 @@ export function createFileWatchTool(
 		},
 		metadata: {
 			capability_class: 'file_system',
+			narration_policy: 'optional',
 			requires_approval: false,
 			risk_level: 'medium',
 			side_effect_level: 'read',

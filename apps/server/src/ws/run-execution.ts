@@ -6,16 +6,19 @@ import type {
 	ModelRequest,
 	ModelResponse,
 	ModelToolCallCandidate,
+	ProviderCapabilities,
 	RenderBlock,
 	RuntimeEvent,
 	RuntimeState,
 	RuntimeTerminationCode,
+	SupportedLocale,
 	ToolDefinition,
 	ToolErrorCode,
 	ToolResult,
 	ToolRuntimeEvent,
 	TurnProgressEvent,
 } from '@runa/types';
+import { unwrapRedacted } from '@runa/types';
 
 import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
 import { GatewayUnsupportedOperationError } from '../gateway/errors.js';
@@ -36,6 +39,7 @@ import {
 } from '../persistence/conversation-store.js';
 import { persistRuntimeEvents } from '../persistence/event-store.js';
 import { defaultMemoryStore } from '../persistence/memory-store.js';
+import { persistReasoningTrace } from '../persistence/reasoning-store.js';
 import { persistRunState } from '../persistence/run-store.js';
 import {
 	type RequireApprovalPermissionDecision,
@@ -51,6 +55,13 @@ import {
 	continueAssistantResponseFastPath,
 } from '../runtime/continue-model-turn.js';
 import { ingestToolResult } from '../runtime/ingest-tool-result.js';
+import { classifyNarration } from '../runtime/narration/classify.js';
+import { buildNarrationEmissionEvents } from '../runtime/narration/emission.js';
+import {
+	createNarrationGuardrailRejectionLogFields,
+	createNarrationRuntimeEventLogFields,
+	createNarrationSuppressionLogFields,
+} from '../runtime/narration/observability.js';
 import { orchestrateMemoryWrite } from '../runtime/orchestrate-memory-write.js';
 import { defaultProviderHealthStore } from '../runtime/provider-health.js';
 import { requestApproval } from '../runtime/request-approval.js';
@@ -61,8 +72,15 @@ import type {
 	RunModelTurnResult,
 } from '../runtime/run-model-turn.js';
 import { runToolStep } from '../runtime/run-tool-step.js';
-import { buildRunStartedEvent, buildStateEnteredEvent } from '../runtime/runtime-events.js';
-import { buildRunFailedEvent } from '../runtime/runtime-events.js';
+import {
+	buildNarrationCompletedEvent,
+	buildNarrationStartedEvent,
+	buildNarrationTokenEvent,
+	buildNarrationToolOutcomeLinkedEvent,
+	buildRunFailedEvent,
+	buildRunStartedEvent,
+	buildStateEnteredEvent,
+} from '../runtime/runtime-events.js';
 import { runSequentialSubAgentDelegation } from '../runtime/sequential-sub-agent.js';
 import { recordToolCallRepairTerminalFailure } from '../runtime/tool-call-repair-metrics.js';
 import { isToolCallRepairableError } from '../runtime/tool-call-repair-recovery.js';
@@ -98,6 +116,7 @@ import {
 	getLiveUserPreferenceScopeId,
 	getLiveWorkingDirectory,
 	logLiveMemoryWriteFailure,
+	resolveRunRequestLocale,
 } from './live-request.js';
 import type { RunRequestPayload } from './messages.js';
 import type {
@@ -122,6 +141,8 @@ import {
 	type WebSocketConnection,
 	createAcceptedMessage,
 	createFinishedMessage,
+	createNarrationCompletedMessage,
+	createNarrationDeltaMessage,
 	createPresentationBlocksMessage,
 	createRuntimeEventMessage,
 	createTextDeltaDiscardMessage,
@@ -135,20 +156,25 @@ const runExecutionLogger = createLogger({
 	},
 });
 
-type LoopRuntimeProgressEvent = Extract<
-	RuntimeEvent,
-	{ readonly event_type: 'model.completed' | 'run.completed' | 'run.failed' | 'state.entered' }
->;
-
 function isRuntimeEventEnvelope(event: AnyRuntimeEvent): event is RuntimeEvent {
 	return (
 		event.event_type === 'model.completed' ||
+		event.event_type === 'narration.completed' ||
+		event.event_type === 'narration.started' ||
+		event.event_type === 'narration.superseded' ||
+		event.event_type === 'narration.token' ||
+		event.event_type === 'narration.tool_outcome_linked' ||
 		event.event_type === 'run.completed' ||
 		event.event_type === 'run.failed' ||
 		event.event_type === 'run.started' ||
 		event.event_type === 'state.entered'
 	);
 }
+
+type LoopRuntimeProgressEvent = Extract<
+	RuntimeEvent,
+	{ readonly event_type: 'model.completed' | 'run.completed' | 'run.failed' | 'state.entered' }
+>;
 
 function isRuntimeEvent(event: TurnProgressEvent): event is LoopRuntimeProgressEvent {
 	return isRuntimeEventEnvelope(event);
@@ -374,6 +400,21 @@ function getNextRuntimeSequenceNo(events: readonly RuntimeEvent[]): number {
 	const lastEvent = events[events.length - 1];
 
 	return (lastEvent?.sequence_no ?? 0) + 1;
+}
+
+function sendNarrationServerMessageForRuntimeEvent(
+	socket: WebSocketConnection,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	event: RuntimeEvent,
+): void {
+	if (event.event_type === 'narration.token') {
+		sendServerMessage(socket, createNarrationDeltaMessage(payload, event));
+		return;
+	}
+
+	if (event.event_type === 'narration.completed') {
+		sendServerMessage(socket, createNarrationCompletedMessage(payload, event));
+	}
 }
 
 function formatStopReasonMessage(stopReason: AgentLoopSnapshot['stop_reason']): string | undefined {
@@ -697,6 +738,144 @@ function toToolCallOutcome(candidate: OrderedToolCallCandidate): ToolCallOutcome
 	};
 }
 
+interface BufferedStreamingTextDelta {
+	readonly content_part_index?: number;
+	readonly resolved_content_part_index: number;
+	readonly text_delta: string;
+}
+
+function getStreamingTurnIntent(modelResponse: ModelResponse): 'continuing' | 'done' {
+	return getOrderedToolCallCandidates(modelResponse).length > 0 ? 'continuing' : 'done';
+}
+
+function emitBufferedTextDeltas(
+	socket: WebSocketConnection,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	deltas: readonly BufferedStreamingTextDelta[],
+): void {
+	for (const delta of deltas) {
+		sendServerMessage(
+			socket,
+			createTextDeltaMessage(payload, delta.text_delta, delta.content_part_index),
+		);
+	}
+}
+
+function emitNarrationFromBufferedText(
+	socket: WebSocketConnection,
+	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
+	input: Readonly<{
+		buffered_text_deltas: readonly BufferedStreamingTextDelta[];
+		capabilities: ProviderCapabilities;
+		get_next_sequence_no: () => number;
+		locale: 'en' | 'tr';
+		model_response: ModelResponse;
+		on_runtime_event?: (event: RuntimeEvent) => void;
+		run_id: string;
+		trace_id: string;
+		turn_index: number;
+	}>,
+): void {
+	const orderedContent = input.model_response.message.ordered_content ?? [];
+	const classifierOutput = classifyNarration({
+		narration_strategy: input.capabilities.narration_strategy,
+		ordered_content: orderedContent,
+		ordering_origin: orderedContent[0]?.ordering_origin ?? 'synthetic_non_streaming',
+		turn_intent: getStreamingTurnIntent(input.model_response),
+	});
+
+	if (classifierOutput.emission_decision !== 'emit') {
+		emitBufferedTextDeltas(socket, payload, input.buffered_text_deltas);
+		return;
+	}
+
+	const narrationPartIndexes = new Set<number>();
+
+	for (const candidate of classifierOutput.narrations) {
+		const contentPartIndex = candidate.content_part_index ?? candidate.sequence_no - 1;
+		narrationPartIndexes.add(contentPartIndex);
+
+		const deltas = input.buffered_text_deltas.filter(
+			(delta) => delta.resolved_content_part_index === contentPartIndex,
+		);
+		const tokenDeltas =
+			deltas.length > 0
+				? deltas
+				: [
+						{
+							content_part_index: contentPartIndex,
+							resolved_content_part_index: contentPartIndex,
+							text_delta: candidate.text,
+						},
+					];
+		const narrationId = `${input.run_id}:turn:${input.turn_index}:narration:${candidate.sequence_no}`;
+		const startedSequenceNo = input.get_next_sequence_no();
+		const startedEvent = buildNarrationStartedEvent(
+			{
+				linked_tool_call_id: candidate.linked_tool_call_id,
+				locale: input.locale,
+				narration_id: narrationId,
+				sequence_no: startedSequenceNo,
+				turn_index: input.turn_index,
+			},
+			{
+				run_id: input.run_id,
+				sequence_no: startedSequenceNo,
+				trace_id: input.trace_id,
+			},
+		);
+		input.on_runtime_event?.(startedEvent);
+
+		for (const delta of tokenDeltas) {
+			const tokenSequenceNo = input.get_next_sequence_no();
+			const tokenEvent = buildNarrationTokenEvent(
+				{
+					linked_tool_call_id: candidate.linked_tool_call_id,
+					locale: input.locale,
+					narration_id: narrationId,
+					sequence_no: tokenSequenceNo,
+					text_delta: delta.text_delta,
+					turn_index: input.turn_index,
+				},
+				{
+					run_id: input.run_id,
+					sequence_no: tokenSequenceNo,
+					trace_id: input.trace_id,
+				},
+			);
+			input.on_runtime_event?.(tokenEvent);
+			sendServerMessage(socket, createNarrationDeltaMessage(payload, tokenEvent));
+		}
+
+		const completedSequenceNo = input.get_next_sequence_no();
+		const completedEvent = buildNarrationCompletedEvent(
+			{
+				full_text: tokenDeltas.map((delta) => delta.text_delta).join(''),
+				linked_tool_call_id: candidate.linked_tool_call_id,
+				locale: input.locale,
+				narration_id: narrationId,
+				sequence_no: completedSequenceNo,
+				turn_index: input.turn_index,
+			},
+			{
+				run_id: input.run_id,
+				sequence_no: completedSequenceNo,
+				trace_id: input.trace_id,
+			},
+		);
+		input.on_runtime_event?.(completedEvent);
+		sendServerMessage(socket, createNarrationCompletedMessage(payload, completedEvent));
+	}
+
+	emitBufferedTextDeltas(
+		socket,
+		payload,
+		input.buffered_text_deltas.filter(
+			(delta) => !narrationPartIndexes.has(delta.resolved_content_part_index),
+		),
+	);
+}
+
 function mapRunToolFailureCodeToToolErrorCode(
 	failureCode:
 		| 'APPROVAL_REQUEST_FAILED'
@@ -954,15 +1133,30 @@ export function replaceFinalUserMessage(
 	];
 }
 
-async function generateModelResponseWithStreaming(
+export async function generateModelResponseWithStreaming(
 	socket: WebSocketConnection,
 	payload: Pick<RunRequestPayload, 'run_id' | 'trace_id'>,
 	modelGateway: Pick<ReturnType<typeof createModelGateway>, 'generate' | 'stream'>,
 	modelRequest: ModelRequest,
 	requestedProvider?: RunRequestPayload['provider'],
+	options?: {
+		capabilities?: ProviderCapabilities;
+		getNextSequenceNo?: () => number;
+		locale?: 'en' | 'tr';
+		onRuntimeEvent?: (event: RuntimeEvent) => void;
+		runId: string;
+		traceId: string;
+		turnIndex: number;
+	},
 ): Promise<ModelResponse> {
 	let streamedResponse: ModelResponse | undefined;
 	let streamedTextLength = 0;
+	const bufferedTextDeltas: BufferedStreamingTextDelta[] = [];
+
+	const narrationStrategyKind = options?.capabilities?.narration_strategy ?? 'unsupported';
+	const enableNarration = narrationStrategyKind !== 'unsupported';
+
+	const getSequenceNo = options?.getNextSequenceNo ?? (() => 1);
 
 	if (
 		requestedProvider !== undefined &&
@@ -982,11 +1176,42 @@ async function generateModelResponseWithStreaming(
 				}
 
 				streamedTextLength += chunk.text_delta.length;
-				sendServerMessage(socket, createTextDeltaMessage(payload, chunk.text_delta));
+
+				if (!enableNarration || options?.capabilities === undefined) {
+					sendServerMessage(
+						socket,
+						createTextDeltaMessage(payload, chunk.text_delta, chunk.content_part_index),
+					);
+					continue;
+				}
+
+				bufferedTextDeltas.push({
+					content_part_index: chunk.content_part_index,
+					resolved_content_part_index: chunk.content_part_index ?? 0,
+					text_delta: chunk.text_delta,
+				});
 				continue;
 			}
 
-			streamedResponse = chunk.response;
+			if (chunk.type === 'response.completed') {
+				streamedResponse = chunk.response;
+
+				if (enableNarration && options?.capabilities !== undefined) {
+					emitNarrationFromBufferedText(socket, payload, {
+						buffered_text_deltas: bufferedTextDeltas,
+						capabilities: options.capabilities,
+						get_next_sequence_no: getSequenceNo,
+						locale: options.locale ?? 'tr',
+						model_response: streamedResponse,
+						on_runtime_event: options.onRuntimeEvent,
+						run_id: options.runId ?? payload.run_id,
+						trace_id: options.traceId ?? payload.trace_id,
+						turn_index: options.turnIndex ?? 1,
+					});
+				}
+
+				return streamedResponse;
+			}
 		}
 	} catch (error: unknown) {
 		if (error instanceof GatewayUnsupportedOperationError) {
@@ -1004,11 +1229,33 @@ async function generateModelResponseWithStreaming(
 		throw error;
 	}
 
-	if (streamedResponse) {
-		return streamedResponse;
+	return modelGateway.generate(modelRequest);
+}
+
+async function persistInternalReasoningIfPresent(
+	input: RunModelTurnInput,
+	modelResponse: ModelResponse,
+): Promise<void> {
+	const internalReasoning = modelResponse.message.internal_reasoning;
+
+	if (internalReasoning === undefined) {
+		return;
 	}
 
-	return modelGateway.generate(modelRequest);
+	const reasoningContent = unwrapRedacted(internalReasoning);
+
+	if (reasoningContent.trim().length === 0) {
+		return;
+	}
+
+	await persistReasoningTrace({
+		model: modelResponse.model,
+		provider: modelResponse.provider,
+		reasoning_content: reasoningContent,
+		run_id: input.run_id,
+		trace_id: input.trace_id,
+		turn_index: input.turn_index ?? 1,
+	});
 }
 
 function resolveRunModelRequest(input: RunModelTurnInput):
@@ -1063,6 +1310,9 @@ async function runPolicyAwareModelTurn(
 		readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
 		readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 		readonly desktop_target_connection_id?: string;
+		readonly get_next_runtime_sequence_no?: () => number;
+		readonly locale?: SupportedLocale;
+		readonly on_runtime_event?: (event: RuntimeEvent) => void;
 		readonly requested_provider?: RunRequestPayload['provider'];
 		readonly session_id?: string;
 	}> = {},
@@ -1094,6 +1344,7 @@ async function runPolicyAwareModelTurn(
 	const resolvedModelRequest = modelRequestResult.model_request;
 	let finalResolvedModelRequest = resolvedModelRequest;
 	let modelResponse: ModelResponse;
+
 	const gatewaySpan = startLogSpan(turnLogger, 'gateway.generate', {
 		model: resolvedModelRequest.model,
 	});
@@ -1108,6 +1359,15 @@ async function runPolicyAwareModelTurn(
 			input.model_gateway,
 			resolvedModelRequest,
 			options.requested_provider,
+			{
+				capabilities: input.model_gateway.capabilities,
+				getNextSequenceNo: options.get_next_runtime_sequence_no,
+				locale: options.locale ?? 'tr',
+				onRuntimeEvent: options.on_runtime_event,
+				runId: input.run_id,
+				traceId: input.trace_id,
+				turnIndex: input.turn_index ?? 1,
+			},
 		);
 		gatewaySpan.end({
 			finish_reason: modelResponse.finish_reason,
@@ -1128,6 +1388,15 @@ async function runPolicyAwareModelTurn(
 						input.model_gateway,
 						request,
 						options.requested_provider,
+						{
+							capabilities: input.model_gateway.capabilities,
+							getNextSequenceNo: options.get_next_runtime_sequence_no,
+							locale: options.locale ?? 'tr',
+							onRuntimeEvent: options.on_runtime_event,
+							runId: input.run_id,
+							traceId: input.trace_id,
+							turnIndex: input.turn_index ?? 1,
+						},
 					);
 				},
 			});
@@ -1211,6 +1480,123 @@ async function runPolicyAwareModelTurn(
 		}
 	}
 
+	await persistInternalReasoningIfPresent(input, modelResponse);
+
+	const orderedToolCallCandidates = getOrderedToolCallCandidates(modelResponse);
+	const narrationEmission = buildNarrationEmissionEvents({
+		base_runtime_sequence_no: options.get_next_runtime_sequence_no?.() ?? 1,
+		capabilities: input.model_gateway.capabilities,
+		model_response: modelResponse,
+		recent_tool_results: [],
+		run_id: input.run_id,
+		trace_id: input.trace_id,
+		locale: options.locale ?? 'tr',
+		turn_index: input.turn_index ?? 1,
+		turn_intent: orderedToolCallCandidates.length > 0 ? 'continuing' : 'done',
+	});
+
+	if (narrationEmission.high_fallthrough_count >= 2) {
+		turnLogger.error('fallthrough.high.repeated', {
+			count: narrationEmission.high_fallthrough_count,
+			model: modelResponse.model,
+			provider: modelResponse.provider,
+		});
+
+		return {
+			failure: {
+				code: 'MODEL_RESPONSE_ADAPTATION_FAILED',
+				message: 'Model unstable after repeated high-confidence fallthrough; retry suggested.',
+			},
+			final_state: 'FAILED',
+			model_response: modelResponse,
+			resolved_model_request: finalResolvedModelRequest,
+			status: 'failed',
+		};
+	}
+
+	if (narrationEmission.emission_decision === 'skip_unsupported') {
+		turnLogger.info(
+			'narration.provider_unsupported',
+			createNarrationSuppressionLogFields({
+				capabilities: input.model_gateway.capabilities,
+				decision: narrationEmission.emission_decision,
+				model: modelResponse.model,
+				provider: modelResponse.provider,
+			}),
+		);
+	}
+
+	if (narrationEmission.emission_decision === 'skip_synthetic') {
+		turnLogger.info(
+			'narration.synthetic_ordering_suppressed',
+			createNarrationSuppressionLogFields({
+				capabilities: input.model_gateway.capabilities,
+				decision: narrationEmission.emission_decision,
+				model: modelResponse.model,
+				provider: modelResponse.provider,
+			}),
+		);
+	}
+
+	for (const rejection of narrationEmission.rejections) {
+		turnLogger.info(
+			'narration.guardrail.rejected',
+			createNarrationGuardrailRejectionLogFields(rejection),
+		);
+	}
+
+	for (const event of narrationEmission.events) {
+		const narrationLogFields = createNarrationRuntimeEventLogFields(event);
+
+		if (narrationLogFields) {
+			turnLogger.info(event.event_type, narrationLogFields);
+		}
+
+		options.on_runtime_event?.(event);
+		sendNarrationServerMessageForRuntimeEvent(
+			socket,
+			{
+				run_id: input.run_id,
+				trace_id: input.trace_id,
+			},
+			event,
+		);
+	}
+
+	const emitNarrationToolOutcomeLinks = (toolResults: readonly ToolResult[]): void => {
+		for (const linkedNarration of narrationEmission.linked_narrations) {
+			const toolResult = toolResults.find(
+				(result) => result.call_id === linkedNarration.tool_call_id,
+			);
+
+			if (!toolResult) {
+				continue;
+			}
+
+			const outcomeEvent = buildNarrationToolOutcomeLinkedEvent(
+				{
+					locale: options.locale ?? 'tr',
+					linked_tool_call_id: linkedNarration.tool_call_id,
+					narration_id: linkedNarration.narration_id,
+					outcome: toolResult.status === 'success' ? 'success' : 'failure',
+					sequence_no: linkedNarration.sequence_no,
+					tool_call_id: linkedNarration.tool_call_id,
+					turn_index: input.turn_index ?? 1,
+				},
+				{
+					run_id: input.run_id,
+					sequence_no: options.get_next_runtime_sequence_no?.() ?? 1,
+					trace_id: input.trace_id,
+				},
+			);
+			turnLogger.info(
+				'narration.tool_outcome_linked',
+				createNarrationRuntimeEventLogFields(outcomeEvent) ?? {},
+			);
+			options.on_runtime_event?.(outcomeEvent);
+		}
+	};
+
 	const adaptedOutcomeResult = adaptModelResponseToTurnOutcome({
 		model_response: modelResponse,
 	});
@@ -1247,7 +1633,6 @@ async function runPolicyAwareModelTurn(
 		};
 	}
 
-	const orderedToolCallCandidates = getOrderedToolCallCandidates(modelResponse);
 	const primaryToolCallOutcome =
 		adaptedOutcomeResult.outcome.kind === 'tool_calls'
 			? adaptedOutcomeResult.outcome.tool_calls[0]
@@ -1305,6 +1690,7 @@ async function runPolicyAwareModelTurn(
 					},
 					101,
 				);
+				emitNarrationToolOutcomeLinks([executedCandidate.tool_result]);
 				const ingestionResult = ingestToolResult({
 					call_id: executedCandidate.tool_result.call_id,
 					current_state: 'TOOL_RESULT_INGESTING',
@@ -1607,6 +1993,7 @@ async function runPolicyAwareModelTurn(
 	const orderedToolResults = orderedExecutedCandidates.map(
 		(executedCandidate) => executedCandidate.tool_result,
 	);
+	emitNarrationToolOutcomeLinks(orderedToolResults);
 	const lastExecutedToolResult = orderedToolResults.at(-1);
 	const blockedApprovalCandidate =
 		scheduledPlan.blocked_candidate === undefined
@@ -1863,6 +2250,7 @@ async function executeLiveRun(
 	};
 	const events: AnyRuntimeEvent[] = [];
 	const runtimeEvents: RuntimeEvent[] = [];
+	const locale = resolveRunRequestLocale(payload);
 	let previousRuntimeState: RuntimeState = options.initial_runtime_state ?? 'INIT';
 	let lastIncrementalApprovalId: string | undefined;
 	let lastIncrementalToolResultCallId: string | undefined;
@@ -1889,6 +2277,7 @@ async function executeLiveRun(
 				current_state: input.snapshot.current_runtime_state,
 				latest_tool_result: input.snapshot.tool_result,
 				memoryStore: options.memoryStore,
+				provider_capabilities: gateway.capabilities,
 				recent_tool_calls: input.snapshot.recent_tool_calls,
 				workspace_layer: workspaceLayer,
 			});
@@ -1934,6 +2323,9 @@ async function executeLiveRun(
 				auth_context: options.auth_context,
 				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 				desktop_target_connection_id: payload.desktop_target_connection_id,
+				get_next_runtime_sequence_no: () => getNextRuntimeSequenceNo(runtimeEvents),
+				locale,
+				on_runtime_event: appendAndSendRuntimeEvent,
 				requested_provider: payload.provider,
 				session_id: runtimeSessionId,
 			}),
@@ -2227,12 +2619,12 @@ export async function finalizeLiveRunResult(
 		);
 
 		if (
-			presentationAdditionalBlocks.length > 0 &&
+			presentationBlocks.length > 0 &&
 			finalizeOptions.conversation_id &&
 			conversationStore?.appendConversationRunBlocks
 		) {
 			await conversationStore.appendConversationRunBlocks({
-				blocks: presentationAdditionalBlocks,
+				blocks: presentationBlocks,
 				conversation_id: finalizeOptions.conversation_id,
 				created_at: result.runtime_events.at(-1)?.timestamp,
 				run_id: payload.run_id,

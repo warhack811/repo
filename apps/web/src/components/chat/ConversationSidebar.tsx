@@ -136,11 +136,7 @@ function getFriendlyErrorMessage(message: string): string {
 
 function SkeletonRows(): ReactElement {
 	return (
-		<output
-			aria-busy="true"
-			aria-label="Sohbet listesi yükleniyor"
-			className={styles['loading']}
-		>
+		<output aria-busy="true" aria-label="Sohbet listesi yükleniyor" className={styles['loading']}>
 			{['one', 'two', 'three'].map((key) => (
 				<RunaSkeleton key={key} className="runa-conversation-skeleton" variant="rect" />
 			))}
@@ -267,7 +263,7 @@ export function ConversationSidebar({
 				aria-label="Sohbet geçmişi"
 			>
 				<div className="runa-conversation-sidebar__header">
-<div className={styles['headerGroup']}>
+					<div className={styles['headerGroup']}>
 						<div className={styles['logo']}>Runa</div>
 						<h2 className={styles['title']}>Sohbetler</h2>
 					</div>

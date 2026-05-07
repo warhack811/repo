@@ -52,8 +52,10 @@ const sensitiveKeys = new Set([
 	'cookie',
 	'credential',
 	'credentials',
+	'internalreasoning',
 	'password',
 	'refreshtoken',
+	'reasoningcontent',
 	'secret',
 	'servicekey',
 	'setcookie',
@@ -141,8 +143,12 @@ function sanitizeContext(context?: LogContext): SanitizedLogContext {
 	);
 }
 
+function safeStringify(value: unknown): string {
+	return JSON.stringify(sanitizeValue(value)) ?? 'undefined';
+}
+
 function defaultSink(level: LogLevel, entry: StructuredLogEntry): void {
-	const serializedEntry = JSON.stringify(entry);
+	const serializedEntry = safeStringify(entry);
 
 	switch (level) {
 		case 'debug':

@@ -1,10 +1,20 @@
 .root {
+	display: grid;
+	gap: 14px;
+	min-width: 0;
 }
 
 .loading {
+	color: hsl(var(--color-text-muted));
+	font-size: 14px;
 }
 
 .header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-width: 0;
 }
 
 .headerGroup {
@@ -26,9 +36,11 @@
 }
 
 .newButton {
+	flex: 0 0 auto;
 }
 
 .newButtonAlt {
+	width: 100%;
 }
 
 .searchLabel {
@@ -44,6 +56,8 @@
 }
 
 .searchResults {
+	display: grid;
+	gap: 10px;
 }
 
 .conversationList {
@@ -51,6 +65,9 @@
 }
 
 .conversationItem {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
 }
 
 .emptyHint {
@@ -75,6 +92,7 @@
 }
 
 .saveMemberButton {
+	width: fit-content;
 }
 
 .memberItems {
@@ -89,22 +107,48 @@
 }
 
 .conversationButton {
+	display: grid;
+	gap: 4px;
+	width: 100%;
+	min-width: 0;
+	text-align: left;
 }
 
 .conversationTitle {
+	color: hsl(var(--color-text));
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .conversationMeta {
+	color: hsl(var(--color-text-muted));
+	font-size: 12px;
+	line-height: 1.4;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .conversationActions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .deleteButton {
+	flex: 0 0 auto;
 }
 
 .conversationTime {
+	color: hsl(var(--color-text-soft));
+	font-size: 12px;
+	white-space: nowrap;
 }
 
 .loadMore {
+	width: 100%;
 }

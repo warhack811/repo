@@ -87,6 +87,11 @@ export {
 } from './checkpoint-store.js';
 export type { CheckpointRecord, NewCheckpointRecord } from './checkpoints.js';
 export type { MemoryRecord, NewMemoryRecord } from './memories.js';
+export type {
+	AgentReasoningTraceRecord,
+	NewAgentReasoningTraceRecord,
+} from './reasoning-traces.js';
+export { cleanupExpiredAgentReasoningTraces } from './reasoning-traces.js';
 export {
 	createPolicyStateDatabaseClient,
 	type PolicyStateDatabaseClient,
@@ -99,6 +104,7 @@ export {
 } from './runtime-events.js';
 export type { NewRunRecord, RunRecord } from './runs.js';
 export {
+	agentReasoningTracesTable,
 	approvalsTable,
 	checkpointsTable,
 	conversationMembersTable,

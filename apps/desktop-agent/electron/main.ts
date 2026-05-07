@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
 	BrowserWindow,
@@ -11,6 +13,7 @@ import {
 	shell as electronShell,
 	ipcMain,
 	nativeImage,
+	powerMonitor,
 	protocol,
 	safeStorage,
 	session,
@@ -22,7 +25,9 @@ import {
 	type DesktopAgentLaunchController,
 	type DesktopAgentLaunchControllerViewModel,
 	type DesktopAgentLogger,
+	type DesktopAgentPersistedSession,
 	type DesktopAgentSessionInputPayload,
+	type DesktopAgentSessionStorage,
 	createDesktopAgentDiagnosticsSnapshot,
 	createDesktopAgentLaunchController,
 	createDesktopAgentLogger,
@@ -49,15 +54,35 @@ type ShellInvokeActionPayload = Readonly<{
 	actionId: DesktopAgentLaunchControllerViewModel['primary_action']['id'];
 }>;
 
+type DesktopAgentDeviceIdentityRecord = Readonly<{
+	agent_id: string;
+	machine_label?: string;
+}>;
+
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let controller: DesktopAgentLaunchController | null = null;
 let configurationErrorMessage: string | null = null;
+let configuredDesktopWebUrl: URL | null = null;
+let rendererFallbackErrorMessage: string | null = null;
 let insecureStorageWarning = false;
+let smokeShutdownWatchHandle: ReturnType<typeof setInterval> | null = null;
+let smokeSignOutWatchHandle: ReturnType<typeof setInterval> | null = null;
+let smokeShutdownInProgress = false;
+let smokeSignOutInProgress = false;
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 const allowedExternalUrlPolicy = readAllowedExternalUrlPolicy();
 const startHidden = process.argv.includes('--hidden');
+const sensitiveDesktopWebUrlParams = new Set([
+	'access_token',
+	'refresh_token',
+	'authorization',
+	'api_key',
+	'apikey',
+	'secret',
+	'token',
+]);
 let currentSettings: DesktopAgentSettingsStoreState = {
 	autoStart: true,
 	openWindowOnStart: false,
@@ -89,11 +114,352 @@ function getCrashpadDirectoryPath(): string {
 	return join(app.getPath('userData'), 'Crashpad');
 }
 
+function getDeviceIdentityFilePath(): string {
+	return join(app.getPath('userData'), 'device-identity.json');
+}
+
 function logBoot(message: string, data?: unknown): void {
 	const safeData = data === undefined ? undefined : redactPii(data);
 	const payload = safeData === undefined ? '' : ` ${JSON.stringify(safeData)}`;
 	console.log(`[boot:${message}]${payload}`);
 	desktopLogger.info(`[boot:${message}]`, safeData ?? {});
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isDesktopAgentDeviceIdentityRecord(
+	value: unknown,
+): value is DesktopAgentDeviceIdentityRecord {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	return (
+		typeof value['agent_id'] === 'string' &&
+		value['agent_id'].trim().length > 0 &&
+		(value['machine_label'] === undefined || typeof value['machine_label'] === 'string')
+	);
+}
+
+async function readDeviceIdentityRecord(): Promise<DesktopAgentDeviceIdentityRecord | null> {
+	try {
+		const rawValue = await readFile(getDeviceIdentityFilePath(), 'utf8');
+		const parsedValue = JSON.parse(rawValue) as unknown;
+
+		if (!isDesktopAgentDeviceIdentityRecord(parsedValue)) {
+			return null;
+		}
+
+		return {
+			agent_id: parsedValue.agent_id.trim(),
+			machine_label: parsedValue.machine_label?.trim() || undefined,
+		};
+	} catch {
+		return null;
+	}
+}
+
+async function writeDeviceIdentityRecord(record: DesktopAgentDeviceIdentityRecord): Promise<void> {
+	const filePath = getDeviceIdentityFilePath();
+
+	await mkdir(dirname(filePath), { recursive: true });
+	await writeFile(filePath, JSON.stringify(record, null, 2), 'utf8');
+}
+
+function createDefaultMachineLabel(): string {
+	const normalizedHostname = hostname().trim();
+	return normalizedHostname.length > 0 ? normalizedHostname : 'Runa Desktop';
+}
+
+function sanitizeDesktopWebUrl(url: URL): URL {
+	const sanitizedUrl = new URL(url.toString());
+
+	for (const paramName of [...sanitizedUrl.searchParams.keys()]) {
+		if (sensitiveDesktopWebUrlParams.has(paramName.toLowerCase())) {
+			sanitizedUrl.searchParams.delete(paramName);
+		}
+	}
+
+	if (sanitizedUrl.hash.length > 1) {
+		const hashParams = new URLSearchParams(sanitizedUrl.hash.slice(1));
+		let removedHashSecret = false;
+
+		for (const paramName of [...hashParams.keys()]) {
+			if (sensitiveDesktopWebUrlParams.has(paramName.toLowerCase())) {
+				hashParams.delete(paramName);
+				removedHashSecret = true;
+			}
+		}
+
+		if (removedHashSecret) {
+			const nextHash = hashParams.toString();
+			sanitizedUrl.hash = nextHash.length > 0 ? nextHash : '';
+		}
+	}
+
+	return sanitizedUrl;
+}
+
+function readDesktopWebUrlFromEnvironment(): URL | null {
+	const explicitCandidate =
+		process.env.RUNA_DESKTOP_WEB_URL !== undefined
+			? process.env.RUNA_DESKTOP_WEB_URL
+			: process.env.RUNA_WEB_URL;
+	const candidate =
+		explicitCandidate !== undefined
+			? explicitCandidate.trim()
+			: app.isPackaged && process.env.RUNA_DESKTOP_DISABLE_WEB_FALLBACK !== '1'
+				? 'https://app.runa.app'
+				: '';
+
+	if (candidate.length === 0) {
+		configurationErrorMessage =
+			'Runa web app is not configured yet. Set the desktop web URL and try again.';
+		return null;
+	}
+
+	let parsedUrl: URL;
+
+	try {
+		parsedUrl = new URL(candidate);
+	} catch {
+		configurationErrorMessage =
+			'Runa web app URL is invalid. Check the desktop configuration and try again.';
+		return null;
+	}
+
+	if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+		configurationErrorMessage =
+			'Runa web app URL must use http or https. Check the desktop configuration and try again.';
+		return null;
+	}
+
+	configurationErrorMessage = null;
+	return sanitizeDesktopWebUrl(parsedUrl);
+}
+
+function readDesktopWebUrlForLog(url: URL | null): Record<string, string> {
+	if (!url) {
+		return {
+			mode: 'internal',
+		};
+	}
+
+	return {
+		mode: 'web',
+		origin: url.origin,
+		pathname: url.pathname,
+	};
+}
+
+function readUrlForLog(rawUrl: string): Record<string, boolean | string> {
+	try {
+		const parsedUrl = new URL(rawUrl);
+
+		return {
+			has_hash: parsedUrl.hash.length > 0,
+			has_search: parsedUrl.search.length > 0,
+			origin: parsedUrl.origin,
+			pathname: parsedUrl.pathname,
+			protocol: parsedUrl.protocol,
+		};
+	} catch {
+		return {
+			pathname: 'unparseable',
+		};
+	}
+}
+
+function readSmokeShutdownFileFromEnvironment(): string | null {
+	const candidate = process.env.RUNA_DESKTOP_AGENT_SMOKE_SHUTDOWN_FILE?.trim();
+	return candidate && candidate.length > 0 ? candidate : null;
+}
+
+function readSmokeSignOutFileFromEnvironment(): string | null {
+	const candidate = process.env.RUNA_DESKTOP_AGENT_SMOKE_SIGN_OUT_FILE?.trim();
+	return candidate && candidate.length > 0 ? candidate : null;
+}
+
+async function signOutFromSmokeControl(signOutFilePath: string): Promise<void> {
+	if (smokeSignOutInProgress) {
+		return;
+	}
+
+	smokeSignOutInProgress = true;
+	logBoot('smoke:sign-out-requested');
+
+	try {
+		await rm(signOutFilePath, { force: true });
+	} catch (error: unknown) {
+		logBoot('smoke:sign-out-file-remove-failed', {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	try {
+		await controller?.signOut();
+	} catch (error: unknown) {
+		logBoot('smoke:sign-out-failed', {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	} finally {
+		smokeSignOutInProgress = false;
+	}
+}
+
+async function shutdownFromSmokeControl(shutdownFilePath: string): Promise<void> {
+	if (smokeShutdownInProgress) {
+		return;
+	}
+
+	smokeShutdownInProgress = true;
+	isQuitting = true;
+	logBoot('smoke:shutdown-requested');
+
+	if (smokeShutdownWatchHandle) {
+		clearInterval(smokeShutdownWatchHandle);
+		smokeShutdownWatchHandle = null;
+	}
+
+	try {
+		await rm(shutdownFilePath, { force: true });
+	} catch (error: unknown) {
+		logBoot('smoke:shutdown-file-remove-failed', {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	try {
+		await controller?.stop();
+	} catch (error: unknown) {
+		logBoot('smoke:shutdown-stop-failed', {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	app.quit();
+}
+
+function registerSmokeShutdownFileWatcher(): void {
+	const shutdownFilePath = readSmokeShutdownFileFromEnvironment();
+	if (!shutdownFilePath || smokeShutdownWatchHandle) {
+		return;
+	}
+
+	smokeShutdownWatchHandle = setInterval(() => {
+		if (!existsSync(shutdownFilePath)) {
+			return;
+		}
+
+		void shutdownFromSmokeControl(shutdownFilePath);
+	}, 250);
+	smokeShutdownWatchHandle.unref?.();
+	logBoot('smoke:shutdown-watch-enabled');
+}
+
+function registerSmokeSignOutFileWatcher(): void {
+	const signOutFilePath = readSmokeSignOutFileFromEnvironment();
+	if (!signOutFilePath || smokeSignOutWatchHandle) {
+		return;
+	}
+
+	smokeSignOutWatchHandle = setInterval(() => {
+		if (!existsSync(signOutFilePath)) {
+			return;
+		}
+
+		void signOutFromSmokeControl(signOutFilePath);
+	}, 250);
+	smokeSignOutWatchHandle.unref?.();
+	logBoot('smoke:sign-out-watch-enabled');
+}
+
+async function reconnectControllerAfterPowerResume(): Promise<void> {
+	if (!controller) {
+		logBoot('power:resume-reconnect-skipped', {
+			reason: 'missing_controller',
+		});
+		return;
+	}
+
+	const snapshot = controller.getSnapshot();
+	logBoot('power:resume-detected', {
+		session_present: snapshot.session_present,
+		status: snapshot.status,
+	});
+
+	if (!snapshot.session_present) {
+		logBoot('power:resume-reconnect-skipped', {
+			reason: 'missing_session',
+			status: snapshot.status,
+		});
+		return;
+	}
+
+	try {
+		await controller.stop();
+		await controller.start();
+		publishCurrentViewModel();
+		logBoot('power:resume-reconnect-completed', {
+			status: controller.getSnapshot().status,
+		});
+	} catch (error: unknown) {
+		logBoot('power:resume-reconnect-failed', {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+}
+
+function registerPowerMonitorHandlers(): void {
+	powerMonitor.on('suspend', () => {
+		logBoot('power:suspend-detected');
+	});
+	powerMonitor.on('resume', () => {
+		void reconnectControllerAfterPowerResume();
+	});
+	logBoot('power:monitor-watch-enabled');
+}
+
+function describeSessionPayloadForLog(payload: unknown): Record<string, boolean | string> {
+	if (!isRecord(payload)) {
+		return {
+			payload_type: typeof payload,
+		};
+	}
+
+	return {
+		has_access_token: typeof payload['access_token'] === 'string',
+		has_expires_at: typeof payload['expires_at'] === 'number',
+		has_refresh_token: typeof payload['refresh_token'] === 'string',
+		has_token_type: typeof payload['token_type'] === 'string',
+		payload_type: 'object',
+	};
+}
+
+async function ensureDesktopAgentBootstrapEnvironment(webUrl: URL | null): Promise<void> {
+	const existingAgentId = process.env.RUNA_DESKTOP_AGENT_ID?.trim();
+	const existingMachineLabel = process.env.RUNA_DESKTOP_AGENT_MACHINE_LABEL?.trim();
+	const storedIdentity = await readDeviceIdentityRecord();
+	const nextIdentity: DesktopAgentDeviceIdentityRecord = {
+		agent_id:
+			existingAgentId && existingAgentId.length > 0
+				? existingAgentId
+				: (storedIdentity?.agent_id ?? `runa-desktop-${randomUUID()}`),
+		machine_label:
+			existingMachineLabel && existingMachineLabel.length > 0
+				? existingMachineLabel
+				: (storedIdentity?.machine_label ?? createDefaultMachineLabel()),
+	};
+
+	process.env.RUNA_DESKTOP_AGENT_ID = nextIdentity.agent_id;
+	process.env.RUNA_DESKTOP_AGENT_MACHINE_LABEL = nextIdentity.machine_label;
+	await writeDeviceIdentityRecord(nextIdentity);
+
+	if (!process.env.RUNA_DESKTOP_AGENT_SERVER_URL?.trim() && webUrl) {
+		process.env.RUNA_DESKTOP_AGENT_SERVER_URL = webUrl.origin;
+	}
 }
 
 const bootLogger: Pick<DesktopAgentLogger, 'warn'> = {
@@ -131,18 +497,23 @@ function createFallbackViewModel(): DesktopAgentLaunchControllerViewModel {
 	return {
 		agent_id: 'unconfigured',
 		awaiting_session_input: false,
-		message: configurationErrorMessage ?? 'Desktop runtime setup failed.',
+		message:
+			rendererFallbackErrorMessage ?? configurationErrorMessage ?? 'Desktop runtime setup failed.',
 		primary_action: {
 			id: 'retry',
 			label: 'Try again',
 		},
 		session_present: false,
 		status: 'error',
-		title: 'Connection failed',
+		title: rendererFallbackErrorMessage ? 'Runa Desktop needs setup' : 'Connection failed',
 	};
 }
 
 function getViewModel(): DesktopAgentLaunchControllerViewModel {
+	if (rendererFallbackErrorMessage) {
+		return createFallbackViewModel();
+	}
+
 	return controller?.getViewModel() ?? createFallbackViewModel();
 }
 
@@ -186,10 +557,6 @@ function projectViewModelToLegacyShellState(
 	}
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function isDesktopAgentSessionInputPayload(
 	value: unknown,
 ): value is DesktopAgentSessionInputPayload {
@@ -201,7 +568,7 @@ function isDesktopAgentSessionInputPayload(
 
 	return (
 		typeof value.access_token === 'string' &&
-		typeof value.refresh_token === 'string' &&
+		(value.refresh_token === undefined || typeof value.refresh_token === 'string') &&
 		(expiresAt === undefined || typeof expiresAt === 'number') &&
 		(value.token_type === undefined || typeof value.token_type === 'string')
 	);
@@ -341,6 +708,28 @@ function registerRendererProtocol(): void {
 	});
 }
 
+function publishCurrentViewModel(): void {
+	mainWindow?.webContents.send('shell:viewModel', getViewModel());
+	mainWindow?.webContents.send(
+		'shell:stateChanged',
+		projectViewModelToLegacyShellState(getViewModel()),
+	);
+}
+
+async function loadInternalRendererFallback(message: string): Promise<void> {
+	if (!mainWindow || rendererFallbackErrorMessage) {
+		return;
+	}
+
+	rendererFallbackErrorMessage = message;
+	logBoot('window:fallback-renderer-selected', {
+		reason: message,
+	});
+
+	await mainWindow.loadURL('runa-desktop://app/index.html');
+	publishCurrentViewModel();
+}
+
 async function invokeControllerAction(
 	actionId: ShellInvokeActionPayload['actionId'],
 ): Promise<DesktopAgentLaunchControllerViewModel> {
@@ -363,24 +752,54 @@ async function stopController(): Promise<DesktopAgentLaunchControllerViewModel> 
 
 async function signOutController(): Promise<DesktopAgentLaunchControllerViewModel> {
 	if (!controller) {
+		logBoot('session:sign-out-skipped', { reason: 'missing_controller' });
 		return getViewModel();
 	}
 
 	await controller.signOut();
+	logBoot('session:sign-out-handled');
 	return controller.getViewModel();
 }
 
 async function submitSession(payload: unknown): Promise<DesktopAgentLaunchControllerViewModel> {
-	if (!controller || !isDesktopAgentSessionInputPayload(payload)) {
+	logBoot('session:submit-received', describeSessionPayloadForLog(payload));
+
+	if (!controller) {
+		logBoot('session:submit-rejected', { reason: 'missing_controller' });
+		return getViewModel();
+	}
+
+	if (!isDesktopAgentSessionInputPayload(payload)) {
+		logBoot('session:submit-rejected', { reason: 'invalid_payload' });
 		return getViewModel();
 	}
 
 	await controller.submitSession(payload);
+	logBoot('session:submit-handled', {
+		view_model_status: controller.getViewModel().status,
+	});
 	return controller.getViewModel();
 }
 
-function createControllerFromEnvironment(): void {
+function isConfiguredDesktopWebNavigation(url: string): boolean {
+	if (!configuredDesktopWebUrl) {
+		return false;
+	}
+
 	try {
+		const parsedUrl = new URL(url);
+		return (
+			(parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') &&
+			parsedUrl.origin === configuredDesktopWebUrl.origin
+		);
+	} catch {
+		return false;
+	}
+}
+
+async function createControllerFromEnvironment(): Promise<void> {
+	try {
+		await ensureDesktopAgentBootstrapEnvironment(configuredDesktopWebUrl);
 		const config = readDesktopAgentBootstrapConfigFromEnvironment();
 		const sessionStorageSelection = createDesktopAgentSessionStorageForSafeStorage({
 			logger: bootLogger,
@@ -388,8 +807,11 @@ function createControllerFromEnvironment(): void {
 			userDataDirectory: app.getPath('userData'),
 		});
 		insecureStorageWarning = sessionStorageSelection.insecure_storage;
+		const storedSession = await readStoredSessionForBootstrap(sessionStorageSelection.storage);
+		const initialSession = config.initial_session ?? storedSession ?? undefined;
 		controller = createDesktopAgentLaunchController({
 			...config,
+			initial_session: initialSession,
 			bridge_factory: async (bridgeOptions) =>
 				await startDesktopAgentBridge({
 					...bridgeOptions,
@@ -406,9 +828,10 @@ function createControllerFromEnvironment(): void {
 		configurationErrorMessage = null;
 		logBoot('runtime:configured', {
 			agent_id: config.agent_id,
-			has_initial_session: config.initial_session !== undefined,
+			has_initial_session: initialSession !== undefined,
 			machine_label: config.machine_label,
 			server_url: config.server_url,
+			storage_mode: insecureStorageWarning ? 'plaintext' : 'encrypted',
 		});
 	} catch (error: unknown) {
 		configurationErrorMessage =
@@ -416,6 +839,19 @@ function createControllerFromEnvironment(): void {
 		logBoot('runtime:configuration-error', {
 			error: configurationErrorMessage,
 		});
+	}
+}
+
+async function readStoredSessionForBootstrap(
+	sessionStorage: DesktopAgentSessionStorage,
+): Promise<DesktopAgentPersistedSession | null> {
+	try {
+		return await sessionStorage.load();
+	} catch (error: unknown) {
+		logBoot('runtime:stored-session-load-failed', {
+			error: error instanceof Error ? error.message : 'Stored desktop session could not be loaded.',
+		});
+		return null;
 	}
 }
 
@@ -519,23 +955,39 @@ function createMainWindow(): void {
 
 	mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 	mainWindow.webContents.on('will-navigate', (event, url) => {
+		if (isConfiguredDesktopWebNavigation(url)) {
+			return;
+		}
+
 		event.preventDefault();
 
 		if (isAllowedExternalUrl(url, allowedExternalUrlPolicy)) {
 			void electronShell.openExternal(url);
 		}
 	});
-	mainWindow.loadURL('runa-desktop://app/index.html');
+	mainWindow.webContents.on('did-finish-load', () => {
+		logBoot('window:did-finish-load', readUrlForLog(mainWindow?.webContents.getURL() ?? ''));
+	});
+	mainWindow.webContents.on(
+		'did-fail-load',
+		(_event, errorCode, _errorDescription, validatedUrl, isMainFrame) => {
+			if (!isMainFrame || errorCode === -3 || !isConfiguredDesktopWebNavigation(validatedUrl)) {
+				return;
+			}
+
+			void loadInternalRendererFallback(
+				'Runa web app is unavailable right now. Check your desktop server/web configuration and try again.',
+			);
+		},
+	);
+	const initialRendererUrl = configuredDesktopWebUrl?.toString() ?? 'runa-desktop://app/index.html';
+	mainWindow.loadURL(initialRendererUrl);
 	mainWindow.once('ready-to-show', () => {
-		logBoot('window:ready-to-show');
+		logBoot('window:ready-to-show', readDesktopWebUrlForLog(configuredDesktopWebUrl));
 		if (!startHidden) {
 			mainWindow?.show();
 		}
-		mainWindow?.webContents.send('shell:viewModel', getViewModel());
-		mainWindow?.webContents.send(
-			'shell:stateChanged',
-			projectViewModelToLegacyShellState(getViewModel()),
-		);
+		publishCurrentViewModel();
 	});
 	mainWindow.on('close', (event) => {
 		if (!isQuitting) {
@@ -624,11 +1076,16 @@ if (!gotSingleInstanceLock) {
 			logBoot('electron-version', {
 				electron_version: process.versions.electron,
 			});
+			configuredDesktopWebUrl = readDesktopWebUrlFromEnvironment();
+			logBoot('window:renderer-selected', readDesktopWebUrlForLog(configuredDesktopWebUrl));
 			registerRendererProtocol();
 			registerIpcHandlers();
+			registerSmokeShutdownFileWatcher();
+			registerSmokeSignOutFileWatcher();
+			registerPowerMonitorHandlers();
 			createTray();
 			createMainWindow();
-			createControllerFromEnvironment();
+			await createControllerFromEnvironment();
 			await handleDeepLinkArgv(process.argv);
 			await controller?.start();
 			logBoot('main-process:boot-complete');
@@ -647,6 +1104,14 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
 	isQuitting = true;
+	if (smokeShutdownWatchHandle) {
+		clearInterval(smokeShutdownWatchHandle);
+		smokeShutdownWatchHandle = null;
+	}
+	if (smokeSignOutWatchHandle) {
+		clearInterval(smokeSignOutWatchHandle);
+		smokeSignOutWatchHandle = null;
+	}
 	logBoot('app:before-quit');
 	tray?.destroy();
 	tray = null;

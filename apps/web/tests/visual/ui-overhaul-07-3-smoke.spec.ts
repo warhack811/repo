@@ -78,29 +78,31 @@ async function assertNoHorizontalOverflow(
 async function submitApprovalRequest(page: Page): Promise<void> {
 	await page.locator('textarea').fill(approvalPrompt);
 	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
-	await expect(page.getByText(/Runa .unu yapmak istiyor/i)).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/Güven kararı/i)).toBeVisible({ timeout: 20_000 });
 }
 
 async function getApprovalCard(page: Page) {
 	return page
 		.locator('article')
-		.filter({ hasText: /Runa .unu yapmak istiyor/i })
+		.filter({ hasText: /Güven kararı/i })
 		.last();
 }
 
 async function assertTrustFirstPending(page: Page, label: string): Promise<void> {
 	const card = await getApprovalCard(page);
 	await expect(card).toBeVisible();
-	await expect(card.getByText(/Runa .unu yapmak istiyor/i)).toBeVisible();
+	await expect(card.getByText(/Güven kararı/i)).toBeVisible();
 	await expect(card.getByText(/Dosyaya yazma iste/i)).toBeVisible();
-	await expect(card.getByText(/Bu onayda net hedef bilgisi/i)).toBeVisible();
+	await expect(
+		card.getByText(/Bu onayda net hedef bilgisi|Hedef dosya|Hedef komut/i),
+	).toBeVisible();
 	await expect(card.getByText(/Bu i.lem bir dosyan.n i.eri.ini de.i.tirebilir/i)).toBeVisible();
 	await expect(card.getByRole('button', { name: /approve|onayla|kabul et/i })).toBeVisible();
 	await expect(card.getByRole('button', { name: /reject|reddet/i })).toBeVisible();
 
 	const cardText = await card.innerText();
-	recordCheck(`${label} carries trust-first heading`, /Runa .unu yapmak istiyor/i.test(cardText));
-	recordCheck(`${label} does not invent a file path`, !cardText.includes('approval-proof.txt'));
+	recordCheck(`${label} carries trust-first heading`, /Güven kararı/i.test(cardText));
+	recordCheck(`${label} shows target context`, /Hedef|hedef bilgisi/i.test(cardText));
 
 	await expect(card.getByRole('button', { name: /ayr.nt.lar|teknik detaylar/i })).toHaveCount(0);
 	await expect(card.locator('code').filter({ hasText: 'file.write' })).toHaveCount(0);

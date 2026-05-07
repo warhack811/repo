@@ -1,6 +1,7 @@
 import type { InspectionDetailLevel, InspectionTargetKind, RenderBlock } from './blocks.js';
 import type { RuntimeEvent } from './events.js';
-import type { ModelAttachment, ModelRequest } from './gateway.js';
+import type { ModelAttachment, ModelMessage, ModelRequest } from './gateway.js';
+import type { SupportedLocale } from './locale.js';
 import type { ApprovalDecisionKind, UsageLimitRejection } from './policy.js';
 import type { ToolArguments, ToolErrorCode } from './tools.js';
 
@@ -49,8 +50,14 @@ export interface GatewayProviderConfig {
 	readonly defaultModel?: string;
 }
 
-export type RunRequestModelRequest = Omit<ModelRequest, 'run_id' | 'trace_id'> &
-	Partial<Pick<ModelRequest, 'run_id' | 'trace_id'>>;
+export type PublicModelMessage = Omit<ModelMessage, 'internal_reasoning'>;
+
+export type PublicModelRequest = Omit<ModelRequest, 'messages'> & {
+	readonly messages: readonly PublicModelMessage[];
+};
+
+export type RunRequestModelRequest = Omit<PublicModelRequest, 'run_id' | 'trace_id'> &
+	Partial<Pick<PublicModelRequest, 'run_id' | 'trace_id'>>;
 
 export interface RunRequestPayload {
 	readonly approval_policy?: RunApprovalPolicy;
@@ -58,6 +65,7 @@ export interface RunRequestPayload {
 	readonly conversation_id?: string;
 	readonly desktop_target_connection_id?: string;
 	readonly include_presentation_blocks?: boolean;
+	readonly locale?: SupportedLocale;
 	readonly provider: GatewayProvider;
 	readonly provider_config: GatewayProviderConfig;
 	readonly request: RunRequestModelRequest;
@@ -204,6 +212,7 @@ export interface RuntimeEventServerMessage {
 
 export interface TextDeltaServerMessage {
 	readonly payload: {
+		readonly content_part_index?: number;
 		readonly run_id: string;
 		readonly text_delta: string;
 		readonly trace_id: string;
@@ -217,6 +226,39 @@ export interface TextDeltaDiscardServerMessage {
 		readonly trace_id: string;
 	};
 	readonly type: 'text.delta.discard';
+}
+
+export interface NarrationDeltaServerMessage {
+	readonly payload: {
+		readonly locale: SupportedLocale;
+		readonly narration_id: string;
+		readonly run_id: string;
+		readonly sequence_no: number;
+		readonly text_delta: string;
+		readonly trace_id: string;
+		readonly turn_index: number;
+	};
+	readonly type: 'narration.delta';
+}
+
+export interface NarrationCompletedServerMessage {
+	readonly payload: {
+		readonly full_text: string;
+		readonly narration_id: string;
+		readonly run_id: string;
+		readonly trace_id: string;
+		readonly linked_tool_call_id?: string;
+	};
+	readonly type: 'narration.completed';
+}
+
+export interface NarrationSupersededServerMessage {
+	readonly payload: {
+		readonly narration_id: string;
+		readonly run_id: string;
+		readonly trace_id: string;
+	};
+	readonly type: 'narration.superseded';
 }
 
 export interface RunRejectedServerMessage {
@@ -312,6 +354,9 @@ export type WebSocketServerMessage =
 	| RuntimeEventServerMessage
 	| TextDeltaServerMessage
 	| TextDeltaDiscardServerMessage
+	| NarrationDeltaServerMessage
+	| NarrationCompletedServerMessage
+	| NarrationSupersededServerMessage
 	| RunRejectedServerMessage
 	| RunFinishedServerMessage;
 

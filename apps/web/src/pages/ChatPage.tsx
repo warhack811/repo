@@ -12,6 +12,7 @@ import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
+import { WorkInsightPanel } from '../components/chat/WorkInsightPanel.js';
 import { TransportErrorBanner } from '../lib/transport/errors.js';
 
 const RunTimelinePanel = lazy(() =>
@@ -178,6 +179,9 @@ export function ChatPage({
 		const activeRunId = currentRunFeedback?.run_id ?? visibleCurrentPresentationSurface?.run_id;
 		return activeRunId ? runTransportSummaries.get(activeRunId) : undefined;
 	}, [visibleCurrentPresentationSurface, currentRunFeedback, runTransportSummaries]);
+	const canResolveCurrentApproval = Boolean(
+		currentRunSummary?.has_accepted && currentRunSummary.final_state === undefined,
+	);
 
 	const currentRunProgress = useMemo(
 		() =>
@@ -214,7 +218,7 @@ export function ChatPage({
 			isCurrent
 			isDeveloperMode={isDeveloperMode}
 			onRequestInspection={requestInspection}
-			onResolveApproval={resolveApproval}
+			onResolveApproval={canResolveCurrentApproval ? resolveApproval : undefined}
 			pendingInspectionRequestKeys={pendingInspectionRequestKeys}
 			runTransportSummaries={runTransportSummaries}
 			surface={visibleCurrentPresentationSurface}
@@ -228,7 +232,6 @@ export function ChatPage({
 			inspectionAnchorIdsByDetailId={inspectionAnchorIdsByDetailId}
 			isDeveloperMode={isDeveloperMode}
 			onRequestInspection={requestInspection}
-			onResolveApproval={resolveApproval}
 			onToggleExpanded={setPastRunExpanded}
 			pastPresentationSurfaces={pastPresentationSurfaces}
 			pendingInspectionRequestKeys={pendingInspectionRequestKeys}
@@ -297,6 +300,17 @@ export function ChatPage({
 							voiceStatusMessage={voiceStatusMessage}
 						/>
 					</>
+				}
+				insights={
+					<WorkInsightPanel
+						activeConversationTitle={conversations.activeConversationSummary?.title}
+						attachmentCount={attachments.length}
+						currentRunProgress={currentRunProgress}
+						desktopDevices={desktopDevices}
+						isDesktopDevicesLoading={isDesktopDevicesLoading}
+						presentationRunSurfaceCount={presentationRunSurfaces.length}
+						selectedDesktopTargetConnectionId={runtimeDesktopTargetConnectionId}
+					/>
 				}
 				isSidebarOpen={isConversationSidebarOpen}
 				messages={

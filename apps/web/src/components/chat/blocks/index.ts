@@ -15,6 +15,7 @@ export { TextBlock } from './TextBlock.js';
 export { ToolResultBlock } from './ToolResultBlock.js';
 export { TraceDebugBlock } from './TraceDebugBlock.js';
 export { WebSearchResultBlock } from './WebSearchResultBlock.js';
+export { WorkNarrationBlock } from './WorkNarrationBlock.js';
 export { WorkspaceInspectionBlock } from './WorkspaceInspectionBlock.js';
 export type {
 	GetInspectionActionState,

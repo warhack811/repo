@@ -23,7 +23,9 @@
 // Sprint 1, Görev 2'de doldurulacak — şu an boş barrel export
 export * from './events.js';
 export * from './gateway.js';
+export * from './redacted.js';
 export * from './evidence.js';
+export * from './locale.js';
 export * from './state.js';
 export * from './agent-loop.js';
 export * from './checkpoint.js';

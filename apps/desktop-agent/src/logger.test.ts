@@ -28,4 +28,14 @@ describe('redactPii', () => {
 			redactPii('Authorization: Bearer secret-token and eyJabc.def_123.ghi-456 are hidden'),
 		).toBe('Authorization: Bearer [REDACTED] and [REDACTED_JWT] are hidden');
 	});
+
+	it('redacts sensitive query string parameters without hiding safe URL context', () => {
+		expect(
+			redactPii(
+				'https://app.runa.app/callback?access_token=secret-access&state=ok&refresh_token=secret-refresh#access_token=hash-secret',
+			),
+		).toBe(
+			'https://app.runa.app/callback?access_token=[REDACTED]&state=ok&refresh_token=[REDACTED]#access_token=[REDACTED]',
+		);
+	});
 });

@@ -62,17 +62,11 @@ export function CodeBlockCard({ block }: CodeBlockCardProps): ReactElement {
 			<div className={styles['header']}>
 				<div className={styles['titleRow']}>
 					<span className={styles['eyebrow']}>code block</span>
-					<strong className={styles['title']}>
-						{displayTitle}
-					</strong>
+					<strong className={styles['title']}>{displayTitle}</strong>
 				</div>
 				<div className={styles['actions']}>
-					<span className={styles['language']}>
-						{block.payload.language}
-					</span>
-					{diffKind ? (
-						<span className={styles['diffKind']}>{diffKind}</span>
-					) : null}
+					<span className={styles['language']}>{block.payload.language}</span>
+					{diffKind ? <span className={styles['diffKind']}>{diffKind}</span> : null}
 					<button
 						type="button"
 						onClick={handleCopy}
@@ -84,9 +78,7 @@ export function CodeBlockCard({ block }: CodeBlockCardProps): ReactElement {
 				</div>
 			</div>
 			{block.type === 'code_block' && block.payload.summary ? (
-				<div className={styles['summary']}>
-					{block.payload.summary}
-				</div>
+				<div className={styles['summary']}>{block.payload.summary}</div>
 			) : null}
 			{displayPath ? (
 				<div className={styles['pathRow']}>
@@ -97,13 +89,8 @@ export function CodeBlockCard({ block }: CodeBlockCardProps): ReactElement {
 			<div className={styles['codeContainer']}>
 				<pre className={styles['codePre']}>
 					{codeLines.map((line, index) => (
-						<span
-							key={`${block.id}:line:${index}`}
-							className={styles['codeLine']}
-						>
-							<span className={styles['lineNumber']}>
-								{index + 1}
-							</span>
+						<span key={`${block.id}:line:${index}`} className={styles['codeLine']}>
+							<span className={styles['lineNumber']}>{index + 1}</span>
 							<span>{line || ' '}</span>
 						</span>
 					))}
