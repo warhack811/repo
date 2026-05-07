@@ -383,7 +383,7 @@ async function revealStoredTranscript(page: Page): Promise<void> {
 async function submitApprovalRequest(page: Page): Promise<void> {
 	await page.locator('textarea').fill(approvalPrompt);
 	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
-	await expect(page.getByText(/Runa .unu yapmak istiyor/i)).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/Güven kararı/i)).toBeVisible({ timeout: 20_000 });
 }
 
 async function assertApprovalButtonsClear(page: Page, label: string): Promise<void> {
@@ -732,7 +732,7 @@ test('approval trust boundary remains clear on desktop and mobile', async ({ pag
 	});
 
 	await page.setViewportSize(wide);
-	await expect(page.getByText(/Runa .unu yapmak istiyor/i)).toBeVisible();
+	await expect(page.getByText(/Güven kararı/i)).toBeVisible();
 	await assertNoForbiddenSurfaceCopy(page, 'wide approval pending');
 	await assertNoHorizontalOverflow(page, wide.width, 'wide approval pending');
 	await capture(page, {
