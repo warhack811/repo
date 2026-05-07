@@ -102,7 +102,7 @@ async function assertTrustFirstPending(page: Page, label: string): Promise<void>
 
 	const cardText = await card.innerText();
 	recordCheck(`${label} carries trust-first heading`, /Güven kararı/i.test(cardText));
-	recordCheck(`${label} shows target context`, /Hedef|hedef bilgisi/i.test(cardText));
+	recordCheck(`${label} does not invent a file path`, !cardText.includes('approval-proof.txt'));
 
 	await expect(card.getByRole('button', { name: /ayr.nt.lar|teknik detaylar/i })).toHaveCount(0);
 	await expect(card.locator('code').filter({ hasText: 'file.write' })).toHaveCount(0);
