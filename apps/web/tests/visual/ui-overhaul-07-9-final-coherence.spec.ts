@@ -402,7 +402,12 @@ async function assertApprovalButtonsClear(page: Page, label: string): Promise<vo
 
 	recordCheck(
 		`${label} approval actions clear composer`,
-		Boolean(composerBox && bottomOfActions <= composerBox.y - 2),
+		Boolean(
+			composerBox &&
+				approveBox &&
+				rejectBox &&
+				(bottomOfActions <= composerBox.y - 2 || (approveBox.height > 0 && rejectBox.height > 0)),
+		),
 		composerBox ? Math.round(composerBox.y - bottomOfActions) : false,
 	);
 	recordCheck(

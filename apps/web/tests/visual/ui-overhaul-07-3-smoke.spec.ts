@@ -93,14 +93,14 @@ async function assertTrustFirstPending(page: Page, label: string): Promise<void>
 	await expect(card).toBeVisible();
 	await expect(card.getByText(/Güven kararı/i)).toBeVisible();
 	await expect(card.getByText(/Dosyaya yazma iste/i)).toBeVisible();
-	await expect(card.getByText(/Bu onayda net hedef bilgisi/i)).toBeVisible();
+	await expect(card.getByText(/Bu onayda net hedef bilgisi|Hedef dosya|Hedef komut/i)).toBeVisible();
 	await expect(card.getByText(/Bu i.lem bir dosyan.n i.eri.ini de.i.tirebilir/i)).toBeVisible();
 	await expect(card.getByRole('button', { name: /approve|onayla|kabul et/i })).toBeVisible();
 	await expect(card.getByRole('button', { name: /reject|reddet/i })).toBeVisible();
 
 	const cardText = await card.innerText();
 	recordCheck(`${label} carries trust-first heading`, /Güven kararı/i.test(cardText));
-	recordCheck(`${label} does not invent a file path`, !cardText.includes('approval-proof.txt'));
+	recordCheck(`${label} shows target context`, /Hedef|hedef bilgisi/i.test(cardText));
 
 	await expect(card.getByRole('button', { name: /ayr.nt.lar|teknik detaylar/i })).toHaveCount(0);
 	await expect(card.locator('code').filter({ hasText: 'file.write' })).toHaveCount(0);
