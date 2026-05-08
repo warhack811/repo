@@ -490,8 +490,11 @@ export class ShellSessionManager {
 		// Immediately flush any available stdout/stderr
 		const flushAvailableOutput = (stream: Readable, buffer: BoundedOutputBuffer): void => {
 			try {
-				let chunk: Buffer | string | null;
-				while ((chunk = stream.read()) !== null) {
+				while (true) {
+					const chunk = stream.read();
+					if (chunk === null) {
+						break;
+					}
 					buffer.append(chunk);
 				}
 			} catch {
