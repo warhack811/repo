@@ -7,6 +7,12 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry } from './registry.js';
 import { createShellExecTool, evaluateCommandRisk, shellExecTool } from './shell-exec.js';
 
+async function wait(ms: number): Promise<void> {
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, ms);
+	});
+}
+
 async function createTempWorkspace(): Promise<string> {
 	return mkdtemp(join(tmpdir(), 'runa-shell-exec-'));
 }
