@@ -11,12 +11,12 @@
 html {
 	color-scheme: dark;
 	scroll-behavior: smooth;
-	background: var(--page-background);
+	background: #090d16;
 }
 
 [data-theme="light"] {
 	color-scheme: light;
-	background: var(--text-strong);
+	background: #f8fafc;
 }
 
 body {
@@ -118,12 +118,12 @@ pre {
 }
 
 ::selection {
-	background: var(--border-warning);
+	background: rgba(245, 158, 11, 0.28);
 	color: hsl(var(--color-text));
 }
 
 :focus-visible {
-	outline: 2px solid hsl(var(--color-focus) / 0.9);
+	outline: 2px solid rgba(245, 158, 11, 0.9);
 	outline-offset: 3px;
 	box-shadow: none;
 }

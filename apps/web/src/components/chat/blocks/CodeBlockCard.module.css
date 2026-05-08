@@ -1,11 +1,11 @@
 .root {
 	border-radius: var(--radius-soft);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid rgba(148, 163, 184, 0.16);
 	padding: 16px;
 	min-width: 0;
 	box-shadow: none;
-	background: var(--surface-panel);
-	border-color: var(--border-info);
+	background: hsl(var(--color-surface) / 0.72);
+	border-color: rgba(56, 189, 248, 0.28);
 }
 
 .header {
@@ -31,7 +31,7 @@
 }
 
 .title {
-	color: var(--text-strong);
+	color: #f8fafc;
 	font-size: 16px;
 	overflow-wrap: anywhere;
 }
@@ -62,10 +62,10 @@
 .copyButton {
 	font-size: 12px;
 	color: hsl(var(--color-text-muted));
-	background: var(--surface-chip);
+	background: rgba(10, 16, 28, 0.76);
 	padding: 5px 10px;
 	border-radius: 999px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid rgba(148, 163, 184, 0.18);
 	max-width: 100%;
 	overflow-wrap: anywhere;
 	word-break: break-word;
@@ -90,7 +90,7 @@
 }
 
 .pathValue {
-	color: var(--text-link);
+	color: #93c5fd;
 	line-height: 1.6;
 	margin-top: 4px;
 	overflow-wrap: anywhere;
@@ -100,8 +100,8 @@
 	margin-top: 10px;
 	padding: 14px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-subtle);
-	background: var(--surface-panel);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	background: hsl(var(--color-surface) / 0.72);
 	max-width: 100%;
 	overflow-x: auto;
 	box-shadow: none;
@@ -111,14 +111,4 @@
 	margin: 0;
 	white-space: pre-wrap;
 	word-break: break-word;
-}
-
-.codeLine {
-	display: block;
-	min-width: 0;
-}
-
-.lineNumber {
-	color: var(--text-soft);
-	user-select: none;
 }

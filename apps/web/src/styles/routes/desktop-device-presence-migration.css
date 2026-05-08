@@ -33,13 +33,13 @@
 	gap: 10px;
 	padding: 14px 16px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-subtle);
-	background: var(--surface-subtle);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: rgba(9, 14, 25, 0.68);
 	min-width: 0px;
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-7 {
-	color: var(--text-strong);
+	color: #f8fafc;
 	font-weight: 600;
 }
 
@@ -54,13 +54,13 @@
 	gap: 10px;
 	padding: 14px 16px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-subtle);
-	background: var(--surface-subtle);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: rgba(9, 14, 25, 0.68);
 	min-width: 0px;
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-10 {
-	color: var(--text-strong);
+	color: #f8fafc;
 	font-weight: 600;
 }
 
@@ -75,8 +75,8 @@
 	gap: 10px;
 	padding: 14px 16px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-subtle);
-	background: var(--surface-subtle);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	background: rgba(9, 14, 25, 0.68);
 	min-width: 0px;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-14 {
-	color: var(--text-strong);
+	color: #f8fafc;
 	font-weight: 600;
 	overflow-wrap: anywhere;
 }
@@ -100,9 +100,9 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-16 {
 	border-radius: 999px;
-	border: 1px solid var(--border-success);
-	color: var(--status-success-text);
-	background: var(--status-success-bg);
+	border: 1px solid rgba(74, 222, 128, 0.24);
+	color: #bbf7d0;
+	background: rgba(20, 83, 45, 0.18);
 	font-size: 12px;
 	font-weight: 600;
 	padding: 6px 10px;

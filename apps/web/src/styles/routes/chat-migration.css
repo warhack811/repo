@@ -1,1 +1,7 @@
 /* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+
+.runa-page--chat-product .runa-app-nav__item:focus,
+.runa-page--chat-product .runa-app-nav__item:focus-visible {
+	outline: 2px solid rgba(245, 158, 11, 0.9);
+	outline-offset: 3px;
+}

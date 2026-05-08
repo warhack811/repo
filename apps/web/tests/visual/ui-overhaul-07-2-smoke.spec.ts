@@ -109,8 +109,8 @@ async function assertEmptyChatContract(
 		const composerBox = await page.locator('.runa-chat-layout__composer').boundingBox();
 		const navBox = await page.locator('.runa-app-nav').boundingBox();
 		recordCheck(
-			`${label} mobile composer and nav are both visible`,
-			Boolean(composerBox && navBox && composerBox.height > 0 && navBox.height > 0),
+			`${label} mobile composer stays above nav`,
+			Boolean(composerBox && navBox && composerBox.y + composerBox.height <= navBox.y - 2),
 			composerBox && navBox ? Math.round(navBox.y - (composerBox.y + composerBox.height)) : false,
 		);
 	}

@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { ComponentProps } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { AuthContext } from '@runa/types';
 import { SettingsPage } from './SettingsPage.js';
@@ -26,19 +25,14 @@ const authContext: AuthContext = {
 	transport: 'websocket',
 };
 
-function renderSettings(props: Partial<ComponentProps<typeof SettingsPage>> = {}): void {
+function renderSettings(): void {
 	render(
 		<MemoryRouter initialEntries={['/account?tab=preferences']}>
 			<SettingsPage
 				authContext={authContext}
 				authError={null}
-				brandTheme="teal"
 				isAuthPending={false}
-				onBrandThemeChange={() => undefined}
 				onLogout={async () => undefined}
-				onThemeChange={() => undefined}
-				theme="system"
-				{...props}
 			/>
 		</MemoryRouter>,
 	);
@@ -84,15 +78,5 @@ describe('SettingsPage approval mode preferences', () => {
 			model: 'deepseek-v4-flash',
 			provider: 'deepseek',
 		});
-	});
-
-	it('surfaces brand theme choices through the controlled settings callback', () => {
-		const onBrandThemeChange = vi.fn();
-
-		renderSettings({ onBrandThemeChange });
-		fireEvent.click(screen.getByRole('button', { name: /Indigo/i }));
-
-		expect(screen.getByRole('heading', { name: 'Tema' })).toBeTruthy();
-		expect(onBrandThemeChange).toHaveBeenCalledWith('indigo');
 	});
 });

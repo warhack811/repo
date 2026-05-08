@@ -4,9 +4,6 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { type LogErrorOptions, type Plugin, defineConfig } from 'vite';
 
 const shouldAnalyzeBundle = process.env['ANALYZE'] === 'true';
-const devServerPort = Number(process.env['RUNA_E2E_SERVER_PORT'] ?? '3000');
-const devHttpTarget = `http://127.0.0.1:${devServerPort}`;
-const devWsTarget = `ws://127.0.0.1:${devServerPort}`;
 
 interface NodeError extends Error {
 	readonly code?: string;
@@ -44,7 +41,7 @@ function suppressExpectedWsProxyShutdownNoise(): Plugin {
 	};
 }
 
-// Dev proxy follows the Fastify server port used by local dev and isolated E2E runs.
+// Dev proxy assumes the Fastify server runs on http://127.0.0.1:3000.
 export default defineConfig({
 	plugins: [
 		react(),
@@ -70,23 +67,23 @@ export default defineConfig({
 		port: 5173,
 		proxy: {
 			'/auth': {
-				target: devHttpTarget,
+				target: 'http://127.0.0.1:3000',
 			},
 			'/ws': {
-				target: devWsTarget,
+				target: 'ws://127.0.0.1:3000',
 				ws: true,
 			},
 			'/conversations': {
-				target: devHttpTarget,
+				target: 'http://127.0.0.1:3000',
 			},
 			'/desktop': {
-				target: devHttpTarget,
+				target: 'http://127.0.0.1:3000',
 			},
 			'/upload': {
-				target: devHttpTarget,
+				target: 'http://127.0.0.1:3000',
 			},
 			'/storage': {
-				target: devHttpTarget,
+				target: 'http://127.0.0.1:3000',
 			},
 		},
 	},

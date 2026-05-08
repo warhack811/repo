@@ -24,16 +24,16 @@
 }
 
 .panel {
-	background: var(--surface-panel);
-	border: 1px solid var(--border-default);
+	background: hsl(var(--color-surface) / 0.72);
+	border: 1px solid hsl(var(--color-border-soft) / 0.55);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	padding: var(--space-panel);
 }
 
 .hero {
-	background: var(--surface-panel);
-	border: 1px solid var(--border-primary);
+	background: hsl(var(--color-surface) / 0.72);
+	border: 1px solid rgba(245, 158, 11, 0.24);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	padding: var(--space-panel);
