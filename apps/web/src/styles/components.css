@@ -1,37 +1,37 @@
-﻿/**
-	 * Runa Design System - Chat Surface Density Reduction
-	 *
-	 * DESIGN PHILOSOPHY: "More single flow, less panel stack"
-	 * The goal is to reduce the "card inside card" feeling and overall framed visual weight.
-	 *
-	 * KEY CHANGES:
-	 * 1. Removed ambient glow from .runa-chat-surface - the ::after pseudo-element was adding
-	 *    visual weight and making the surface feel like a contained card
-	 *
-	 * 2. Simplified .runa-transcript-details - now uses minimal left border instead of
-	 *    heavy background/border/radius, feels like part of transcript flow
-	 *
-	 * 3. .runa-composer-options integrated into composer - only subtle top border separates
-	 *    it from main composer, no card treatment
-	 *
-	 * 4. Added .runa-attachment-preview utility - provides subtle treatment for inline content
-	 *    without creating nested card feeling
-	 *
-	 * 5. Reduced visual weight across all chat surface elements:
-	 *    - Lower background opacities
-	 *    - Reduced border strengths
-	 *    - Smaller border-radius values
-	 *    - Lighter shadows or none
-	 *    - Softer hover states
-	 *
-	 * CARD DENSITY GUIDELINES:
-	 * - .runa-card: Full treatment for primary content panels only
-	 * - .runa-card--subtle: Lightweight for nested content (no shadow, reduced borders)
-	 * - .runa-card--chat: Lighter treatment for chat-specific containers
-	 * - .runa-attachment-preview: Inline content that shouldn't feel like cards
-	 * - Avoid using card classes for every container; prefer flat/semi-transparent styles
-	 */
-	*,
+/**
+ * Runa Design System - Chat Surface Density Reduction
+ *
+ * DESIGN PHILOSOPHY: "More single flow, less panel stack"
+ * The goal is to reduce the "card inside card" feeling and overall framed visual weight.
+ *
+ * KEY CHANGES:
+ * 1. Removed ambient glow from .runa-chat-surface - the ::after pseudo-element was adding
+ *    visual weight and making the surface feel like a contained card
+ *
+ * 2. Simplified .runa-transcript-details - now uses minimal left border instead of
+ *    heavy background/border/radius, feels like part of transcript flow
+ *
+ * 3. .runa-composer-options integrated into composer - only subtle top border separates
+ *    it from main composer, no card treatment
+ *
+ * 4. Added .runa-attachment-preview utility - provides subtle treatment for inline content
+ *    without creating nested card feeling
+ *
+ * 5. Reduced visual weight across all chat surface elements:
+ *    - Lower background opacities
+ *    - Reduced border strengths
+ *    - Smaller border-radius values
+ *    - Lighter shadows or none
+ *    - Softer hover states
+ *
+ * CARD DENSITY GUIDELINES:
+ * - .runa-card: Full treatment for primary content panels only
+ * - .runa-card--subtle: Lightweight for nested content (no shadow, reduced borders)
+ * - .runa-card--chat: Lighter treatment for chat-specific containers
+ * - .runa-attachment-preview: Inline content that shouldn't feel like cards
+ * - Avoid using card classes for every container; prefer flat/semi-transparent styles
+ */
+*,
 *::before,
 *::after {
 	box-sizing: border-box;
@@ -597,9 +597,9 @@ pre {
 		max-width: 100%;
 		gap: 4px;
 		padding: 4px;
-		border: 1px solid var(--border-subtle);
+		border: 1px solid rgba(148, 163, 184, 0.16);
 		border-radius: 18px;
-		background: var(--surface-canvas);
+		background: rgba(4, 9, 19, 0.74);
 		backdrop-filter: blur(16px);
 	}
 
@@ -612,7 +612,7 @@ pre {
 	}
 
 	.runa-page--chat-product .runa-app-nav__item--active {
-		background: var(--surface-subtle);
+		background: rgba(248, 250, 252, 0.1);
 	}
 
 	.runa-page--chat-product .runa-app-nav__icon {
@@ -1626,10 +1626,10 @@ pre {
 	max-height: min(520px, calc(100dvh - var(--safe-area-top) - 36px));
 	overflow: auto;
 	padding: 18px;
-	border: 1px solid var(--border-warning);
+	border: 1px solid rgba(245, 158, 11, 0.38);
 	border-radius: 8px;
 	background: hsl(var(--color-surface-strong) / 0.92);
-	box-shadow: 0 20px 80px hsl(var(--color-surface-overlay) / 0.36);
+	box-shadow: 0 20px 80px rgba(0, 0, 0, 0.36);
 	pointer-events: auto;
 }
 
@@ -1650,7 +1650,7 @@ pre {
 }
 
 .runa-onboarding__page h2 {
-	font-size: 20px;
+	font-size: 22px;
 	line-height: 1.15;
 }
 
@@ -1811,7 +1811,7 @@ pre {
 	}
 
 	.runa-sidebar-backdrop {
-		background: hsl(var(--color-surface-overlay) / 0.62);
+		background: rgba(2, 6, 23, 0.62);
 		border: 0;
 		display: block;
 		inset: 0;
@@ -2073,7 +2073,7 @@ pre {
 	}
 }
 
-/* ─── Visually hidden (accessibility utility) ────────────────── */
+/* ¦¦¦ Visually hidden (accessibility utility) ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-chat-visually-hidden {
 	clip: rect(0, 0, 0, 0);
 	border: 0;
@@ -2086,7 +2086,7 @@ pre {
 	width: 1px;
 }
 
-/* ─── CurrentRunSurface: semantic global hooks ───────────────── */
+/* ¦¦¦ CurrentRunSurface: semantic global hooks ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-current-run-surface {
 	display: flex;
 	flex-direction: column;
@@ -2103,12 +2103,12 @@ pre {
 	overflow-y: auto;
 }
 
-/* ─── StreamingMessageSurface: semantic global hook ──────────── */
+/* ¦¦¦ StreamingMessageSurface: semantic global hook ¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-streaming-message {
 	animation: runa-message-arrival 200ms var(--ease-emphasized, ease) both;
 }
 
-/* ─── ToolActivityIndicator: icon utilities ──────────────────── */
+/* ¦¦¦ ToolActivityIndicator: icon utilities ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-tool-activity-icon {
 	display: inline-block;
 	flex-shrink: 0;
@@ -2128,7 +2128,7 @@ pre {
 	color: var(--status-danger-text);
 }
 
-/* ─── PersistedTranscript: message alignment ─────────────────── */
+/* ¦¦¦ PersistedTranscript: message alignment ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-transcript-message {
 	align-items: flex-start;
 	display: flex;
