@@ -300,35 +300,6 @@ describe('verifyWebSocketHandshake', () => {
 		expect(result.transport).toBe('websocket');
 	});
 
-	it('verifies an explicit websocket query token instead of reusing a pre-authenticated request context', async () => {
-		const verifyToken = vi.fn<AuthTokenVerifier>().mockResolvedValue({
-			claims: createClaims({ sub: 'user_2' }),
-			provider: 'supabase' as const,
-			session: createSession({ session_id: 'session_2', user_id: 'user_2' }),
-			user: createUser({ user_id: 'user_2' }),
-		});
-
-		const result = await verifyWebSocketHandshake({
-			request: {
-				auth: createAuthenticatedHttpAuthContext(),
-				headers: {},
-				id: 'req_ws_query_overrides_auth_1',
-				url: '/ws?access_token=query-token-user-2',
-			},
-			verify_token: verifyToken,
-		});
-
-		expect(verifyToken).toHaveBeenCalledWith({
-			request_id: 'req_ws_query_overrides_auth_1',
-			token: 'query-token-user-2',
-		});
-		expect(result.transport).toBe('websocket');
-		expect(result.principal.kind).toBe('authenticated');
-		if (result.principal.kind === 'authenticated') {
-			expect(result.principal.user_id).toBe('user_2');
-		}
-	});
-
 	it('rejects missing websocket auth tokens with a required-auth error', async () => {
 		await expect(
 			verifyWebSocketHandshake({

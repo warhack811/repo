@@ -253,10 +253,6 @@ function evaluateRepeatedToolCall(
 		return undefined;
 	}
 
-	if (firstSignature.tool_name === 'shell.session.read') {
-		return undefined;
-	}
-
 	return toTerminalDecision({
 		consecutive_count: maxRepeats,
 		disposition: 'terminal',
