@@ -45,10 +45,7 @@ export type KnownToolName =
 	| 'search.memory'
 	| 'search.grep'
 	| 'web.search'
-	| 'shell.exec'
-	| 'shell.session.read'
-	| 'shell.session.start'
-	| 'shell.session.stop';
+	| 'shell.exec';
 
 export type ToolName = KnownToolName | `${ToolNamespace}.${string}`;
 
