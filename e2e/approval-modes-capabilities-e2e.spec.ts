@@ -42,7 +42,8 @@ const scenarios: readonly BrowserScenario[] = [
 	},
 	{
 		approval_mode: 'standard',
-		expected_approval: 'none',
+		expected_approval: 'boundary',
+		expected_approval_targets: ['agent.auto_continue'],
 		id: 'standard-file-list',
 		prompt: '[runa-e2e:cap-file-list] List the workspace root.',
 		screenshot: '02-standard-file-list.png',
@@ -77,7 +78,8 @@ const scenarios: readonly BrowserScenario[] = [
 	},
 	{
 		approval_mode: 'standard',
-		expected_approval: 'none',
+		expected_approval: 'boundary',
+		expected_approval_targets: ['agent.auto_continue'],
 		id: 'search-grep',
 		prompt: '[runa-e2e:cap-search-grep] Search docs for Runa.',
 		screenshot: '06-search-grep.png',
@@ -85,7 +87,8 @@ const scenarios: readonly BrowserScenario[] = [
 	},
 	{
 		approval_mode: 'standard',
-		expected_approval: 'none',
+		expected_approval: 'boundary',
+		expected_approval_targets: ['agent.auto_continue'],
 		id: 'search-codebase',
 		prompt: '[runa-e2e:cap-search-codebase] Search the WS code for policy wiring.',
 		screenshot: '07-search-codebase.png',
@@ -93,7 +96,8 @@ const scenarios: readonly BrowserScenario[] = [
 	},
 	{
 		approval_mode: 'standard',
-		expected_approval: 'none',
+		expected_approval: 'boundary',
+		expected_approval_targets: ['agent.auto_continue'],
 		id: 'git-status',
 		prompt: '[runa-e2e:cap-git-status] Check git status.',
 		screenshot: '08-git-status.png',
@@ -101,7 +105,8 @@ const scenarios: readonly BrowserScenario[] = [
 	},
 	{
 		approval_mode: 'standard',
-		expected_approval: 'none',
+		expected_approval: 'boundary',
+		expected_approval_targets: ['agent.auto_continue'],
 		id: 'git-diff',
 		prompt: '[runa-e2e:cap-git-diff] Inspect the current git diff.',
 		screenshot: '09-git-diff.png',
@@ -118,7 +123,8 @@ const scenarios: readonly BrowserScenario[] = [
 	},
 	{
 		approval_mode: 'standard',
-		expected_approval: 'none',
+		expected_approval: 'boundary',
+		expected_approval_targets: ['agent.auto_continue'],
 		id: 'browser-navigate',
 		prompt: '[runa-e2e:cap-browser-navigate] Open the evidence fixture in an isolated browser.',
 		screenshot: '11-browser-navigate.png',
@@ -480,7 +486,9 @@ test.describe('approval modes and capability browser live matrix', () => {
 			await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
 
 			await approveBoundariesUntilFinished(page, scenario);
-			await expect(page.getByText(/calisma tamamlandi|çalışma tamamlandı/i).last()).toBeVisible({
+			await expect(
+				page.getByRole('heading', { name: /calisma tamamlandi|çalışma tamamlandı/i }),
+			).toBeVisible({
 				timeout: 20_000,
 			});
 			await assertNoHorizontalOverflow(page);

@@ -81,7 +81,7 @@ test('chat submit reaches approval and completes after approve', async ({ page }
 	await approveButton.click();
 
 	await expect(page.getByText(/Onayland|Kabul edildi/i).last()).toBeVisible({ timeout: 20_000 });
-	await expect(page.getByText(/Dosya yazma tamamland|Dosya g.ncellendi/i).last()).toBeVisible({
+	await expect(page.getByText(/.lem tamamland|Sonu. sohbet ak..ına eklendi/i).last()).toBeVisible({
 		timeout: 20_000,
 	});
 	await expect

@@ -62,7 +62,6 @@ server_logs.txt
 .tmp/
 .local/
 .codex-tmp/
-.codex-temp/
 scratch_*
 scratch*.json
 test_loop.mjs
