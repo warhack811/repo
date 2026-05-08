@@ -16,18 +16,6 @@ const TEMPORAL_STREAM_CAPABILITIES: ProviderCapabilities = {
 	tool_call_fallthrough_risk: 'none',
 };
 
-function hasCoreRulePrinciples(
-	content: unknown,
-): content is { readonly principles: readonly string[] } {
-	return (
-		typeof content === 'object' &&
-		content !== null &&
-		'principles' in content &&
-		Array.isArray(content.principles) &&
-		content.principles.every((principle) => typeof principle === 'string')
-	);
-}
-
 function getCompiledCorePrinciplesText(
 	request: Awaited<ReturnType<typeof buildLiveModelRequest>>,
 ): string {
@@ -39,11 +27,13 @@ function getCompiledCorePrinciplesText(
 		throw new Error('Expected compiled core_rules layer.');
 	}
 
-	if (!hasCoreRulePrinciples(coreRulesLayer.content)) {
+	const content = coreRulesLayer.content as { readonly principles?: unknown };
+
+	if (!Array.isArray(content.principles)) {
 		throw new Error('Expected core_rules principles.');
 	}
 
-	return coreRulesLayer.content.principles.join('\n');
+	return content.principles.join('\n');
 }
 
 function createRunRequestPayload(): RunRequestPayload {

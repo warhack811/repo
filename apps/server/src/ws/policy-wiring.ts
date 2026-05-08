@@ -207,10 +207,7 @@ export function createWebSocketPolicyWiring(
 	options: CreateWebSocketPolicyWiringOptions = {},
 ): WebSocketPolicyWiring {
 	const permissionEngine = options.permission_engine ?? createPermissionEngine();
-	const policyStateStore =
-		options.policy_state_store === undefined
-			? createDefaultPolicyStateStore()
-			: options.policy_state_store;
+	const policyStateStore = options.policy_state_store ?? createDefaultPolicyStateStore();
 	const stateBySocket = new WeakMap<WebSocketConnection, PermissionEngineState>();
 
 	function getPersistentScope(socket: WebSocketConnection) {

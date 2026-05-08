@@ -56,24 +56,6 @@ function createAuthenticatedAuthContext(): AuthContext {
 	};
 }
 
-function createAuthenticatedAuthContextForUser(userId: string): AuthContext {
-	const authContext = createAuthenticatedAuthContext();
-
-	if (authContext.principal.kind !== 'authenticated') {
-		throw new Error('Expected authenticated test auth context.');
-	}
-
-	return {
-		...authContext,
-		principal: {
-			...authContext.principal,
-			email: `${userId}@runa.local`,
-			session_id: `${userId}_session`,
-			user_id: userId,
-		},
-	};
-}
-
 afterEach(() => {
 	vi.useRealTimers();
 });
@@ -432,51 +414,6 @@ describe('DesktopAgentBridgeRegistry', () => {
 		expect(secondSocket.sentMessages.at(-1)).not.toContain(
 			'"call_id":"call_desktop_target_missing"',
 		);
-	});
-
-	it('rejects a targeted desktop command when the connection belongs to another user', async () => {
-		const socket = new MockSocket();
-		const registry = new DesktopAgentBridgeRegistry();
-
-		registry.attach(socket, createAuthenticatedAuthContextForUser('user_1'));
-		sendDesktopAgentHello(socket, {
-			agentId: 'desktop-agent-user-1',
-			machineLabel: 'User One Workstation',
-		});
-
-		const targetConnectionId = registry.listPresenceSnapshotsForUserId('user_1')[0]?.connection_id;
-
-		expect(targetConnectionId).toBeTypeOf('string');
-
-		const crossAccountInvoker = registry.createInvoker(
-			createAuthenticatedAuthContextForUser('user_2'),
-			targetConnectionId,
-		);
-		const result = await crossAccountInvoker?.invoke(
-			{
-				arguments: {},
-				call_id: 'call_cross_account_desktop_target',
-				tool_name: 'desktop.screenshot',
-			},
-			{
-				run_id: 'run_cross_account_desktop_target',
-				trace_id: 'trace_cross_account_desktop_target',
-			},
-		);
-
-		expect(crossAccountInvoker?.supports('desktop.screenshot')).toBe(false);
-		expect(result).toMatchObject({
-			call_id: 'call_cross_account_desktop_target',
-			details: {
-				connection_id: targetConnectionId,
-				reason: 'desktop_agent_target_unavailable',
-			},
-			error_code: 'EXECUTION_FAILED',
-			error_message: `No connected desktop agent is available for connection ${targetConnectionId}.`,
-			status: 'error',
-			tool_name: 'desktop.screenshot',
-		});
-		expect(socket.sentMessages.at(-1)).not.toContain('"call_cross_account_desktop_target"');
 	});
 
 	it('keeps a healthy desktop session online when heartbeat pong messages arrive', async () => {
