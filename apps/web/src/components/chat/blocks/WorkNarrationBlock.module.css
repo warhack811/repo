@@ -6,9 +6,9 @@
 	max-width: min(680px, 100%);
 	margin: 2px 0;
 	padding: 4px 0 4px 10px;
-	border-left: 1px solid var(--border-default);
+	border-left: 1px solid rgba(148, 163, 184, 0.28);
 	color: hsl(var(--color-text-muted));
-	font-size: 14px;
+	font-size: 12px;
 	line-height: 1.55;
 	overflow-wrap: anywhere;
 }
@@ -27,13 +27,13 @@
 }
 
 .toolFailed {
-	border-left-color: var(--border-warning);
+	border-left-color: rgba(245, 158, 11, 0.42);
 	color: hsl(var(--color-text-soft));
 }
 
 .toolFailed .text {
 	text-decoration: line-through;
-	text-decoration-color: var(--border-warning);
+	text-decoration-color: rgba(245, 158, 11, 0.48);
 	text-decoration-thickness: 1px;
 }
 
