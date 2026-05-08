@@ -15,13 +15,13 @@ export type RunFeedbackTone = RunFeedbackState['tone'];
 export function getStatusAccent(status: ConnectionStatus): string {
 	switch (status) {
 		case 'open':
-			return 'var(--status-success-text)';
+			return '#22c55e';
 		case 'error':
-			return 'var(--status-danger-text)';
+			return '#f87171';
 		case 'closed':
-			return 'var(--text-muted)';
+			return '#94a3b8';
 		default:
-			return 'var(--status-warning-text)';
+			return '#f59e0b';
 	}
 }
 
@@ -40,13 +40,13 @@ export function createInspectionCountLabel(
 export function getCodeBlockAccent(diffKind: 'after' | 'before' | 'unified' | undefined): string {
 	switch (diffKind) {
 		case 'before':
-			return 'var(--status-warning-text)';
+			return '#fbbf24';
 		case 'unified':
-			return 'var(--status-info-text)';
+			return '#38bdf8';
 		case 'after':
-			return 'var(--status-success-text)';
+			return '#34d399';
 		default:
-			return 'var(--text-muted)';
+			return '#94a3b8';
 	}
 }
 

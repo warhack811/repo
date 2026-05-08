@@ -38,7 +38,7 @@ export function PersistedTranscript({
 			{activeConversationMessages.map((message) => (
 				<div
 					key={message.message_id}
-					className={`${styles['message']} runa-transcript-message runa-transcript-message--${message.role}`}
+					className={`runa-transcript-message runa-transcript-message--${message.role}`}
 					data-role={message.role}
 				>
 					<div className={styles['bubble']}>

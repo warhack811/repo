@@ -7,7 +7,6 @@ import type { AuthenticatedPageId } from './components/app/AppNav.js';
 import { AppShell } from './components/app/AppShell.js';
 import { RunaSkeleton } from './components/ui/RunaSkeleton.js';
 import { useDeveloperMode } from './hooks/useDeveloperMode.js';
-import type { BrandTheme, Theme } from './lib/theme.js';
 import './styles/routes/app-shell-migration.css';
 
 const ChatRuntimePage = lazy(() =>
@@ -36,12 +35,8 @@ const SettingsPage = lazy(() =>
 type AccountRouteProps = Readonly<{
 	authContext: AuthContext;
 	authError: string | null;
-	brandTheme: BrandTheme;
 	isAuthPending: boolean;
-	onBrandThemeChange: (theme: BrandTheme) => void;
 	onLogout: () => Promise<void>;
-	onThemeChange: (theme: Theme) => void;
-	theme: Theme;
 }>;
 
 function resolveActivePage(pathname: string): AuthenticatedPageId {
@@ -87,23 +82,15 @@ function RouteFallback(): ReactElement {
 function AccountRoute({
 	authContext,
 	authError,
-	brandTheme,
 	isAuthPending,
-	onBrandThemeChange,
 	onLogout,
-	onThemeChange,
-	theme,
 }: AccountRouteProps): ReactElement {
 	return (
 		<SettingsPage
 			authContext={authContext}
 			authError={authError}
-			brandTheme={brandTheme}
 			isAuthPending={isAuthPending}
-			onBrandThemeChange={onBrandThemeChange}
 			onLogout={onLogout}
-			onThemeChange={onThemeChange}
-			theme={theme}
 		/>
 	);
 }
@@ -134,12 +121,8 @@ export function AuthenticatedApp(props: AuthenticatedAppProps): ReactElement {
 								<AccountRoute
 									authContext={props.authContext}
 									authError={props.authError}
-									brandTheme={props.brandTheme}
 									isAuthPending={props.isAuthPending}
-									onBrandThemeChange={props.onBrandThemeChange}
 									onLogout={props.onLogout}
-									onThemeChange={props.onThemeChange}
-									theme={props.theme}
 								/>
 							}
 						/>

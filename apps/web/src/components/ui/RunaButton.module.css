@@ -23,27 +23,27 @@
 }
 
 .primary {
-	background: hsl(var(--color-primary));
+	background: hsl(var(--color-accent));
 	border: 0;
 	box-shadow: none;
-	color: var(--text-on-primary);
+	color: hsl(var(--color-accent-foreground));
 }
 
 .secondary {
-	background: var(--gradient-secondary-button);
-	border: 1px solid var(--border-default);
+	background: hsl(var(--color-surface) / 0.58);
+	border: 1px solid rgba(148, 163, 184, 0.24);
 	box-shadow: none;
-	color: var(--text-primary);
+	color: hsl(var(--color-text));
 }
 
 .ghost {
 	background: transparent;
-	border: 1px solid var(--border-subtle);
-	color: var(--text-muted);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	color: hsl(var(--color-text-muted));
 }
 
 .danger {
-	background: var(--status-danger-bg);
-	border: 1px solid var(--border-danger);
-	color: var(--status-danger-text);
+	background: rgba(127, 29, 29, 0.34);
+	border: 1px solid rgba(248, 113, 113, 0.3);
+	color: #fecaca;
 }

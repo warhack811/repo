@@ -48,7 +48,7 @@
 	padding: 7px 10px;
 	border-radius: 999px;
 	border: 1px solid hsl(var(--color-border-soft) / 0.75);
-	background: var(--surface-panel-muted);
+	background: rgba(15, 23, 42, 0.5);
 	color: hsl(var(--color-text-muted));
 	font-size: 12px;
 	font-weight: 600;
@@ -61,11 +61,11 @@
 	padding: 7px 10px;
 	border-radius: 999px;
 	border: 1px solid hsl(var(--color-border-soft) / 0.75);
-	background: var(--surface-panel-muted);
+	background: rgba(15, 23, 42, 0.5);
 	font-size: 12px;
 	font-weight: 600;
-	border-color: var(--border-info);
-	color: var(--status-info-text);
+	border-color: rgba(96, 165, 250, 0.26);
+	color: #bfdbfe;
 }
 
 .runa-migrated-pages-devicespage-9 {
@@ -93,7 +93,7 @@
 }
 
 .runa-migrated-pages-devicespage-12 {
-	color: var(--text-strong);
+	color: #f8fafc;
 	font-size: 16px;
 	font-weight: 600;
 }
@@ -123,7 +123,7 @@
 }
 
 .runa-migrated-pages-devicespage-16 {
-	color: var(--text-strong);
+	color: #f8fafc;
 	font-size: 16px;
 	font-weight: 600;
 }

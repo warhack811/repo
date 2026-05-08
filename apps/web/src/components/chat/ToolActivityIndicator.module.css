@@ -6,10 +6,10 @@
 
 .item {
 	align-items: center;
-	background: var(--surface-chip);
-	border: 1px solid var(--border-subtle);
+	background: rgba(15, 23, 42, 0.72);
+	border: 1px solid rgba(148, 163, 184, 0.18);
 	border-radius: 999px;
-	color: var(--text-muted);
+	color: #cbd5e1;
 	display: inline-flex;
 	font-size: 12px;
 	gap: 6px;

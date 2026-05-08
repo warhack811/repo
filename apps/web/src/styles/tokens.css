@@ -1,5 +1,5 @@
 /* ==========================================================
-   Runa Design Tokens - CSS Custom Properties
+   Runa Design Tokens — CSS Custom Properties
    Dark by default. Override with [data-theme="light"].
    ========================================================== */
 
@@ -22,78 +22,31 @@
 	--leading-normal: 1.6;
 	--tracking-heading: 0;
 
-	/* ---- Core palette (HSL channels for hsl()) ---- */
-	--color-bg: 212 43% 7%;
-	--color-bg-elevated: 210 36% 10%;
-	--color-bg-soft: 205 30% 15%;
-	--color-surface: 208 32% 12%;
-	--color-surface-strong: 206 30% 16%;
-	--color-surface-overlay: 210 34% 8%;
-	--color-surface-muted: 207 29% 18%;
-	--color-border: 198 16% 64%;
-	--color-border-soft: 200 16% 31%;
-	--color-text: 180 18% 96%;
-	--color-text-muted: 184 12% 74%;
-	--color-text-soft: 188 10% 58%;
-	--color-accent: 174 72% 32%;
-	--color-accent-strong: 176 78% 24%;
-	--color-accent-foreground: 0 0% 100%;
-	--color-action: 38 92% 50%;
-	--color-action-strong: 32 95% 44%;
-	--color-action-foreground: 222 47% 11%;
+	/* ---- Color palette (dark default — HSL channels for hsl()) ---- */
+	--color-bg: 221 39% 8%;
+	--color-bg-elevated: 222 33% 12%;
+	--color-bg-soft: 217 28% 17%;
+	--color-surface: 222 31% 15%;
+	--color-surface-strong: 222 31% 18%;
+	--color-surface-overlay: 222 27% 10%;
+	--color-border: 215 20% 65%;
+	--color-border-soft: 215 18% 30%;
+	--color-text: 210 40% 96%;
+	--color-text-muted: 215 20% 75%;
+	--color-text-soft: 215 16% 60%;
+	--color-accent: 38 92% 50%;
+	--color-accent-strong: 32 95% 44%;
+	--color-accent-foreground: 222 47% 11%;
 	--color-info: 199 89% 64%;
 	--color-success: 142 71% 45%;
 	--color-warning: 38 92% 50%;
 	--color-danger: 0 84% 67%;
 
-	/* ---- Semantic color roles ---- */
-	--color-primary: var(--color-accent);
-	--color-primary-strong: var(--color-accent-strong);
-	--color-primary-foreground: var(--color-accent-foreground);
-	--color-focus: var(--color-primary);
-	--color-link: 184 78% 42%;
-	--surface-page: hsl(var(--color-bg));
-	--surface-canvas: hsl(var(--color-bg-elevated) / 0.82);
-	--surface-panel: hsl(var(--color-surface) / 0.74);
-	--surface-panel-strong: hsl(var(--color-surface-strong) / 0.82);
-	--surface-panel-muted: hsl(var(--color-surface-muted) / 0.58);
-	--surface-subtle: hsl(var(--color-surface-overlay) / 0.5);
-	--surface-input: hsl(var(--color-surface-overlay) / 0.72);
-	--surface-hover: hsl(var(--color-surface-strong) / 0.74);
-	--surface-selected: hsl(var(--color-primary) / 0.16);
-	--surface-chip: hsl(var(--color-surface-overlay) / 0.68);
-	--surface-transcript-user: hsl(var(--color-primary) / 0.14);
-	--border-hairline: hsl(var(--color-border-soft) / 0.36);
-	--border-subtle: hsl(var(--color-border-soft) / 0.46);
-	--border-default: hsl(var(--color-border-soft) / 0.62);
-	--border-strong: hsl(var(--color-border) / 0.52);
-	--border-primary: hsl(var(--color-primary) / 0.36);
-	--border-focus: hsl(var(--color-focus) / 0.52);
-	--border-info: hsl(var(--color-info) / 0.36);
-	--border-success: hsl(var(--color-success) / 0.34);
-	--border-warning: hsl(var(--color-warning) / 0.4);
-	--border-danger: hsl(var(--color-danger) / 0.42);
-	--text-primary: hsl(var(--color-text));
-	--text-strong: hsl(var(--color-text));
-	--text-muted: hsl(var(--color-text-muted));
-	--text-soft: hsl(var(--color-text-soft));
-	--text-on-primary: hsl(var(--color-primary-foreground));
-	--text-link: hsl(var(--color-link));
-	--status-info-bg: hsl(var(--color-info) / 0.16);
-	--status-info-text: hsl(var(--color-info));
-	--status-success-bg: hsl(var(--color-success) / 0.16);
-	--status-success-text: hsl(142 76% 78%);
-	--status-warning-bg: hsl(var(--color-warning) / 0.15);
-	--status-warning-text: hsl(43 96% 76%);
-	--status-danger-bg: hsl(var(--color-danger) / 0.16);
-	--status-danger-text: hsl(0 96% 82%);
-
 	/* ---- Shadows ---- */
 	--shadow-panel: none;
 	--shadow-panel-soft: none;
-	--shadow-glow: 0 0 0 1px hsl(var(--color-primary) / 0.22);
+	--shadow-glow: 0 0 0 1px hsl(var(--color-accent) / 0.22);
 	--shadow-inset: none;
-	--shadow-soft: none;
 
 	/* ---- Radius ---- */
 	--radius-panel: 16px;
@@ -114,15 +67,15 @@
 	--space-panel: clamp(18px, 3vw, 24px);
 	--space-subcard: 16px;
 
-	/* ---- Flat surfaces (legacy names kept for compatibility) ---- */
-	--page-background: var(--surface-page);
-	--gradient-panel: var(--surface-panel);
-	--gradient-panel-strong: var(--surface-panel-strong);
-	--gradient-subcard: var(--surface-subtle);
-	--gradient-input: var(--surface-input);
-	--gradient-primary-button: hsl(var(--color-primary));
+	/* ---- Flat surfaces (legacy variable names kept for compatibility) ---- */
+	--page-background: hsl(var(--color-bg));
+	--gradient-panel: hsl(var(--color-surface) / 0.72);
+	--gradient-panel-strong: hsl(var(--color-surface-strong) / 0.78);
+	--gradient-subcard: hsl(var(--color-surface-overlay) / 0.5);
+	--gradient-input: hsl(var(--color-surface-overlay) / 0.72);
+	--gradient-primary-button: hsl(var(--color-accent));
 	--gradient-secondary-button: hsl(var(--color-surface) / 0.58);
-	--gradient-secondary-button-active: var(--surface-selected);
+	--gradient-secondary-button-active: hsl(var(--color-accent) / 0.16);
 
 	/* ---- Safe area ---- */
 	--safe-area-top: env(safe-area-inset-top, 0px);
@@ -139,70 +92,34 @@
 	--ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* ----------------------------------------------------------
+   Light theme overrides
+   Apply by setting data-theme="light" on <html>
+   ---------------------------------------------------------- */
+
 [data-theme="light"] {
-	--color-bg: 168 22% 97%;
+	--color-bg: 0 0% 98%;
 	--color-bg-elevated: 0 0% 100%;
-	--color-bg-soft: 168 17% 92%;
-	--color-surface: 0 0% 100%;
-	--color-surface-strong: 170 18% 93%;
-	--color-surface-overlay: 168 18% 96%;
-	--color-surface-muted: 168 16% 91%;
-	--color-border: 184 11% 51%;
-	--color-border-soft: 174 14% 78%;
-	--color-text: 176 32% 11%;
-	--color-text-muted: 178 12% 34%;
-	--color-text-soft: 178 9% 48%;
-	--surface-canvas: hsl(var(--color-bg-elevated) / 0.94);
-	--surface-panel: hsl(var(--color-surface) / 0.96);
-	--surface-panel-strong: hsl(var(--color-bg-elevated) / 0.98);
-	--surface-panel-muted: hsl(var(--color-bg-soft) / 0.78);
-	--surface-subtle: hsl(var(--color-bg-soft) / 0.82);
-	--surface-input: hsl(var(--color-bg-elevated) / 0.94);
-	--surface-hover: hsl(var(--color-bg-soft) / 0.9);
-	--surface-chip: hsl(var(--color-bg-elevated) / 0.86);
-	--surface-transcript-user: hsl(var(--color-primary) / 0.1);
-	--gradient-panel: var(--surface-panel);
-	--gradient-panel-strong: var(--surface-panel-strong);
-	--gradient-subcard: var(--surface-subtle);
-	--gradient-input: var(--surface-input);
+	--color-bg-soft: 220 14% 94%;
+	--color-surface: 0 0% 97%;
+	--color-surface-strong: 220 13% 91%;
+	--color-surface-overlay: 0 0% 95%;
+	--color-border: 215 20% 75%;
+	--color-border-soft: 215 18% 82%;
+	--color-text: 222 47% 11%;
+	--color-text-muted: 215 20% 40%;
+	--color-text-soft: 215 16% 55%;
+
+	--shadow-panel: none;
+	--shadow-panel-soft: none;
+	--shadow-glow: 0 0 0 1px hsl(var(--color-accent) / 0.24);
+	--shadow-inset: none;
+
+	--page-background: hsl(var(--color-bg));
+	--gradient-panel: hsl(var(--color-surface) / 0.96);
+	--gradient-panel-strong: hsl(var(--color-bg-elevated) / 0.98);
+	--gradient-subcard: hsl(var(--color-bg-soft) / 0.82);
+	--gradient-input: hsl(var(--color-bg-elevated) / 0.92);
 	--gradient-secondary-button: hsl(var(--color-bg-soft) / 0.75);
-	--gradient-secondary-button-active: hsl(var(--color-primary) / 0.14);
-	--status-success-text: hsl(142 66% 28%);
-	--status-warning-text: hsl(33 92% 31%);
-	--status-danger-text: hsl(0 72% 42%);
-}
-
-[data-brand-theme="teal"] {
-	--color-accent: 174 72% 32%;
-	--color-accent-strong: 176 78% 24%;
-	--color-accent-foreground: 0 0% 100%;
-	--color-link: 184 78% 42%;
-}
-
-[data-brand-theme="indigo"] {
-	--color-accent: 239 64% 56%;
-	--color-accent-strong: 243 58% 44%;
-	--color-accent-foreground: 0 0% 100%;
-	--color-link: 224 76% 58%;
-}
-
-[data-brand-theme="graphite"] {
-	--color-accent: 200 12% 44%;
-	--color-accent-strong: 200 14% 34%;
-	--color-accent-foreground: 0 0% 100%;
-	--color-link: 199 70% 50%;
-}
-
-[data-brand-theme="plum"] {
-	--color-accent: 292 46% 42%;
-	--color-accent-strong: 291 52% 32%;
-	--color-accent-foreground: 0 0% 100%;
-	--color-link: 285 68% 58%;
-}
-
-[data-brand-theme="amber"] {
-	--color-accent: 38 92% 50%;
-	--color-accent-strong: 32 95% 44%;
-	--color-accent-foreground: 222 47% 11%;
-	--color-link: 32 95% 44%;
+	--gradient-secondary-button-active: hsl(var(--color-accent) / 0.14);
 }
