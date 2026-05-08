@@ -5,3 +5,20 @@
 	outline: 2px solid rgba(245, 158, 11, 0.9);
 	outline-offset: 3px;
 }
+
+@media (max-width: 767px) {
+	.runa-page--chat-product .runa-chat-layout__composer {
+		position: relative;
+		bottom: auto;
+	}
+
+	.runa-page--chat-product .runa-app-shell-main--chat .runa-chat-layout__composer {
+		bottom: calc(112px + var(--safe-area-bottom));
+	}
+}
+
+@media (max-width: 360px) {
+	.runa-page--chat-product .runa-app-shell-main--chat .runa-chat-layout__composer {
+		bottom: calc(392px + var(--safe-area-bottom));
+	}
+}
