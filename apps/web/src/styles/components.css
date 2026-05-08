@@ -1,4 +1,4 @@
-ï»¿/**
+/**
 	 * Runa Design System - Chat Surface Density Reduction
 	 *
 	 * DESIGN PHILOSOPHY: "More single flow, less panel stack"
@@ -597,9 +597,9 @@ pre {
 		max-width: 100%;
 		gap: 4px;
 		padding: 4px;
-		border: 1px solid var(--border-subtle);
+		border: 1px solid rgba(148, 163, 184, 0.16);
 		border-radius: 18px;
-		background: var(--surface-canvas);
+		background: rgba(4, 9, 19, 0.74);
 		backdrop-filter: blur(16px);
 	}
 
@@ -612,7 +612,7 @@ pre {
 	}
 
 	.runa-page--chat-product .runa-app-nav__item--active {
-		background: var(--surface-subtle);
+		background: rgba(248, 250, 252, 0.1);
 	}
 
 	.runa-page--chat-product .runa-app-nav__icon {
@@ -1626,10 +1626,10 @@ pre {
 	max-height: min(520px, calc(100dvh - var(--safe-area-top) - 36px));
 	overflow: auto;
 	padding: 18px;
-	border: 1px solid var(--border-warning);
+	border: 1px solid rgba(245, 158, 11, 0.38);
 	border-radius: 8px;
 	background: hsl(var(--color-surface-strong) / 0.92);
-	box-shadow: 0 20px 80px hsl(var(--color-surface-overlay) / 0.36);
+	box-shadow: 0 20px 80px rgba(0, 0, 0, 0.36);
 	pointer-events: auto;
 }
 
@@ -1650,7 +1650,7 @@ pre {
 }
 
 .runa-onboarding__page h2 {
-	font-size: 20px;
+	font-size: 22px;
 	line-height: 1.15;
 }
 
@@ -1811,7 +1811,7 @@ pre {
 	}
 
 	.runa-sidebar-backdrop {
-		background: hsl(var(--color-surface-overlay) / 0.62);
+		background: rgba(2, 6, 23, 0.62);
 		border: 0;
 		display: block;
 		inset: 0;
@@ -2073,7 +2073,7 @@ pre {
 	}
 }
 
-/* â”€â”€â”€ Visually hidden (accessibility utility) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ¦¦¦ Visually hidden (accessibility utility) ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-chat-visually-hidden {
 	clip: rect(0, 0, 0, 0);
 	border: 0;
@@ -2086,7 +2086,7 @@ pre {
 	width: 1px;
 }
 
-/* â”€â”€â”€ CurrentRunSurface: semantic global hooks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ¦¦¦ CurrentRunSurface: semantic global hooks ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-current-run-surface {
 	display: flex;
 	flex-direction: column;
@@ -2103,12 +2103,12 @@ pre {
 	overflow-y: auto;
 }
 
-/* â”€â”€â”€ StreamingMessageSurface: semantic global hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ¦¦¦ StreamingMessageSurface: semantic global hook ¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-streaming-message {
 	animation: runa-message-arrival 200ms var(--ease-emphasized, ease) both;
 }
 
-/* â”€â”€â”€ ToolActivityIndicator: icon utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ¦¦¦ ToolActivityIndicator: icon utilities ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-tool-activity-icon {
 	display: inline-block;
 	flex-shrink: 0;
@@ -2128,7 +2128,7 @@ pre {
 	color: var(--status-danger-text);
 }
 
-/* â”€â”€â”€ PersistedTranscript: message alignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ¦¦¦ PersistedTranscript: message alignment ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
 .runa-transcript-message {
 	align-items: flex-start;
 	display: flex;
