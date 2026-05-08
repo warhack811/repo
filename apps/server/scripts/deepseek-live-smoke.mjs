@@ -370,7 +370,7 @@ async function main() {
 		stageResults.push(await runReasoningRoundtrip(sharedInput));
 		stageResults.push(await runStreamingRoundtrip(sharedInput));
 		stageResults.push(await runToolSchemaRequest(sharedInput));
-			} catch (error) {
+	} catch (error) {
 		printSummary({
 			...buildAuthoritySummary({
 				apiKeySource,
