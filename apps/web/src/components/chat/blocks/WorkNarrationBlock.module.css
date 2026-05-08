@@ -8,7 +8,7 @@
 	padding: 4px 0 4px 10px;
 	border-left: 1px solid rgba(148, 163, 184, 0.28);
 	color: hsl(var(--color-text-muted));
-	font-size: 13px;
+	font-size: 12px;
 	line-height: 1.55;
 	overflow-wrap: anywhere;
 }
