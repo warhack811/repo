@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 // Set required environment variables for testing
 process.env.RUNA_DESKTOP_AGENT_ID = process.env.RUNA_DESKTOP_AGENT_ID || 'test-agent-id';
 process.env.RUNA_DESKTOP_AGENT_SERVER_URL =
-	process.env.RUNA_DESKTOP_AGENT_SERVER_URL || 'http://127.0.0.1:3000';
+	process.env.RUNA_DESKTOP_AGENT_SERVER_URL || 'http://localhost:3001';
 
 const electronPath = path.join(__dirname, '../node_modules/electron/dist/electron.exe');
 const mainPath = path.join(__dirname, '../dist-electron/main.cjs');
