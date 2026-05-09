@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
-import os from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -9,7 +8,7 @@ const currentDirectory = dirname(currentFile);
 const workspaceRoot = resolve(currentDirectory, '..');
 const serverDistRoot = resolve(workspaceRoot, 'apps', 'server', 'dist');
 const serverNodeModulesRoot = resolve(workspaceRoot, 'apps', 'server', 'node_modules');
-const proofDirectory = join(os.tmpdir(), 'runa-e2e-proof');
+const proofDirectory = resolve(workspaceRoot, '.codex-temp', 'runa-e2e-proof');
 const proofFilePath = join(proofDirectory, 'approval-proof.txt');
 const scenarioWriteProofPath = join(proofDirectory, 'scenario-write-proof.txt');
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';

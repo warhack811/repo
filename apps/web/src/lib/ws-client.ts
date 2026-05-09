@@ -50,9 +50,16 @@ export function createWebSocketUrl(accessToken?: string | null): string {
 	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 	const websocketUrl = new URL(`${protocol}//${window.location.host}/ws`);
 	const normalizedAccessToken = accessToken?.trim();
+	const workspaceAttestationId = (
+		import.meta.env['VITE_RUNA_WORKSPACE_ID'] as string | undefined
+	)?.trim();
 
 	if (normalizedAccessToken) {
 		websocketUrl.searchParams.set('access_token', normalizedAccessToken);
+	}
+
+	if (workspaceAttestationId) {
+		websocketUrl.searchParams.set('workspace_id', workspaceAttestationId);
 	}
 
 	return websocketUrl.toString();

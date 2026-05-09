@@ -1,12 +1,11 @@
 import { existsSync, readFileSync, rmSync } from 'node:fs';
-import os from 'node:os';
-import { join } from 'node:path';
+import { resolve } from 'node:path';
 import { type Page, expect, test } from '@playwright/test';
 
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';
 const activeConversationStorageKey = 'runa.chat.active_conversation_id';
 const onboardingCompletedStorageKey = 'runa.onboarding.completed';
-const proofFilePath = join(os.tmpdir(), 'runa-e2e-proof', 'approval-proof.txt');
+const proofFilePath = resolve('.codex-temp', 'runa-e2e-proof', 'approval-proof.txt');
 const e2eProvider = 'deepseek';
 const e2eModel = 'deepseek-v4-flash';
 

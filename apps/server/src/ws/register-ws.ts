@@ -16,6 +16,10 @@ import {
 	getWebSocketAuthContext,
 	getWebSocketSubscriptionContext,
 } from './transport.js';
+import {
+	resolveExpectedWorkspaceAttestationId,
+	validateWorkspaceAttestation,
+} from './workspace-attestation.js';
 import { rejectWebSocketConnection, verifyWebSocketHandshake } from './ws-auth.js';
 import {
 	type VerifyWebSocketSubscriptionAccessInput,
@@ -72,8 +76,22 @@ export async function registerWebSocketRoutes(
 	server: FastifyInstance,
 	options: RegisterWebSocketRoutesOptions,
 ): Promise<void> {
+	const expectedWorkspaceAttestationId = resolveExpectedWorkspaceAttestationId();
+
 	server.get('/ws', { websocket: true }, async (socket, request) => {
 		try {
+			const workspaceAttestationFailure = validateWorkspaceAttestation(
+				request,
+				expectedWorkspaceAttestationId,
+			);
+
+			if (workspaceAttestationFailure) {
+				throw new SupabaseAuthError(
+					'SUPABASE_AUTH_INVALID_TOKEN',
+					workspaceAttestationFailure.message,
+				);
+			}
+
 			const authContext = await verifyWebSocketHandshake({
 				request,
 				verify_token: options.verify_token,

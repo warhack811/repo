@@ -21,6 +21,22 @@ import {
 const DEFAULT_SERVER_HOST = '127.0.0.1';
 const DEFAULT_SERVER_PORT = 3000;
 
+function resolvePortFromEnvironment(): number | undefined {
+	const candidateValue = process.env['RUNA_SERVER_PORT'] ?? process.env['PORT'];
+
+	if (candidateValue === undefined || candidateValue.trim().length === 0) {
+		return undefined;
+	}
+
+	const parsed = Number.parseInt(candidateValue, 10);
+
+	if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 65_535) {
+		return undefined;
+	}
+
+	return parsed;
+}
+
 export interface StartServerOptions {
 	readonly build_server?: (options?: BuildServerOptions) => Promise<FastifyInstance>;
 	readonly environment?: TlsEnvironment;
@@ -30,6 +46,7 @@ export interface StartServerOptions {
 }
 
 export async function startServer(options: StartServerOptions = {}): Promise<FastifyInstance> {
+	const resolvedPort = options.port ?? resolvePortFromEnvironment() ?? DEFAULT_SERVER_PORT;
 	const transportConfig = createServerTransportConfig({
 		environment: options.environment ?? (process.env as NodeJS.ProcessEnv & TlsEnvironment),
 		read_file: options.read_tls_file,
@@ -40,11 +57,11 @@ export async function startServer(options: StartServerOptions = {}): Promise<Fas
 
 	try {
 		console.log(
-			`[server] Attempting to listen on ${options.host ?? DEFAULT_SERVER_HOST}:${options.port ?? DEFAULT_SERVER_PORT}...`,
+			`[server] Attempting to listen on ${options.host ?? DEFAULT_SERVER_HOST}:${resolvedPort}...`,
 		);
 		await server.listen({
 			host: options.host ?? DEFAULT_SERVER_HOST,
-			port: options.port ?? DEFAULT_SERVER_PORT,
+			port: resolvedPort,
 		});
 		console.log('[server] server.listen completed.');
 		server.log.info(

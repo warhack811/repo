@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 import type { ToolCallInput, ToolDefinition, ToolExecutionContext, ToolResult } from '@runa/types';
 
 import { describe, expect, it } from 'vitest';
@@ -355,7 +357,13 @@ describe('runToolStep', () => {
 			persistence_writer: persistence.writer,
 			registry,
 			run_id: 'run_tool_step_approval',
-			tool_input: createToolInput('file.write'),
+			tool_input: {
+				arguments: {
+					path: 'src/example.ts',
+				},
+				call_id: 'call_tool_step',
+				tool_name: 'file.write',
+			},
 			tool_name: 'file.write',
 			trace_id: 'trace_tool_step_approval',
 		});
@@ -376,6 +384,12 @@ describe('runToolStep', () => {
 			status: 'pending',
 			tool_name: 'file.write',
 			trace_id: 'trace_tool_step_approval',
+		});
+		expect(result.approval_request.target).toMatchObject({
+			call_id: 'call_tool_step',
+			kind: 'file_path',
+			label: resolve(process.cwd(), 'src/example.ts'),
+			tool_name: 'file.write',
 		});
 		expect(result.approval_event.payload).toMatchObject({
 			action_kind: 'file_write',

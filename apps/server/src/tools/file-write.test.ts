@@ -114,6 +114,31 @@ describe('fileWriteTool', () => {
 		}
 	});
 
+	it('rejects writes when the resolved target path escapes the workspace boundary', async () => {
+		const workspace = await createTempWorkspace();
+
+		try {
+			const result = await fileWriteTool.execute(
+				createInput('../escape.txt', 'content', true),
+				createContext(workspace),
+			);
+
+			expect(result).toMatchObject({
+				error_code: 'PERMISSION_DENIED',
+				status: 'error',
+				tool_name: 'file.write',
+			});
+			if (result.status === 'error') {
+				expect(result.details).toMatchObject({
+					reason: 'target_outside_workspace',
+					workspace_root: workspace,
+				});
+			}
+		} finally {
+			await rm(workspace, { force: true, recursive: true });
+		}
+	});
+
 	it('returns a typed conflict-style error result when overwrite is disabled', async () => {
 		const workspace = await createTempWorkspace();
 		const filePath = join(workspace, 'existing.txt');
