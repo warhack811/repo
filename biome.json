@@ -38,8 +38,6 @@
 			".kilo",
 			".codex-screenshots",
 			".codex-tmp",
-			".codex-temp",
-			".local",
 			"**/dist/**",
 			"**/dist-electron/**",
 			"**/build/**",
