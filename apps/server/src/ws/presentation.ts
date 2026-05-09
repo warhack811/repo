@@ -477,22 +477,6 @@ function createAutomaticToolResultPresentationInputs(
 	];
 }
 
-function attachDesktopTargetConnectionId(
-	pendingToolCall: NonNullable<PresentationCompatibleRunResult['pending_tool_call']>,
-	payload: Pick<RunRequestPayload, 'desktop_target_connection_id'>,
-): NonNullable<PresentationCompatibleRunResult['pending_tool_call']> {
-	const desktopTargetConnectionId = payload.desktop_target_connection_id?.trim();
-
-	if (!desktopTargetConnectionId) {
-		return pendingToolCall;
-	}
-
-	return {
-		...pendingToolCall,
-		desktop_target_connection_id: desktopTargetConnectionId,
-	};
-}
-
 export function createAutomaticApprovalPresentationInputs(
 	result: PresentationCompatibleRunResult,
 	workingDirectory: string,
@@ -515,19 +499,15 @@ export function createAutomaticApprovalPresentationInputs(
 					working_directory: workingDirectory,
 				}
 			: undefined;
-	const pendingToolCall = attachDesktopTargetConnectionId(
-		result.pending_tool_call ?? {
-			tool_input: {},
-			working_directory: workingDirectory,
-		},
-		payload,
-	);
 
 	return [
 		{
 			continuation_context: continuationContext,
 			kind: 'request_result',
-			pending_tool_call: pendingToolCall,
+			pending_tool_call: result.pending_tool_call ?? {
+				tool_input: {},
+				working_directory: workingDirectory,
+			},
 			result: {
 				approval_event: {},
 				approval_request: result.approval_request,

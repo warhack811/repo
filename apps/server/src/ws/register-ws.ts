@@ -61,13 +61,8 @@ export function attachDesktopAgentWebSocketHandler(
 export interface RegisterWebSocketRoutesOptions {
 	readonly allow_service_principal?: boolean;
 	readonly create_storage_download_url?: StorageDownloadUrlSigner['create'];
-	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 	readonly feature_gate?: VerifyWebSocketSubscriptionAccessInput['feature_gate'];
 	readonly resolve_subscription_context?: SubscriptionContextResolver;
-	readonly runtime?: Omit<
-		RuntimeWebSocketHandlerOptions,
-		'auth_context' | 'create_storage_download_url' | 'storage_service' | 'subscription_context'
-	>;
 	readonly storage_service?: StorageService;
 	readonly verify_token: AuthTokenVerifier;
 }
@@ -104,7 +99,6 @@ export async function registerWebSocketRoutes(
 			});
 
 			attachRuntimeWebSocketHandler(socket, {
-				...options.runtime,
 				auth_context: subscriptionAccess.auth,
 				create_storage_download_url: options.create_storage_download_url,
 				storage_service: options.storage_service,
@@ -131,7 +125,6 @@ export async function registerWebSocketRoutes(
 
 			attachDesktopAgentWebSocketHandler(socket, {
 				auth_context: authContext,
-				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 			});
 		} catch (error: unknown) {
 			rejectWebSocketConnection(socket, error);
