@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 import type {
 	ApprovalRequest,
 	ApprovalTarget,
@@ -133,6 +135,31 @@ function toFailureMessage(error: unknown): string {
 	}
 
 	return 'Unknown tool execution failure.';
+}
+
+function resolveImplicitApprovalTarget(input: RunToolStepInput): ApprovalTarget | undefined {
+	if (input.tool_name !== 'file.write') {
+		return undefined;
+	}
+
+	const pathValue =
+		typeof input.tool_input.arguments['path'] === 'string'
+			? input.tool_input.arguments['path'].trim()
+			: '';
+
+	if (pathValue.length === 0) {
+		return undefined;
+	}
+
+	const workspaceRoot = input.execution_context.working_directory ?? process.cwd();
+	const resolvedPath = resolve(workspaceRoot, pathValue);
+
+	return {
+		call_id: input.tool_input.call_id,
+		kind: 'file_path',
+		label: resolvedPath,
+		tool_name: input.tool_name,
+	};
 }
 
 function shouldPersist(input: RunToolStepInput): boolean {
@@ -420,7 +447,7 @@ export async function runToolStep(input: RunToolStepInput): Promise<RunToolStepR
 				timestamp: startedAt,
 			},
 			run_id: input.run_id,
-			target: input.approval_target,
+			target: input.approval_target ?? resolveImplicitApprovalTarget(input),
 			tool_definition: registeredTool,
 			trace_id: input.trace_id,
 		});

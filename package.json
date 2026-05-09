@@ -5,7 +5,7 @@
 	"description": "Runa — AI çalışma ortağı. Her seferinde sıfırdan başlamaz.",
 	"packageManager": "pnpm@9.15.4",
 	"scripts": {
-		"dev": "turbo run dev --filter=@runa/server --filter=@runa/web",
+		"dev": "node scripts/dev.mjs",
 		"build": "turbo run build",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",

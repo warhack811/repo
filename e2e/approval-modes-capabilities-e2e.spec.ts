@@ -1,5 +1,4 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import os from 'node:os';
 import { join, resolve } from 'node:path';
 import { type Page, expect, test } from '@playwright/test';
 import type { ApprovalMode } from '@runa/types';
@@ -10,7 +9,7 @@ const onboardingCompletedStorageKey = 'runa.onboarding.completed';
 const screenshotDir = resolve(
 	'docs/design-audit/screenshots/2026-05-03-approval-modes-capability-live',
 );
-const scenarioWriteProofPath = join(os.tmpdir(), 'runa-e2e-proof', 'scenario-write-proof.txt');
+const scenarioWriteProofPath = resolve('.codex-temp', 'runa-e2e-proof', 'scenario-write-proof.txt');
 const e2eProvider = 'deepseek';
 const e2eModel = 'deepseek-v4-flash';
 

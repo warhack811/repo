@@ -1,5 +1,5 @@
 import { readFile, stat, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
 import type {
 	ToolArguments,
@@ -55,6 +55,14 @@ function resolveFilePath(input: FileWriteInput, context: ToolExecutionContext): 
 	const basePath = context.working_directory ?? process.cwd();
 
 	return resolve(basePath, input.arguments.path);
+}
+
+function isPathWithinWorkspaceBoundary(workspaceRoot: string, candidatePath: string): boolean {
+	const workspacePath = resolve(workspaceRoot);
+	const resolvedCandidatePath = resolve(candidatePath);
+	const relativePath = relative(workspacePath, resolvedCandidatePath);
+
+	return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath));
 }
 
 function createErrorResult(
@@ -207,6 +215,7 @@ export function createFileWriteTool(
 		async execute(input, context): Promise<FileWriteResult> {
 			const filePath = resolveFilePath(input, context);
 			const parentPath = dirname(filePath);
+			const workspaceRoot = resolve(context.working_directory ?? process.cwd());
 			const encoding = input.arguments.encoding ?? 'utf8';
 			const overwrite = input.arguments.overwrite ?? false;
 			const idempotencyKey = buildToolEffectIdempotencyKey({
@@ -219,6 +228,20 @@ export function createFileWriteTool(
 				target: filePath,
 				tool_name: 'file.write',
 			});
+
+			if (!isPathWithinWorkspaceBoundary(workspaceRoot, filePath)) {
+				return createErrorResult(
+					input,
+					'PERMISSION_DENIED',
+					`Permission denied while writing file: ${filePath}. Target resolves outside workspace boundary.`,
+					filePath,
+					{
+						reason: 'target_outside_workspace',
+						workspace_root: workspaceRoot,
+					},
+					false,
+				);
+			}
 
 			try {
 				const parentStats = await dependencies.stat(parentPath);
