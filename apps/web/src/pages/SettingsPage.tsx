@@ -9,6 +9,7 @@ import { RunaSkeleton } from '../components/ui/RunaSkeleton.js';
 import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { type Theme, applyTheme, getStoredTheme, storeTheme } from '../lib/theme.js';
+import { fetchWorkspaceDirectories } from '../lib/workspace-directories.js';
 import { uiCopy } from '../localization/copy.js';
 import '../styles/routes/desktop-device-presence-migration.css';
 import '../styles/routes/settings-migration.css';
@@ -16,6 +17,7 @@ import '../styles/routes/settings-migration.css';
 type SettingsTab = 'account' | 'preferences';
 
 type SettingsPageProps = Readonly<{
+	accessToken: string | null;
 	authContext: AuthContext;
 	authError: string | null;
 	isAuthPending: boolean;
@@ -90,6 +92,26 @@ function readStoredApprovalMode(): ApprovalMode {
 	}
 }
 
+function readStoredWorkingDirectory(): string {
+	if (typeof window === 'undefined') {
+		return '';
+	}
+
+	try {
+		const rawValue = window.localStorage.getItem(runtimeConfigStorageKey);
+
+		if (rawValue === null) {
+			return '';
+		}
+
+		const parsedValue = JSON.parse(rawValue) as { readonly workingDirectory?: unknown };
+
+		return typeof parsedValue.workingDirectory === 'string' ? parsedValue.workingDirectory : '';
+	} catch {
+		return '';
+	}
+}
+
 function storeApprovalMode(mode: ApprovalMode): void {
 	if (typeof window === 'undefined') {
 		return;
@@ -111,7 +133,34 @@ function storeApprovalMode(mode: ApprovalMode): void {
 	}
 }
 
+function storeWorkingDirectory(workingDirectory: string): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
+
+	const normalizedWorkingDirectory = workingDirectory.trim();
+
+	try {
+		const rawValue = window.localStorage.getItem(runtimeConfigStorageKey);
+		const parsedValue = rawValue === null ? {} : (JSON.parse(rawValue) as Record<string, unknown>);
+
+		window.localStorage.setItem(
+			runtimeConfigStorageKey,
+			JSON.stringify({
+				...parsedValue,
+				workingDirectory: normalizedWorkingDirectory,
+			}),
+		);
+	} catch {
+		window.localStorage.setItem(
+			runtimeConfigStorageKey,
+			JSON.stringify({ workingDirectory: normalizedWorkingDirectory }),
+		);
+	}
+}
+
 export function SettingsPage({
+	accessToken,
 	authContext,
 	authError,
 	isAuthPending,
@@ -122,6 +171,14 @@ export function SettingsPage({
 		parseSettingsTab(searchParams.get('tab')),
 	);
 	const [approvalMode, setApprovalMode] = useState<ApprovalMode>(() => readStoredApprovalMode());
+	const [workspaceDirectories, setWorkspaceDirectories] = useState<
+		readonly { readonly depth: number; readonly name: string; readonly relative_path: string }[]
+	>([]);
+	const [workspaceDirectoryError, setWorkspaceDirectoryError] = useState<string | null>(null);
+	const [workspaceDirectoryLoading, setWorkspaceDirectoryLoading] = useState(false);
+	const [workspaceDirectoriesReloadNonce, setWorkspaceDirectoriesReloadNonce] = useState(0);
+	const [workspaceRootName, setWorkspaceRootName] = useState('Workspace');
+	const [workingDirectory, setWorkingDirectory] = useState(() => readStoredWorkingDirectory());
 	const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 	const {
 		autoReadEnabled,
@@ -137,6 +194,85 @@ export function SettingsPage({
 		setActiveTab(parseSettingsTab(searchParams.get('tab')));
 	}, [searchParams]);
 
+	useEffect(() => {
+		const reloadNonce = workspaceDirectoriesReloadNonce;
+		void reloadNonce;
+		const normalizedAccessToken = accessToken?.trim() ?? '';
+
+		if (normalizedAccessToken.length === 0) {
+			setWorkspaceDirectories([]);
+			setWorkspaceDirectoryError(null);
+			setWorkspaceDirectoryLoading(false);
+			return;
+		}
+
+		const abortController = new AbortController();
+		let isDisposed = false;
+
+		async function loadWorkspaceDirectories(): Promise<void> {
+			setWorkspaceDirectoryLoading(true);
+			setWorkspaceDirectoryError(null);
+
+			try {
+				const response = await fetchWorkspaceDirectories({
+					bearerToken: normalizedAccessToken,
+					signal: abortController.signal,
+				});
+
+				if (isDisposed || abortController.signal.aborted) {
+					return;
+				}
+
+				setWorkspaceDirectories(response.directories);
+				setWorkspaceRootName(response.workspace_root_name);
+			} catch (error: unknown) {
+				if (isDisposed || abortController.signal.aborted) {
+					return;
+				}
+
+				setWorkspaceDirectoryError(
+					error instanceof Error
+						? error.message
+						: 'Çalışma klasörleri yüklenemedi. Bağlantıyı kontrol edip tekrar dene.',
+				);
+			} finally {
+				if (!isDisposed && !abortController.signal.aborted) {
+					setWorkspaceDirectoryLoading(false);
+				}
+			}
+		}
+
+		void loadWorkspaceDirectories();
+
+		return () => {
+			isDisposed = true;
+			abortController.abort();
+		};
+	}, [accessToken, workspaceDirectoriesReloadNonce]);
+
+	useEffect(() => {
+		const normalizedAccessToken = accessToken?.trim() ?? '';
+
+		if (normalizedAccessToken.length === 0 || workspaceDirectoryLoading) {
+			return;
+		}
+
+		if (workingDirectory.trim().length === 0) {
+			return;
+		}
+
+		const existsInDirectoryList = workspaceDirectories.some(
+			(directory) => directory.relative_path === workingDirectory,
+		);
+
+		if (existsInDirectoryList) {
+			return;
+		}
+
+		setWorkingDirectory('');
+		storeWorkingDirectory('');
+	}, [accessToken, workingDirectory, workspaceDirectories, workspaceDirectoryLoading]);
+
 	function selectTheme(nextTheme: Theme): void {
 		setTheme(nextTheme);
 		storeTheme(nextTheme);
@@ -146,6 +282,15 @@ export function SettingsPage({
 	function selectApprovalMode(nextMode: ApprovalMode): void {
 		setApprovalMode(nextMode);
 		storeApprovalMode(nextMode);
+	}
+
+	function selectWorkingDirectory(nextDirectory: string): void {
+		setWorkingDirectory(nextDirectory);
+		storeWorkingDirectory(nextDirectory);
+	}
+
+	function reloadWorkspaceDirectories(): void {
+		setWorkspaceDirectoriesReloadNonce((current) => current + 1);
 	}
 
 	function selectTab(nextTab: SettingsTab): void {
@@ -250,6 +395,50 @@ export function SettingsPage({
 											</span>
 										</label>
 									))}
+								</div>
+							</section>
+							<section
+								className="runa-settings-preference-section"
+								aria-labelledby="workspace-directory-heading"
+							>
+								<h2 id="workspace-directory-heading">Çalışma klasörü</h2>
+								<div className="runa-settings-row runa-settings-row--stacked">
+									<label className="runa-settings-row">
+										<span>Aktif çalışma kökü</span>
+										<output>{workspaceRootName}</output>
+									</label>
+									<label className="runa-settings-row">
+										<span>Run klasörü</span>
+										<select
+											value={workingDirectory}
+											onChange={(event) => selectWorkingDirectory(event.target.value)}
+											disabled={workspaceDirectoryLoading || workspaceDirectories.length === 0}
+										>
+											<option value="">Workspace kökü (varsayılan)</option>
+											{workspaceDirectories.map((directory) => (
+												<option key={directory.relative_path} value={directory.relative_path}>
+													{`${'  '.repeat(directory.depth)}${directory.relative_path}`}
+												</option>
+											))}
+										</select>
+									</label>
+									<div className="runa-settings-row">
+										<button
+											type="button"
+											className="runa-button runa-button--secondary"
+											onClick={reloadWorkspaceDirectories}
+											disabled={workspaceDirectoryLoading}
+										>
+											{workspaceDirectoryLoading ? 'Yenileniyor...' : 'Klasörleri yenile'}
+										</button>
+									</div>
+									{workspaceDirectoryError ? (
+										<div className="runa-alert runa-alert--warning">{workspaceDirectoryError}</div>
+									) : (
+										<div className="runa-subtle-copy">
+											Secilen klasor yeni runlarda calisma koku olarak kullanilir.
+										</div>
+									)}
 								</div>
 							</section>
 							<section className="runa-settings-preference-section" aria-labelledby="voice-heading">

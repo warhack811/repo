@@ -113,6 +113,7 @@ describe('secondary surfaces reframe', () => {
 		const markup = renderToStaticMarkup(
 			<MemoryRouter>
 				<SettingsPage
+					accessToken={null}
 					authContext={authContext}
 					authError={null}
 					isAuthPending={false}

@@ -24,6 +24,7 @@ export interface CreateRunRequestPayloadInput {
 	readonly provider: GatewayProvider;
 	readonly runId: string;
 	readonly traceId: string;
+	readonly workingDirectory?: string | null;
 }
 
 function inferLocaleFromText(text: string): SupportedLocale {
@@ -56,6 +57,7 @@ export function createRunRequestPayload(input: CreateRunRequestPayloadInput): Ru
 	const apiKeyValue = input.apiKey.trim();
 	const attachments = input.attachments?.filter((attachment) => attachment.size_bytes > 0) ?? [];
 	const providedMessages = input.messages?.filter((message) => message.content.trim().length > 0);
+	const selectedWorkingDirectory = input.workingDirectory?.trim();
 
 	if (promptText.length === 0) {
 		throw new Error(uiCopy.runtime.promptRequired);
@@ -73,6 +75,11 @@ export function createRunRequestPayload(input: CreateRunRequestPayloadInput): Ru
 		include_presentation_blocks: input.includePresentationBlocks,
 		conversation_id: input.conversationId?.trim() || undefined,
 		desktop_target_connection_id: input.desktopTargetConnectionId?.trim() || undefined,
+		...(selectedWorkingDirectory && selectedWorkingDirectory.length > 0
+			? {
+					working_directory: selectedWorkingDirectory,
+				}
+			: {}),
 		locale: resolveRequestLocale(input),
 		provider: input.provider,
 		provider_config: {

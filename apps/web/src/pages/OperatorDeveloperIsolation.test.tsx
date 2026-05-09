@@ -98,6 +98,7 @@ describe('operator/developer hard isolation', () => {
 		const markup = renderToStaticMarkup(
 			<MemoryRouter>
 				<SettingsPage
+					accessToken={null}
 					authContext={authContext}
 					authError={null}
 					isAuthPending={false}

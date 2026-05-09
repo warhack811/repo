@@ -94,6 +94,7 @@ export interface UseChatRuntimeResult {
 	readonly presentationRunSurfaces: readonly PresentationRunSurface[];
 	readonly prompt: string;
 	readonly provider: GatewayProvider;
+	readonly workingDirectory: string;
 	readonly runTransportSummaries: ReadonlyMap<string, RunTransportSummary>;
 	readonly store: ChatStore;
 	readonly staleInspectionRequestKeys: readonly string[];
@@ -107,6 +108,7 @@ export interface UseChatRuntimeResult {
 	setPastRunExpanded: (runId: string, isExpanded: boolean) => void;
 	setPrompt: (value: string) => void;
 	setProvider: (value: GatewayProvider) => void;
+	setWorkingDirectory: (value: string) => void;
 	submitRunRequest: (event: FormEvent<HTMLFormElement>) => void;
 	requestInspection: (runId: string, targetKind: InspectionTargetKind, targetId?: string) => void;
 	resolveApproval: (approvalId: string, decision: ApprovalResolveDecision) => void;
@@ -141,6 +143,7 @@ interface StoredRuntimeConfigCandidate {
 	readonly includePresentationBlocks?: unknown;
 	readonly model?: unknown;
 	readonly provider?: unknown;
+	readonly workingDirectory?: unknown;
 }
 
 const RUNTIME_CONFIG_STORAGE_KEY = 'runa.developer.runtime_config';
@@ -176,6 +179,7 @@ function createDefaultRuntimeConfig(): Readonly<{
 	includePresentationBlocks: boolean;
 	model: string;
 	provider: GatewayProvider;
+	workingDirectory: string;
 }> {
 	return {
 		apiKey: '',
@@ -183,6 +187,7 @@ function createDefaultRuntimeConfig(): Readonly<{
 		includePresentationBlocks: true,
 		model: DEFAULT_MODEL,
 		provider: DEFAULT_PROVIDER,
+		workingDirectory: '',
 	};
 }
 
@@ -210,6 +215,7 @@ function readStoredRuntimeConfig(): Readonly<{
 	includePresentationBlocks: boolean;
 	model: string;
 	provider: GatewayProvider;
+	workingDirectory: string;
 }> {
 	const storage = resolveRuntimeConfigStorage();
 
@@ -248,6 +254,8 @@ function readStoredRuntimeConfig(): Readonly<{
 					: true,
 			model: parsedModel,
 			provider: parsedProvider,
+			workingDirectory:
+				typeof parsedValue.workingDirectory === 'string' ? parsedValue.workingDirectory : '',
 		};
 
 		if (shouldMigrateStoredRuntimeConfigToDefaultProvider(storedConfig)) {
@@ -269,6 +277,7 @@ function persistRuntimeConfig(
 		includePresentationBlocks: boolean;
 		model: string;
 		provider: GatewayProvider;
+		workingDirectory: string;
 	}>,
 ): void {
 	const storage = resolveRuntimeConfigStorage();
@@ -285,6 +294,7 @@ function persistRuntimeConfig(
 			includePresentationBlocks: input.includePresentationBlocks,
 			model: input.model,
 			provider: input.provider,
+			workingDirectory: input.workingDirectory,
 		}),
 	);
 }
@@ -392,7 +402,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 	const connectionState = useChatStoreSelector(chatStore, selectConnectionState);
 	const presentationState = useChatStoreSelector(chatStore, selectPresentationState);
 	const transportState = useChatStoreSelector(chatStore, selectTransportState);
-	const { apiKey, approvalMode, includePresentationBlocks, model, provider } = runtimeConfig;
+	const { apiKey, approvalMode, includePresentationBlocks, model, provider, workingDirectory } =
+		runtimeConfig;
 	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
 	const { currentStreamingRunId, currentStreamingText } = presentationState;
 	const {
@@ -487,6 +498,17 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		[chatStore],
 	);
 
+	const setWorkingDirectory = useCallback(
+		(value: string): void => {
+			const normalizedValue = value.trim();
+			chatStore.setRuntimeConfigState((currentRuntimeConfig) => ({
+				...currentRuntimeConfig,
+				workingDirectory: normalizedValue,
+			}));
+		},
+		[chatStore],
+	);
+
 	useEffect(() => {
 		persistRuntimeConfig({
 			apiKey,
@@ -494,8 +516,9 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			includePresentationBlocks,
 			model,
 			provider,
+			workingDirectory,
 		});
-	}, [apiKey, approvalMode, includePresentationBlocks, model, provider]);
+	}, [apiKey, approvalMode, includePresentationBlocks, model, provider, workingDirectory]);
 
 	const replacePendingInspectionRequestKeys = useCallback(
 		(nextRequestKeys: Iterable<string>): void => {
@@ -1193,6 +1216,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 					provider,
 					runId: createClientId('run'),
 					traceId: createClientId('trace'),
+					workingDirectory,
 				});
 
 				if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
@@ -1246,6 +1270,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			buildRequestMessages,
 			prompt,
 			provider,
+			workingDirectory,
 			connectionStatus,
 			chatStore,
 		],
@@ -1499,6 +1524,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			presentationRunSurfaces,
 			prompt,
 			provider,
+			workingDirectory,
 			requestInspection,
 			resetRunState,
 			resolveApproval,
@@ -1514,6 +1540,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			setPastRunExpanded,
 			setPrompt,
 			setProvider,
+			setWorkingDirectory,
 			staleInspectionRequestKeys,
 			submitRunRequest,
 			transportErrorCode,
@@ -1539,6 +1566,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			presentationRunSurfaces,
 			prompt,
 			provider,
+			workingDirectory,
 			requestInspection,
 			resetRunState,
 			resolveApproval,
@@ -1551,6 +1579,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			setModel,
 			setPastRunExpanded,
 			setProvider,
+			setWorkingDirectory,
 			staleInspectionRequestKeys,
 			submitRunRequest,
 			transportErrorCode,

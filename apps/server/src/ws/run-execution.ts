@@ -19,6 +19,7 @@ import type {
 	TurnProgressEvent,
 } from '@runa/types';
 import { unwrapRedacted } from '@runa/types';
+import { resolve as resolvePath } from 'node:path';
 
 import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
 import { GatewayUnsupportedOperationError } from '../gateway/errors.js';
@@ -114,8 +115,8 @@ import {
 	extractUserTurn,
 	getLiveMemoryScopeId,
 	getLiveUserPreferenceScopeId,
-	getLiveWorkingDirectory,
 	logLiveMemoryWriteFailure,
+	resolveLiveRunWorkingDirectory,
 	resolveRunRequestLocale,
 } from './live-request.js';
 import type { RunRequestPayload } from './messages.js';
@@ -378,6 +379,63 @@ function resolveDesktopApprovalTarget(
 		label: formatDesktopTargetLabel(matchingSnapshot),
 		tool_name: input.tool_name,
 	};
+}
+
+function resolveFileWriteApprovalTarget(input: {
+	readonly call_id: string;
+	readonly tool_input: Readonly<Record<string, unknown>>;
+	readonly tool_name: ToolDefinition['name'];
+	readonly working_directory: string;
+}): ApprovalTarget | undefined {
+	if (input.tool_name !== 'file.write') {
+		return undefined;
+	}
+
+	const pathValue =
+		typeof input.tool_input['path'] === 'string' ? input.tool_input['path'].trim() : '';
+
+	if (pathValue.length === 0) {
+		return undefined;
+	}
+
+	const resolvedPath = resolvePath(input.working_directory, pathValue);
+
+	return {
+		call_id: input.call_id,
+		kind: 'file_path',
+		label: resolvedPath,
+		path: resolvedPath,
+		tool_name: input.tool_name,
+	};
+}
+
+export function resolveApprovalTarget(input: {
+	readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
+	readonly call_id: string;
+	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
+	readonly target_connection_id?: string;
+	readonly tool_input: Readonly<Record<string, unknown>>;
+	readonly tool_name: ToolDefinition['name'];
+	readonly working_directory: string;
+}): ApprovalTarget | undefined {
+	const desktopTarget = resolveDesktopApprovalTarget({
+		auth_context: input.auth_context,
+		call_id: input.call_id,
+		desktopAgentBridgeRegistry: input.desktopAgentBridgeRegistry,
+		target_connection_id: input.target_connection_id,
+		tool_name: input.tool_name,
+	});
+
+	if (desktopTarget) {
+		return desktopTarget;
+	}
+
+	return resolveFileWriteApprovalTarget({
+		call_id: input.call_id,
+		tool_input: input.tool_input,
+		tool_name: input.tool_name,
+		working_directory: input.working_directory,
+	});
 }
 
 function withPendingDesktopTargetConnectionId(
@@ -1766,12 +1824,14 @@ async function runPolicyAwareModelTurn(
 					current_state: input.current_state,
 					requires_reason: permissionEvaluation.decision.approval_requirement.requires_reason,
 					run_id: input.run_id,
-					target: resolveDesktopApprovalTarget({
+					target: resolveApprovalTarget({
 						auth_context: options.auth_context,
 						call_id: primaryToolCallOutcome.call_id,
 						desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 						target_connection_id: options.desktop_target_connection_id,
+						tool_input: primaryToolCallOutcome.tool_input,
 						tool_name: primaryToolCallOutcome.tool_name,
+						working_directory: input.execution_context.working_directory ?? process.cwd(),
 					}),
 					tool_definition: resolveToolDefinitionForApprovalRequest(
 						toolDefinition,
@@ -2042,12 +2102,14 @@ async function runPolicyAwareModelTurn(
 			current_state: input.current_state,
 			requires_reason: approvalDecision.approval_requirement.requires_reason,
 			run_id: input.run_id,
-			target: resolveDesktopApprovalTarget({
+			target: resolveApprovalTarget({
 				auth_context: options.auth_context,
 				call_id: blockedApprovalCandidate.candidate.call_id,
 				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 				target_connection_id: options.desktop_target_connection_id,
+				tool_input: blockedApprovalCandidate.candidate.tool_input,
 				tool_name: blockedApprovalCandidate.candidate.tool_name,
+				working_directory: input.execution_context.working_directory ?? process.cwd(),
 			}),
 			tool_definition: resolveToolDefinitionForApprovalRequest(
 				blockedApprovalCandidate.tool_definition,
@@ -2846,7 +2908,7 @@ export async function handleRunRequestMessage(
 	await broadcastConversationRunAccepted(socket, resolvedPayload);
 
 	const toolRegistry = options.toolRegistry ?? (await getDefaultToolRegistryAsync());
-	const workingDirectory = getLiveWorkingDirectory();
+	const workingDirectory = resolveLiveRunWorkingDirectory(resolvedPayload);
 	let result: RunToolWebSocketResult;
 
 	try {

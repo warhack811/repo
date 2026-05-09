@@ -15,6 +15,7 @@ export type RuntimeConfigState = Readonly<{
 	includePresentationBlocks: boolean;
 	model: string;
 	provider: GatewayProvider;
+	workingDirectory: string;
 }>;
 
 export type ConnectionStoreState = Readonly<{

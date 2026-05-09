@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
+import { dirname, resolve, sep } from 'node:path';
 
 import type {
 	ModelMessage,
@@ -59,6 +59,45 @@ export function getLiveWorkingDirectory(startDirectory = process.cwd()): string 
 
 		currentDirectory = parentDirectory;
 	}
+}
+
+function isPathWithinWorkspaceBoundary(resolvedPath: string, workspaceRoot: string): boolean {
+	const normalizedResolvedPath = resolve(resolvedPath).toLowerCase();
+	const normalizedWorkspaceRoot = resolve(workspaceRoot).toLowerCase();
+
+	return (
+		normalizedResolvedPath === normalizedWorkspaceRoot ||
+		normalizedResolvedPath.startsWith(normalizedWorkspaceRoot + sep.toLowerCase()) ||
+		normalizedResolvedPath.startsWith(`${normalizedWorkspaceRoot}/`)
+	);
+}
+
+export function resolveLiveRunWorkingDirectory(
+	payload: Pick<RunRequestPayload, 'working_directory'>,
+	startDirectory = process.cwd(),
+): string {
+	const workspaceRoot = getLiveWorkingDirectory(startDirectory);
+	const requestedWorkingDirectory = payload.working_directory?.trim();
+
+	if (!requestedWorkingDirectory || requestedWorkingDirectory.length === 0) {
+		return workspaceRoot;
+	}
+
+	const resolvedWorkingDirectory = resolve(workspaceRoot, requestedWorkingDirectory);
+
+	if (!isPathWithinWorkspaceBoundary(resolvedWorkingDirectory, workspaceRoot)) {
+		throw new Error('Requested working directory must stay within the active workspace boundary.');
+	}
+
+	if (!existsSync(resolvedWorkingDirectory)) {
+		throw new Error('Requested working directory does not exist.');
+	}
+
+	if (!statSync(resolvedWorkingDirectory).isDirectory()) {
+		throw new Error('Requested working directory must reference a directory.');
+	}
+
+	return resolvedWorkingDirectory;
 }
 
 export function getLiveMemoryScopeId(workingDirectory: string): string {
