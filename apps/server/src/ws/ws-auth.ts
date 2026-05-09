@@ -86,13 +86,6 @@ function createWebSocketAuthContext(auth: AuthContext): AuthContext {
 export async function verifyWebSocketHandshake(
 	input: VerifyWebSocketHandshakeInput,
 ): Promise<AuthContext> {
-	if (
-		input.request.auth?.principal.kind === 'authenticated' ||
-		input.request.auth?.principal.kind === 'service'
-	) {
-		return createWebSocketAuthContext(input.request.auth);
-	}
-
 	const parsedHeaderToken = readBearerToken(
 		normalizeHeaderValue(input.request.headers.authorization),
 	);
@@ -109,17 +102,24 @@ export async function verifyWebSocketHandshake(
 			? readHandshakeQueryToken(input.request)
 			: parsedHeaderToken;
 
-	if (parsedQueryToken.status === 'missing' || parsedQueryToken.token === undefined) {
-		throw new SupabaseAuthError(
-			'SUPABASE_AUTH_REQUIRED',
-			'Authenticated WebSocket connection required.',
-		);
-	}
-
 	if (parsedQueryToken.status === 'malformed') {
 		throw new SupabaseAuthError(
 			'SUPABASE_AUTH_INVALID_TOKEN',
 			'WebSocket access token must be a non-empty string.',
+		);
+	}
+
+	if (parsedQueryToken.status === 'missing' || parsedQueryToken.token === undefined) {
+		if (
+			input.request.auth?.principal.kind === 'authenticated' ||
+			input.request.auth?.principal.kind === 'service'
+		) {
+			return createWebSocketAuthContext(input.request.auth);
+		}
+
+		throw new SupabaseAuthError(
+			'SUPABASE_AUTH_REQUIRED',
+			'Authenticated WebSocket connection required.',
 		);
 	}
 

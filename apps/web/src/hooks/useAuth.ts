@@ -22,6 +22,10 @@ import {
 	signupWithPassword,
 	writeStoredBearerToken,
 } from '../lib/auth-client.js';
+import {
+	bindDesktopCompanionSession,
+	clearDesktopCompanionSession,
+} from '../lib/desktop-companion.js';
 import { uiCopy } from '../localization/copy.js';
 
 export type AuthStatus = 'authenticated' | 'anonymous' | 'bootstrapping' | 'service';
@@ -409,12 +413,21 @@ export function useAuth(): UseAuthResult {
 		}): void => {
 			writeStoredBearerToken(input.bearerToken);
 			storeSessionTokens(input.session ?? { access_token: input.bearerToken });
+			const sessionExpiresAt = readStoredSessionExpiresAt();
+			const sessionRefreshToken = readStoredRefreshToken();
 			setAuthContext(input.authContext);
 			setAuthError(null);
 			setAuthStatus(input.status);
 			setBearerToken(input.bearerToken);
 			setHasStoredBearerToken(true);
-			setSessionExpiresAt(readStoredSessionExpiresAt());
+			setSessionExpiresAt(sessionExpiresAt);
+			bindDesktopCompanionSession(
+				input.session ?? {
+					access_token: input.bearerToken,
+					expires_at: sessionExpiresAt ?? undefined,
+					refresh_token: sessionRefreshToken ?? undefined,
+				},
+			);
 		},
 		[],
 	);
@@ -424,6 +437,7 @@ export function useAuth(): UseAuthResult {
 		clearStoredSessionSecrets();
 		clearStoredPkceCodeVerifier();
 		clearStoredPkceRedirectTarget();
+		clearDesktopCompanionSession();
 		setBearerToken(null);
 		setHasStoredBearerToken(false);
 		setSessionExpiresAt(null);
@@ -463,8 +477,9 @@ export function useAuth(): UseAuthResult {
 		try {
 			const searchRedirectResult = consumeOAuthSearchResult();
 			const redirectResult = consumeOAuthRedirectResult();
-			let redirectToken =
-				redirectResult.status === 'session' ? redirectResult.session.access_token : null;
+			const redirectSession =
+				redirectResult.status === 'session' ? redirectResult.session : undefined;
+			let redirectToken = redirectSession !== undefined ? redirectSession.access_token : null;
 			storedBearerToken = redirectToken ?? readStoredBearerToken();
 
 			if (redirectResult.status === 'session' && redirectToken) {
@@ -553,6 +568,16 @@ export function useAuth(): UseAuthResult {
 			setSessionExpiresAt(readStoredSessionExpiresAt());
 
 			if (authResponse.principal_kind !== 'anonymous') {
+				bindDesktopCompanionSession(
+					redirectSession ??
+						(storedBearerToken
+							? {
+									access_token: storedBearerToken,
+									expires_at: storedExpiresAt ?? undefined,
+									refresh_token: storedRefreshToken ?? undefined,
+								}
+							: undefined),
+				);
 				setAuthNotice(null);
 			}
 		} catch (error: unknown) {
@@ -561,6 +586,7 @@ export function useAuth(): UseAuthResult {
 			if (storedBearerToken !== null) {
 				clearStoredBearerToken();
 				clearStoredSessionSecrets();
+				clearDesktopCompanionSession();
 
 				try {
 					await applyAnonymousFallback();
