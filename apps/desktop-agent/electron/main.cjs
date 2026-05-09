@@ -3306,10 +3306,6 @@ function renderDesktopAgentLaunchDocument(viewModel) {
   };
 }
 
-// ../../packages/types/dist/redacted.js
-var REDACTED_BRAND = Symbol("runa.redacted.brand");
-var REDACTED_VALUE = Symbol("runa.redacted.value");
-
 // ../../packages/types/dist/ws.js
 var desktopAgentProtocolVersion = 1;
 var desktopAgentToolNames = [
