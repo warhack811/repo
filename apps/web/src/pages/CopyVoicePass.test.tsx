@@ -137,6 +137,7 @@ function renderNormalSurfaces(): string {
 			<HistoryPage conversations={createConversations()} />
 			<DevicePresencePanel devices={[]} />
 			<SettingsPage
+				accessToken={null}
 				authContext={authContext}
 				authError={null}
 				isAuthPending={false}

@@ -80,4 +80,19 @@ describe('createRunRequestPayload', () => {
 
 		expect(payload.locale).toBe('en');
 	});
+
+	it('includes the selected working directory when provided', () => {
+		const payload = createRunRequestPayload({
+			apiKey: 'test-key',
+			includePresentationBlocks: true,
+			model: 'deepseek-chat',
+			prompt: 'Read project files.',
+			provider: 'deepseek',
+			runId: 'run_working_directory',
+			traceId: 'trace_working_directory',
+			workingDirectory: 'apps/web',
+		});
+
+		expect(payload.working_directory).toBe('apps/web');
+	});
 });

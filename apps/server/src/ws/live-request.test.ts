@@ -1,3 +1,6 @@
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { ProviderCapabilities } from '@runa/types';
@@ -7,7 +10,11 @@ import {
 	INLINE_MAX_CHARS,
 	TOOL_RESULT_TRUNCATED_NOTICE,
 } from '../context/runtime-context-limits.js';
-import { buildLiveModelRequest, buildToolResultContinuationUserTurn } from './live-request.js';
+import {
+	buildLiveModelRequest,
+	buildToolResultContinuationUserTurn,
+	resolveLiveRunWorkingDirectory,
+} from './live-request.js';
 
 const TEMPORAL_STREAM_CAPABILITIES: ProviderCapabilities = {
 	emits_reasoning_content: false,
@@ -57,6 +64,59 @@ function createRunRequestPayload(): RunRequestPayload {
 		trace_id: 'trace_live_request_test',
 	};
 }
+
+describe('resolveLiveRunWorkingDirectory', () => {
+	it('resolves an empty working_directory to workspace root', () => {
+		const workspaceRoot = resolveLiveRunWorkingDirectory(
+			{
+				working_directory: '',
+			},
+			'D:/ai/Runa/apps/server',
+		);
+
+		expect(workspaceRoot.toLowerCase().replaceAll('\\', '/').endsWith('/runa')).toBe(true);
+	});
+
+	it('accepts an in-workspace relative directory', () => {
+		const tempWorkspace = join(os.tmpdir(), `runa-live-request-workspace-${Date.now()}`);
+		const nestedDirectory = join(tempWorkspace, 'apps', 'web');
+		mkdirSync(nestedDirectory, { recursive: true });
+		writeFileSync(join(tempWorkspace, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n');
+
+		try {
+			const resolved = resolveLiveRunWorkingDirectory(
+				{
+					working_directory: 'apps/web',
+				},
+				nestedDirectory,
+			);
+
+			expect(resolved).toBe(nestedDirectory);
+		} finally {
+			rmSync(tempWorkspace, { force: true, recursive: true });
+		}
+	});
+
+	it('rejects working_directory values outside the workspace boundary', () => {
+		const tempWorkspace = join(os.tmpdir(), `runa-live-request-boundary-${Date.now()}`);
+		const nestedDirectory = join(tempWorkspace, 'apps');
+		mkdirSync(nestedDirectory, { recursive: true });
+		writeFileSync(join(tempWorkspace, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n');
+
+		try {
+			expect(() =>
+				resolveLiveRunWorkingDirectory(
+					{
+						working_directory: '../outside',
+					},
+					nestedDirectory,
+				),
+			).toThrow('workspace boundary');
+		} finally {
+			rmSync(tempWorkspace, { force: true, recursive: true });
+		}
+	});
+});
 
 describe('buildLiveModelRequest', () => {
 	it('rewrites tool-result follow-up turns so the model continues from the ingested result', async () => {

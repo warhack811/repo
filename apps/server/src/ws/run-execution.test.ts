@@ -1,4 +1,5 @@
 import type { AuthContext, RenderBlock, RuntimeEvent } from '@runa/types';
+import { resolve as resolvePath } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 import { composeContext } from '../context/compose-context.js';
@@ -16,6 +17,7 @@ import {
 } from '../runtime/runtime-events.js';
 import { evaluateStopConditions } from '../runtime/stop-conditions.js';
 import { createMockSocket } from '../test-utils/mock-socket.js';
+import { DesktopAgentBridgeRegistry } from './desktop-agent-bridge.js';
 import { buildLiveModelRequest, buildToolResultContinuationUserTurn } from './live-request.js';
 import type { RunRequestPayload } from './messages.js';
 import type { ConversationOrchestrationStore } from './orchestration-types.js';
@@ -24,6 +26,7 @@ import {
 	createOrderedToolResultContinuationText,
 	finalizeLiveRunResult,
 	replaceFinalUserMessage,
+	resolveApprovalTarget,
 	resolveRuntimeTerminationCode,
 	supportsDesktopVisionProvider,
 } from './run-execution.js';
@@ -457,6 +460,61 @@ describe('tool-result-pipeline regression', () => {
 		);
 
 		expect(message).toContain('DO NOT call this tool again with the same arguments.');
+	});
+});
+
+describe('resolveApprovalTarget', () => {
+	it('returns file_path target for file.write using run working directory', () => {
+		const result = resolveApprovalTarget({
+			call_id: 'call_file_write_1',
+			tool_input: {
+				content: 'hello',
+				path: './notes/todo.md',
+			},
+			tool_name: 'file.write',
+			working_directory: 'D:/ai/Runa/apps/web',
+		});
+
+		expect(result).toEqual({
+			call_id: 'call_file_write_1',
+			kind: 'file_path',
+			label: resolvePath('D:/ai/Runa/apps/web', './notes/todo.md'),
+			path: resolvePath('D:/ai/Runa/apps/web', './notes/todo.md'),
+			tool_name: 'file.write',
+		});
+	});
+
+	it('prefers desktop target metadata for desktop tools', () => {
+		const desktopRegistry = new DesktopAgentBridgeRegistry();
+		vi.spyOn(desktopRegistry, 'listPresenceSnapshotsForUserId').mockReturnValue([
+			{
+				agent_id: 'agent_12345678',
+				capabilities: [],
+				connection_id: 'conn_1',
+				connected_at: '2026-05-09T10:00:00.000Z',
+				machine_label: 'QA Windows',
+				status: 'online',
+				transport: 'desktop_bridge',
+				user_id: 'user_1',
+			},
+		]);
+
+		const result = resolveApprovalTarget({
+			auth_context: createAuthContext(),
+			call_id: 'call_desktop_1',
+			desktopAgentBridgeRegistry: desktopRegistry,
+			target_connection_id: 'conn_1',
+			tool_input: {},
+			tool_name: 'desktop.click',
+			working_directory: 'D:/ai/Runa',
+		});
+
+		expect(result).toEqual({
+			call_id: 'call_desktop_1',
+			kind: 'tool_call',
+			label: 'QA Windows',
+			tool_name: 'desktop.click',
+		});
 	});
 });
 

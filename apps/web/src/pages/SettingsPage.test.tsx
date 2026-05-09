@@ -29,6 +29,7 @@ function renderSettings(): void {
 	render(
 		<MemoryRouter initialEntries={['/account?tab=preferences']}>
 			<SettingsPage
+				accessToken={null}
 				authContext={authContext}
 				authError={null}
 				isAuthPending={false}

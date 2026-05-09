@@ -33,6 +33,7 @@ const SettingsPage = lazy(() =>
 );
 
 type AccountRouteProps = Readonly<{
+	accessToken: string | null;
 	authContext: AuthContext;
 	authError: string | null;
 	isAuthPending: boolean;
@@ -80,6 +81,7 @@ function RouteFallback(): ReactElement {
 }
 
 function AccountRoute({
+	accessToken,
 	authContext,
 	authError,
 	isAuthPending,
@@ -87,6 +89,7 @@ function AccountRoute({
 }: AccountRouteProps): ReactElement {
 	return (
 		<SettingsPage
+			accessToken={accessToken}
 			authContext={authContext}
 			authError={authError}
 			isAuthPending={isAuthPending}
@@ -119,6 +122,7 @@ export function AuthenticatedApp(props: AuthenticatedAppProps): ReactElement {
 							path="account"
 							element={
 								<AccountRoute
+									accessToken={props.bearerToken}
 									authContext={props.authContext}
 									authError={props.authError}
 									isAuthPending={props.isAuthPending}
