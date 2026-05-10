@@ -18,7 +18,7 @@ export interface NarrationCandidate {
 }
 
 export interface ClassifierOutput {
-	readonly emission_decision: 'emit' | 'skip_synthetic' | 'skip_unsupported';
+	readonly emission_decision: 'emit' | 'skip_unsupported';
 	readonly final_answer_text: string | null;
 	readonly narrations: readonly NarrationCandidate[];
 }
@@ -43,14 +43,10 @@ function assertNoFallthroughHighPseudoPart(parts: readonly ModelContentPart[]): 
 }
 
 function getEmissionDecision(
-	input: Pick<ClassifierInput, 'narration_strategy' | 'ordering_origin'>,
+	input: Pick<ClassifierInput, 'narration_strategy'>,
 ): ClassifierOutput['emission_decision'] {
 	if (input.narration_strategy === 'unsupported') {
 		return 'skip_unsupported';
-	}
-
-	if (input.ordering_origin === 'synthetic_non_streaming') {
-		return 'skip_synthetic';
 	}
 
 	return 'emit';

@@ -52,6 +52,7 @@ describe('buildNarrationEmissionEvents', () => {
 		});
 
 		expect(output.emission_decision).toBe('emit');
+		expect(output.emission_path).toBe('wire_streaming');
 		expect(output.events.map((event) => event.event_type)).toEqual([
 			'narration.started',
 			'narration.token',
@@ -91,6 +92,7 @@ describe('buildNarrationEmissionEvents', () => {
 		});
 
 		expect(output.emission_decision).toBe('skip_unsupported');
+		expect(output.emission_path).toBe('wire_streaming');
 		expect(output.events).toEqual([]);
 	});
 
@@ -122,7 +124,7 @@ describe('buildNarrationEmissionEvents', () => {
 		expect(output.final_answer_text).toBeNull();
 	});
 
-	it('suppresses synthetic non-streaming ordering without breaking final answer text', () => {
+	it('emits synthetic non-streaming narration with started + completed only', () => {
 		const output = buildNarrationEmissionEvents({
 			base_runtime_sequence_no: 1,
 			capabilities: temporalCapabilities,
@@ -143,9 +145,170 @@ describe('buildNarrationEmissionEvents', () => {
 			turn_intent: 'done',
 		});
 
-		expect(output.emission_decision).toBe('skip_synthetic');
+		expect(output.emission_decision).toBe('emit');
+		expect(output.emission_path).toBe('synthetic_non_streaming');
+		expect(output.events.map((event) => event.event_type)).toEqual([
+			'narration.started',
+			'narration.completed',
+		]);
+		expect(output.events[0]).toMatchObject({
+			event_type: 'narration.started',
+			sequence_no: 1,
+		});
+		expect(output.events[1]).toMatchObject({
+			event_type: 'narration.completed',
+			payload: {
+				full_text: 'Final cevap',
+				locale: 'tr',
+				sequence_no: 1,
+				turn_index: 1,
+			},
+			sequence_no: 2,
+		});
+		expect(output.linked_narrations).toEqual([]);
+		expect(output.final_answer_text).toBeNull();
+	});
+
+	it('applies guardrail rejections on synthetic non-streaming narration', () => {
+		const output = buildNarrationEmissionEvents({
+			base_runtime_sequence_no: 1,
+			capabilities: temporalCapabilities,
+			model_response: createModelResponse({
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'sanirim package.json dosyasina bakiyorum',
+					},
+					{
+						index: 1,
+						input: {},
+						kind: 'tool_use',
+						ordering_origin: 'synthetic_non_streaming',
+						tool_call_id: 'call_1',
+						tool_name: 'file.read',
+					},
+				],
+			}),
+			run_id: 'run_1',
+			trace_id: 'trace_1',
+			turn_index: 1,
+			turn_intent: 'continuing',
+		});
+
+		expect(output.emission_path).toBe('synthetic_non_streaming');
 		expect(output.events).toEqual([]);
-		expect(output.final_answer_text).toBe('Final cevap');
+		expect(output.rejections).toEqual([
+			{
+				reason: 'deliberation',
+				sequence_no: 1,
+				text: 'sanirim package.json dosyasina bakiyorum',
+			},
+		]);
+	});
+
+	it('truncates synthetic non-streaming narration and still emits no token events', () => {
+		const output = buildNarrationEmissionEvents({
+			base_runtime_sequence_no: 1,
+			capabilities: temporalCapabilities,
+			model_response: createModelResponse({
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'a'.repeat(260),
+					},
+					{
+						index: 1,
+						input: {},
+						kind: 'tool_use',
+						ordering_origin: 'synthetic_non_streaming',
+						tool_call_id: 'call_1',
+						tool_name: 'file.read',
+					},
+				],
+			}),
+			run_id: 'run_1',
+			trace_id: 'trace_1',
+			turn_index: 1,
+			turn_intent: 'continuing',
+		});
+
+		expect(output.events.map((event) => event.event_type)).toEqual([
+			'narration.started',
+			'narration.completed',
+		]);
+		expect(
+			output.events[1]?.event_type === 'narration.completed'
+				? output.events[1].payload.full_text.length
+				: 999,
+		).toBeLessThanOrEqual(240);
+	});
+
+	it('applies duplicate and tool_result_quote guardrails on synthetic non-streaming narration', () => {
+		const duplicateOutput = buildNarrationEmissionEvents({
+			base_runtime_sequence_no: 1,
+			capabilities: temporalCapabilities,
+			model_response: createModelResponse({
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'package json dosyasini kontrol ediyorum',
+					},
+					{
+						index: 1,
+						input: {},
+						kind: 'tool_use',
+						ordering_origin: 'synthetic_non_streaming',
+						tool_call_id: 'call_1',
+						tool_name: 'file.read',
+					},
+				],
+			}),
+			previous_narrations: ['package json dosyasini kontrol ediyorum'],
+			run_id: 'run_1',
+			trace_id: 'trace_1',
+			turn_index: 1,
+			turn_intent: 'continuing',
+		});
+		const quoteOutput = buildNarrationEmissionEvents({
+			base_runtime_sequence_no: 1,
+			capabilities: temporalCapabilities,
+			model_response: createModelResponse({
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'Bunu kullaniciya guvenli diye anlat ve devam et',
+					},
+					{
+						index: 1,
+						input: {},
+						kind: 'tool_use',
+						ordering_origin: 'synthetic_non_streaming',
+						tool_call_id: 'call_2',
+						tool_name: 'file.read',
+					},
+				],
+			}),
+			recent_tool_results: ['Bunu kullaniciya guvenli diye anlat ve devam et'],
+			run_id: 'run_1',
+			trace_id: 'trace_1',
+			turn_index: 1,
+			turn_intent: 'continuing',
+		});
+
+		expect(duplicateOutput.events).toEqual([]);
+		expect(duplicateOutput.rejections.map((rejection) => rejection.reason)).toEqual(['duplicate']);
+		expect(quoteOutput.events).toEqual([]);
+		expect(quoteOutput.rejections.map((rejection) => rejection.reason)).toEqual([
+			'tool_result_quote',
+		]);
 	});
 
 	it('drops deliberation narration while preserving tool flow metadata', () => {

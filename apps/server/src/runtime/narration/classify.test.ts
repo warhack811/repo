@@ -119,15 +119,23 @@ describe('classifyNarration', () => {
 		});
 	});
 
-	it('skips synthetic non-streaming content but preserves full text as final answer', () => {
+	it('classifies synthetic non-streaming content with the same rules as streaming', () => {
 		expect(
 			classify([text(0, 'Synthetic text.'), tool(1, 'call_1'), text(2, 'Done.')], {
 				ordering_origin: 'synthetic_non_streaming',
 			}),
 		).toEqual({
-			emission_decision: 'skip_synthetic',
-			final_answer_text: 'Synthetic text.Done.',
-			narrations: [],
+			emission_decision: 'emit',
+			final_answer_text: 'Done.',
+			narrations: [
+				{
+					content_part_index: 0,
+					linked_tool_call_id: 'call_1',
+					narration_eligible: true,
+					sequence_no: 1,
+					text: 'Synthetic text.',
+				},
+			],
 		});
 	});
 

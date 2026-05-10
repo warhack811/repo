@@ -1616,18 +1616,7 @@ async function runPolicyAwareModelTurn(
 			createNarrationSuppressionLogFields({
 				capabilities: input.model_gateway.capabilities,
 				decision: narrationEmission.emission_decision,
-				model: modelResponse.model,
-				provider: modelResponse.provider,
-			}),
-		);
-	}
-
-	if (narrationEmission.emission_decision === 'skip_synthetic') {
-		turnLogger.info(
-			'narration.synthetic_ordering_suppressed',
-			createNarrationSuppressionLogFields({
-				capabilities: input.model_gateway.capabilities,
-				decision: narrationEmission.emission_decision,
+				emission_path: narrationEmission.emission_path,
 				model: modelResponse.model,
 				provider: modelResponse.provider,
 			}),
@@ -1637,12 +1626,16 @@ async function runPolicyAwareModelTurn(
 	for (const rejection of narrationEmission.rejections) {
 		turnLogger.info(
 			'narration.guardrail.rejected',
-			createNarrationGuardrailRejectionLogFields(rejection),
+			createNarrationGuardrailRejectionLogFields(rejection, {
+				emission_path: narrationEmission.emission_path,
+			}),
 		);
 	}
 
 	for (const event of narrationEmission.events) {
-		const narrationLogFields = createNarrationRuntimeEventLogFields(event);
+		const narrationLogFields = createNarrationRuntimeEventLogFields(event, {
+			emission_path: narrationEmission.emission_path,
+		});
 
 		if (narrationLogFields) {
 			turnLogger.info(event.event_type, narrationLogFields);
@@ -1687,7 +1680,9 @@ async function runPolicyAwareModelTurn(
 			);
 			turnLogger.info(
 				'narration.tool_outcome_linked',
-				createNarrationRuntimeEventLogFields(outcomeEvent) ?? {},
+				createNarrationRuntimeEventLogFields(outcomeEvent, {
+					emission_path: narrationEmission.emission_path,
+				}) ?? {},
 			);
 			options.on_runtime_event?.(outcomeEvent);
 		}

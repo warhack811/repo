@@ -34,6 +34,8 @@ export interface NarrationEmissionRejection {
 	readonly text: string;
 }
 
+export type NarrationEmissionPath = 'synthetic_non_streaming' | 'wire_streaming';
+
 export interface LinkedNarration {
 	readonly narration_id: string;
 	readonly sequence_no: number;
@@ -41,7 +43,8 @@ export interface LinkedNarration {
 }
 
 export interface NarrationEmissionOutput {
-	readonly emission_decision: 'emit' | 'skip_synthetic' | 'skip_unsupported';
+	readonly emission_decision: 'emit' | 'skip_unsupported';
+	readonly emission_path: NarrationEmissionPath;
 	readonly events: readonly RuntimeEvent[];
 	readonly final_answer_text: string | null;
 	readonly high_fallthrough_count: number;
@@ -57,6 +60,57 @@ function resolveNarrationStrategy(capabilities?: ProviderCapabilities): Narratio
 	return capabilities?.narration_strategy ?? 'unsupported';
 }
 
+function resolveNarrationEmissionPath(modelResponse: ModelResponse): NarrationEmissionPath {
+	return resolveOrderingOrigin(modelResponse) === 'synthetic_non_streaming'
+		? 'synthetic_non_streaming'
+		: 'wire_streaming';
+}
+
+interface NarrationEventBuildContext {
+	readonly locale: SupportedLocale;
+	readonly run_id: string;
+	readonly sequence_no: number;
+	readonly trace_id: string;
+	readonly turn_index: number;
+}
+
+export function buildSyntheticNarrationEmissionEvents(
+	candidate: Readonly<{
+		readonly linked_tool_call_id?: string;
+		readonly sequence_no: number;
+		readonly text: string;
+	}>,
+	context: NarrationEventBuildContext,
+): readonly RuntimeEvent[] {
+	const narrationId = `${context.run_id}:turn:${context.turn_index}:narration:${candidate.sequence_no}`;
+	const payloadBase = {
+		linked_tool_call_id: candidate.linked_tool_call_id,
+		locale: context.locale,
+		narration_id: narrationId,
+		sequence_no: candidate.sequence_no,
+		turn_index: context.turn_index,
+	};
+
+	return [
+		buildNarrationStartedEvent(payloadBase, {
+			run_id: context.run_id,
+			sequence_no: context.sequence_no,
+			trace_id: context.trace_id,
+		}),
+		buildNarrationCompletedEvent(
+			{
+				...payloadBase,
+				full_text: candidate.text,
+			},
+			{
+				run_id: context.run_id,
+				sequence_no: context.sequence_no + 1,
+				trace_id: context.trace_id,
+			},
+		),
+	];
+}
+
 export function countHighFallthroughSignals(modelResponse: ModelResponse): number {
 	return (
 		modelResponse.message.fallthrough_detected?.filter((signal) => signal.confidence === 'high')
@@ -69,6 +123,7 @@ export function buildNarrationEmissionEvents(
 ): NarrationEmissionOutput {
 	const highFallthroughCount = countHighFallthroughSignals(input.model_response);
 	const orderedContent = input.model_response.message.ordered_content ?? [];
+	const emissionPath = resolveNarrationEmissionPath(input.model_response);
 	const classifierOutput = classifyNarration({
 		narration_strategy: resolveNarrationStrategy(input.capabilities),
 		ordered_content: orderedContent,
@@ -79,6 +134,7 @@ export function buildNarrationEmissionEvents(
 	if (classifierOutput.emission_decision !== 'emit') {
 		return {
 			emission_decision: classifierOutput.emission_decision,
+			emission_path: emissionPath,
 			events: [],
 			final_answer_text: classifierOutput.final_answer_text,
 			high_fallthrough_count: highFallthroughCount,
@@ -121,44 +177,63 @@ export function buildNarrationEmissionEvents(
 			turn_index: input.turn_index,
 		};
 
-		events.push(
-			buildNarrationStartedEvent(payloadBase, {
-				run_id: input.run_id,
-				sequence_no: runtimeSequenceNo,
-				trace_id: input.trace_id,
-			}),
-		);
-		runtimeSequenceNo += 1;
-
-		events.push(
-			buildNarrationTokenEvent(
+		if (emissionPath === 'synthetic_non_streaming') {
+			const syntheticEvents = buildSyntheticNarrationEmissionEvents(
 				{
-					...payloadBase,
-					text_delta: guardrailResult.sanitized,
+					linked_tool_call_id: candidate.linked_tool_call_id,
+					sequence_no: candidate.sequence_no,
+					text: guardrailResult.sanitized,
 				},
 				{
+					locale,
 					run_id: input.run_id,
 					sequence_no: runtimeSequenceNo,
 					trace_id: input.trace_id,
+					turn_index: input.turn_index,
 				},
-			),
-		);
-		runtimeSequenceNo += 1;
-
-		events.push(
-			buildNarrationCompletedEvent(
-				{
-					...payloadBase,
-					full_text: guardrailResult.sanitized,
-				},
-				{
+			);
+			events.push(...syntheticEvents);
+			runtimeSequenceNo += syntheticEvents.length;
+		} else {
+			events.push(
+				buildNarrationStartedEvent(payloadBase, {
 					run_id: input.run_id,
 					sequence_no: runtimeSequenceNo,
 					trace_id: input.trace_id,
-				},
-			),
-		);
-		runtimeSequenceNo += 1;
+				}),
+			);
+			runtimeSequenceNo += 1;
+
+			events.push(
+				buildNarrationTokenEvent(
+					{
+						...payloadBase,
+						text_delta: guardrailResult.sanitized,
+					},
+					{
+						run_id: input.run_id,
+						sequence_no: runtimeSequenceNo,
+						trace_id: input.trace_id,
+					},
+				),
+			);
+			runtimeSequenceNo += 1;
+
+			events.push(
+				buildNarrationCompletedEvent(
+					{
+						...payloadBase,
+						full_text: guardrailResult.sanitized,
+					},
+					{
+						run_id: input.run_id,
+						sequence_no: runtimeSequenceNo,
+						trace_id: input.trace_id,
+					},
+				),
+			);
+			runtimeSequenceNo += 1;
+		}
 
 		if (candidate.linked_tool_call_id !== undefined) {
 			linkedNarrations.push({
@@ -171,6 +246,7 @@ export function buildNarrationEmissionEvents(
 
 	return {
 		emission_decision: classifierOutput.emission_decision,
+		emission_path: emissionPath,
 		events,
 		final_answer_text: classifierOutput.final_answer_text,
 		high_fallthrough_count: highFallthroughCount,

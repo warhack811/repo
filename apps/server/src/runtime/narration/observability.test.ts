@@ -29,11 +29,15 @@ describe('narration observability', () => {
 					trace_id: 'trace_1',
 				},
 			),
+			{
+				emission_path: 'wire_streaming',
+			},
 		);
 
 		const serialized = JSON.stringify(fields);
 
 		expect(fields).toMatchObject({
+			emission_path: 'wire_streaming',
 			locale: 'tr',
 			narration_id: 'nar_1',
 			text_length: text.length,
@@ -47,11 +51,14 @@ describe('narration observability', () => {
 			reason: 'deliberation',
 			sequence_no: 2,
 			text: rejectedText,
+		}, {
+			emission_path: 'synthetic_non_streaming',
 		});
 
 		const serialized = JSON.stringify(fields);
 
 		expect(fields).toEqual({
+			emission_path: 'synthetic_non_streaming',
 			reason: 'deliberation',
 			sequence_no: 2,
 			text_length: rejectedText.length,
@@ -70,11 +77,13 @@ describe('narration observability', () => {
 					tool_call_fallthrough_risk: 'known_intermittent',
 				},
 				decision: 'skip_unsupported',
+				emission_path: 'wire_streaming',
 				model: 'model-x',
 				provider: 'unsupported-provider',
 			}),
 		).toEqual({
 			decision: 'skip_unsupported',
+			emission_path: 'wire_streaming',
 			emits_reasoning_content: true,
 			model: 'model-x',
 			narration_strategy: 'unsupported',
@@ -100,6 +109,9 @@ describe('narration observability', () => {
 					trace_id: 'trace_1',
 				},
 			),
+			{
+				emission_path: 'wire_streaming',
+			},
 		);
 		const outcomeFields = createNarrationRuntimeEventLogFields(
 			buildNarrationToolOutcomeLinkedEvent(
@@ -118,13 +130,18 @@ describe('narration observability', () => {
 					trace_id: 'trace_1',
 				},
 			),
+			{
+				emission_path: 'wire_streaming',
+			},
 		);
 
 		expect(supersededFields).toMatchObject({
+			emission_path: 'wire_streaming',
 			narration_id: 'nar_1',
 			sequence_no: 1,
 		});
 		expect(outcomeFields).toMatchObject({
+			emission_path: 'wire_streaming',
 			narration_id: 'nar_1',
 			outcome: 'failure',
 			sequence_no: 1,
