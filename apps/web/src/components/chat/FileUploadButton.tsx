@@ -241,7 +241,13 @@ export function FileUploadButton({
 				className={styles['input']}
 				type="file"
 			/>
-			<label aria-disabled={disabled || isUploading} htmlFor={inputId} className={styles['label']}>
+			<label
+				aria-disabled={disabled || isUploading}
+				aria-label={isUploading ? 'YÃ¼kleniyor...' : 'Dosya ekle'}
+				htmlFor={inputId}
+				className={styles['label']}
+				title={isUploading ? 'YÃ¼kleniyor...' : 'Dosya ekle'}
+			>
 				{icon}
 				<span className="runa-chat-visually-hidden">
 					{isUploading ? 'Yükleniyor...' : 'Dosya ekle'}

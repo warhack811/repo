@@ -396,6 +396,8 @@ export function ConversationSidebar({
 											void handleShareSubmit();
 										}}
 										disabled={isSavingMember}
+										aria-label={isSavingMember ? 'Üye kaydediliyor' : 'Üye ekle veya güncelle'}
+										title={isSavingMember ? 'Üye kaydediliyor' : 'Üye ekle veya güncelle'}
 										className={`runa-button runa-button--secondary ${styles['saveMemberButton']}`}
 									>
 										{isSavingMember ? 'Üye kaydediliyor...' : 'Üye ekle veya güncelle'}

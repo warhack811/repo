@@ -774,3 +774,23 @@
 	height: 18px;
 	width: 18px;
 }
+
+@media (max-width: 640px) {
+	.runa-settings-preference-section .runa-settings-row {
+		align-items: stretch;
+		display: grid;
+		gap: 8px;
+		justify-content: stretch;
+		min-width: 0;
+	}
+
+	.runa-settings-preference-section .runa-settings-row > * {
+		min-width: 0;
+	}
+
+	.runa-settings-preference-section .runa-settings-row select,
+	.runa-settings-preference-section .runa-settings-row output {
+		max-width: 100%;
+		width: 100%;
+	}
+}

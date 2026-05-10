@@ -233,6 +233,7 @@ export function ChatComposerSurface({
 								title="Diğer sohbet araçları"
 							>
 								<SlidersHorizontal aria-hidden="true" size={18} />
+								<span className="runa-chat-visually-hidden">DiÄŸer sohbet araÃ§larÄ±</span>
 							</summary>
 							<div className={`runa-chat-composer-more__content ${styles['moreContent']}`}>
 								<DesktopTargetSelector

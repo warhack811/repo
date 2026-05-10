@@ -32,6 +32,8 @@ export function VoiceComposerControls({
 					type="button"
 					onClick={onToggleListening}
 					disabled={!isVoiceSupported}
+					aria-label={isListening ? 'Dinlemeyi durdur' : 'Sesle yaz'}
+					title={isListening ? 'Dinlemeyi durdur' : 'Sesle yaz'}
 					className={[
 						`runa-button runa-button--secondary${
 							isListening ? ' runa-voice-button--listening' : ''
@@ -49,6 +51,8 @@ export function VoiceComposerControls({
 					type="button"
 					onClick={isSpeaking ? onStopSpeaking : onReadLatestResponse}
 					disabled={!canReadLatestResponse || !isSpeechPlaybackSupported}
+					aria-label={isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
+					title={isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
 					className={`runa-button runa-button--secondary ${styles['speakButton']}`}
 				>
 					{isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
