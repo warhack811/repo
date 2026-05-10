@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+﻿import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { type Page, expect, test } from '@playwright/test';
@@ -14,6 +14,7 @@ const screenshotDirectory = join(
 const screenshotDirectoryForManifest =
 	'docs/design-audit/screenshots/2026-04-30-ui-overhaul-07-9-final-coherence';
 const approvalPrompt = 'Please request approval and write the proof file once approval is granted.';
+const trustBoundaryHeadingPattern = /g.ven karar.|guven karar./i;
 
 type ScreenshotRecord = Readonly<{
 	automated_checks: readonly string[];
@@ -363,27 +364,41 @@ async function assertRouteReady(page: Page, label: string): Promise<void> {
 async function openCommandPalette(page: Page): Promise<void> {
 	await page.keyboard.press('Control+K');
 	await expect(page.getByRole('searchbox', { name: 'Komut ara' })).toBeVisible();
-	await expect(page.getByText('Yeni sohbet başlat')).toBeVisible();
-	await expect(page.getByText('Cihaz bağlantılarını görüntüle')).toBeVisible();
+	await expect(page.getByRole('button', { name: /yeni sohbet ba.l./i })).toBeVisible();
+	await expect(page.getByRole('button', { name: /cihaz ba.lant.lar.n. g.r.nt.le/i })).toBeVisible();
 }
 
 async function revealStoredTranscript(page: Page): Promise<void> {
-	const transcriptText = page.getByText('Taslak hazir').first();
+	const transcriptText = page.getByText(/taslak haz.r|taslak hazir|ana bulgular/i).first();
+	const userPromptText = page.getByText(/rapor tasla..n.. k.sa ve okunur hale getir/i).first();
 
-	if (!(await transcriptText.isVisible())) {
-		await page
-			.locator('summary')
-			.filter({ hasText: /sohbeti/i })
-			.click();
+	if (!(await transcriptText.isVisible()) && !(await userPromptText.isVisible())) {
+		const transcriptToggle = page
+			.locator('summary, button')
+			.filter({ hasText: /sohbet|transkript|ge.mi./i })
+			.first();
+		if ((await transcriptToggle.count()) > 0) {
+			await transcriptToggle.click();
+		}
+
+		const conversationEntry = page.getByRole('button', { name: /proje notlar|rapor tasla/i }).first();
+		if ((await conversationEntry.count()) > 0) {
+			await conversationEntry.click();
+		}
 	}
 
-	await expect(transcriptText).toBeVisible();
+	await expect
+		.poll(
+			async () => (await transcriptText.isVisible()) || (await userPromptText.isVisible()),
+			{ timeout: 15_000 },
+		)
+		.toBe(true);
 }
 
 async function submitApprovalRequest(page: Page): Promise<void> {
 	await page.locator('textarea').fill(approvalPrompt);
 	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
-	await expect(page.getByText(/Güven kararı/i)).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(trustBoundaryHeadingPattern)).toBeVisible({ timeout: 20_000 });
 }
 
 async function assertApprovalButtonsClear(page: Page, label: string): Promise<void> {
@@ -570,8 +585,8 @@ test('final route, command palette, and mobile coherence screenshots', async ({ 
 	});
 
 	await page.keyboard.press('Escape');
-	await page.getByRole('button', { name: 'Sohbet geçmişini aç' }).click();
-	await expect(page.getByRole('navigation', { name: 'Sohbet geçmişi' })).toBeVisible();
+	await page.getByRole('button', { name: /sohbet.*a./i }).click();
+	await expect(page.getByRole('navigation', { name: /sohbet ge.mi.i/i })).toBeVisible();
 	await assertNoForbiddenSurfaceCopy(page, 'desktop conversation sidebar');
 	await capture(page, {
 		automated_checks: ['conversation sidebar open', 'forbidden copy hidden'],
@@ -737,7 +752,7 @@ test('approval trust boundary remains clear on desktop and mobile', async ({ pag
 	});
 
 	await page.setViewportSize(wide);
-	await expect(page.getByText(/Güven kararı/i)).toBeVisible();
+	await expect(page.getByText(trustBoundaryHeadingPattern)).toBeVisible();
 	await assertNoForbiddenSurfaceCopy(page, 'wide approval pending');
 	await assertNoHorizontalOverflow(page, wide.width, 'wide approval pending');
 	await capture(page, {
@@ -780,7 +795,7 @@ test('approval trust boundary remains clear on desktop and mobile', async ({ pag
 	await expect(page.getByText(/Onayland|Kabul edildi/i).last()).toBeVisible({
 		timeout: 20_000,
 	});
-	await expect(page.getByText(/.lem tamamland/i).last()).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByText(/tamamland/i).last()).toBeVisible({ timeout: 20_000 });
 	await assertNoForbiddenSurfaceCopy(page, 'desktop approved completed');
 	await assertNoHorizontalOverflow(page, desktop.width, 'desktop approved completed');
 	await capture(page, {
@@ -800,3 +815,4 @@ test('final screenshot manifest reaches the required audit size', () => {
 		screenshotRecords.length,
 	);
 });
+

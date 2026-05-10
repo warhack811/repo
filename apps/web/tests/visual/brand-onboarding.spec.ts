@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+﻿import { expect, test } from '@playwright/test';
 
 const viewports = [
 	{ height: 568, name: 'mobile-320', width: 320 },
@@ -21,7 +21,9 @@ for (const viewport of viewports) {
 		await page.goto('/tests/visual/ui-overhaul-06-fixture.html');
 
 		await expect(page.getByRole('heading', { name: 'Runa ile devam et' })).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Çalışma ortağın hazır.' })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: /.al..ma orta..n haz.r.|calisma ortagin hazir/i }),
+		).toBeVisible();
 		await page.getByRole('button', { name: 'Atla' }).click();
 		await expect(page.getByTestId('chat-polish')).toBeVisible();
 		await expect(page.getByTestId('settings-polish')).toBeVisible();
@@ -44,3 +46,5 @@ for (const viewport of viewports) {
 		});
 	});
 }
+
+

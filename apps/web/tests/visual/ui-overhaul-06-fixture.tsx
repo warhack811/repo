@@ -76,10 +76,15 @@ function Fixture(): JSX.Element {
 				<section className="runa-page" data-testid="settings-polish">
 					<div className="runa-shell-frame runa-shell-frame--app">
 						<SettingsPage
+							accessToken={null}
 							authContext={authContext}
 							authError={null}
+							brandTheme="teal"
 							isAuthPending={false}
+							onBrandThemeChange={() => undefined}
 							onLogout={async () => undefined}
+							onThemeChange={() => undefined}
+							theme="system"
 						/>
 					</div>
 				</section>
