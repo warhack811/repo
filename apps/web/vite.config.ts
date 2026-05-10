@@ -11,6 +11,12 @@ const shouldAnalyzeBundle = process.env['ANALYZE'] === 'true';
 const devServerPort = Number(process.env['RUNA_E2E_SERVER_PORT'] ?? '3000');
 const devHttpTarget = `http://127.0.0.1:${devServerPort}`;
 const devWsTarget = `ws://127.0.0.1:${devServerPort}`;
+const workspaceRoot = resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
+const normalizedWorkspaceRoot = workspaceRoot.replaceAll('\\', '/').toLowerCase();
+const workspaceAttestationId = createHash('sha256')
+	.update(normalizedWorkspaceRoot)
+	.digest('hex')
+	.slice(0, 16);
 
 interface NodeError extends Error {
 	readonly code?: string;
