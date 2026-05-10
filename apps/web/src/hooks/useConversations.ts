@@ -388,6 +388,10 @@ async function fetchConversationMessages(
 	});
 
 	if (!response.ok) {
+		if (response.status === 404 || response.status === 503) {
+			return [];
+		}
+
 		throw new Error(await readErrorMessage(response));
 	}
 
@@ -414,6 +418,10 @@ async function fetchConversationMembers(
 	});
 
 	if (!response.ok) {
+		if (response.status === 404 || response.status === 503) {
+			return [];
+		}
+
 		throw new Error(await readErrorMessage(response));
 	}
 
@@ -540,6 +548,18 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 	}, [activeConversationId]);
 
 	useEffect(() => {
+		if (
+			activeConversationId &&
+			conversations.length > 0 &&
+			!conversations.some((conversation) => conversation.conversation_id === activeConversationId)
+		) {
+			setActiveConversationId(conversations[0]?.conversation_id ?? null);
+			setActiveConversationMessages([]);
+			setActiveConversationRunSurfaces([]);
+			setActiveConversationMembers([]);
+			return;
+		}
+
 		if (!activeConversationId) {
 			setActiveConversationMessages([]);
 			setActiveConversationRunSurfaces([]);
@@ -600,9 +620,19 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 			isCancelled = true;
 			controller.abort();
 		};
-	}, [accessToken, activeConversationId]);
+	}, [accessToken, activeConversationId, conversations]);
 
 	useEffect(() => {
+		if (
+			activeConversationId &&
+			conversations.length > 0 &&
+			!conversations.some((conversation) => conversation.conversation_id === activeConversationId)
+		) {
+			setActiveConversationMembers([]);
+			setMemberError(null);
+			return;
+		}
+
 		if (!activeConversationId) {
 			setActiveConversationMembers([]);
 			setMemberError(null);
@@ -648,7 +678,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 			isCancelled = true;
 			controller.abort();
 		};
-	}, [accessToken, activeConversationId]);
+	}, [accessToken, activeConversationId, conversations]);
 
 	const activeConversationSummary =
 		conversations.find((conversation) => conversation.conversation_id === activeConversationId) ??
