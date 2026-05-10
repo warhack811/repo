@@ -517,6 +517,134 @@ describe('runToolStep', () => {
 		});
 	});
 
+	it('derives edit.patch approval target from explicit target_path', async () => {
+		const registry = new ToolRegistry();
+
+		registry.register(
+			createFakeTool(
+				'edit.patch',
+				async () => ({
+					call_id: 'call_edit_patch_target_path',
+					output: {
+						ok: true,
+					},
+					status: 'success',
+					tool_name: 'edit.patch',
+				}),
+				{
+					requires_approval: true,
+					risk_level: 'medium',
+					side_effect_level: 'write',
+				},
+			),
+		);
+
+		const result = await runToolStep({
+			current_state: 'MODEL_THINKING',
+			execution_context: createExecutionContext(),
+			registry,
+			run_id: 'run_edit_patch_target_path',
+			tool_input: {
+				arguments: {
+					patch: [
+						'diff --git a/src/app.ts b/src/app.ts',
+						'--- a/src/app.ts',
+						'+++ b/src/app.ts',
+						'@@ -1 +1 @@',
+						'-before',
+						'+after',
+						'',
+					].join('\n'),
+					target_path: 'src/app.ts',
+				},
+				call_id: 'call_edit_patch_target_path',
+				tool_name: 'edit.patch',
+			},
+			tool_name: 'edit.patch',
+			trace_id: 'trace_edit_patch_target_path',
+		});
+
+		expect(result.status).toBe('approval_required');
+
+		if (result.status !== 'approval_required') {
+			throw new Error('Expected approval-required result for edit.patch.');
+		}
+
+		expect(result.approval_request.target).toMatchObject({
+			call_id: 'call_edit_patch_target_path',
+			kind: 'file_path',
+			label: resolve(process.cwd(), 'src/app.ts'),
+			path: resolve(process.cwd(), 'src/app.ts'),
+			tool_name: 'edit.patch',
+		});
+	});
+
+	it('marks edit.patch approval target as ambiguous for multi-file patches', async () => {
+		const registry = new ToolRegistry();
+
+		registry.register(
+			createFakeTool(
+				'edit.patch',
+				async () => ({
+					call_id: 'call_edit_patch_multi',
+					output: {
+						ok: true,
+					},
+					status: 'success',
+					tool_name: 'edit.patch',
+				}),
+				{
+					requires_approval: true,
+					risk_level: 'medium',
+					side_effect_level: 'write',
+				},
+			),
+		);
+
+		const result = await runToolStep({
+			current_state: 'MODEL_THINKING',
+			execution_context: createExecutionContext(),
+			registry,
+			run_id: 'run_edit_patch_multi',
+			tool_input: {
+				arguments: {
+					patch: [
+						'diff --git a/a.txt b/a.txt',
+						'--- a/a.txt',
+						'+++ b/a.txt',
+						'@@ -1 +1 @@',
+						'-a',
+						'+aa',
+						'diff --git a/b.txt b/b.txt',
+						'--- a/b.txt',
+						'+++ b/b.txt',
+						'@@ -1 +1 @@',
+						'-b',
+						'+bb',
+						'',
+					].join('\n'),
+				},
+				call_id: 'call_edit_patch_multi',
+				tool_name: 'edit.patch',
+			},
+			tool_name: 'edit.patch',
+			trace_id: 'trace_edit_patch_multi',
+		});
+
+		expect(result.status).toBe('approval_required');
+
+		if (result.status !== 'approval_required') {
+			throw new Error('Expected approval-required result for multi-file edit.patch.');
+		}
+
+		expect(result.approval_request.target).toMatchObject({
+			call_id: 'call_edit_patch_multi',
+			kind: 'tool_call',
+			label: 'edit.patch (multi-file: 2 dosya)',
+			tool_name: 'edit.patch',
+		});
+	});
+
 	it('executes an approval-gated tool when bypass_approval_gate is explicitly enabled', async () => {
 		const registry = new ToolRegistry();
 		const persistence = createPersistenceRecorder();

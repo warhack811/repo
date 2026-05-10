@@ -478,3 +478,22 @@
 
 - 29 Nisan 2026 ve onceki Core Hardening kayitlari `docs/archive/progress-2026-04-core-hardening.md` altina tasindi.
 - Sprint 1-6 ve daha eski kayitlar icin `docs/archive/progress-phase1.md` ve `docs/archive/progress-sprint1-5.md` kullanilir.
+
+### TASK-EDIT-PATCH-TARGET-HARDENING - 10 Mayis 2026
+
+- Problem: `edit.patch` cok adimli dosya senaryolarinda yanlis hedefe kayma ve corrupt patch durumunda guvenilirlik riski uretiyordu.
+- Degisiklik:
+  - `edit.patch` contract'ina optional `target_path` eklendi ve explicit target identity dogrulamasi getirildi.
+  - Preflight fail-closed kontrolleri eklendi: `target_path` workspace disi, patch header workspace disi, single-target mismatch ve ambiguous target durumlari apply oncesi bloklaniyor.
+  - Approval target cozumleme `edit.patch` icin guclendirildi (`run-tool-step` + `run-execution`): explicit `target_path` varsa file path gosteriliyor, yoksa patch header'dan cozuluyor, multi-file patch'te ambiguity etiketi donuyor.
+  - Regression testleri genisletildi: mismatch fail-closed, same filename farkli klasor izolasyonu, backslash target normalize davranisi, approval target propagation ve multi-file ambiguity.
+  - Minimal context hardening: core tool strategy kurallarina `edit.patch` + `target_path` hizalama kurali eklendi.
+- Dogrulama komutlari:
+  - `pnpm.cmd --filter @runa/server test -- edit-patch` PASS
+  - `pnpm.cmd --filter @runa/server test -- run-tool-step` PASS
+  - `pnpm.cmd --filter @runa/server test -- run-execution` PASS
+  - `pnpm.cmd --filter @runa/server test -- live-request` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS
+  - `pnpm.cmd --filter @runa/server test` FAIL (task-disi mevcut baseline kirmizi: `shell-exec`, `shell-session`, `ws/register-ws` testlerinde var olan ortam/baseline kaynakli hatalar)
+- Kalan risk: legacy patch-only cagri yolu geriye donuk uyum nedeniyle acik; `target_path` model tarafinda her zaman uretilmedigi surece header-derived fallback devam eder (approval'da gorunur ambiguity sinyali veriliyor).

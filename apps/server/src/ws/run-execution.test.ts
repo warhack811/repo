@@ -1,5 +1,5 @@
-import type { AuthContext, RenderBlock, RuntimeEvent } from '@runa/types';
 import { resolve as resolvePath } from 'node:path';
+import type { AuthContext, RenderBlock, RuntimeEvent } from '@runa/types';
 import { describe, expect, it, vi } from 'vitest';
 
 import { composeContext } from '../context/compose-context.js';
@@ -514,6 +514,67 @@ describe('resolveApprovalTarget', () => {
 			kind: 'tool_call',
 			label: 'QA Windows',
 			tool_name: 'desktop.click',
+		});
+	});
+
+	it('resolves edit.patch approval target from explicit target_path', () => {
+		const result = resolveApprovalTarget({
+			call_id: 'call_edit_patch_target',
+			tool_input: {
+				patch: [
+					'diff --git a/src/main.ts b/src/main.ts',
+					'--- a/src/main.ts',
+					'+++ b/src/main.ts',
+					'@@ -1 +1 @@',
+					'-old',
+					'+new',
+					'',
+				].join('\n'),
+				target_path: 'src/main.ts',
+			},
+			tool_name: 'edit.patch',
+			working_directory: 'D:/ai/Runa',
+		});
+
+		expect(result).toEqual({
+			call_id: 'call_edit_patch_target',
+			kind: 'file_path',
+			label: resolvePath('D:/ai/Runa', 'src/main.ts'),
+			path: resolvePath('D:/ai/Runa', 'src/main.ts'),
+			tool_name: 'edit.patch',
+		});
+	});
+
+	it('shows explicit ambiguity for multi-file edit.patch approval targets', () => {
+		const result = resolveApprovalTarget({
+			call_id: 'call_edit_patch_multi',
+			tool_input: {
+				patch: [
+					'diff --git a/a.txt b/a.txt',
+					'--- a/a.txt',
+					'+++ b/a.txt',
+					'@@ -1 +1 @@',
+					'-a',
+					'+aa',
+					'diff --git a/b.txt b/b.txt',
+					'--- a/b.txt',
+					'+++ b/b.txt',
+					'@@ -1 +1 @@',
+					'-b',
+					'+bb',
+					'',
+				].join('\n'),
+			},
+			tool_name: 'edit.patch',
+			working_directory: 'D:/ai/Runa',
+		});
+
+		expect(result).toEqual({
+			call_id: 'call_edit_patch_multi',
+			kind: 'tool_call',
+			label: 'edit.patch (multi-file: 2 dosya)',
+			path: undefined,
+			tool_name: 'edit.patch',
 		});
 	});
 });

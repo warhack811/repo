@@ -87,6 +87,7 @@ const TOOL_STRATEGY_RULES = [
 	'For multi-file changes, plan the full sequence before starting modifications.',
 	'After file modifications, verify with git.status or file.read to confirm changes.',
 	'Prefer edit.patch over file.write for modifying existing files — it is safer and more precise.',
+	'When using edit.patch, provide explicit target_path and keep it aligned with patch headers to avoid wrong-file edits.',
 	'Chain tools logically: search → read → analyze → modify → verify.',
 	'For desktop automation, batch related safe actions before verification: screenshot or inspect once when orientation is needed, perform the approved action sequence, then verify once with the cheapest reliable signal. Do not loop screenshots, keypresses, or clipboard reads for the same objective after a successful tool result; summarize or ask the user if uncertainty remains.',
 	'Do not use tools for simple greetings, acknowledgments, or conversational filler; answer directly.',

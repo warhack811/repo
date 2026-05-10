@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import type {
 	ToolArguments,
@@ -14,6 +14,12 @@ import type {
 } from '@runa/types';
 
 import {
+	canonicalPathIdentity,
+	extractEditPatchTargetPath,
+	parsePatchHeaderTargets,
+	resolvePathWithinWorkingDirectory,
+} from './edit-patch-targeting.js';
+import {
 	type ToolEffectIdempotencyStore,
 	buildToolEffectIdempotencyKey,
 	defaultToolEffectIdempotencyStore,
@@ -21,6 +27,7 @@ import {
 
 export type EditPatchArguments = ToolArguments & {
 	readonly patch: string;
+	readonly target_path?: string;
 	readonly working_directory?: string;
 };
 
@@ -53,6 +60,11 @@ interface EditPatchDependencies {
 interface PatchTargetsResult {
 	readonly affected_files?: readonly string[];
 	readonly error?: EditPatchErrorResult;
+}
+
+interface ExplicitTargetIdentity {
+	readonly expected_target?: string;
+	readonly resolved_target?: string;
 }
 
 function resolveWorkingDirectory(input: EditPatchInput, context: ToolExecutionContext): string {
@@ -189,122 +201,29 @@ function executeGitCommand(
 	});
 }
 
-function normalizePatchPath(rawPath: string): string | undefined {
-	const trimmedPath = rawPath.split('\t')[0]?.trim();
-
-	if (!trimmedPath || trimmedPath === '/dev/null') {
-		return undefined;
-	}
-
-	let normalizedPath = trimmedPath;
-
-	if (normalizedPath.startsWith('"') && normalizedPath.endsWith('"')) {
-		normalizedPath = normalizedPath.slice(1, -1);
-	}
-
-	if (normalizedPath.startsWith('a/') || normalizedPath.startsWith('b/')) {
-		normalizedPath = normalizedPath.slice(2);
-	}
-
-	if (normalizedPath.startsWith('./')) {
-		normalizedPath = normalizedPath.slice(2);
-	}
-
-	return normalizedPath.trim().length > 0 ? normalizedPath.trim() : undefined;
-}
-
 function collectPatchTargets(input: EditPatchInput, workingDirectory: string): PatchTargetsResult {
-	const patchText = input.arguments.patch;
+	const patchText = typeof input.arguments.patch === 'string' ? input.arguments.patch : '';
+	const parseResult = parsePatchHeaderTargets(patchText);
 
-	if (typeof patchText !== 'string' || patchText.trim().length === 0) {
-		return {
-			error: createErrorResult(
-				input,
-				'INVALID_INPUT',
-				'patch must be a non-empty unified diff string.',
-				workingDirectory,
-				{
-					reason: 'empty_patch',
-				},
-				false,
-			),
+	if (parseResult.status === 'error') {
+		const errorMessages: Record<string, string> = {
+			empty_patch: 'patch must be a non-empty unified diff string.',
+			invalid_patch_format: 'patch must contain paired --- and +++ file headers.',
+			invalid_patch_target: 'patch contains an invalid target file path.',
+			missing_patch_targets: 'patch does not describe any file modifications.',
+			unsupported_patch_mode:
+				'edit.patch foundation only supports modifications to existing files.',
 		};
-	}
 
-	const lines = patchText.split(/\r?\n/u);
-	const affectedFiles: string[] = [];
-
-	for (let index = 0; index < lines.length; index += 1) {
-		const line = lines[index] ?? '';
-
-		if (!line.startsWith('--- ')) {
-			continue;
-		}
-
-		const nextLine = lines[index + 1] ?? '';
-
-		if (!nextLine.startsWith('+++ ')) {
-			return {
-				error: createErrorResult(
-					input,
-					'INVALID_INPUT',
-					'patch must contain paired --- and +++ file headers.',
-					workingDirectory,
-					{
-						reason: 'invalid_patch_format',
-					},
-					false,
-				),
-			};
-		}
-
-		const oldPath = line.slice(4).trim();
-		const newPath = nextLine.slice(4).trim();
-
-		if (oldPath === '/dev/null' || newPath === '/dev/null') {
-			return {
-				error: createErrorResult(
-					input,
-					'INVALID_INPUT',
-					'edit.patch foundation only supports modifications to existing files.',
-					workingDirectory,
-					{
-						reason: 'unsupported_patch_mode',
-					},
-					false,
-				),
-			};
-		}
-
-		const normalizedNewPath = normalizePatchPath(newPath);
-
-		if (!normalizedNewPath) {
-			return {
-				error: createErrorResult(
-					input,
-					'INVALID_INPUT',
-					'patch contains an invalid target file path.',
-					workingDirectory,
-					{
-						reason: 'invalid_patch_target',
-					},
-					false,
-				),
-			};
-		}
-
-		affectedFiles.push(normalizedNewPath);
-	}
-
-	if (affectedFiles.length === 0) {
 		return {
 			error: createErrorResult(
 				input,
 				'INVALID_INPUT',
-				'patch does not describe any file modifications.',
+				errorMessages[parseResult.reason] ?? 'patch contains invalid file headers.',
 				workingDirectory,
 				{
-					reason: 'missing_patch_targets',
+					reason: parseResult.reason,
+					validation_stage: 'parse_patch_headers',
 				},
 				false,
 			),
@@ -312,7 +231,151 @@ function collectPatchTargets(input: EditPatchInput, workingDirectory: string): P
 	}
 
 	return {
-		affected_files: [...new Set(affectedFiles)].sort((left, right) => left.localeCompare(right)),
+		affected_files: parseResult.header_paths,
+	};
+}
+
+function buildTargetIdentityDetails(
+	identity: ExplicitTargetIdentity,
+	patchHeaderPaths: readonly string[],
+	reason: string,
+	validationStage: string,
+): Readonly<Record<string, unknown>> {
+	return {
+		expected_target: identity.expected_target,
+		patch_header_paths: patchHeaderPaths,
+		reason,
+		resolved_target: identity.resolved_target,
+		validation_stage: validationStage,
+	};
+}
+
+function validateExplicitTargetIdentity(
+	input: EditPatchInput,
+	workingDirectory: string,
+	affectedFiles: readonly string[],
+): {
+	readonly error?: EditPatchErrorResult;
+	readonly target_identity: ExplicitTargetIdentity;
+} {
+	const targetPath = extractEditPatchTargetPath(input.arguments);
+
+	if (!targetPath) {
+		return {
+			target_identity: {},
+		};
+	}
+
+	const resolvedTarget = resolvePathWithinWorkingDirectory(workingDirectory, targetPath);
+	const targetIdentity: ExplicitTargetIdentity = {
+		expected_target: targetPath,
+		resolved_target: resolvedTarget.resolved_path,
+	};
+
+	if (resolvedTarget.escapes_workspace) {
+		return {
+			error: createErrorResult(
+				input,
+				'PERMISSION_DENIED',
+				`target_path escapes the working directory: ${targetPath}`,
+				workingDirectory,
+				buildTargetIdentityDetails(
+					targetIdentity,
+					affectedFiles,
+					'target_path_outside_workspace',
+					'resolve_target_path',
+				),
+				false,
+			),
+			target_identity: targetIdentity,
+		};
+	}
+
+	if (affectedFiles.length !== 1) {
+		return {
+			error: createErrorResult(
+				input,
+				'INVALID_INPUT',
+				'target_path requires a single-file patch header target.',
+				workingDirectory,
+				buildTargetIdentityDetails(
+					targetIdentity,
+					affectedFiles,
+					'ambiguous_patch_target',
+					'validate_target_identity',
+				),
+				false,
+			),
+			target_identity: targetIdentity,
+		};
+	}
+
+	const onlyHeaderPath = affectedFiles[0];
+
+	if (!onlyHeaderPath) {
+		return {
+			error: createErrorResult(
+				input,
+				'INVALID_INPUT',
+				'patch header target is missing.',
+				workingDirectory,
+				buildTargetIdentityDetails(
+					targetIdentity,
+					affectedFiles,
+					'missing_patch_targets',
+					'validate_target_identity',
+				),
+				false,
+			),
+			target_identity: targetIdentity,
+		};
+	}
+
+	const resolvedHeaderTarget = resolvePathWithinWorkingDirectory(workingDirectory, onlyHeaderPath);
+
+	if (resolvedHeaderTarget.escapes_workspace) {
+		return {
+			error: createErrorResult(
+				input,
+				'PERMISSION_DENIED',
+				`Patch header target escapes the working directory: ${onlyHeaderPath}`,
+				workingDirectory,
+				buildTargetIdentityDetails(
+					targetIdentity,
+					affectedFiles,
+					'patch_header_path_outside_workspace',
+					'validate_target_identity',
+				),
+				false,
+			),
+			target_identity: targetIdentity,
+		};
+	}
+
+	if (
+		canonicalPathIdentity(resolvedHeaderTarget.resolved_path) !==
+		canonicalPathIdentity(resolvedTarget.resolved_path)
+	) {
+		return {
+			error: createErrorResult(
+				input,
+				'INVALID_INPUT',
+				'target_path does not match the patch header target.',
+				workingDirectory,
+				buildTargetIdentityDetails(
+					targetIdentity,
+					affectedFiles,
+					'target_path_mismatch',
+					'validate_target_identity',
+				),
+				false,
+			),
+			target_identity: targetIdentity,
+		};
+	}
+
+	return {
+		target_identity: targetIdentity,
 	};
 }
 
@@ -379,27 +442,29 @@ async function validateAffectedFiles(
 	workingDirectory: string,
 	affectedFiles: readonly string[],
 	dependencies: EditPatchDependencies,
+	targetIdentity: ExplicitTargetIdentity,
 ): Promise<EditPatchErrorResult | undefined> {
 	for (const affectedFile of affectedFiles) {
-		const resolvedTargetPath = resolve(workingDirectory, affectedFile);
-		const relativeTargetPath = relative(workingDirectory, resolvedTargetPath);
+		const resolvedTargetPath = resolvePathWithinWorkingDirectory(workingDirectory, affectedFile);
 
-		if (relativeTargetPath.startsWith('..') || isAbsolute(relativeTargetPath)) {
+		if (resolvedTargetPath.escapes_workspace) {
 			return createErrorResult(
 				input,
 				'PERMISSION_DENIED',
 				`Patch target escapes the working directory: ${affectedFile}`,
 				workingDirectory,
-				{
-					path: affectedFile,
-					reason: 'path_outside_working_directory',
-				},
+				buildTargetIdentityDetails(
+					targetIdentity,
+					affectedFiles,
+					'patch_header_path_outside_workspace',
+					'validate_patch_targets',
+				),
 				false,
 			);
 		}
 
 		try {
-			const targetStats = await dependencies.stat(resolvedTargetPath);
+			const targetStats = await dependencies.stat(resolvedTargetPath.resolved_path);
 
 			if (!targetStats.isFile()) {
 				return createErrorResult(
@@ -410,6 +475,12 @@ async function validateAffectedFiles(
 					{
 						path: affectedFile,
 						reason: 'patch_target_not_file',
+						...buildTargetIdentityDetails(
+							targetIdentity,
+							affectedFiles,
+							'patch_target_not_file',
+							'validate_patch_targets',
+						),
 					},
 					false,
 				);
@@ -424,6 +495,12 @@ async function validateAffectedFiles(
 					{
 						path: affectedFile,
 						reason: 'patch_target_missing',
+						...buildTargetIdentityDetails(
+							targetIdentity,
+							affectedFiles,
+							'patch_target_missing',
+							'validate_patch_targets',
+						),
 					},
 					false,
 				);
@@ -437,6 +514,12 @@ async function validateAffectedFiles(
 					workingDirectory,
 					{
 						path: affectedFile,
+						...buildTargetIdentityDetails(
+							targetIdentity,
+							affectedFiles,
+							'patch_target_validation_failed',
+							'validate_patch_targets',
+						),
 					},
 					false,
 				);
@@ -449,6 +532,12 @@ async function validateAffectedFiles(
 				workingDirectory,
 				{
 					path: affectedFile,
+					...buildTargetIdentityDetails(
+						targetIdentity,
+						affectedFiles,
+						'patch_target_validation_failed',
+						'validate_patch_targets',
+					),
 				},
 				false,
 			);
@@ -494,6 +583,8 @@ function toEditPatchErrorResult(
 	input: EditPatchInput,
 	workingDirectory: string,
 	error: unknown,
+	targetIdentity: ExplicitTargetIdentity,
+	patchHeaderPaths: readonly string[],
 ): EditPatchErrorResult {
 	const stderr = extractStderr(error).trim();
 	const errorCode = extractErrorCode(error);
@@ -504,9 +595,12 @@ function toEditPatchErrorResult(
 			'NOT_FOUND',
 			'Git executable not found.',
 			workingDirectory,
-			{
-				reason: 'git_not_installed',
-			},
+			buildTargetIdentityDetails(
+				targetIdentity,
+				patchHeaderPaths,
+				'git_not_installed',
+				'patch_apply',
+			),
 			false,
 		);
 	}
@@ -517,7 +611,12 @@ function toEditPatchErrorResult(
 			'PERMISSION_DENIED',
 			`Permission denied while applying patch: ${workingDirectory}`,
 			workingDirectory,
-			undefined,
+			buildTargetIdentityDetails(
+				targetIdentity,
+				patchHeaderPaths,
+				'patch_apply_permission_denied',
+				'patch_apply',
+			),
 			false,
 		);
 	}
@@ -528,9 +627,12 @@ function toEditPatchErrorResult(
 			'INVALID_INPUT',
 			`Patch could not be applied: ${stderr}`,
 			workingDirectory,
-			{
-				reason: 'patch_apply_failed',
-			},
+			buildTargetIdentityDetails(
+				targetIdentity,
+				patchHeaderPaths,
+				'patch_apply_failed',
+				'patch_apply',
+			),
 			false,
 		);
 	}
@@ -541,9 +643,12 @@ function toEditPatchErrorResult(
 			'EXECUTION_FAILED',
 			`Patch could not be applied: ${error.message}`,
 			workingDirectory,
-			{
-				reason: 'patch_apply_failed',
-			},
+			buildTargetIdentityDetails(
+				targetIdentity,
+				patchHeaderPaths,
+				'patch_apply_failed',
+				'patch_apply',
+			),
 			false,
 		);
 	}
@@ -553,9 +658,12 @@ function toEditPatchErrorResult(
 		'UNKNOWN',
 		`Patch could not be applied in ${workingDirectory}`,
 		workingDirectory,
-		{
-			reason: 'patch_apply_failed',
-		},
+		buildTargetIdentityDetails(
+			targetIdentity,
+			patchHeaderPaths,
+			'patch_apply_failed',
+			'patch_apply',
+		),
 		false,
 	);
 }
@@ -578,6 +686,11 @@ export function createEditPatchTool(
 					required: true,
 					type: 'string',
 				},
+				target_path: {
+					description:
+						'Strongly recommended explicit target file path. Must resolve to the same file as patch headers when provided.',
+					type: 'string',
+				},
 				working_directory: {
 					description: 'Optional working directory override.',
 					type: 'string',
@@ -585,7 +698,7 @@ export function createEditPatchTool(
 			},
 		},
 		description:
-			'Applies a narrow unified diff patch to existing files inside the current workspace.',
+			'Applies a narrow unified diff patch to existing files inside the current workspace. Prefer providing target_path to harden file-target identity.',
 		async execute(input, context): Promise<EditPatchResult> {
 			const workingDirectory = resolveWorkingDirectory(input, context);
 			const workingDirectoryError = await validateWorkingDirectory(
@@ -605,6 +718,17 @@ export function createEditPatchTool(
 			}
 
 			const affectedFiles = patchTargetsResult.affected_files ?? [];
+			const targetIdentityResult = validateExplicitTargetIdentity(
+				input,
+				workingDirectory,
+				affectedFiles,
+			);
+
+			if (targetIdentityResult.error) {
+				return targetIdentityResult.error;
+			}
+
+			const targetIdentity = targetIdentityResult.target_identity;
 			const idempotencyKey = buildToolEffectIdempotencyKey({
 				payload: {
 					affected_files: affectedFiles,
@@ -619,6 +743,7 @@ export function createEditPatchTool(
 				workingDirectory,
 				affectedFiles,
 				dependencies,
+				targetIdentity,
 			);
 
 			if (affectedFilesError) {
@@ -667,7 +792,13 @@ export function createEditPatchTool(
 					working_directory: workingDirectory,
 				});
 			} catch (error: unknown) {
-				return toEditPatchErrorResult(input, workingDirectory, error);
+				return toEditPatchErrorResult(
+					input,
+					workingDirectory,
+					error,
+					targetIdentity,
+					affectedFiles,
+				);
 			} finally {
 				if (patchDirectory) {
 					await dependencies.rm(patchDirectory, {

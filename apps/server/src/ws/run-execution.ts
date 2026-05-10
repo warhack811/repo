@@ -1,3 +1,4 @@
+import { resolve as resolvePath } from 'node:path';
 import type {
 	AnyRuntimeEvent,
 	ApprovalTarget,
@@ -19,7 +20,6 @@ import type {
 	TurnProgressEvent,
 } from '@runa/types';
 import { unwrapRedacted } from '@runa/types';
-import { resolve as resolvePath } from 'node:path';
 
 import type { WorkspaceLayer } from '../context/compose-workspace-context.js';
 import { GatewayUnsupportedOperationError } from '../gateway/errors.js';
@@ -98,6 +98,7 @@ import {
 } from '../runtime/tool-scheduler.js';
 import { createDesktopVerifyStateTool } from '../tools/desktop-verify-state.js';
 import { createDesktopVisionAnalyzeTool } from '../tools/desktop-vision-analyze.js';
+import { resolveEditPatchApprovalTargetHint } from '../tools/edit-patch-targeting.js';
 import { ToolRegistry } from '../tools/registry.js';
 import { createLogger, startLogSpan } from '../utils/logger.js';
 import {
@@ -381,30 +382,49 @@ function resolveDesktopApprovalTarget(
 	};
 }
 
-function resolveFileWriteApprovalTarget(input: {
+function resolveWritableToolApprovalTarget(input: {
 	readonly call_id: string;
 	readonly tool_input: Readonly<Record<string, unknown>>;
 	readonly tool_name: ToolDefinition['name'];
 	readonly working_directory: string;
 }): ApprovalTarget | undefined {
-	if (input.tool_name !== 'file.write') {
+	if (input.tool_name !== 'file.write' && input.tool_name !== 'edit.patch') {
 		return undefined;
 	}
 
-	const pathValue =
-		typeof input.tool_input['path'] === 'string' ? input.tool_input['path'].trim() : '';
+	if (input.tool_name === 'file.write') {
+		const pathValue =
+			typeof input.tool_input['path'] === 'string' ? input.tool_input['path'].trim() : '';
 
-	if (pathValue.length === 0) {
-		return undefined;
+		if (pathValue.length === 0) {
+			return undefined;
+		}
+
+		const resolvedPath = resolvePath(input.working_directory, pathValue);
+
+		return {
+			call_id: input.call_id,
+			kind: 'file_path',
+			label: resolvedPath,
+			path: resolvedPath,
+			tool_name: input.tool_name,
+		};
 	}
 
-	const resolvedPath = resolvePath(input.working_directory, pathValue);
+	const editPatchHint = resolveEditPatchApprovalTargetHint({
+		arguments_value: input.tool_input,
+		working_directory: input.working_directory,
+	});
+
+	if (!editPatchHint) {
+		return undefined;
+	}
 
 	return {
 		call_id: input.call_id,
-		kind: 'file_path',
-		label: resolvedPath,
-		path: resolvedPath,
+		kind: editPatchHint.kind,
+		label: editPatchHint.label,
+		path: editPatchHint.path,
 		tool_name: input.tool_name,
 	};
 }
@@ -430,7 +450,7 @@ export function resolveApprovalTarget(input: {
 		return desktopTarget;
 	}
 
-	return resolveFileWriteApprovalTarget({
+	return resolveWritableToolApprovalTarget({
 		call_id: input.call_id,
 		tool_input: input.tool_input,
 		tool_name: input.tool_name,

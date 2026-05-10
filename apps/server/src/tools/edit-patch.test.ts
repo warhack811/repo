@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -40,10 +40,11 @@ async function createCommittedGitWorkspace(): Promise<string> {
 	return workspace;
 }
 
-function createInput(patch: string, working_directory?: string) {
+function createInput(patch: string, working_directory?: string, target_path?: string) {
 	return {
 		arguments: {
 			patch,
+			target_path,
 			working_directory,
 		},
 		call_id: 'call_edit_patch',
@@ -111,6 +112,116 @@ describe('editPatchTool', () => {
 	);
 
 	it(
+		'applies patch when target_path matches patch header target',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
+
+			try {
+				const result = await editPatchTool.execute(
+					createInput(createValidPatch(), undefined, 'note.txt'),
+					createContext(workspace),
+				);
+
+				expect(result.status).toBe('success');
+
+				if (result.status !== 'success') {
+					throw new Error('Expected a success result for edit.patch target_path match.');
+				}
+
+				expect(result.output).toMatchObject({
+					affected_files: ['note.txt'],
+					effect: 'applied',
+				});
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
+
+	it(
+		'fails closed when target_path mismatches patch header target',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
+			await writeFile(join(workspace, 'other.txt'), 'before\n');
+			await runGit(['add', 'other.txt'], workspace);
+			await runGit(['commit', '--quiet', '-m', 'add other'], workspace);
+			const mismatchedPatch = [
+				'diff --git a/other.txt b/other.txt',
+				'--- a/other.txt',
+				'+++ b/other.txt',
+				'@@ -1 +1 @@',
+				'-before',
+				'+after',
+				'',
+			].join('\n');
+
+			try {
+				const result = await editPatchTool.execute(
+					createInput(mismatchedPatch, undefined, 'note.txt'),
+					createContext(workspace),
+				);
+
+				expect(result).toMatchObject({
+					error_code: 'INVALID_INPUT',
+					status: 'error',
+					tool_name: 'edit.patch',
+				});
+
+				if (result.status !== 'error') {
+					throw new Error('Expected target_path mismatch to fail closed.');
+				}
+
+				expect(result.details).toMatchObject({
+					expected_target: 'note.txt',
+					patch_header_paths: ['other.txt'],
+					reason: 'target_path_mismatch',
+					validation_stage: 'validate_target_identity',
+				});
+
+				const untouchedOther = await readFile(join(workspace, 'other.txt'), 'utf8');
+				expect(untouchedOther.replaceAll('\r\n', '\n')).toBe('before\n');
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
+
+	it(
+		'fails when target_path escapes workspace',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
+
+			try {
+				const result = await editPatchTool.execute(
+					createInput(createValidPatch(), undefined, '../outside.txt'),
+					createContext(workspace),
+				);
+
+				expect(result).toMatchObject({
+					error_code: 'PERMISSION_DENIED',
+					status: 'error',
+					tool_name: 'edit.patch',
+				});
+
+				if (result.status !== 'error') {
+					throw new Error('Expected target_path outside workspace to fail.');
+				}
+
+				expect(result.details).toMatchObject({
+					expected_target: '../outside.txt',
+					reason: 'target_path_outside_workspace',
+					validation_stage: 'resolve_target_path',
+				});
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
+
+	it(
 		'returns a typed error result for an invalid patch',
 		async () => {
 			const workspace = await createCommittedGitWorkspace();
@@ -155,6 +266,77 @@ describe('editPatchTool', () => {
 					status: 'error',
 					tool_name: 'edit.patch',
 				});
+
+				if (result.status !== 'error') {
+					throw new Error('Expected patch target escape failure.');
+				}
+
+				expect(result.details).toMatchObject({
+					patch_header_paths: ['../outside.txt'],
+					reason: 'patch_header_path_outside_workspace',
+				});
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
+
+	it(
+		'normalizes Windows-style backslash target_path for explicit target matching',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
+
+			try {
+				const result = await editPatchTool.execute(
+					createInput(createValidPatch(), undefined, '.\\note.txt'),
+					createContext(workspace),
+				);
+
+				expect(result.status).toBe('success');
+			} finally {
+				await rm(workspace, { force: true, recursive: true });
+			}
+		},
+		GIT_BACKED_TOOL_TEST_TIMEOUT_MS,
+	);
+
+	it(
+		'enforces explicit path identity when same filename exists in multiple directories',
+		async () => {
+			const workspace = await createCommittedGitWorkspace();
+			await mkdir(join(workspace, 'dir-one'), { recursive: true });
+			await mkdir(join(workspace, 'dir-two'), { recursive: true });
+			await writeFile(join(workspace, 'dir-one', 'note.txt'), 'one\n');
+			await writeFile(join(workspace, 'dir-two', 'note.txt'), 'two\n');
+			await runGit(['add', 'dir-one/note.txt', 'dir-two/note.txt'], workspace);
+			await runGit(['commit', '--quiet', '-m', 'add duplicate filenames'], workspace);
+			const patch = [
+				'diff --git a/dir-two/note.txt b/dir-two/note.txt',
+				'--- a/dir-two/note.txt',
+				'+++ b/dir-two/note.txt',
+				'@@ -1 +1 @@',
+				'-two',
+				'+two-updated',
+				'',
+			].join('\n');
+
+			try {
+				const result = await editPatchTool.execute(
+					createInput(patch, undefined, 'dir-one/note.txt'),
+					createContext(workspace),
+				);
+
+				expect(result).toMatchObject({
+					error_code: 'INVALID_INPUT',
+					status: 'error',
+					tool_name: 'edit.patch',
+				});
+
+				const firstContent = await readFile(join(workspace, 'dir-one', 'note.txt'), 'utf8');
+				const secondContent = await readFile(join(workspace, 'dir-two', 'note.txt'), 'utf8');
+				expect(firstContent.replaceAll('\r\n', '\n')).toBe('one\n');
+				expect(secondContent.replaceAll('\r\n', '\n')).toBe('two\n');
 			} finally {
 				await rm(workspace, { force: true, recursive: true });
 			}

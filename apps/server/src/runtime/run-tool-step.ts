@@ -24,6 +24,7 @@ import {
 	persistRunState,
 	persistToolCall,
 } from '../persistence/run-store.js';
+import { resolveEditPatchApprovalTargetHint } from '../tools/edit-patch-targeting.js';
 import { requestApproval } from './request-approval.js';
 import { transitionState } from './state-machine.js';
 import {
@@ -138,26 +139,47 @@ function toFailureMessage(error: unknown): string {
 }
 
 function resolveImplicitApprovalTarget(input: RunToolStepInput): ApprovalTarget | undefined {
-	if (input.tool_name !== 'file.write') {
-		return undefined;
-	}
-
-	const pathValue =
-		typeof input.tool_input.arguments['path'] === 'string'
-			? input.tool_input.arguments['path'].trim()
-			: '';
-
-	if (pathValue.length === 0) {
+	if (input.tool_name !== 'file.write' && input.tool_name !== 'edit.patch') {
 		return undefined;
 	}
 
 	const workspaceRoot = input.execution_context.working_directory ?? process.cwd();
-	const resolvedPath = resolve(workspaceRoot, pathValue);
+
+	if (input.tool_name === 'file.write') {
+		const pathValue =
+			typeof input.tool_input.arguments['path'] === 'string'
+				? input.tool_input.arguments['path'].trim()
+				: '';
+
+		if (pathValue.length === 0) {
+			return undefined;
+		}
+
+		const resolvedPath = resolve(workspaceRoot, pathValue);
+
+		return {
+			call_id: input.tool_input.call_id,
+			kind: 'file_path',
+			label: resolvedPath,
+			path: resolvedPath,
+			tool_name: input.tool_name,
+		};
+	}
+
+	const editPatchHint = resolveEditPatchApprovalTargetHint({
+		arguments_value: input.tool_input.arguments,
+		working_directory: workspaceRoot,
+	});
+
+	if (!editPatchHint) {
+		return undefined;
+	}
 
 	return {
 		call_id: input.tool_input.call_id,
-		kind: 'file_path',
-		label: resolvedPath,
+		kind: editPatchHint.kind,
+		label: editPatchHint.label,
+		path: editPatchHint.path,
 		tool_name: input.tool_name,
 	};
 }
