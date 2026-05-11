@@ -129,6 +129,69 @@ describe('buildNarrationEmissionEvents', () => {
 			base_runtime_sequence_no: 1,
 			capabilities: temporalCapabilities,
 			model_response: createModelResponse({
+				content: '',
+				ordered_content: [
+					{
+						index: 0,
+						kind: 'text',
+						ordering_origin: 'synthetic_non_streaming',
+						text: 'Dosyalari kontrol ediyorum',
+					},
+					{
+						index: 1,
+						input: {},
+						kind: 'tool_use',
+						ordering_origin: 'synthetic_non_streaming',
+						tool_call_id: 'call_1',
+						tool_name: 'file.read',
+					},
+				],
+			}),
+			run_id: 'run_1',
+			trace_id: 'trace_1',
+			turn_index: 1,
+			turn_intent: 'continuing',
+		});
+
+		expect(output.emission_decision).toBe('emit');
+		expect(output.emission_path).toBe('synthetic_non_streaming');
+		expect(output.events.map((event) => event.event_type)).toEqual([
+			'narration.started',
+			'narration.completed',
+		]);
+		expect(output.events[0]).toMatchObject({
+			event_type: 'narration.started',
+			payload: {
+				linked_tool_call_id: 'call_1',
+			},
+			sequence_no: 1,
+		});
+		expect(output.events[1]).toMatchObject({
+			event_type: 'narration.completed',
+			payload: {
+				full_text: 'Dosyalari kontrol ediyorum',
+				linked_tool_call_id: 'call_1',
+				locale: 'tr',
+				sequence_no: 1,
+				turn_index: 1,
+			},
+			sequence_no: 2,
+		});
+		expect(output.linked_narrations).toEqual([
+			{
+				narration_id: 'run_1:turn:1:narration:1',
+				sequence_no: 1,
+				tool_call_id: 'call_1',
+			},
+		]);
+		expect(output.final_answer_text).toBeNull();
+	});
+
+	it('treats final answer text as final_answer_text (not narration) in synthetic path', () => {
+		const output = buildNarrationEmissionEvents({
+			base_runtime_sequence_no: 1,
+			capabilities: temporalCapabilities,
+			model_response: createModelResponse({
 				content: 'Final cevap',
 				ordered_content: [
 					{
@@ -147,26 +210,9 @@ describe('buildNarrationEmissionEvents', () => {
 
 		expect(output.emission_decision).toBe('emit');
 		expect(output.emission_path).toBe('synthetic_non_streaming');
-		expect(output.events.map((event) => event.event_type)).toEqual([
-			'narration.started',
-			'narration.completed',
-		]);
-		expect(output.events[0]).toMatchObject({
-			event_type: 'narration.started',
-			sequence_no: 1,
-		});
-		expect(output.events[1]).toMatchObject({
-			event_type: 'narration.completed',
-			payload: {
-				full_text: 'Final cevap',
-				locale: 'tr',
-				sequence_no: 1,
-				turn_index: 1,
-			},
-			sequence_no: 2,
-		});
+		expect(output.events).toEqual([]);
+		expect(output.final_answer_text).toBe('Final cevap');
 		expect(output.linked_narrations).toEqual([]);
-		expect(output.final_answer_text).toBeNull();
 	});
 
 	it('applies guardrail rejections on synthetic non-streaming narration', () => {
