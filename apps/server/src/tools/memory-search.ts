@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	MemoryRecord,
 	ToolArguments,
 	ToolCallInput,
@@ -213,6 +213,8 @@ export function createMemorySearchTool(
 			tags: ['memory', 'rag', 'semantic'],
 		},
 		name: 'memory.search',
+		user_label_tr: 'Bellek aramasi',
+		user_summary_tr: 'Kaydedilmis bilgiler arasinda arama yapilir.',
 	};
 }
 

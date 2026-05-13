@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+﻿import { spawn } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { basename, resolve, sep } from 'node:path';
 
@@ -887,6 +887,8 @@ export function createShellExecTool(
 			tags: ['argv', 'command', 'non-interactive', 'subprocess'],
 		},
 		name: 'shell.exec',
+		user_label_tr: 'Terminal komutu',
+		user_summary_tr: 'Bagli oturumda komut calistirilir, ciktisi sohbete eklenir.',
 	};
 }
 

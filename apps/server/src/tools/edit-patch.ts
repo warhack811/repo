@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+﻿import { execFile } from 'node:child_process';
 import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -817,6 +817,8 @@ export function createEditPatchTool(
 			tags: ['diff', 'edit', 'patch', 'workspace'],
 		},
 		name: 'edit.patch',
+		user_label_tr: 'Kod degisikligi',
+		user_summary_tr: 'Bir dosyaya yamayla degisiklik uygulanir.',
 	};
 }
 

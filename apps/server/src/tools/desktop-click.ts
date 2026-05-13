@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+﻿import { execFile } from 'node:child_process';
 
 import type {
 	ToolArguments,
@@ -509,6 +509,8 @@ export function createDesktopClickTool(
 			tags: ['click', 'desktop', 'host', 'input', 'mouse'],
 		},
 		name: 'desktop.click',
+		user_label_tr: 'Masaustu tiklamasi',
+		user_summary_tr: 'Bagli masaustunde belirtilen konuma tiklanir.',
 	};
 }
 

@@ -166,6 +166,12 @@ export function requestApproval(input: RequestApprovalInput): RequestApprovalRes
 		target: input.target ?? buildDefaultTarget(input),
 		title,
 		tool_name: input.tool_definition.name,
+		...(input.tool_definition.user_label_tr
+			? { user_label_tr: input.tool_definition.user_label_tr }
+			: {}),
+		...(input.tool_definition.user_summary_tr
+			? { user_summary_tr: input.tool_definition.user_summary_tr }
+			: {}),
 		trace_id: input.trace_id,
 	};
 
@@ -177,6 +183,10 @@ export function requestApproval(input: RequestApprovalInput): RequestApprovalRes
 			summary: approvalRequest.summary,
 			title: approvalRequest.title,
 			tool_name: approvalRequest.tool_name,
+			...(approvalRequest.user_label_tr ? { user_label_tr: approvalRequest.user_label_tr } : {}),
+			...(approvalRequest.user_summary_tr
+				? { user_summary_tr: approvalRequest.user_summary_tr }
+				: {}),
 		},
 		{
 			actor: input.event_context?.actor,

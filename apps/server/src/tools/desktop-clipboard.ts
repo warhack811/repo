@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -324,6 +324,8 @@ export function createDesktopClipboardReadTool(): ToolDefinition<
 			tags: ['clipboard', 'desktop', 'host', 'read'],
 		},
 		name: 'desktop.clipboard.read',
+		user_label_tr: 'Pano islemi',
+		user_summary_tr: 'Bagli masaustunun pano icerigi okunur veya yazilir.',
 	};
 }
 
@@ -394,6 +396,8 @@ export function createDesktopClipboardWriteTool(): ToolDefinition<
 			tags: ['clipboard', 'desktop', 'host', 'write'],
 		},
 		name: 'desktop.clipboard.write',
+		user_label_tr: 'Pano islemi',
+		user_summary_tr: 'Bagli masaustunun pano icerigi okunur veya yazilir.',
 	};
 }
 

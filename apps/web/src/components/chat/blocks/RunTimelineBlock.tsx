@@ -66,12 +66,17 @@ export function RunTimelineBlock({
 								<span className={styles['chip']}>{formatWorkStateLabel(item.state)}</span>
 							) : null}
 						</div>
-						{item.detail ? (
-							<p className={styles['summary']}>{formatWorkDetail(item.detail)}</p>
-						) : null}
+						{(() => {
+							const formattedDetail = formatWorkDetail(item.detail);
+							return formattedDetail ? (
+								<p className={styles['summary']}>{formattedDetail}</p>
+							) : null;
+						})()}
 						<div className={styles['chipRow']}>
 							{item.tool_name ? (
-								<span className={styles['chip']}>{formatWorkToolLabel(item.tool_name)}</span>
+								<span className={styles['chip']}>
+									{item.user_label_tr ?? formatWorkToolLabel(item.tool_name)}
+								</span>
 							) : null}
 							{isDeveloperMode && item.call_id ? (
 								<code className={styles['chip']}>{item.call_id}</code>

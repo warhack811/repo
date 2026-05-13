@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -225,6 +225,8 @@ export function createDesktopLaunchTool(): ToolDefinition<DesktopLaunchInput, De
 			tags: ['app', 'desktop', 'host', 'launch', 'whitelist'],
 		},
 		name: 'desktop.launch',
+		user_label_tr: 'Uygulama baslatma',
+		user_summary_tr: 'Bagli masaustunde belirtilen uygulama baslatilir.',
 	};
 }
 

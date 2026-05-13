@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -435,6 +435,8 @@ export function createBrowserClickTool(
 			tags: ['browser', 'click', 'approval-required', 'isolated-context'],
 		},
 		name: 'browser.click',
+		user_label_tr: 'Tarayici tiklamasi',
+		user_summary_tr: 'Sayfada bir ogeye tiklanir.',
 	};
 }
 

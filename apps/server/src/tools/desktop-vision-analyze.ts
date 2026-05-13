@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ModelGateway,
 	ModelImageAttachment,
 	ModelRequest,
@@ -562,6 +562,8 @@ export function createDesktopVisionAnalyzeTool(
 			],
 		},
 		name: 'desktop.vision_analyze',
+		user_label_tr: 'Ekran analizi',
+		user_summary_tr: 'Ekrandaki gorsel icerik analiz edilir.',
 	};
 }
 

@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+﻿import { execFile } from 'node:child_process';
 
 import type {
 	ToolArguments,
@@ -453,6 +453,8 @@ export function createDesktopTypeTool(
 			tags: ['desktop', 'host', 'input', 'keyboard', 'type'],
 		},
 		name: 'desktop.type',
+		user_label_tr: 'Masaustune yazma',
+		user_summary_tr: 'Bagli masaustundeki aktif alana metin yazilir.',
 	};
 }
 

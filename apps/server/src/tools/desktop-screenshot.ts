@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+﻿import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 
 import type {
@@ -276,6 +276,8 @@ export function createDesktopScreenshotTool(
 			tags: ['desktop', 'host', 'screen', 'screenshot'],
 		},
 		name: 'desktop.screenshot',
+		user_label_tr: 'Ekran goruntusu',
+		user_summary_tr: 'Bagli masaustunden ekran goruntusu alinir.',
 	};
 }
 

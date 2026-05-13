@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	EvidencePack,
 	ToolArguments,
 	ToolCallInput,
@@ -420,6 +420,8 @@ export function createWebSearchTool(
 			tags: ['evidence', 'public-web', 'search', 'serper'],
 		},
 		name: 'web.search',
+		user_label_tr: 'Web arama',
+		user_summary_tr: 'Webde bir konu aranir.',
 	};
 }
 

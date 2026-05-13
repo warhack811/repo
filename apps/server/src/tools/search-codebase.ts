@@ -1,4 +1,4 @@
-import { lstat, readFile, readdir } from 'node:fs/promises';
+﻿import { lstat, readFile, readdir } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 
 import type {
@@ -679,6 +679,8 @@ export function createSearchCodebaseTool(
 			tags: ['codebase', 'search', 'text', 'workspace'],
 		},
 		name: 'search.codebase',
+		user_label_tr: 'Kod arama',
+		user_summary_tr: 'Proje kodunda anahtar kelime aranir.',
 	};
 }
 

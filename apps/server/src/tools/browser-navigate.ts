@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -292,6 +292,8 @@ export function createBrowserNavigateTool(
 			tags: ['browser', 'isolated-context', 'navigate', 'read-only'],
 		},
 		name: 'browser.navigate',
+		user_label_tr: 'Tarayici gezintisi',
+		user_summary_tr: 'Tarayicida bir adrese gidilir.',
 	};
 }
 

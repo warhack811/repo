@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+﻿import { execFile } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
@@ -425,6 +425,8 @@ export function createGitStatusTool(
 			tags: ['git', 'repository', 'status', 'workspace'],
 		},
 		name: 'git.status',
+		user_label_tr: 'Git durum kontrolu',
+		user_summary_tr: 'Calisma kopyasinin degisiklik durumu okunur.',
 	};
 }
 

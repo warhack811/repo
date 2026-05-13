@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -457,6 +457,8 @@ export function createBrowserFillTool(
 			tags: ['browser', 'fill', 'approval-required', 'isolated-context'],
 		},
 		name: 'browser.fill',
+		user_label_tr: 'Form doldurma',
+		user_summary_tr: 'Sayfa formuna metin doldurulur.',
 	};
 }
 

@@ -551,6 +551,10 @@ export async function runToolStep(input: RunToolStepInput): Promise<RunToolStepR
 			{
 				call_id: input.tool_input.call_id,
 				tool_name: input.tool_name,
+				...(registeredTool.user_label_tr ? { user_label_tr: registeredTool.user_label_tr } : {}),
+				...(registeredTool.user_summary_tr
+					? { user_summary_tr: registeredTool.user_summary_tr }
+					: {}),
 			},
 			{
 				actor: input.event_context?.actor,
@@ -600,6 +604,10 @@ export async function runToolStep(input: RunToolStepInput): Promise<RunToolStepR
 					call_id: input.tool_input.call_id,
 					result_status: toolResult.status,
 					tool_name: input.tool_name,
+					...(registeredTool.user_label_tr ? { user_label_tr: registeredTool.user_label_tr } : {}),
+					...(registeredTool.user_summary_tr
+						? { user_summary_tr: registeredTool.user_summary_tr }
+						: {}),
 				},
 				{
 					actor: input.event_context?.actor,
@@ -667,6 +675,10 @@ export async function runToolStep(input: RunToolStepInput): Promise<RunToolStepR
 					error_message: failure.message,
 					retryable: false,
 					tool_name: input.tool_name,
+					...(registeredTool.user_label_tr ? { user_label_tr: registeredTool.user_label_tr } : {}),
+					...(registeredTool.user_summary_tr
+						? { user_summary_tr: registeredTool.user_summary_tr }
+						: {}),
 				},
 				{
 					actor: input.event_context?.actor,

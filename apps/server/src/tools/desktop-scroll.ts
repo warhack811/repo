@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+﻿import { execFile } from 'node:child_process';
 
 import type {
 	ToolArguments,
@@ -430,6 +430,8 @@ export function createDesktopScrollTool(
 			tags: ['desktop', 'host', 'input', 'mouse', 'scroll'],
 		},
 		name: 'desktop.scroll',
+		user_label_tr: 'Masaustu kaydirma',
+		user_summary_tr: 'Bagli masaustu ekrani belirtilen yonde kaydirilir.',
 	};
 }
 

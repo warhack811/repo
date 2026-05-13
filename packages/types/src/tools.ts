@@ -239,6 +239,8 @@ export interface ToolDefinition<
 	readonly description: string;
 	readonly metadata: ToolMetadata;
 	readonly name: TCall['tool_name'];
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 	execute(input: TCall, context: ToolExecutionContext): Promise<TResult>;
 }
 

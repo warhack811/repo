@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -249,6 +249,8 @@ export function createMemorySaveTool(
 			tags: ['memory', 'privacy', 'semantic'],
 		},
 		name: 'memory.save',
+		user_label_tr: 'Bellege kaydetme',
+		user_summary_tr: 'Onemli bir bilgi proje bellegine kaydedilir.',
 	};
 }
 

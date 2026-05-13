@@ -1,4 +1,4 @@
-import { readFile, stat, writeFile } from 'node:fs/promises';
+﻿import { readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
 import type {
@@ -362,6 +362,8 @@ export function createFileWriteTool(
 			tags: ['file', 'write', 'workspace'],
 		},
 		name: 'file.write',
+		user_label_tr: 'Dosya yazma',
+		user_summary_tr: 'Belirtilen dosyaya degisiklik yazilir.',
 	};
 }
 

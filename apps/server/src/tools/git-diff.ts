@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+﻿import { execFile } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 
@@ -477,6 +477,8 @@ export function createGitDiffTool(
 			tags: ['diff', 'git', 'patch', 'repository'],
 		},
 		name: 'git.diff',
+		user_label_tr: 'Degisiklik inceleme',
+		user_summary_tr: 'Bir degisikligin diff ciktisi alinir.',
 	};
 }
 

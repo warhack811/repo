@@ -1,4 +1,4 @@
-import { readFile, stat } from 'node:fs/promises';
+﻿import { readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type {
@@ -338,6 +338,8 @@ export function createFileReadTool(
 			tags: ['file', 'read', 'workspace'],
 		},
 		name: 'file.read',
+		user_label_tr: 'Dosya okuma',
+		user_summary_tr: 'Belirtilen dosyanin icerigi guvenli sinirlar icinde okunur.',
 	};
 }
 

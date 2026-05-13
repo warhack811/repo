@@ -37,6 +37,8 @@ export interface ApprovalRequest {
 	readonly risk_level?: ToolRiskLevel;
 	readonly requires_reason?: boolean;
 	readonly tool_name?: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export interface ApprovalDecision {

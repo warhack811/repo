@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	MemoryRecord,
 	ToolArguments,
 	ToolCallInput,
@@ -192,6 +192,8 @@ export function createMemoryListTool(
 			tags: ['memory', 'privacy', 'visibility'],
 		},
 		name: 'memory.list',
+		user_label_tr: 'Bellek listeleme',
+		user_summary_tr: 'Kaydedilmis bilgiler listelenir.',
 	};
 }
 
