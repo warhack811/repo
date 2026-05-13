@@ -1,4 +1,4 @@
-import { Check, Loader2, XCircle } from 'lucide-react';
+﻿import { Check, ChevronRight, Loader2, XCircle } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import styles from './ToolActivityIndicator.module.css';
@@ -59,17 +59,42 @@ export function ToolActivityIndicator({ items }: ToolActivityIndicatorProps): Re
 		return null;
 	}
 
+	if (items.length > 1) {
+		return (
+			<details className={styles['toolGroup']}>
+				<summary className={styles['toolGroupSummary']}>
+					<span>{`${items.length} adım çalıştırıldı`}</span>
+					<ChevronRight size={14} aria-hidden className={styles['toolGroupChevron']} />
+				</summary>
+				<ul className={styles['toolGroupList']}>
+					{items.map((item) => (
+						<li key={item.id} title={item.detail} className={styles['toolGroupItem']}>
+							<span className={styles['statusLabel']}>
+								{getStatusIcon(item.status)}
+								<span>{getStatusLabel(item.status)}</span>
+							</span>
+							<span className={styles['toolLabel']}>{item.label}</span>
+						</li>
+					))}
+				</ul>
+			</details>
+		);
+	}
+
+	const item = items[0];
+	if (!item) {
+		return null;
+	}
+
 	return (
 		<div aria-label="Araç etkinliği" className={styles['container']}>
-			{items.map((item) => (
-				<div key={item.id} title={item.detail} className={styles['item']}>
-					<span className={styles['statusLabel']}>
-						{getStatusIcon(item.status)}
-						<span>{getStatusLabel(item.status)}</span>
-					</span>
-					<span className={styles['toolLabel']}>{item.label}</span>
-				</div>
-			))}
+			<div key={item.id} title={item.detail} className={styles['item']}>
+				<span className={styles['statusLabel']}>
+					{getStatusIcon(item.status)}
+					<span>{getStatusLabel(item.status)}</span>
+				</span>
+				<span className={styles['toolLabel']}>{item.label}</span>
+			</div>
 		</div>
 	);
 }

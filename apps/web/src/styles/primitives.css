@@ -539,32 +539,6 @@
 	color: var(--status-success-text);
 }
 
-/* ---- Chat layout ---- */
-
-.runa-chat-layout {
-	align-items: start;
-	display: grid;
-	gap: 18px;
-	grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
-	margin-top: 14px;
-	min-width: 0;
-}
-
-.runa-chat-layout__sidebar,
-.runa-chat-layout__main,
-.runa-chat-layout__composer {
-	min-width: 0;
-}
-
-.runa-chat-layout__main {
-	display: grid;
-	gap: 16px;
-}
-
-.runa-chat-layout__sidebar .runa-conversation-sidebar {
-	top: calc(var(--safe-area-top) + 78px);
-}
-
 /* ---- Chat empty state ---- */
 
 .runa-chat-empty-state {

@@ -221,13 +221,6 @@
 		transform var(--duration-normal) var(--ease-standard);
 }
 
-.runa-page--chat-product > .runa-command-palette-trigger {
-	position: fixed;
-	right: calc(14px + var(--safe-area-right));
-	top: calc(14px + var(--safe-area-top));
-	z-index: 70;
-}
-
 .runa-command-palette-trigger kbd,
 .runa-command-palette__key {
 	border: 1px solid var(--hairline);
@@ -351,11 +344,6 @@
 }
 
 @media (max-width: 640px) {
-	.runa-page--chat-product > .runa-command-palette-trigger {
-		right: calc(10px + var(--safe-area-right));
-		top: calc(8px + var(--safe-area-top));
-	}
-
 	.runa-command-palette-trigger span {
 		display: none;
 	}

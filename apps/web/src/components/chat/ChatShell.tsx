@@ -22,15 +22,8 @@ export function ChatShell({ children, embedded = false }: ChatShellProps): React
 	}
 
 	return (
-		<RunaSurface className="runa-page" tone="plain">
-			<RunaSurface
-				as="main"
-				id="chat-workspace-content"
-				className={`runa-shell-frame runa-shell-frame--chat ${styles['standard']}`}
-				tone="plain"
-			>
-				{children}
-			</RunaSurface>
-		</RunaSurface>
+		<main id="chat-workspace-content" className={styles['standard']}>
+			{children}
+		</main>
 	);
 }

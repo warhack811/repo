@@ -1,5 +1,5 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
-import { Paperclip, SendHorizontal, SlidersHorizontal } from 'lucide-react';
+import { ChevronRight, Paperclip, SendHorizontal, SlidersHorizontal } from 'lucide-react';
 import type { FormEvent, KeyboardEvent, ReactElement, ReactNode } from 'react';
 import { useId, useRef } from 'react';
 import { uiCopy } from '../../localization/copy.js';
@@ -120,6 +120,7 @@ export function ChatComposerSurface({
 }: ChatComposerSurfaceProps): ReactElement {
 	const promptTextareaId = useId();
 	const moreDetailsRef = useRef<HTMLDetailsElement | null>(null);
+	const contextCount = attachments.length;
 	const isSubmitDisabled = shouldDisableSubmit({
 		connectionStatus,
 		isRuntimeConfigReady,
@@ -220,6 +221,18 @@ export function ChatComposerSurface({
 							}}
 							onUploadStateChange={onAttachmentUploadStateChange}
 						/>
+						{contextCount > 0 ? (
+							<button
+								type="button"
+								className="runa-composer-context-chip"
+								onClick={() => console.warn('Context sheet PR-6 kapsaminda acilacak.')}
+								aria-label={`${contextCount} calisma ogesi. Baglami ac`}
+							>
+								<Paperclip size={14} aria-hidden="true" />
+								<span>{contextCount} working files</span>
+								<ChevronRight size={14} aria-hidden="true" />
+							</button>
+						) : null}
 					</div>
 					<div className={`runa-chat-composer-actions__right ${styles['actionsRight']}`}>
 						<details

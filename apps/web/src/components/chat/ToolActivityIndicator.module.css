@@ -18,6 +18,9 @@
 }
 
 .statusLabel {
+	align-items: center;
+	display: inline-flex;
+	gap: 4px;
 	font-weight: 600;
 }
 
@@ -25,4 +28,49 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.toolGroup {
+	border: 1px solid var(--border-subtle);
+	border-radius: 10px;
+	padding: 6px 10px;
+}
+
+.toolGroupSummary {
+	align-items: center;
+	color: var(--text-muted);
+	cursor: pointer;
+	display: flex;
+	font-size: 12px;
+	font-weight: 600;
+	gap: 8px;
+	list-style: none;
+}
+
+.toolGroupSummary::-webkit-details-marker {
+	display: none;
+}
+
+.toolGroupChevron {
+	margin-left: auto;
+	transition: transform 140ms ease;
+}
+
+.toolGroup[open] .toolGroupChevron {
+	transform: rotate(90deg);
+}
+
+.toolGroupList {
+	display: grid;
+	gap: 6px;
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+}
+
+.toolGroupItem {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	min-width: 0;
 }

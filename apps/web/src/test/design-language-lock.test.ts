@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,6 +14,10 @@ const fontsPath = join(stylesRoot, 'fonts.css');
 const designTokensPath = join(webSrcRoot, 'lib', 'design-tokens.ts');
 const hafizaMarkPath = join(webSrcRoot, 'components', 'ui', 'HafizaMark.tsx');
 const emptyStatePath = join(webSrcRoot, 'components', 'chat', 'EmptyState.tsx');
+const removedRightRailPath = join(webSrcRoot, 'components', 'chat', `Work${'Insight'}Panel.tsx`);
+const chatLayoutPath = join(webSrcRoot, 'components', 'chat', 'ChatLayout.tsx');
+const appShellPath = join(webSrcRoot, 'components', 'app', 'AppShell.tsx');
+const componentsCssPath = join(stylesRoot, 'components.css');
 
 function collectFiles(dir: string, extension: string): string[] {
 	const entries = readdirSync(dir, { withFileTypes: true });
@@ -97,6 +101,23 @@ describe('design language lock', () => {
 		expect(source).not.toContain(legacyColorBgRef);
 		expect(source).not.toContain(legacyColorAccentRef);
 		expect(source).not.toContain(legacyGradientPanelRef);
+	});
+
+	it('locks the PR-2 layout shell contract', () => {
+		const chatLayout = readFileSync(chatLayoutPath, 'utf8');
+		const appShell = readFileSync(appShellPath, 'utf8');
+		const componentsCss = readFileSync(componentsCssPath, 'utf8');
+		const chatBranchStart = appShell.indexOf("if (activePage === 'chat')");
+		const appShellBranchStart = appShell.indexOf(
+			'<div className="runa-page runa-page--app-shell',
+			chatBranchStart,
+		);
+		const chatBranch = appShell.slice(chatBranchStart, appShellBranchStart);
+
+		expect(existsSync(removedRightRailPath)).toBe(false);
+		expect(chatLayout).not.toContain('insights');
+		expect(componentsCss).toContain('grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);');
+		expect(chatBranch).not.toContain('runa-command-palette-trigger');
 	});
 
 	it('disallows ink-3 on small or lightweight text blocks', () => {
