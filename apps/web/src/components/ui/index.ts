@@ -33,5 +33,3 @@ export { RunaToastProvider, useRunaToast } from './RunaToast.js';
 export type { RunaToastInput, RunaToastTone } from './RunaToast.js';
 export { RunaTooltip } from './RunaTooltip.js';
 export type { RunaTooltipProps } from './RunaTooltip.js';
-export { HafizaMark } from './HafizaMark.js';
-export type { HafizaMarkVariant, HafizaMarkWeight } from './HafizaMark.js';
