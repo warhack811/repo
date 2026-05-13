@@ -1,5 +1,5 @@
-.empty {
-	color: hsl(var(--color-text-muted));
+﻿.empty {
+	color: var(--ink-2);
 	font-size: 14px;
 	line-height: 1.45;
 }

@@ -1,10 +1,10 @@
-.block {
+﻿.block {
 	display: grid;
 	gap: 12px;
 	min-width: 0;
 	padding: 16px;
 	border: 1px solid var(--border-subtle);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-subtle);
 	animation: runa-message-arrival 220ms var(--ease-emphasized, ease) both;
 }
@@ -43,7 +43,7 @@
 }
 
 .eyebrow {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.12em;
@@ -51,20 +51,20 @@
 }
 
 .title {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 16px;
 	line-height: 1.35;
 	overflow-wrap: anywhere;
 }
 
 .summary {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.65;
 	overflow-wrap: anywhere;
 }
 
 .muted {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	font-size: 12px;
 	line-height: 1.5;
 }
@@ -87,7 +87,7 @@
 	border: 1px solid var(--border-subtle);
 	border-radius: 999px;
 	background: var(--surface-chip);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 	overflow-wrap: anywhere;
@@ -110,12 +110,12 @@
 	min-width: 0;
 	padding: 10px 12px;
 	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-panel-muted);
 }
 
 .metaLabel {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -125,7 +125,7 @@
 .codePanel {
 	overflow: hidden;
 	border: 1px solid var(--border-info);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-canvas);
 }
 
@@ -187,7 +187,7 @@
 
 .details > summary {
 	cursor: pointer;
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-weight: 600;
 	list-style: none;
 }
@@ -202,9 +202,9 @@
 	margin: 0;
 	padding: 12px;
 	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-subtle);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	line-height: 1.6;
 	white-space: pre-wrap;
@@ -214,9 +214,9 @@
 	min-height: 36px;
 	padding: 8px 11px;
 	border: 1px solid var(--border-default);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-chip);
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	cursor: pointer;
 	font-weight: 600;
 }
@@ -240,9 +240,9 @@
 	gap: 8px;
 	padding: 10px 12px;
 	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-panel-muted);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 }
 
 .list {
@@ -255,7 +255,7 @@
 .tableWrap {
 	overflow-x: auto;
 	border: 1px solid var(--border-subtle);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 }
 
 .table {
@@ -273,7 +273,7 @@
 }
 
 .table th {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 12px;
 	text-transform: uppercase;
 }
@@ -286,19 +286,19 @@
 
 .approvalCard {
 	gap: 14px;
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	border-color: var(--border-warning);
-	background: hsl(var(--color-surface) / 0.72);
+	background: var(--surface-2);
 }
 
 .approvalApproved {
 	border-color: var(--border-success);
-	background: hsl(var(--color-surface) / 0.72);
+	background: var(--surface-2);
 }
 
 .approvalRejected {
 	border-color: var(--border-warning);
-	background: hsl(var(--color-surface) / 0.72);
+	background: var(--surface-2);
 }
 
 .approvalClosed {
@@ -315,7 +315,7 @@
 }
 
 .approvalTitle {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 16px;
 	line-height: 1.25;
 	overflow-wrap: anywhere;
@@ -331,7 +331,7 @@
 	border: 1px solid var(--border-subtle);
 	border-radius: 999px;
 	background: var(--surface-chip);
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 12px;
 	font-weight: 600;
 	text-align: center;
@@ -359,12 +359,12 @@
 	min-width: 0;
 	padding: 14px;
 	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-subtle);
 }
 
 .approvalDecision strong {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 16px;
 	line-height: 1.35;
 	overflow-wrap: anywhere;
@@ -372,7 +372,7 @@
 
 .approvalDecision p {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 	overflow-wrap: anywhere;
 }
@@ -393,14 +393,14 @@
 }
 
 .approvalRisk {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 0.875rem;
 	margin: 0;
 	padding: 0 0 8px;
 }
 
 .approvalValue {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	line-height: 1.5;
 	overflow-wrap: anywhere;
 	word-break: break-word;
@@ -411,9 +411,9 @@
 	gap: 4px;
 	padding: 12px 14px;
 	border: 1px solid var(--border-warning);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--status-warning-bg);
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	line-height: 1.5;
 }
 
@@ -458,7 +458,7 @@
 	min-width: 0;
 	padding: 16px;
 	border: 1px solid var(--border-subtle);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	background: var(--surface-panel);
 	box-shadow: none;
 	animation: runa-message-arrival 220ms var(--ease-emphasized, ease) both;
@@ -492,7 +492,7 @@
 	border: 1px solid var(--border-subtle);
 	border-radius: 999px;
 	background: var(--surface-chip);
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 12px;
 	font-weight: 600;
 	white-space: nowrap;
@@ -573,7 +573,7 @@
 		bottom: calc(92px + var(--safe-area-bottom, 0px));
 		z-index: 2;
 		padding-top: 8px;
-		background: hsl(var(--color-surface) / 0.92);
+		background: var(--surface-2);
 	}
 
 	.approvalStateFeedback {

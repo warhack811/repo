@@ -3,11 +3,11 @@ export const designTokens = {
 		background: {
 			page: 'var(--page-background)',
 			canvas: 'var(--surface-canvas)',
-			elevated: 'hsl(var(--color-bg-elevated))',
-			input: 'var(--gradient-input)',
-			panel: 'var(--gradient-panel)',
-			panelStrong: 'var(--gradient-panel-strong)',
-			subtle: 'var(--gradient-subcard)',
+			elevated: 'var(--surface-2)',
+			input: 'var(--surface-2)',
+			panel: 'var(--surface-2)',
+			panelStrong: 'var(--surface-2)',
+			subtle: 'var(--surface-3)',
 		},
 		border: {
 			accent: 'var(--border-primary)',
@@ -24,17 +24,17 @@ export const designTokens = {
 			danger: 'var(--status-danger-text)',
 			info: 'var(--status-info-text)',
 			inverse: 'var(--text-on-primary)',
-			muted: 'hsl(var(--color-text-muted))',
-			soft: 'hsl(var(--color-text-soft))',
+			muted: 'var(--ink-2)',
+			soft: 'var(--ink-2)',
 			strong: 'var(--text-strong)',
 			success: 'var(--status-success-text)',
-			text: 'hsl(var(--color-text))',
+			text: 'var(--ink-1)',
 			warning: 'var(--status-warning-text)',
 		},
 		interactive: {
-			primary: 'var(--gradient-primary-button)',
-			secondary: 'var(--gradient-secondary-button)',
-			secondaryActive: 'var(--gradient-secondary-button-active)',
+			primary: 'var(--accent)',
+			secondary: 'var(--surface-2)',
+			secondaryActive: 'var(--accent-bg)',
 		},
 		status: {
 			dangerBackground: 'var(--status-danger-bg)',
@@ -46,25 +46,26 @@ export const designTokens = {
 	},
 	motion: {
 		duration: {
-			fast: '180ms',
-			normal: '220ms',
+			fast: 'var(--duration-fast)',
+			normal: 'var(--duration-normal)',
 		},
 		easing: {
-			standard: 'ease',
+			standard: 'var(--ease-standard)',
 		},
 		transition: {
-			focus: 'border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
+			focus:
+				'border-color var(--duration-normal) var(--ease-standard), box-shadow var(--duration-normal) var(--ease-standard), background var(--duration-normal) var(--ease-standard)',
 			surface:
-				'opacity 220ms ease, transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease',
+				'opacity var(--duration-slow) var(--ease-standard), transform var(--duration-slow) var(--ease-standard), border-color var(--duration-slow) var(--ease-standard), box-shadow var(--duration-slow) var(--ease-standard)',
 		},
 	},
 	radius: {
-		button: '14px',
+		button: 'var(--radius-panel)',
 		card: 'var(--radius-panel)',
-		control: '14px',
-		image: '14px',
+		control: 'var(--radius-panel)',
+		image: 'var(--radius-panel)',
 		pill: 'var(--radius-pill)',
-		soft: 'var(--radius-soft)',
+		soft: 'var(--radius-input)',
 	},
 	shadow: {
 		glow: 'var(--shadow-glow)',
@@ -101,7 +102,7 @@ export const designTokens = {
 			lineHeight: 1.5,
 		},
 		text: {
-			fontSize: '14px',
+			fontSize: 'var(--text-md)',
 			lineHeight: 1.6,
 		},
 	},

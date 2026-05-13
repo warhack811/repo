@@ -1,6 +1,6 @@
-.skeleton {
+﻿.skeleton {
 	animation: runa-shimmer 1.3s linear infinite;
-	background: hsl(var(--color-surface) / 0.72);
+	background: var(--surface-2);
 	background-size: 200% 100%;
 	display: block;
 }
@@ -18,7 +18,7 @@
 }
 
 .rect {
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	min-height: 80px;
 	width: 100%;
 }

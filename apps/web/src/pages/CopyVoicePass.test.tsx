@@ -92,12 +92,7 @@ function renderNormalSurfaces(): string {
 	return renderToStaticMarkup(
 		<MemoryRouter>
 			<AppNav activePage="chat" />
-			<ChatHeader
-				connectionStatus="open"
-				desktopDevices={[]}
-				onToggleSidebar={() => undefined}
-				statusLabel="Canlı"
-			/>
+			<ChatHeader onToggleSidebar={() => undefined} />
 			<EmptyState onSubmitSuggestion={() => undefined} />
 			<ChatComposerSurface
 				accessToken="token"

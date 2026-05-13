@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runa — Renk Yönleri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-header {
+    padding: 64px 32px 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .page-header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 48px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .page-header p {
+    color: #888;
+    font-size: 15px;
+    max-width: 640px;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1f1f1f;
+    padding: 14px 32px;
+    z-index: 10;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav button {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #aaa;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .nav button:hover {
+    color: #fff;
+    border-color: #3a3a3a;
+  }
+  .nav button.active {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 32px 120px;
+  }
+
+  .direction {
+    margin-bottom: 96px;
+    scroll-margin-top: 80px;
+  }
+  .direction:last-child { margin-bottom: 0; }
+
+  .direction-header {
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .direction-header { grid-template-columns: 1fr 2fr; gap: 48px; }
+  }
+  .direction-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .direction-meta {
+    color: #888;
+    font-size: 13px;
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .direction-desc {
+    color: #b8b8b8;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .direction-desc strong { color: #fff; font-weight: 500; }
+  .direction-desc p + p { margin-top: 12px; }
+
+  .swatches {
+    display: flex;
+    gap: 6px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    height: 56px;
+    flex: 1;
+    min-width: 64px;
+    border-radius: 8px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 8px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255,255,255,0.8);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .swatch.light-text { color: rgba(0,0,0,0.6); text-shadow: none; }
+
+  .demo-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  @media (min-width: 900px) {
+    .demo-grid { grid-template-columns: 1.6fr 1fr; }
+  }
+
+  .chat-demo {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #1f1f1f;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid;
+    font-size: 13px;
+  }
+  .chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .chat-body {
+    padding: 24px 20px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .msg {
+    max-width: 78%;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .msg-user {
+    align-self: flex-end;
+    padding: 10px 14px;
+    border-radius: 16px 16px 4px 16px;
+  }
+  .msg-agent {
+    align-self: flex-start;
+    padding: 0;
+    background: transparent;
+  }
+  .msg-agent .agent-name {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    opacity: 0.7;
+  }
+  .tool-activity {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    align-self: flex-start;
+    cursor: pointer;
+  }
+  .tool-activity::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .approval {
+    align-self: flex-start;
+    max-width: 88%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .approval-q {
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .approval-target {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+    margin: 6px 0 12px;
+  }
+  .approval-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .composer {
+    border-top: 1px solid;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .composer-input {
+    flex: 1;
+    color: inherit;
+  }
+
+  .info-panel {
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #1f1f1f;
+    background: #121212;
+    align-self: start;
+  }
+  .info-panel h4 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 10px;
+  }
+  .info-panel h4:not(:first-child) { margin-top: 20px; }
+  .info-panel p {
+    font-size: 13px;
+    color: #ccc;
+    line-height: 1.6;
+  }
+  .info-panel ul {
+    list-style: none;
+    font-size: 13px;
+    color: #ccc;
+    line-height: 1.7;
+  }
+  .info-panel li::before {
+    content: '— ';
+    color: #555;
+  }
+  .reference-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .ref-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #1f1f1f;
+    color: #aaa;
+  }
+
+  .footnote {
+    margin-top: 96px;
+    padding-top: 32px;
+    border-top: 1px solid #1f1f1f;
+    color: #888;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .footnote strong { color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Runa — Renk Yönleri</h1>
+  <p>Beş farklı renk yönü, her biri aynı sohbet senaryosu üzerinde. Hangisinin Runa'nın karakterine yakın hissettiğini sezgisel olarak fark edeceksin. "Doğru" bir cevap yok; bir yön seçtiğimizde diğer her şey (tipografi, yüzey, motion) ona göre şekillenir.</p>
+</div>
+
+<nav class="nav">
+  <button class="active" data-target="ember">1 · Ember</button>
+  <button data-target="forest">2 · Forest</button>
+  <button data-target="dusk">3 · Dusk</button>
+  <button data-target="paper">4 · Paper</button>
+  <button data-target="ink">5 · Ink</button>
+</nav>
+
+<div class="container">
+
+  <!-- ============ EMBER ============ -->
+  <section class="direction" id="ember">
+    <div class="direction-header">
+      <div>
+        <div class="direction-meta">Yön 01</div>
+        <div class="direction-title">Ember</div>
+        <div class="swatches">
+          <div class="swatch" style="background:#0d0907">#0D0907</div>
+          <div class="swatch" style="background:#1a1310">#1A1310</div>
+          <div class="swatch" style="background:#2a1f1a">#2A1F1A</div>
+          <div class="swatch" style="background:#d97757">#D97757</div>
+          <div class="swatch light-text" style="background:#f4a261">#F4A261</div>
+          <div class="swatch light-text" style="background:#e9d5c0">#E9D5C0</div>
+        </div>
+      </div>
+      <div class="direction-desc">
+        <p><strong>Sıcak, insan, ahşap.</strong> Kor ateş, gün batımı, eski deri. Yapay zekanın "soğuk teknoloji" klişesinden uzaklaşır; arkadaş enerjisi taşır.</p>
+        <p>Anneanne için davetkâr, sysadmin için göz yormaz — sıcak tonlar mat ekranlarda gece geç saatte rahatsız etmez. Türkçe diline ve "kanka" tonuna en doğal eşlik eden palet.</p>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="chat-demo" style="background:#0d0907">
+        <div class="chat-header" style="border-color:#2a1f1a; color:#e9d5c0">
+          <div class="chat-header-left">
+            <div class="avatar" style="background:#d97757; color:#0d0907">R</div>
+            <span>Runa</span>
+          </div>
+          <div class="status-dot" style="background:#f4a261; box-shadow:0 0 8px #f4a26180"></div>
+        </div>
+        <div class="chat-body">
+          <div class="msg msg-user" style="background:#d97757; color:#0d0907">
+            projenin server klasöründe en son ne değişmiş bakar mısın
+          </div>
+          <div class="msg msg-agent" style="color:#e9d5c0">
+            <div class="agent-name" style="color:#d97757">Runa</div>
+            Tabii, bakıyorum. Son commit'leri tarayıp özetleyeyim.
+          </div>
+          <div class="tool-activity" style="background:#1a1310; color:#f4a261; border:1px solid #2a1f1a">
+            <span style="background:#f4a261"></span>
+            git log · son 10 commit
+          </div>
+          <div class="msg msg-agent" style="color:#e9d5c0">
+            En son <strong style="color:#f4a261">runtime/provider-health.ts</strong> dosyasına dokunulmuş — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+          </div>
+          <div class="approval" style="background:#1a1310; border:1px solid #2a1f1a; color:#e9d5c0">
+            <div class="approval-q">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+            <div class="approval-target" style="background:#0d0907; color:#f4a261; border:1px solid #2a1f1a">apps/server/src/runtime/provider-health.ts</div>
+            <div class="approval-buttons">
+              <button class="btn" style="background:transparent; color:#e9d5c0; border-color:#3a2f2a">Vazgeç</button>
+              <button class="btn" style="background:#d97757; color:#0d0907">Aç</button>
+            </div>
+          </div>
+        </div>
+        <div class="composer" style="border-color:#2a1f1a; color:#888">
+          <div class="composer-input">Bir şey yaz…</div>
+          <div class="avatar" style="background:#d97757; color:#0d0907; width:32px; height:32px; font-size:14px">↑</div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <h4>Karakter</h4>
+        <p>Sıcak, dingin, samimi. "Profesyonel" demez, "burada ol" der. Things, Instapaper, Stripe Press akrabası.</p>
+        <h4>Ayrıştırma</h4>
+        <p>Hiçbir büyük AI ürünü bu yönde değil. Hepsi soğuk-mavi/mor ya da nötr. Pazarda boş alan.</p>
+        <h4>Tema esnekliği</h4>
+        <ul>
+          <li>Açık: krem zemin, kor accent</li>
+          <li>Koyu (varsayılan): kömür + kor</li>
+          <li>"Şafak" varyant: pembe-turuncu</li>
+        </ul>
+        <h4>Risk</h4>
+        <p>Çok karakterli olduğu için bazıları "fazla sıcak" bulabilir. Server admin kitlesi mavi-yeşil bekleyebilir.</p>
+        <h4>Referans</h4>
+        <div class="reference-row">
+          <span class="ref-tag">Anthropic Claude</span>
+          <span class="ref-tag">Things</span>
+          <span class="ref-tag">Kraft kağıdı</span>
+          <span class="ref-tag">Anadolu toprak rengi</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOREST ============ -->
+  <section class="direction" id="forest">
+    <div class="direction-header">
+      <div>
+        <div class="direction-meta">Yön 02</div>
+        <div class="direction-title">Forest</div>
+        <div class="swatches">
+          <div class="swatch" style="background:#0a0f0c">#0A0F0C</div>
+          <div class="swatch" style="background:#101813">#101813</div>
+          <div class="swatch" style="background:#1a2620">#1A2620</div>
+          <div class="swatch" style="background:#2d8f6a">#2D8F6A</div>
+          <div class="swatch light-text" style="background:#7dd3a8">#7DD3A8</div>
+          <div class="swatch light-text" style="background:#d4e8da">#D4E8DA</div>
+        </div>
+      </div>
+      <div class="direction-desc">
+        <p><strong>Yetişkin, sakin, dengeli.</strong> Orman, yosun, eski kütüphane. Mevcut Runa'nın yeşil aksanını alıp daha karakterli, daha "doğal" bir yöne çeker.</p>
+        <p>Güven baskın bir palet — finansal yazılım, yazılım altyapısı, sysadmin ürünleri bu kümede. Sıcaklık ise organic yumuşaklıkla geliyor, yapay değil.</p>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="chat-demo" style="background:#0a0f0c">
+        <div class="chat-header" style="border-color:#1a2620; color:#d4e8da">
+          <div class="chat-header-left">
+            <div class="avatar" style="background:#2d8f6a; color:#0a0f0c">R</div>
+            <span>Runa</span>
+          </div>
+          <div class="status-dot" style="background:#7dd3a8; box-shadow:0 0 8px #7dd3a880"></div>
+        </div>
+        <div class="chat-body">
+          <div class="msg msg-user" style="background:#2d8f6a; color:#0a0f0c">
+            projenin server klasöründe en son ne değişmiş bakar mısın
+          </div>
+          <div class="msg msg-agent" style="color:#d4e8da">
+            <div class="agent-name" style="color:#7dd3a8">Runa</div>
+            Tabii, bakıyorum. Son commit'leri tarayıp özetleyeyim.
+          </div>
+          <div class="tool-activity" style="background:#101813; color:#7dd3a8; border:1px solid #1a2620">
+            <span style="background:#7dd3a8"></span>
+            git log · son 10 commit
+          </div>
+          <div class="msg msg-agent" style="color:#d4e8da">
+            En son <strong style="color:#7dd3a8">runtime/provider-health.ts</strong> dosyasına dokunulmuş — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+          </div>
+          <div class="approval" style="background:#101813; border:1px solid #1a2620; color:#d4e8da">
+            <div class="approval-q">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+            <div class="approval-target" style="background:#0a0f0c; color:#7dd3a8; border:1px solid #1a2620">apps/server/src/runtime/provider-health.ts</div>
+            <div class="approval-buttons">
+              <button class="btn" style="background:transparent; color:#d4e8da; border-color:#2a3630">Vazgeç</button>
+              <button class="btn" style="background:#2d8f6a; color:#0a0f0c">Aç</button>
+            </div>
+          </div>
+        </div>
+        <div class="composer" style="border-color:#1a2620; color:#888">
+          <div class="composer-input">Bir şey yaz…</div>
+          <div class="avatar" style="background:#2d8f6a; color:#0a0f0c; width:32px; height:32px; font-size:14px">↑</div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <h4>Karakter</h4>
+        <p>Sakin, kapasite hissi taşıyan, doğal. "Görevini bilir" diyen sessiz bir profesyonel. Linear'ın disiplini + doğal ton.</p>
+        <h4>Ayrıştırma</h4>
+        <p>Yeşil AI üründe nadir — çoğu mavi/mor. Mevcut Runa'dan evrim olduğu için kullanıcı şokunu azaltır.</p>
+        <h4>Tema esnekliği</h4>
+        <ul>
+          <li>Açık: kemik beyaz + koyu yeşil</li>
+          <li>Koyu (varsayılan): orman</li>
+          <li>"Yosun" varyant: zeytin/haki</li>
+        </ul>
+        <h4>Risk</h4>
+        <p>Yeşil "büyüme/finans" çağrışımı yapabilir, AI ürünü için biraz yumuşak kalabilir. Karakter güçlü ama heyecan düşük.</p>
+        <h4>Referans</h4>
+        <div class="reference-row">
+          <span class="ref-tag">Linear (yön benzeri)</span>
+          <span class="ref-tag">Vercel (zıt)</span>
+          <span class="ref-tag">İskandinav peyzaj</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DUSK ============ -->
+  <section class="direction" id="dusk">
+    <div class="direction-header">
+      <div>
+        <div class="direction-meta">Yön 03</div>
+        <div class="direction-title">Dusk</div>
+        <div class="swatches">
+          <div class="swatch" style="background:#0b0a14">#0B0A14</div>
+          <div class="swatch" style="background:#13111f">#13111F</div>
+          <div class="swatch" style="background:#1f1b30">#1F1B30</div>
+          <div class="swatch" style="background:#8b7cf6">#8B7CF6</div>
+          <div class="swatch light-text" style="background:#c4b8ff">#C4B8FF</div>
+          <div class="swatch light-text" style="background:#e8e3ff">#E8E3FF</div>
+        </div>
+      </div>
+      <div class="direction-desc">
+        <p><strong>Karakterli, modern, hafif zeki.</strong> Alacakaranlık, lila ufuk, neon olmayan mor. Pazardaki "AI estetiği"ne yakın ama klişe değil — derinlik tarafında.</p>
+        <p>Anthropic'in geçmişteki marka denemelerine, Replit'in son renklerine, Linear'ın koyu temasının mor uçlarına akrabalık. AI ürünü olduğu hemen anlaşılır.</p>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="chat-demo" style="background:#0b0a14">
+        <div class="chat-header" style="border-color:#1f1b30; color:#e8e3ff">
+          <div class="chat-header-left">
+            <div class="avatar" style="background:#8b7cf6; color:#0b0a14">R</div>
+            <span>Runa</span>
+          </div>
+          <div class="status-dot" style="background:#c4b8ff; box-shadow:0 0 8px #c4b8ff80"></div>
+        </div>
+        <div class="chat-body">
+          <div class="msg msg-user" style="background:#8b7cf6; color:#0b0a14">
+            projenin server klasöründe en son ne değişmiş bakar mısın
+          </div>
+          <div class="msg msg-agent" style="color:#e8e3ff">
+            <div class="agent-name" style="color:#c4b8ff">Runa</div>
+            Tabii, bakıyorum. Son commit'leri tarayıp özetleyeyim.
+          </div>
+          <div class="tool-activity" style="background:#13111f; color:#c4b8ff; border:1px solid #1f1b30">
+            <span style="background:#c4b8ff"></span>
+            git log · son 10 commit
+          </div>
+          <div class="msg msg-agent" style="color:#e8e3ff">
+            En son <strong style="color:#c4b8ff">runtime/provider-health.ts</strong> dosyasına dokunulmuş — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+          </div>
+          <div class="approval" style="background:#13111f; border:1px solid #1f1b30; color:#e8e3ff">
+            <div class="approval-q">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+            <div class="approval-target" style="background:#0b0a14; color:#c4b8ff; border:1px solid #1f1b30">apps/server/src/runtime/provider-health.ts</div>
+            <div class="approval-buttons">
+              <button class="btn" style="background:transparent; color:#e8e3ff; border-color:#2f2b40">Vazgeç</button>
+              <button class="btn" style="background:#8b7cf6; color:#0b0a14">Aç</button>
+            </div>
+          </div>
+        </div>
+        <div class="composer" style="border-color:#1f1b30; color:#888">
+          <div class="composer-input">Bir şey yaz…</div>
+          <div class="avatar" style="background:#8b7cf6; color:#0b0a14; width:32px; height:32px; font-size:14px">↑</div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <h4>Karakter</h4>
+        <p>Zeki, hafif gizemli, modern. "Yeni nesil AI ürünüyüm" der ama abartmaz. Genç-orta yaş teknik kitle için davetkâr.</p>
+        <h4>Ayrıştırma</h4>
+        <p>AI kategorisinin içinde durur ama klişeye düşmez — neon mor yerine alacakaranlık morları. Replit, Linear (gece), eski Anthropic ile aynı kümede.</p>
+        <h4>Tema esnekliği</h4>
+        <ul>
+          <li>Açık: gül beyazı + derin mor</li>
+          <li>Koyu (varsayılan): alacakaranlık</li>
+          <li>"Gece" varyant: derinleşmiş, neredeyse siyah</li>
+        </ul>
+        <h4>Risk</h4>
+        <p>"AI mor" yorgunluğu — çok ürün bu yönü kullanıyor. Anneanne için biraz "tekno" hissedebilir.</p>
+        <h4>Referans</h4>
+        <div class="reference-row">
+          <span class="ref-tag">Replit</span>
+          <span class="ref-tag">Linear (gece)</span>
+          <span class="ref-tag">Anthropic (eski)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PAPER ============ -->
+  <section class="direction" id="paper">
+    <div class="direction-header">
+      <div>
+        <div class="direction-meta">Yön 04</div>
+        <div class="direction-title">Paper</div>
+        <div class="swatches">
+          <div class="swatch light-text" style="background:#f7f4ee">#F7F4EE</div>
+          <div class="swatch light-text" style="background:#ebe6da">#EBE6DA</div>
+          <div class="swatch light-text" style="background:#d4cdb8">#D4CDB8</div>
+          <div class="swatch" style="background:#2a2a28">#2A2A28</div>
+          <div class="swatch" style="background:#b4541a">#B4541A</div>
+          <div class="swatch" style="background:#3b6b4e">#3B6B4E</div>
+        </div>
+      </div>
+      <div class="direction-desc">
+        <p><strong>Açık varsayılan, yazı odaklı, "uygulama değil kâğıt".</strong> iA Writer, Are.na, Substack edebi tarafı, Stripe Press kitap kapakları. Çoğu AI ürününün aksine açık varsayılan tema.</p>
+        <p>"Burada düşünülür, çığlık atılmaz" diyen bir palet. Yazılı sohbete derin saygı duyar; sysadmin'i de yormaz, anneanneyi de davet eder. Ekran "bir uygulama" değil "açık bir defter" hisseder.</p>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="chat-demo" style="background:#f7f4ee">
+        <div class="chat-header" style="border-color:#ebe6da; color:#2a2a28">
+          <div class="chat-header-left">
+            <div class="avatar" style="background:#2a2a28; color:#f7f4ee">R</div>
+            <span>Runa</span>
+          </div>
+          <div class="status-dot" style="background:#3b6b4e"></div>
+        </div>
+        <div class="chat-body">
+          <div class="msg msg-user" style="background:#ebe6da; color:#2a2a28">
+            projenin server klasöründe en son ne değişmiş bakar mısın
+          </div>
+          <div class="msg msg-agent" style="color:#2a2a28">
+            <div class="agent-name" style="color:#7a766e">Runa</div>
+            Tabii, bakıyorum. Son commit'leri tarayıp özetleyeyim.
+          </div>
+          <div class="tool-activity" style="background:transparent; color:#7a766e; border:1px solid #d4cdb8">
+            <span style="background:#b4541a"></span>
+            git log · son 10 commit
+          </div>
+          <div class="msg msg-agent" style="color:#2a2a28">
+            En son <strong style="color:#b4541a">runtime/provider-health.ts</strong> dosyasına dokunulmuş — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+          </div>
+          <div class="approval" style="background:transparent; border:1px solid #d4cdb8; color:#2a2a28">
+            <div class="approval-q">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+            <div class="approval-target" style="background:#ebe6da; color:#2a2a28; border:1px solid #d4cdb8">apps/server/src/runtime/provider-health.ts</div>
+            <div class="approval-buttons">
+              <button class="btn" style="background:transparent; color:#2a2a28; border-color:#d4cdb8">Vazgeç</button>
+              <button class="btn" style="background:#2a2a28; color:#f7f4ee">Aç</button>
+            </div>
+          </div>
+        </div>
+        <div class="composer" style="border-color:#ebe6da; color:#888">
+          <div class="composer-input">Bir şey yaz…</div>
+          <div class="avatar" style="background:#2a2a28; color:#f7f4ee; width:32px; height:32px; font-size:14px">↑</div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <h4>Karakter</h4>
+        <p>Sakin, edebi, hafif eski-dünya. "Düşünmeye yer açar." iA Writer, Notebook, Marginalia kümesi.</p>
+        <h4>Ayrıştırma</h4>
+        <p>Hiçbir büyük AI ürünü açık varsayılan değil. Cesur ve farkındalık yaratacak bir karar — Runa'yı kitle pazarından çıkarır, butik hisseder.</p>
+        <h4>Tema esnekliği</h4>
+        <ul>
+          <li>Açık (varsayılan): kâğıt</li>
+          <li>Koyu: gece kâğıdı — koyu sepya</li>
+          <li>"Bibliotheque" varyant: ahşap raf</li>
+        </ul>
+        <h4>Risk</h4>
+        <p>Geceleri ekran parlaklığından şikayet çıkar. Sysadmin/developer "ben kara ekran isterim" diyebilir — koyu tema güçlü olmalı. Çoğunluk için "klasik AI" değil.</p>
+        <h4>Referans</h4>
+        <div class="reference-row">
+          <span class="ref-tag">iA Writer</span>
+          <span class="ref-tag">Are.na</span>
+          <span class="ref-tag">Stripe Press</span>
+          <span class="ref-tag">Substack Reader</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INK ============ -->
+  <section class="direction" id="ink">
+    <div class="direction-header">
+      <div>
+        <div class="direction-meta">Yön 05</div>
+        <div class="direction-title">Ink</div>
+        <div class="swatches">
+          <div class="swatch" style="background:#000000">#000000</div>
+          <div class="swatch" style="background:#0a0a0a">#0A0A0A</div>
+          <div class="swatch" style="background:#171717">#171717</div>
+          <div class="swatch" style="background:#fafafa">#FAFAFA</div>
+          <div class="swatch" style="background:#3b82f6">#3B82F6</div>
+          <div class="swatch light-text" style="background:#94a3b8">#94A3B8</div>
+        </div>
+      </div>
+      <div class="direction-desc">
+        <p><strong>Monokrom, keskin, kararlı.</strong> Pure black, pure white, gri ölçek, tek accent (mavi, ama herhangi bir renk olabilir). Vercel, Linear, Raycast, Arc kümesi — "21. yüzyıl operatör estetiği".</p>
+        <p>En güvenli yön: tema sistemi en kolay kurulur (yalnız accent değişir), çok-kitle için en az itiraz alır, içerik konuşur renk değil.</p>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="chat-demo" style="background:#0a0a0a">
+        <div class="chat-header" style="border-color:#171717; color:#fafafa">
+          <div class="chat-header-left">
+            <div class="avatar" style="background:#fafafa; color:#0a0a0a">R</div>
+            <span>Runa</span>
+          </div>
+          <div class="status-dot" style="background:#3b82f6"></div>
+        </div>
+        <div class="chat-body">
+          <div class="msg msg-user" style="background:#fafafa; color:#0a0a0a">
+            projenin server klasöründe en son ne değişmiş bakar mısın
+          </div>
+          <div class="msg msg-agent" style="color:#fafafa">
+            <div class="agent-name" style="color:#94a3b8">Runa</div>
+            Tabii, bakıyorum. Son commit'leri tarayıp özetleyeyim.
+          </div>
+          <div class="tool-activity" style="background:#171717; color:#94a3b8; border:1px solid #262626">
+            <span style="background:#3b82f6"></span>
+            git log · son 10 commit
+          </div>
+          <div class="msg msg-agent" style="color:#fafafa">
+            En son <strong style="color:#3b82f6">runtime/provider-health.ts</strong> dosyasına dokunulmuş — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+          </div>
+          <div class="approval" style="background:#171717; border:1px solid #262626; color:#fafafa">
+            <div class="approval-q">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+            <div class="approval-target" style="background:#0a0a0a; color:#3b82f6; border:1px solid #262626">apps/server/src/runtime/provider-health.ts</div>
+            <div class="approval-buttons">
+              <button class="btn" style="background:transparent; color:#fafafa; border-color:#3a3a3a">Vazgeç</button>
+              <button class="btn" style="background:#fafafa; color:#0a0a0a">Aç</button>
+            </div>
+          </div>
+        </div>
+        <div class="composer" style="border-color:#171717; color:#888">
+          <div class="composer-input">Bir şey yaz…</div>
+          <div class="avatar" style="background:#fafafa; color:#0a0a0a; width:32px; height:32px; font-size:14px">↑</div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <h4>Karakter</h4>
+        <p>Profesyonel, keskin, "ben işime bakarım". Hiçbir hisse mecbur etmez — içerik karakter taşır.</p>
+        <h4>Ayrıştırma</h4>
+        <p>Bu kümede ürün çok: Vercel, Linear, Raycast, Arc, Cursor. Ayrıştırmak için accent ve detay seçimi kritik.</p>
+        <h4>Tema esnekliği</h4>
+        <ul>
+          <li>Kullanıcı accent'i kendi seçer (en güçlü tema sistemi)</li>
+          <li>Açık/koyu hızla geçer</li>
+          <li>"Yüksek kontrast" erişilebilirlik varyantı kolay</li>
+        </ul>
+        <h4>Risk</h4>
+        <p>Karakter eksik — herhangi bir AI ürünü gibi görünebilir. Runa'nın Türkçe doğallık iddiasına en az eşlik eden palet. "Soğuk teknoloji" tehlikesi.</p>
+        <h4>Referans</h4>
+        <div class="reference-row">
+          <span class="ref-tag">Vercel</span>
+          <span class="ref-tag">Linear</span>
+          <span class="ref-tag">Raycast</span>
+          <span class="ref-tag">Arc</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footnote">
+    <p><strong>Not.</strong> Tüm yönlerde aynı sohbet senaryosu var — bilinçli bir tercih. Renk değiştiğinde Runa'nın <em>karakteri</em> nasıl değişiyor onu görmek istedim, fonksiyon değil. Hangi ekran sana "evet bu Runa" hissi veriyor, hangisi "bu başka bir ürün" — bu sezgi en önemli sinyal.</p>
+    <p style="margin-top:16px"><strong>Bunlar son palet değil.</strong> Sadece <em>yön</em>. Bir yön seçtiğimizde, o yön içinde 2-3 daha detaylı varyant çıkarıp ince ayar yaparız. Şu an karar: "Runa hangi mahallede oturuyor?" — sokağı sonra seçeriz.</p>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Update active nav button on scroll
+  const sections = document.querySelectorAll('.direction');
+  const buttons = document.querySelectorAll('.nav button');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(section => {
+      const rect = section.getBoundingClientRect();
+      if (rect.top <= 120 && rect.bottom >= 120) {
+        current = section.id;
+      }
+    });
+    if (current) {
+      buttons.forEach(b => {
+        b.classList.toggle('active', b.dataset.target === current);
+      });
+    }
+  });
+</script>
+
+</body>
+</html>

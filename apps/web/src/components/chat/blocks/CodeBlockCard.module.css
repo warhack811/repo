@@ -1,5 +1,5 @@
-.root {
-	border-radius: var(--radius-soft);
+﻿.root {
+	border-radius: var(--radius-input);
 	border: 1px solid var(--border-subtle);
 	padding: 16px;
 	min-width: 0;
@@ -27,7 +27,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .title {
@@ -56,12 +56,12 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .copyButton {
 	font-size: 12px;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	background: var(--surface-chip);
 	padding: 5px 10px;
 	border-radius: 999px;
@@ -73,7 +73,7 @@
 }
 
 .summary {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 	margin-bottom: 10px;
 }
@@ -86,7 +86,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .pathValue {

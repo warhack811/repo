@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uiCopy } from '../../localization/copy.js';
 import { CommandPalette } from '../command/CommandPalette.js';
+import { CommandPaletteProvider } from '../command/CommandPaletteContext.js';
 import type { CommandPaletteCommand } from '../command/command-palette-utils.js';
 import { useCommandPalette } from '../command/useCommandPalette.js';
 import { RunaSurface } from '../ui/RunaSurface.js';
@@ -128,24 +129,14 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 	if (activePage === 'chat') {
 		return (
 			<div className="runa-page runa-page--chat-product runa-migrated-components-app-appshell-1">
-				<button
-					type="button"
-					className="runa-command-palette-trigger"
-					onClick={openPalette}
-					aria-label="Komut paletini aç"
-				>
-					<span>Komut ara</span>
-					<kbd>{commandShortcutLabel}</kbd>
-				</button>
-				<RunaSurface
-					as="main"
-					id="authenticated-app-content"
-					className="runa-app-shell-main runa-app-shell-main--chat runa-route-transition runa-migrated-components-app-appshell-2"
-					tone="plain"
-				>
-					<AppNav activePage={activePage} />
-					{children}
-				</RunaSurface>
+				<CommandPaletteProvider openPalette={openPalette}>
+					<main
+						id="authenticated-app-content"
+						className="runa-app-shell-main runa-app-shell-main--chat runa-route-transition runa-migrated-components-app-appshell-2"
+					>
+						{children}
+					</main>
+				</CommandPaletteProvider>
 				{commandPalette}
 			</div>
 		);

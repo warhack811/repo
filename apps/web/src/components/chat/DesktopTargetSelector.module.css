@@ -1,4 +1,4 @@
-.root {
+﻿.root {
 	display: grid;
 	gap: 12px;
 	min-width: 0;
@@ -11,7 +11,7 @@
 }
 
 .eyebrow {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -20,7 +20,7 @@
 
 .description {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 14px;
 	line-height: 1.45;
 }
@@ -38,13 +38,13 @@
 }
 
 .clearLabel {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 14px;
 	font-weight: 600;
 }
 
 .clearDescription {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	line-height: 1.4;
 }
@@ -57,18 +57,18 @@
 }
 
 .deviceLabel {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 14px;
 	font-weight: 600;
 }
 
 .deviceMeta {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 }
 
 .loading {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 14px;
 }
 

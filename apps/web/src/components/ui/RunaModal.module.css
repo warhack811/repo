@@ -1,7 +1,7 @@
-.backdrop {
+﻿.backdrop {
 	align-items: center;
 	animation: runa-fade-in var(--duration-slow) var(--ease-standard);
-	background: hsl(var(--color-surface-overlay) / 0.68);
+	background: var(--surface-3);
 	display: grid;
 	inset: 0;
 	justify-items: center;
@@ -16,7 +16,7 @@
 	border: 1px solid var(--border-default);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	display: grid;
 	gap: var(--space-4);
 	max-height: calc(100dvh - 32px);

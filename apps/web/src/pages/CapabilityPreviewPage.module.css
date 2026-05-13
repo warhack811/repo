@@ -1,11 +1,11 @@
-.pageStack {
+﻿.pageStack {
 	display: grid;
 	gap: var(--space-5);
 	min-width: 0;
 }
 
 .section {
-	background: hsl(var(--color-surface) / 0.72);
+	background: var(--surface-2);
 	border: 1px solid var(--border-subtle);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
@@ -16,7 +16,7 @@
 }
 
 .header {
-	background: hsl(var(--color-surface) / 0.72);
+	background: var(--surface-2);
 }
 
 .sectionHeader {
@@ -26,7 +26,7 @@
 }
 
 .eyebrow {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0;
@@ -36,7 +36,7 @@
 .sectionTitle,
 .sectionTitleLarge,
 .sectionTitleSmall {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	line-height: 1.35;
 	margin: 0;
 }
@@ -55,7 +55,7 @@
 
 .mutedText,
 .detailText {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 	margin: 0;
 }
@@ -90,7 +90,7 @@
 .metaItem {
 	background: var(--surface-subtle);
 	border: 1px solid var(--border-subtle);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	display: grid;
 	gap: var(--space-2);
 	padding: var(--space-3);
@@ -103,7 +103,7 @@
 }
 
 .selectedNote {
-	color: hsl(var(--color-accent));
+	color: var(--accent);
 	font-size: 12px;
 	line-height: 1.5;
 }

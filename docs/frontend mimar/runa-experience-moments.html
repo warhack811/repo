@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runa — Deneyimsel Anlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ember-surface-1: #14110D;
+    --ember-surface-2: #1E1A14;
+    --ember-surface-3: #2A241C;
+    --ember-ink-1: #E8DFCD;
+    --ember-ink-2: #B9AE99;
+    --ember-ink-3: #847866;
+    --ember-accent: #E0805C;
+    --ember-accent-2: #F4A876;
+    --ember-accent-bg: #2A1E15;
+    --ember-status: #8FA277;
+    --ember-status-warm: #C7916B;
+    --ember-error: #C97064;
+    --ember-error-bg: #2A1A18;
+
+    --rose-surface-1: #18110F;
+    --rose-surface-2: #211719;
+    --rose-surface-3: #2E2122;
+    --rose-ink-1: #EFDCD8;
+    --rose-ink-2: #C2A8A5;
+    --rose-ink-3: #8A7370;
+    --rose-accent: #D88C8C;
+    --rose-accent-2: #ECAAA8;
+    --rose-accent-bg: #2D1D1F;
+    --rose-status: #B5A87A;
+  }
+
+  html, body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-header {
+    padding: 56px 24px 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .page-header .eyebrow {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .page-header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 52px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    line-height: 1.05;
+  }
+  .page-header p {
+    color: #aaa;
+    font-size: 16px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1f1f1f;
+    padding: 12px 24px;
+    z-index: 50;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav button {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #aaa;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .nav button:hover { color: #fff; border-color: #3a3a3a; }
+  .nav button.active { background: #fff; color: #000; border-color: #fff; }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 24px 120px;
+  }
+
+  section.block { margin-bottom: 96px; scroll-margin-top: 72px; }
+  section.block:last-child { margin-bottom: 0; }
+
+  h2.section-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .section-meta {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+  }
+  .section-lead {
+    color: #c8c8c8;
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 760px;
+    margin-bottom: 40px;
+  }
+  .section-lead strong { color: #fff; font-weight: 500; }
+
+  /* ============ SIGNATURE MARK STYLES ============ */
+  .signature-svg {
+    display: inline-block;
+    vertical-align: -3px;
+  }
+  .signature-svg svg { width: 100%; height: 100%; }
+
+  /* ============ SHIMMER / THINKING ANIMATION ============ */
+  @keyframes shimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+  .shimmer-text {
+    background: linear-gradient(
+      90deg,
+      var(--ink-3, #847866) 0%,
+      var(--ink-1, #E8DFCD) 50%,
+      var(--ink-3, #847866) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 2.5s linear infinite;
+    font-weight: 500;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    70% { box-shadow: 0 0 0 6px transparent; opacity: 0.7; }
+    100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+  }
+
+  /* Cursor blink */
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  .stream-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--ember-accent);
+    vertical-align: -2px;
+    margin-left: 1px;
+    animation: blink 1s infinite;
+  }
+
+  /* Fade in for new messages */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ MOBILE FRAME ============ */
+  .frame-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    justify-items: center;
+  }
+  @media (min-width: 768px) {
+    .frame-row.dual { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+  }
+
+  .mobile-frame {
+    width: 100%;
+    max-width: 390px;
+    height: 780px;
+    border: 1px solid #2a2a2a;
+    border-radius: 36px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .frame-ember {
+    background: var(--ember-surface-1);
+    color: var(--ember-ink-1);
+    --ink-1: var(--ember-ink-1);
+    --ink-2: var(--ember-ink-2);
+    --ink-3: var(--ember-ink-3);
+    --surface-1: var(--ember-surface-1);
+    --surface-2: var(--ember-surface-2);
+    --surface-3: var(--ember-surface-3);
+    --accent: var(--ember-accent);
+    --accent-2: var(--ember-accent-2);
+    --accent-bg: var(--ember-accent-bg);
+    --status: var(--ember-status);
+    --status-warm: var(--ember-status-warm);
+    --error: var(--ember-error);
+    --error-bg: var(--ember-error-bg);
+    --user-bg: var(--ember-ink-1);
+    --user-fg: var(--ember-surface-1);
+  }
+
+  .frame-rose {
+    background: var(--rose-surface-1);
+    color: var(--rose-ink-1);
+    --ink-1: var(--rose-ink-1);
+    --ink-2: var(--rose-ink-2);
+    --ink-3: var(--rose-ink-3);
+    --surface-1: var(--rose-surface-1);
+    --surface-2: var(--rose-surface-2);
+    --surface-3: var(--rose-surface-3);
+    --accent: var(--rose-accent);
+    --accent-2: var(--rose-accent-2);
+    --accent-bg: var(--rose-accent-bg);
+    --status: var(--rose-status);
+    --status-warm: var(--rose-accent-2);
+    --error: #C97064;
+    --error-bg: #2A1A18;
+    --user-bg: var(--rose-ink-1);
+    --user-fg: var(--rose-surface-1);
+  }
+
+  .mobile-notch {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 26px;
+    background: #000;
+    border-radius: 999px;
+    z-index: 10;
+  }
+  .mobile-status {
+    padding: 14px 22px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ink-1);
+  }
+  .mobile-status .icons {
+    display: flex;
+    gap: 5px;
+    font-size: 12px;
+    align-items: center;
+  }
+
+  .mobile-header {
+    padding: 16px 20px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--surface-3);
+  }
+  .mobile-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mobile-back { color: var(--ink-2); font-size: 22px; line-height: 1; }
+  .mobile-title-block { display: flex; flex-direction: column; }
+  .mobile-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    line-height: 1.1;
+    color: var(--ink-1);
+    letter-spacing: 0.01em;
+  }
+  .mobile-subtitle {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--status);
+    color: var(--status);
+    animation: pulse 2s infinite;
+  }
+  .mobile-header-right { color: var(--ink-2); font-size: 22px; }
+
+  .mobile-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 20px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .time-divider {
+    align-self: center;
+    font-size: 11px;
+    color: var(--ink-3);
+    padding: 4px 12px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Mobile: Runa name + signature inline above message */
+  .m-agent-mobile {
+    align-self: flex-start;
+    max-width: 100%;
+    color: var(--ink-1);
+    font-size: 15px;
+    line-height: 1.6;
+    animation: fadeInUp 0.4s ease-out;
+  }
+  .m-agent-mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+  }
+  .m-agent-mobile-header .signature-svg {
+    width: 14px;
+    height: 14px;
+    color: var(--accent);
+  }
+  .m-agent-mobile-content {
+    color: var(--ink-1);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .m-agent-mobile-content strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .m-user {
+    align-self: flex-end;
+    max-width: 80%;
+    padding: 10px 15px;
+    background: var(--user-bg);
+    color: var(--user-fg);
+    border-radius: 18px 18px 4px 18px;
+    font-size: 15px;
+    line-height: 1.5;
+    animation: fadeInUp 0.3s ease-out;
+  }
+
+  .tool-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 12px;
+    margin: -8px 0 0;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tool-inline-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .tool-inline-chevron { opacity: 0.5; font-size: 10px; }
+
+  /* Composer */
+  .mobile-composer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 16px 28px;
+    background: linear-gradient(180deg, transparent, var(--surface-1) 30%);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .composer-pill {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 22px;
+    padding: 12px 18px;
+    color: var(--ink-3);
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .composer-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--surface-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ============ EMPTY STATE ============ */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    gap: 28px;
+  }
+  .empty-mark {
+    width: 56px;
+    height: 56px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .empty-greeting {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    line-height: 1.15;
+    text-align: center;
+    color: var(--ink-1);
+    letter-spacing: -0.01em;
+  }
+  .empty-sub {
+    color: var(--ink-3);
+    font-size: 14px;
+    text-align: center;
+    margin-top: -16px;
+    line-height: 1.5;
+  }
+  .empty-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    margin-top: 8px;
+  }
+  .suggestion-chip {
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 12px;
+    color: var(--ink-2);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .suggestion-chip:hover {
+    background: var(--surface-3);
+    color: var(--ink-1);
+  }
+  .suggestion-chip .arrow {
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+
+  /* ============ ERROR STATE ============ */
+  .error-msg {
+    align-self: flex-start;
+    max-width: 100%;
+    animation: fadeInUp 0.4s ease-out;
+  }
+  .error-msg-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 14px;
+    color: var(--accent);
+  }
+  .error-msg-header .signature-svg {
+    width: 14px;
+    height: 14px;
+  }
+  .error-msg-content {
+    color: var(--ink-1);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .error-msg-content strong { color: var(--accent); font-weight: 500; }
+  .error-detail-line {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--error-bg);
+    border-left: 2px solid var(--error);
+    border-radius: 0 8px 8px 0;
+    color: var(--ink-2);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .error-detail-line .label {
+    color: var(--error);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .error-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .btn {
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-2);
+    border-color: var(--surface-3);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--surface-1);
+  }
+  .btn-text {
+    background: transparent;
+    color: var(--ink-3);
+    border: none;
+    padding: 9px 4px;
+    font-size: 13px;
+  }
+
+  /* ============ DETAIL CARDS ============ */
+  .detail-card {
+    margin-top: 32px;
+    padding: 28px;
+    border: 1px solid #1f1f1f;
+    border-radius: 14px;
+    background: #0f0f0f;
+  }
+  .detail-card h4 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .detail-card p, .detail-card li {
+    color: #c8c8c8;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .detail-card p + p { margin-top: 12px; }
+  .detail-card strong { color: #fff; font-weight: 500; }
+  .detail-card ul { list-style: none; margin-top: 8px; }
+  .detail-card li { padding: 4px 0; padding-left: 16px; position: relative; }
+  .detail-card li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: #555;
+  }
+
+  /* ============ MOTION SHOWCASE ============ */
+  .motion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .motion-card {
+    background: #0f0f0f;
+    border: 1px solid #1f1f1f;
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .motion-card h5 {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .motion-card .motion-meta {
+    color: #666;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 16px;
+  }
+  .motion-demo {
+    background: var(--ember-surface-1);
+    padding: 24px;
+    border-radius: 8px;
+    color: var(--ember-ink-1);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    --ink-1: var(--ember-ink-1);
+    --ink-2: var(--ember-ink-2);
+    --ink-3: var(--ember-ink-3);
+    --accent: var(--ember-accent);
+  }
+  .motion-explain {
+    color: #aaa;
+    font-size: 13px;
+    line-height: 1.55;
+    margin-top: 14px;
+  }
+
+  /* ============ ROSE PREVIEW ============ */
+  .rose-banner {
+    background: linear-gradient(135deg, #2D1D1F 0%, #18110F 100%);
+    border: 1px solid #2E2122;
+    border-radius: 18px;
+    padding: 40px;
+    margin-bottom: 32px;
+    color: var(--rose-ink-1);
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .rose-banner-text {
+    flex: 1;
+    min-width: 240px;
+  }
+  .rose-banner h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    color: var(--rose-accent-2);
+    margin-bottom: 12px;
+  }
+  .rose-banner p {
+    color: var(--rose-ink-2);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .rose-swatches {
+    display: flex;
+    gap: 4px;
+    min-width: 240px;
+    height: 60px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .rose-swatches > div { flex: 1; }
+
+  .footnote {
+    margin-top: 64px;
+    padding: 32px;
+    background: linear-gradient(180deg, #1a1612 0%, #0a0a0a 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 18px;
+    color: #c8c8c8;
+    font-size: 14.5px;
+    line-height: 1.7;
+  }
+  .footnote strong { color: #fff; }
+  .footnote p + p { margin-top: 14px; }
+
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow">Adım 04 · Deneyim</div>
+  <h1>Zor anlar, sakin tepkiler</h1>
+  <p>Bir AI ortağının karakteri kolay anlarda değil, <strong>zor anlarda</strong> görünür: boş ekranda nasıl karşılıyor, beklerken nasıl davranıyor, hata olunca nasıl tepki veriyor. Bu artifact'ta Runa'nın bu anlardaki ses tonunu tasarlıyoruz. Bonus: Rose teması ve signature mark mobil yerleşimi.</p>
+</div>
+
+<nav class="nav">
+  <button class="active" data-target="rose">Rose Teması</button>
+  <button data-target="signature-fix">Signature Mark</button>
+  <button data-target="empty">Empty State</button>
+  <button data-target="thinking">Düşünüyor</button>
+  <button data-target="streaming">Streaming</button>
+  <button data-target="error">Hata</button>
+  <button data-target="motion">Motion Sözlüğü</button>
+  <button data-target="next">Sıradaki</button>
+</nav>
+
+<div class="container">
+
+  <!-- ============ ROSE THEME ============ -->
+  <section class="block" id="rose">
+    <div class="section-meta">Bölüm 01 · Bonus</div>
+    <h2 class="section-title">Rose · şafak</h2>
+    <p class="section-lead">
+      Ember'in akrabası ama daha yumuşak: pembe-bal aralığı. Genç kitle ve kadın kullanıcılara çekici, ama "kız uygulaması" klişesinden uzak. Sıcaklık aynı, sadece tonu farklı bir şafak gibi.
+    </p>
+
+    <div class="rose-banner">
+      <div class="rose-banner-text">
+        <h3>Aileye yeni üye</h3>
+        <p>Aynı doygunluk, aynı yapı, sadece ton şefkatli ve şafak rengi. Diğer 5 tema gibi tek tıkla seçilir. Rose seçen kullanıcı için tüm yüzey hafifçe pembeye kayar, accent bal/pembe olur.</p>
+      </div>
+      <div class="rose-swatches">
+        <div style="background:#18110F"></div>
+        <div style="background:#2E2122"></div>
+        <div style="background:#D88C8C"></div>
+        <div style="background:#ECAAA8"></div>
+        <div style="background:#EFDCD8"></div>
+      </div>
+    </div>
+
+    <div class="frame-row">
+      <div class="mobile-frame frame-rose">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>09:42</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>84%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span>çevrimiçi</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">bugün yapmam gerekenleri özetler misin</div>
+
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-mobile-content">
+              Tabii, takvimine ve görev listene bakayım.
+            </div>
+          </div>
+
+          <div class="tool-inline">
+            <span class="tool-inline-dot"></span>
+            calendar · görev listesi
+            <span class="tool-inline-chevron">›</span>
+          </div>
+
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-mobile-content">
+              Bugün <strong>üç şey</strong> var: 11:00 ekip toplantısı, akşam 19:00 yoga, ve teslim edilecek bir rapor. Hangisinden başlamak istersin?
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span>+</span><span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SIGNATURE FIX ============ -->
+  <section class="block" id="signature-fix">
+    <div class="section-meta">Bölüm 02</div>
+    <h2 class="section-title">Signature mark · mobilde yer kazanma</h2>
+    <p class="section-lead">
+      Geri bildirimine göre düzelttim: mobilde signature sol margin'de değil, mesajın <em>başında "Runa"</em> ismiyle birlikte. Bu hem alan kazandırıyor hem agent ismini hatırlatıyor — kullanıcı her mesajda kiminle konuştuğunu his ediyor.
+      Masaüstünde önceki düzen (mesajın solunda) korunabilir, çünkü orada yer var.
+    </p>
+
+    <div class="detail-card" style="margin-top:0; margin-bottom:24px">
+      <h4>Üç farklı boyut, üç farklı yaklaşım</h4>
+      <p><strong>Mobil (≤768px):</strong> Signature + "Runa" ismi mesajın üstünde, küçük bir başlık gibi. Mesaj tam genişlikten faydalanır.</p>
+      <p><strong>Tablet (768-1024px):</strong> Mobilde olduğu gibi başlıkta — okuma satırı zaten yeterince geniş, sol margin'e yer ayırmaya gerek yok.</p>
+      <p><strong>Masaüstü (1024px+):</strong> Sol margin'de, mesajın yanında. Masaüstünde 680px okuma alanı zaten dar tutulduğu için kenarda yer var ve görsel ritim güzel.</p>
+    </div>
+
+    <div class="frame-row">
+      <div class="mobile-frame frame-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>14:22</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>67%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span>çevrimiçi</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">apps/server klasöründe neler var</div>
+
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-mobile-content">
+              Bakıyorum, klasör yapısını listelemek için kısa bir komut çalıştıracağım.
+            </div>
+          </div>
+
+          <div class="tool-inline">
+            <span class="tool-inline-dot"></span>
+            ls apps/server
+            <span class="tool-inline-chevron">›</span>
+          </div>
+
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-mobile-content">
+              Altı klasör var: <strong>src</strong>, <strong>test</strong>, <strong>scripts</strong>, ve birkaç yapılandırma dosyası. <strong>src</strong>'in alt yapısı en zengin görünüyor — orayı detaylandırayım mı?
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span>+</span><span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EMPTY STATE ============ -->
+  <section class="block" id="empty">
+    <div class="section-meta">Bölüm 03</div>
+    <h2 class="section-title">Empty state · ilk karşılaşma</h2>
+    <p class="section-lead">
+      Boş bir sohbet ekranı, Runa'nın "hoşgeldin" konuşması. Resmi olmayan, davetkâr, hafif şiirsel — ama feature listesi değil. Üç tane bağlam-farkında öneri var, bunlar gün/saatine ve cihazına göre değişebilir.
+    </p>
+
+    <div class="frame-row dual">
+      <div class="mobile-frame frame-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>08:34</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>91%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Yeni sohbet</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span>Runa hazır</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="empty-state">
+          <span class="empty-mark signature-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+          </span>
+          <div class="empty-greeting">Günaydın.<br/>Bugün nereden başlayalım?</div>
+          <div class="empty-sub">Bir şey sor, bir görev ver, ya da<br/>aşağıdaki seçeneklerden birini dene.</div>
+          <div class="empty-suggestions">
+            <div class="suggestion-chip">
+              <span>Bugünkü programımı özetle</span>
+              <span class="arrow">›</span>
+            </div>
+            <div class="suggestion-chip">
+              <span>Projende en son ne değiştiyse anlat</span>
+              <span class="arrow">›</span>
+            </div>
+            <div class="suggestion-chip">
+              <span>Dünden kalan işleri hatırlat</span>
+              <span class="arrow">›</span>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span>+</span><span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+
+      <div class="mobile-frame frame-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>22:18</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>34%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Yeni sohbet</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span>Runa hazır</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="empty-state">
+          <span class="empty-mark signature-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+          </span>
+          <div class="empty-greeting">Geç oldu.<br/>Sakin bir konuşmaya ne dersin?</div>
+          <div class="empty-sub">Yatmadan önce bir şey yazmak,<br/>bir fikri çözmek, ya da sadece sohbet.</div>
+          <div class="empty-suggestions">
+            <div class="suggestion-chip">
+              <span>Bugünü iki cümleyle özetle</span>
+              <span class="arrow">›</span>
+            </div>
+            <div class="suggestion-chip">
+              <span>Yarına hazırlanmama yardım et</span>
+              <span class="arrow">›</span>
+            </div>
+            <div class="suggestion-chip">
+              <span>Bir kitap önerisi ver</span>
+              <span class="arrow">›</span>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span>+</span><span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Empty state'in karakter taşıyan tarafları</h4>
+      <p><strong>Saate göre selamlama.</strong> "Günaydın" (sabah), "Geç oldu" (gece) — sabit bir karşılama yerine bağlama uyum. Hava durumu, hafta sonu, çalışma günü farkları zamanla eklenebilir.</p>
+      <p><strong>"Hoşgeldin" değil, "Nereden başlayalım?"</strong> Soru sormak Runa'yı ortak yapar — kullanıcıya hizmet veren bir tool değil, beraber çalışan bir ortak.</p>
+      <p><strong>3 öneri sınırlı, dikkatli.</strong> Çoğu AI ürünü 6-8 örnek soru gösterir, ChatGPT 4 büyük kart kullanır. Runa'da 3 yeter — fazla seçenek kararsızlaştırır.</p>
+      <p><strong>"Bir kitap önerisi ver" gibi günlük örnekler var.</strong> Sadece teknik örnekler değil. Çünkü Runa çok-kitle: anneanne için de yer var.</p>
+      <p><strong>Signature mark büyük, gevşek.</strong> Ekranda tek başına duran bu işaret Runa'nın "burada bir kişilik var" demesi. Empty state'in en güçlü görsel öğesi.</p>
+    </div>
+  </section>
+
+  <!-- ============ THINKING / SHIMMER ============ -->
+  <section class="block" id="thinking">
+    <div class="section-meta">Bölüm 04</div>
+    <h2 class="section-title">Düşünüyor · shimmer animasyon</h2>
+    <p class="section-lead">
+      Bahsettiğin gibi düz "düşünüyor..." yazısı eskimiş hissettiriyor. Shimmer (silikleşen kayan animasyon) çok daha premium. Aşağıdaki yazılar <strong>gerçekten animasyonlu</strong> — bir süre bekleyince fark edeceksin.
+    </p>
+
+    <div class="frame-row">
+      <div class="mobile-frame frame-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>10:08</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>72%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span class="shimmer-text" style="font-size:11px">düşünüyor</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">son haftadaki commit'leri analiz et, ne öğreniriz</div>
+
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-mobile-content">
+              Tabii, son 7 günü tarayıp pattern'lere bakayım.
+            </div>
+          </div>
+
+          <div class="tool-inline">
+            <span class="tool-inline-dot"></span>
+            git log --since="7 days ago"
+            <span class="tool-inline-chevron">›</span>
+          </div>
+
+          <!-- The active thinking line -->
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span class="shimmer-text">Pattern'lere bakıyor</span>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span>+</span><span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Farklı süreçler için farklı shimmer mesajları</h4>
+      <p>Tek bir "düşünüyor" tüm beklemeleri kapsamaz. Süreç farklıysa mesaj da farklı olmalı. Aşağıdaki örneklerin hepsi <strong>canlı animasyonlu</strong>:</p>
+      <div style="margin-top:20px; padding:24px; background:#1a1a1a; border-radius:10px; display:flex; flex-direction:column; gap:18px; --ink-1:#E8DFCD; --ink-3:#847866">
+        <div style="display:flex; align-items:center; gap:10px">
+          <span class="pulse" style="background:#8FA277; color:#8FA277"></span>
+          <span class="shimmer-text" style="font-size:15px">Düşünüyor</span>
+          <span style="color:#666; font-size:11px; margin-left:auto; font-family:monospace">genel bekleme</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <span class="pulse" style="background:#8FA277; color:#8FA277"></span>
+          <span class="shimmer-text" style="font-size:15px">Dosyaları tarıyor</span>
+          <span style="color:#666; font-size:11px; margin-left:auto; font-family:monospace">file scan</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <span class="pulse" style="background:#8FA277; color:#8FA277"></span>
+          <span class="shimmer-text" style="font-size:15px">Web'de araştırıyor</span>
+          <span style="color:#666; font-size:11px; margin-left:auto; font-family:monospace">web search</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <span class="pulse" style="background:#8FA277; color:#8FA277"></span>
+          <span class="shimmer-text" style="font-size:15px">Sonuçları derliyor</span>
+          <span style="color:#666; font-size:11px; margin-left:auto; font-family:monospace">synthesizing</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <span class="pulse" style="background:#C7916B; color:#C7916B"></span>
+          <span class="shimmer-text" style="font-size:15px; background:linear-gradient(90deg,#847866 0%,#F4A876 50%,#847866 100%);-webkit-background-clip:text;background-clip:text;background-size:200% 100%;animation:shimmer 2.5s linear infinite">Komut çalıştırıyor</span>
+          <span style="color:#666; font-size:11px; margin-left:auto; font-family:monospace">tool exec · dikkat</span>
+        </div>
+      </div>
+      <p style="margin-top:20px"><strong>Renk önemli:</strong> Normal süreçler sage yeşil pulse (statik, sakin); risk içeren tool kullanımında pulse warm-amber'a kayıyor — kullanıcı "şu an bir şey yapıyor, gözüm üzerinde olsun" der.</p>
+    </div>
+  </section>
+
+  <!-- ============ STREAMING ============ -->
+  <section class="block" id="streaming">
+    <div class="section-meta">Bölüm 05</div>
+    <h2 class="section-title">Streaming · mesaj nasıl beliriyor</h2>
+    <p class="section-lead">
+      Stream rakiplerinin çoğunda agresif: tek karakter tek karakter, mekanik. Runa'da daha sakin — kelime kelime, hafif bir cursor, mesaj sonunda fadeIn ile sabitlenir. <strong>Aşağıdaki örnek canlı çalışıyor</strong>, sayfa açıldığında izle.
+    </p>
+
+    <div class="frame-row">
+      <div class="mobile-frame frame-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>15:47</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>58%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span class="shimmer-text" style="font-size:11px">yazıyor</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">runa nasıl bir AI sen</div>
+
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-mobile-content" id="stream-target">
+              <span id="stream-content"></span><span class="stream-cursor"></span>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span>+</span><span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Streaming karakter detayları</h4>
+      <p><strong>Kelime kelime, karakter karakter değil.</strong> Mekanik yazma efekti yerine düşünerek yazıyormuş hissi. Anthropic ve OpenAI'nin yaklaşımı.</p>
+      <p><strong>Cursor accent renkte, ince.</strong> Yanıp sönen 2px genişlikte vurgu. Mesaj bitince cursor kayboluyor, hiç olmamış gibi.</p>
+      <p><strong>Hafif fadeIn her yeni kelimede.</strong> Tek seferlik bir "pop" değil, kelimeler hafifçe yerine oturuyor. Bu animasyonu hissetmek için yukarıdaki canlı örneğe bak.</p>
+      <p><strong>Header'da "yazıyor" shimmer.</strong> Subtitle bölümü sadece "çevrimiçi" değil, aktif duruma göre değişir: <em>çevrimiçi → düşünüyor → yazıyor</em>. Hepsi shimmer ile.</p>
+    </div>
+  </section>
+
+  <!-- ============ ERROR STATE ============ -->
+  <section class="block" id="error">
+    <div class="section-meta">Bölüm 06</div>
+    <h2 class="section-title">Hata · zor anlarda karakter</h2>
+    <p class="section-lead">
+      Bir AI ortağının gerçek karakteri burada görünür. Rakiplerin çoğunda hata bir kırmızı dikdörtgen ve teknik mesaj. Runa'da hata <strong>Runa'nın söylediği bir şey</strong> — açık, dürüst, çözüm önerili. "Failed: Executable not found: pnpm" değil, Runa'nın insan dili.
+    </p>
+
+    <div class="frame-row dual">
+
+      <!-- ERROR 1: Tool fail -->
+      <div class="mobile-frame frame-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>11:34</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>83%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span>çevrimiçi</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">projeyi başlat</div>
+
+          <div class="m-agent-mobile">
+            <div class="m-agent-mobile-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-mobile-content">
+              Tabii, pnpm dev çalıştırıyorum.
+            </div>
+          </div>
+
+          <div class="tool-inline">
+            <span class="tool-inline-dot" style="background:#C97064"></span>
+            pnpm dev
+            <span class="tool-inline-chevron">›</span>
+          </div>
+
+          <div class="error-msg">
+            <div class="error-msg-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="error-msg-content">
+              <strong>pnpm bulamadım.</strong> Cihazda kurulu değil ya da PATH'te değil — node ve npm var mı kontrol edeyim mi, yoksa pnpm'i şu an mı kuralım?
+              <div class="error-detail-line">
+                <div class="label">Hata detayı</div>
+                Executable not found: pnpm
+              </div>
+              <div class="error-actions">
+                <button class="btn btn-ghost">Kurma</button>
+                <button class="btn btn-primary">Şimdi kur</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span>+</span><span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+
+      <!-- ERROR 2: Connection lost -->
+      <div class="mobile-frame frame-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>16:02</span>
+          <div class="icons"><span>—</span><span>•••</span><span>52%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse" style="background:#C97064; color:#C97064"></span><span>bağlantı yok</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">bana bugünkü haberleri özetler misin</div>
+
+          <div class="error-msg">
+            <div class="error-msg-header">
+              <span class="signature-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <span>Runa</span>
+            </div>
+            <div class="error-msg-content">
+              <strong>İnternet bağlantısı yok</strong> gibi görünüyor. Web'e bakamıyorum ama bağlantı dönünce bu mesajı otomatik yanıtlarım — gözüm açık, beklemende kalıyorum.
+              <div class="error-actions">
+                <button class="btn btn-ghost">Daha sonra</button>
+                <button class="btn btn-primary">Şimdi dene</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill" style="opacity:0.5">
+            <span>+</span><span>Bağlantı bekleniyor…</span>
+          </div>
+          <div class="composer-send-btn" style="opacity:0.4">↑</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="detail-card">
+      <h4>Hata anlarının dili</h4>
+      <p><strong>Runa söylüyor, sistem değil.</strong> Hata bir sistem mesajı değil, agent'ın mesajı. Aynı signature mark, aynı "Runa" başlık, aynı tipografi — sadece daha küçük bir warm-coral aksesuar (tool dot) ve detay satırı.</p>
+      <p><strong>Suçlama değil, dürüstlük.</strong> "pnpm bulamadım" — birinci tekil, suçu üstleniyor (gerçekten Runa kaybetti). "pnpm yüklü değil" olsaydı kullanıcıyı dolaylı olarak suçlardı.</p>
+      <p><strong>Çözüm önerisi her zaman var.</strong> "Hata oldu, bok yapın" değil — Runa hep bir sonraki adımı öneriyor: "kurayım mı?", "şimdi dene", "gözüm açık". Kullanıcı asla çıkmazda kalmaz.</p>
+      <p><strong>Teknik detay gizli ama erişilebilir.</strong> Raw error mesajı küçük bir warm-coral şeritte aşağıda — geliştirici için orada ama dikkat dağıtmıyor. Anneanne için görünmez gibi, sysadmin için tek bakışta görülebilir.</p>
+      <p><strong>Bağlantı yok durumunda Runa "beklemede kalıyor" diyor.</strong> Bu önemli — kullanıcı yalnız hissetmiyor. Tekrar bağlandığında otomatik yanıtlama vaadi de güven kuruyor.</p>
+    </div>
+  </section>
+
+  <!-- ============ MOTION VOCABULARY ============ -->
+  <section class="block" id="motion">
+    <div class="section-meta">Bölüm 07</div>
+    <h2 class="section-title">Motion sözlüğü</h2>
+    <p class="section-lead">
+      Karakterin yarısı motion'da. Aşağıdaki dört temel hareketi sabitliyorum — bunlar Runa'nın hareket dilini oluşturuyor. Her geliştirici aynı dilde animasyon yazıyor.
+    </p>
+
+    <div class="motion-grid">
+      <div class="motion-card">
+        <h5>shimmer</h5>
+        <div class="motion-meta">2.5s · linear · infinite</div>
+        <div class="motion-demo">
+          <span class="shimmer-text" style="font-size:16px; font-weight:500">Düşünüyor</span>
+        </div>
+        <div class="motion-explain">Tüm bekleme durumları için. Yazıdan ışık geçer gibi soldan sağa. Kullanıcıya "bir şey oluyor" diyor ama acele ettirmiyor.</div>
+      </div>
+
+      <div class="motion-card">
+        <h5>pulse</h5>
+        <div class="motion-meta">2s · ease-out · infinite</div>
+        <div class="motion-demo">
+          <span class="pulse" style="background:#8FA277; color:#8FA277; width:10px; height:10px"></span>
+        </div>
+        <div class="motion-explain">Status dot için. Hafif nefes alır gibi — sage yeşil normal, warm-amber risk anında, error-coral hata anında.</div>
+      </div>
+
+      <div class="motion-card">
+        <h5>fadeInUp</h5>
+        <div class="motion-meta">0.4s · ease-out · once</div>
+        <div class="motion-demo">
+          <div id="fade-demo" style="background:#1a1a1a; padding:10px 14px; border-radius:12px; color:#e0e0e0; font-size:13px">Yeni mesaj</div>
+        </div>
+        <div class="motion-explain">Yeni mesajlar 8px aşağıdan gelir, fade ile yerleşir. Mekanik sıçrama yerine yumuşak iniş. Sayfa açıldığında bu demo da animasyonludur.</div>
+      </div>
+
+      <div class="motion-card">
+        <h5>blink (cursor)</h5>
+        <div class="motion-meta">1s · step · infinite</div>
+        <div class="motion-demo">
+          <span style="color:#e0e0e0; font-size:14px">Yazıyor<span class="stream-cursor"></span></span>
+        </div>
+        <div class="motion-explain">Streaming sırasında sadece. Mesaj tamamlanınca cursor kayboluyor. Genel bir "düşünce göstergesi" değil, "şu an yazılıyor" göstergesi.</div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Motion için kurallar</h4>
+      <ul>
+        <li><strong>Hiçbir animasyon 500ms'ten uzun değil</strong> (shimmer/pulse'ın döngü süresi hariç).</li>
+        <li><strong>Easing: ease-out</strong> her şey için varsayılan. Sebep: hareket yavaşlayarak biter, "yerine oturur" hissi.</li>
+        <li><strong>Bouncing yok.</strong> Cubic-bezier sıçramalar Runa'nın sakin karakterine uymuyor — Linear ya da basit ease-out yeterli.</li>
+        <li><strong>prefers-reduced-motion saygılı.</strong> Kullanıcı sistem ayarında azaltılmış hareket istediyse shimmer/pulse durur, fadeInUp instant olur.</li>
+        <li><strong>Tek seferlik animasyonlar bir kez çalışır.</strong> Mesaj fadeIn'i her scroll'da tekrar etmez — sadece geldiği anda.</li>
+        <li><strong>Page transition yok.</strong> Sohbet içinde sayfa geçişi olmaz; her şey tek view içinde. Bu yüzden enter/exit animasyonu bu projenin sorunu değil.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ NEXT ============ -->
+  <section class="block" id="next">
+    <div class="section-meta">Bölüm 08</div>
+    <h2 class="section-title">Buradan sonra</h2>
+
+    <div class="detail-card" style="margin-top:0">
+      <h4>Bugüne kadar karar verilenler</h4>
+      <ul>
+        <li>Renk: Warm Paper ailesi (Ember default + Sage, Slate, Plum, Sand, Rose) × açık/koyu</li>
+        <li>Tipografi: Inter (body) + Instrument Serif (kişilik) + JetBrains Mono (kod)</li>
+        <li>Yapı: mobil-öncelikli, masaüstü iki kolon (sidebar + sohbet 680px)</li>
+        <li>Karakter: signature mark (compass/sun), inline approval, indent'li tool aktivitesi</li>
+        <li>Signature yerleşimi: mobilde isim yanında, masaüstünde mesajın solunda</li>
+        <li>Motion: shimmer, pulse, fadeInUp, blink — sakin, ease-out, kısa süreli</li>
+        <li>Empty state: bağlama uyumlu selamlama, 3 öneri</li>
+        <li>Hata: Runa söylüyor, dürüst, çözüm önerili, raw detay küçük şeritte</li>
+        <li>Streaming: kelime kelime, ince cursor, fadeIn</li>
+      </ul>
+    </div>
+
+    <div class="detail-card">
+      <h4>Hâlâ açık olanlar</h4>
+      <ul>
+        <li><strong>Detay görünümleri.</strong> Tool aktivitesinin "›" ile açılması ne gösteriyor? Terminal output, dosya içeriği, hata stack trace — bu derinlik katmanı.</li>
+        <li><strong>İkon seti.</strong> Lucide aynen mi, yoksa Runa-özel modifikasyonlar mı?</li>
+        <li><strong>Çoklu cihaz/server UI.</strong> "Hangi cihaza bağlanayım?" seçimi, masaüstü agent senkronizasyonu, server bağlantısı.</li>
+        <li><strong>Approval'in detay versiyonu.</strong> Şu an inline approval bir cümle + 2 buton; ama "yüksek riskli" işlemler için bu yeterli mi? Dosya silme, kalıcı veri değişimi gibi durumlar?</li>
+        <li><strong>Mobil navigation pattern'i.</strong> Geçmiş sohbetlere, ayarlara, cihaz listesine nasıl ulaşılır? Header'daki ⋯ menüsü mü, başka bir şey mi?</li>
+        <li><strong>Brand brief.</strong> Tüm bu kararları yarım sayfada özetleyen kararname.</li>
+      </ul>
+    </div>
+
+    <div class="footnote">
+      <p><strong>Geri bildirim için sorular:</strong></p>
+      <p>1. <strong>Rose teması</strong> — istediğin yerde duruyor mu, yoksa daha pembe / daha bal mı olsun?</p>
+      <p>2. <strong>Empty state</strong> "Günaydın / Geç oldu" gibi saate uyumlu selamlama hoşuna gitti mi, yoksa sabit bir karşılama mı tercih edersin?</p>
+      <p>3. <strong>Hata mesajları</strong> Runa'nın diliyle (ben yaptım, ben halledeyim) gerçekten doğru mu hissettiriyor, yoksa daha nötr mü olsun?</p>
+      <p>4. <strong>Shimmer + cursor</strong> animasyonları beklediğin gibi mi çalışıyor? Hızı, yumuşaklığı?</p>
+      <p>5. <strong>Sonraki adım</strong> hangisi: detay görünümleri (deep dive UI), çoklu cihaz UI, yoksa direk brand brief'i mi yazalım artık?</p>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+  // Nav
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  const sections = document.querySelectorAll('section.block');
+  const buttons = document.querySelectorAll('.nav button');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      const rect = s.getBoundingClientRect();
+      if (rect.top <= 100 && rect.bottom >= 100) current = s.id;
+    });
+    if (current) buttons.forEach(b => b.classList.toggle('active', b.dataset.target === current));
+  });
+
+  // Streaming demo
+  const streamText = "Runa'yım — günlük işlerinde yanında olmaya çalışan bir ortak. Dosyana bakarım, takvimini takip ederim, gerekirse cihazlarınla konuşurum. Sıradan ya da teknik, her ölçekte iş yapıyorum.";
+  const streamEl = document.getElementById('stream-content');
+  if (streamEl) {
+    const words = streamText.split(' ');
+    let idx = 0;
+    function streamNext() {
+      if (idx < words.length) {
+        streamEl.textContent += (idx > 0 ? ' ' : '') + words[idx];
+        idx++;
+        setTimeout(streamNext, 120 + Math.random() * 100);
+      } else {
+        // Restart after a pause
+        setTimeout(() => {
+          streamEl.textContent = '';
+          idx = 0;
+          streamNext();
+        }, 4000);
+      }
+    }
+    setTimeout(streamNext, 800);
+  }
+
+  // FadeInUp demo restart
+  const fadeDemo = document.getElementById('fade-demo');
+  if (fadeDemo) {
+    setInterval(() => {
+      fadeDemo.style.animation = 'none';
+      fadeDemo.offsetHeight; // force reflow
+      fadeDemo.style.animation = 'fadeInUp 0.4s ease-out';
+    }, 3000);
+  }
+</script>
+
+</body>
+</html>

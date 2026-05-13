@@ -1,6 +1,6 @@
-.disclosure {
+﻿.disclosure {
 	border: 1px solid var(--border-subtle);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	display: grid;
 	overflow: hidden;
 }
@@ -9,7 +9,7 @@
 	align-items: center;
 	background: var(--surface-panel-muted);
 	border: 0;
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	cursor: pointer;
 	display: flex;
 	font: inherit;
@@ -23,7 +23,7 @@
 
 .content {
 	border-top: 1px solid var(--border-hairline);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	display: grid;
 	gap: var(--space-3);
 	padding: 12px;

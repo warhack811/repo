@@ -1,8 +1,7 @@
-/* ==========================================================
-   Runa CSS Reset — modern minimal
+﻿/* ==========================================================
+   Runa CSS Reset â€” modern minimal
    ========================================================== */
-
-*,
+	*,
 *::before,
 *::after {
 	box-sizing: border-box;
@@ -25,7 +24,7 @@ body {
 	min-height: 100vh;
 	min-height: 100dvh;
 	background: var(--page-background);
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-family: var(--font-body);
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
@@ -119,11 +118,11 @@ pre {
 
 ::selection {
 	background: var(--border-warning);
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 }
 
 :focus-visible {
-	outline: 2px solid hsl(var(--color-focus) / 0.9);
+	outline: 2px solid var(--accent);
 	outline-offset: 3px;
 	box-shadow: none;
 }

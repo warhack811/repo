@@ -1,4 +1,4 @@
-.root {
+﻿.root {
 	border-radius: var(--radius-panel);
 	border: 1px solid var(--border-primary);
 	background: var(--surface-panel);
@@ -123,7 +123,7 @@
 	line-height: 1.6;
 }
 
-/* ─── Non-developer mode: compact activity line ─────────────── */
+/* â”€â”€â”€ Non-developer mode: compact activity line â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .activityLine {
 	align-items: flex-start;
 	background: var(--surface-panel);
@@ -149,7 +149,7 @@
 
 .activityPulse {
 	animation: activityPulseDot 1.5s ease-in-out infinite;
-	background: hsl(var(--color-primary));
+	background: var(--accent);
 	border-radius: 50%;
 	flex-shrink: 0;
 	height: 8px;

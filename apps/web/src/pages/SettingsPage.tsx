@@ -202,6 +202,7 @@ export function SettingsPage({
 	}, [searchParams]);
 
 	useEffect(() => {
+		void workspaceDirectoriesReloadNonce;
 		const normalizedAccessToken = accessToken?.trim() ?? '';
 
 		if (normalizedAccessToken.length === 0) {

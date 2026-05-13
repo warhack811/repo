@@ -1,4 +1,4 @@
-.root {
+﻿.root {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
@@ -9,7 +9,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .meta {
@@ -55,6 +55,6 @@
 }
 
 .time {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	font-size: 0.75rem;
 }

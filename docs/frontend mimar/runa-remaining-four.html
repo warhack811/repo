@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runa — Kalan 4 Konu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── TOKENS ── */
+:root {
+  --s1: #14110D; --s2: #1E1A14; --s3: #2A241C; --s4: #332C22;
+  --ov: rgba(20,17,13,0.88);
+  --i1: #E8DFCD; --i2: #B9AE99; --i3: #847866;
+  --ac: #E0805C; --ac2: #F4A876; --acbg: #2A1E15;
+  --ok: #8FA277; --okbg: #1D2618;
+  --err: #C97064; --errbg: #2A1A18;
+  --warn: #D4A055; --warnbg: #2A2118;
+  --ubg: #E8DFCD; --ufg: #14110D;
+  --hair: rgba(232,223,205,0.08);
+  --rp: 14px; --ri: 10px; --rpill: 999px;
+  --t-fast: 150ms; --t-mid: 250ms; --t-slow: 350ms;
+  --ease: cubic-bezier(0.16,1,0.3,1);
+}
+.th-sage  { --s1:#0F1410;--s2:#161D18;--s3:#1F2823;--s4:#283524;--i1:#DEE3D7;--i2:#A8AFA0;--i3:#7A8074;--ac:#7A9B6F;--ac2:#9FBC93;--acbg:#1B2620;--ubg:#DEE3D7;--ufg:#0F1410;--hair:rgba(222,227,215,0.08); }
+.th-slate { --s1:#0E1116;--s2:#161A21;--s3:#1F242D;--s4:#272E3A;--i1:#D8DEE9;--i2:#A0A8B5;--i3:#707684;--ac:#7A95B8;--ac2:#9FB5D2;--acbg:#1A2330;--ubg:#D8DEE9;--ufg:#0E1116;--hair:rgba(216,222,233,0.08); }
+.th-plum  { --s1:#14101A;--s2:#1D1825;--s3:#2A2333;--s4:#342C40;--i1:#E3DCEA;--i2:#ADA4B8;--i3:#7E7689;--ac:#A287B5;--ac2:#C0A8D0;--acbg:#271F33;--ubg:#E3DCEA;--ufg:#14101A;--hair:rgba(227,220,234,0.08); }
+.th-sand  { --s1:#15120D;--s2:#1F1B15;--s3:#2B261D;--s4:#362F24;--i1:#E8E0CC;--i2:#B5AC97;--i3:#7F7765;--ac:#C9A878;--ac2:#DEBE92;--acbg:#2A2218;--ubg:#E8E0CC;--ufg:#15120D;--hair:rgba(232,224,204,0.08); }
+.th-rose  { --s1:#18110F;--s2:#211719;--s3:#2E2122;--s4:#3A292B;--i1:#EFDCD8;--i2:#C2A8A5;--i3:#8A7370;--ac:#D88C8C;--ac2:#ECAAA8;--acbg:#2D1D1F;--ubg:#EFDCD8;--ufg:#18110F;--hair:rgba(239,220,216,0.08); }
+.th-light { --s1:#F6F1E8;--s2:#EDE6D6;--s3:#DFD5BE;--s4:#D0C8AD;--ov:rgba(246,241,232,0.88);--i1:#1F1B16;--i2:#3A332A;--i3:#6E6356;--ac:#B85A3C;--ac2:#D97757;--acbg:#F0E0D2;--ok:#6B7A5C;--err:#A14638;--errbg:#F2E0DC;--warn:#9E6F2A;--warnbg:#F2EAD7;--ubg:#1F1B16;--ufg:#F6F1E8;--hair:rgba(31,27,22,0.1); }
+
+html,body { font-family:'Inter',-apple-system,sans-serif; background:#0a0a0a; color:#e5e5e5; line-height:1.5; -webkit-font-smoothing:antialiased; }
+
+/* ── PAGE CHROME ── */
+.page-header { padding:56px 24px 32px; max-width:1400px; margin:0 auto; border-bottom:1px solid #1f1f1f; }
+.page-header .eye { color:#888; font-size:11px; text-transform:uppercase; letter-spacing:.12em; margin-bottom:14px; }
+.page-header h1 { font-family:'Instrument Serif',serif; font-size:48px; font-weight:400; letter-spacing:-.02em; line-height:1.05; margin-bottom:12px; }
+.page-header p { color:#aaa; font-size:15px; max-width:720px; line-height:1.65; }
+
+.sticky-nav { position:sticky; top:0; background:rgba(10,10,10,0.94); backdrop-filter:blur(14px); border-bottom:1px solid #1f1f1f; padding:10px 24px; z-index:100; display:flex; gap:6px; overflow-x:auto; }
+.sticky-nav a { display:inline-flex; align-items:center; gap:7px; background:transparent; border:1px solid #2a2a2a; color:#aaa; padding:6px 14px; border-radius:var(--rpill); font-size:12.5px; text-decoration:none; white-space:nowrap; transition:all .15s; }
+.sticky-nav a:hover { color:#fff; border-color:#3a3a3a; }
+.sticky-nav a.active { background:#fff; color:#000; border-color:#fff; }
+.sticky-nav a .num { opacity:.5; font-size:10px; }
+
+.container { max-width:1400px; margin:0 auto; padding:48px 24px 120px; }
+section.block { margin-bottom:100px; scroll-margin-top:64px; }
+.sec-eye { color:#888; font-size:11px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px; }
+h2.sec-title { font-family:'Instrument Serif',serif; font-size:36px; font-weight:400; letter-spacing:-.02em; margin-bottom:8px; }
+.sec-lead { color:#c8c8c8; font-size:15px; line-height:1.65; max-width:760px; margin-bottom:32px; }
+.sec-lead strong { color:#fff; font-weight:500; }
+
+/* ── THEME STRIP ── */
+.theme-strip { display:flex; gap:6px; align-items:center; margin-bottom:28px; flex-wrap:wrap; }
+.theme-strip .lbl { color:#666; font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-right:4px; }
+.tsw { width:20px; height:20px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all .15s; }
+.tsw:hover { transform:scale(1.15); }
+.tsw.on { border-color:#fff; transform:scale(1.2); }
+
+/* ── ANIMATIONS ── */
+@keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+@keyframes pulse { 0%{box-shadow:0 0 0 0 currentColor;opacity:1} 70%{box-shadow:0 0 0 6px transparent;opacity:.7} 100%{box-shadow:0 0 0 0 transparent;opacity:1} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideUp { from{opacity:0;transform:translateY(100%)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideDown { from{opacity:0;max-height:0;transform:translateY(-6px)} to{opacity:1;max-height:600px;transform:translateY(0)} }
+@keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+@keyframes spin { to{transform:rotate(360deg)} }
+@keyframes imageReveal { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+
+.shimmer-txt { background:linear-gradient(90deg,var(--i3) 0%,var(--i1) 50%,var(--i3) 100%); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:shimmer 2.2s linear infinite; font-weight:500; }
+.pulse-dot { width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite;flex-shrink:0; }
+
+/* ── SIGNATURE SVG ── */
+.sig { display:inline-flex; align-items:center; justify-content:center; }
+.sig svg { width:100%; height:100%; }
+
+/* ── FRAMES ── */
+.frames { display:grid; gap:28px; }
+@media(min-width:1100px) { .frames { grid-template-columns:390px 1fr; align-items:start; } }
+
+.mob { width:390px; height:820px; border:1px solid #2a2a2a; border-radius:36px; overflow:hidden; display:flex; flex-direction:column; position:relative; background:var(--s1); color:var(--i1); box-shadow:0 28px 72px rgba(0,0,0,.65); margin:0 auto; }
+.mob-notch { position:absolute; top:8px; left:50%; transform:translateX(-50%); width:110px; height:26px; background:#000; border-radius:999px; z-index:50; pointer-events:none; }
+.mob-status { padding:14px 22px 4px; font-size:13px; font-weight:600; display:flex; justify-content:space-between; color:var(--i1); flex-shrink:0; }
+.mob-status .icons { display:flex; gap:5px; font-size:11px; }
+
+.mob-header { padding:12px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--s3); flex-shrink:0; }
+.mob-header-l { display:flex; align-items:center; gap:10px; }
+.mob-icon-btn { width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--i2);cursor:pointer;transition:background .15s; }
+.mob-icon-btn:hover { background:var(--s3); }
+.mob-brand { font-family:'Instrument Serif',serif; font-size:18px; color:var(--i1); }
+.mob-sub { font-size:10.5px; color:var(--i3); display:flex; align-items:center; gap:5px; margin-top:1px; }
+
+.mob-body { flex:1; overflow-y:auto; padding:18px 18px 110px; display:flex; flex-direction:column; gap:16px; scrollbar-width:thin; scrollbar-color:var(--s3) transparent; }
+.mob-body::-webkit-scrollbar { width:3px; }
+.mob-body::-webkit-scrollbar-thumb { background:var(--s3); border-radius:2px; }
+
+.time-div { align-self:center; font-size:10px; color:var(--i3); padding:3px 10px; letter-spacing:.04em; }
+.m-user { align-self:flex-end; max-width:80%; padding:9px 14px; background:var(--ubg); color:var(--ufg); border-radius:18px 18px 4px 18px; font-size:14px; line-height:1.5; animation:fadeUp .3s ease-out; }
+.m-agent { align-self:flex-start; max-width:100%; font-size:14px; line-height:1.6; animation:fadeUp .4s ease-out; }
+.m-agent-hd { display:flex; align-items:center; gap:5px; margin-bottom:3px; font-size:12px; color:var(--ac); font-family:'Instrument Serif',serif; }
+.m-agent-hd .sig { width:12px;height:12px;color:var(--ac); }
+.m-agent-body strong { color:var(--ac); font-weight:500; }
+
+.tool-ln { align-self:flex-start; display:inline-flex; align-items:center; gap:6px; color:var(--i3); font-size:11.5px; font-family:'JetBrains Mono',monospace; cursor:pointer; padding:3px 0; user-select:none; }
+.tool-ln:hover { color:var(--i2); }
+.tool-dot { width:4px;height:4px;border-radius:50%;background:var(--ac);flex-shrink:0; }
+.tool-chev { opacity:.4;font-size:9px;transition:transform .2s; }
+.tool-ln.open .tool-chev { transform:rotate(90deg); }
+
+.mob-composer { position:absolute; bottom:0; left:0; right:0; padding:10px 14px 22px; background:linear-gradient(180deg,transparent,var(--s1) 20%); z-index:20; }
+.composer-inner { display:flex; gap:8px; align-items:center; background:var(--s2); border:1px solid var(--s3); border-radius:22px; padding:8px 8px 8px 16px; }
+.composer-input { flex:1; background:transparent; border:none; outline:none; color:var(--i1); font-family:inherit; font-size:14px; }
+.composer-input::placeholder { color:var(--i3); }
+.composer-send { width:34px;height:34px;border-radius:50%;background:var(--ac);color:var(--s1);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;transition:opacity .15s; }
+.composer-send:hover { opacity:.85; }
+
+/* Desktop Frame */
+.dt { background:var(--s1); color:var(--i1); border-radius:14px; overflow:hidden; border:1px solid #2a2a2a; display:flex; flex-direction:column; box-shadow:0 28px 72px rgba(0,0,0,.65); height:820px; }
+.dt-titlebar { padding:9px 16px; background:#000; display:flex; align-items:center; gap:8px; border-bottom:1px solid #111; flex-shrink:0; }
+.dt-dot { width:12px;height:12px;border-radius:50%; }
+.dt-dot.r{background:#ff5f57;} .dt-dot.y{background:#febc2e;} .dt-dot.g{background:#28c840;}
+.dt-url { color:#555; font-size:11px; margin-left:8px; }
+.dt-body { display:grid; flex:1; overflow:hidden; }
+.dt-sidebar { border-right:1px solid var(--s3); display:flex; flex-direction:column; overflow:hidden; background:var(--s1); }
+.dt-sidebar-header { padding:16px 16px 12px; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.dt-sidebar-brand { font-family:'Instrument Serif',serif; font-size:20px; color:var(--i1); }
+.dt-sidebar-brand .sig { width:16px;height:16px;color:var(--ac);margin-right:2px; }
+.dt-nav { padding:0 8px; display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+.dt-nav-item { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px; color:var(--i3); font-size:13px; cursor:pointer; transition:background .15s,color .15s; }
+.dt-nav-item:hover { background:var(--s3); color:var(--i1); }
+.dt-nav-item.active { background:var(--s3); color:var(--i1); }
+.dt-nav-item svg { width:14px;height:14px;flex-shrink:0; }
+.dt-convo-list { flex:1; overflow-y:auto; padding:8px; scrollbar-width:thin; scrollbar-color:var(--s3) transparent; }
+.dt-convo-item { padding:8px 10px; border-radius:8px; cursor:pointer; transition:background .15s; }
+.dt-convo-item:hover { background:var(--s3); }
+.dt-convo-item.active { background:var(--acbg); }
+.dt-convo-title { font-size:12.5px; color:var(--i2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dt-convo-title.active { color:var(--i1); }
+.dt-convo-meta { font-size:11px; color:var(--i3); margin-top:2px; }
+
+.dt-main { display:flex; flex-direction:column; overflow:hidden; position:relative; }
+.dt-header { padding:12px 20px; border-bottom:1px solid var(--s3); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.dt-header-l { display:flex; align-items:center; gap:10px; }
+.dt-header-title { font-size:14px; color:var(--i1); font-weight:500; }
+.dt-header-sub { font-size:11px; color:var(--i3); display:flex; align-items:center; gap:5px; }
+.dt-header-actions { display:flex; gap:4px; }
+.dt-btn-icon { width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:var(--i3);cursor:pointer;border:none;background:transparent;transition:background .15s; }
+.dt-btn-icon:hover { background:var(--s3);color:var(--i1); }
+.dt-messages { flex:1; overflow-y:auto; padding:24px 32px; display:flex; flex-direction:column; gap:18px; scrollbar-width:thin; scrollbar-color:var(--s3) transparent; }
+.dt-messages::-webkit-scrollbar { width:4px; }
+.dt-messages::-webkit-scrollbar-thumb { background:var(--s3); border-radius:2px; }
+.dt-user { align-self:flex-end; max-width:60%; background:var(--ubg); color:var(--ufg); padding:10px 16px; border-radius:18px 18px 4px 18px; font-size:14px; line-height:1.5; }
+.dt-agent { align-self:flex-start; max-width:80%; display:flex; flex-direction:column; gap:4px; }
+.dt-agent-hd { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ac); font-family:'Instrument Serif',serif; }
+.dt-agent-hd .sig { width:13px;height:13px;color:var(--ac); }
+.dt-agent-body { font-size:14px; line-height:1.6; color:var(--i1); }
+.dt-agent-body strong { color:var(--ac); font-weight:500; }
+.dt-composer { padding:12px 20px 16px; border-top:1px solid var(--s3); flex-shrink:0; display:flex; gap:8px; align-items:center; background:var(--s1); }
+.dt-input { flex:1; background:var(--s2); border:1px solid var(--s3); border-radius:12px; padding:10px 14px; color:var(--i1); font-family:inherit; font-size:14px; outline:none; resize:none; }
+.dt-input::placeholder { color:var(--i3); }
+.dt-send { padding:9px 18px; border-radius:10px; background:var(--ac); color:var(--s1); border:none; font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; white-space:nowrap; transition:opacity .15s; }
+.dt-send:hover { opacity:.85; }
+
+/* ── SECTION 1: GÖRSEL ÜRETME ── */
+.img-gen-tool { display:flex;flex-direction:column;gap:0; }
+.img-gen-preview { margin-top:8px; border-radius:10px; overflow:hidden; border:1px solid var(--s3); animation:imageReveal .4s ease-out; }
+.img-placeholder { background:linear-gradient(135deg,var(--s3) 0%,var(--s4) 50%,var(--s3) 100%); background-size:200% 200%; animation:shimmer 3s linear infinite; }
+.img-canvas { width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;position:relative; }
+.img-canvas .gen-label { color:var(--i3);font-size:11px;font-family:'JetBrains Mono',monospace; }
+.img-actions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.img-btn { display:flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; font-size:12px; font-family:inherit; cursor:pointer; border:1px solid var(--s3); background:var(--s2); color:var(--i2); transition:all .15s; white-space:nowrap; }
+.img-btn:hover { border-color:var(--i3); color:var(--i1); }
+.img-btn.primary { background:var(--ac); color:var(--s1); border-color:var(--ac); }
+.img-btn.primary:hover { opacity:.85; }
+.img-variations { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+.img-var { border-radius:8px; overflow:hidden; cursor:pointer; border:1px solid var(--s3); transition:border-color .15s; aspect-ratio:1/1; }
+.img-var:hover { border-color:var(--ac); }
+.img-var.active { border-color:var(--ac); box-shadow:0 0 0 1px var(--ac); }
+
+/* ── SECTION 2: SETTINGS ── */
+.settings-frame { display:grid; gap:28px; }
+@media(min-width:900px) { .settings-frame { grid-template-columns:240px 1fr; } }
+.settings-nav { background:var(--s2); border:1px solid var(--s3); border-radius:var(--rp); overflow:hidden; }
+.settings-nav-section { padding:6px 8px; }
+.settings-nav-section-lbl { font-size:10.5px; color:var(--i3); text-transform:uppercase; letter-spacing:.08em; padding:8px 10px 4px; }
+.settings-nav-item { display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:8px; color:var(--i2); font-size:13px; cursor:pointer; transition:background .15s,color .15s; }
+.settings-nav-item:hover { background:var(--s3); color:var(--i1); }
+.settings-nav-item.active { background:var(--acbg); color:var(--ac); }
+.settings-nav-item svg { width:14px;height:14px;flex-shrink:0;opacity:.7; }
+.settings-nav-item.active svg { opacity:1; }
+.settings-panel { background:var(--s2); border:1px solid var(--s3); border-radius:var(--rp); overflow:hidden; display:none; }
+.settings-panel.active { display:block; }
+.settings-panel-header { padding:20px 24px 16px; border-bottom:1px solid var(--s3); }
+.settings-panel-title { font-family:'Instrument Serif',serif; font-size:22px; font-weight:400; color:var(--i1); }
+.settings-panel-sub { font-size:12.5px; color:var(--i3); margin-top:3px; }
+.settings-group { padding:0 24px; }
+.settings-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 0; border-bottom:1px solid var(--hair); }
+.settings-row:last-child { border-bottom:none; }
+.settings-row-info { flex:1; min-width:0; }
+.settings-row-label { font-size:13.5px; color:var(--i1); font-weight:500; }
+.settings-row-desc { font-size:12px; color:var(--i3); margin-top:2px; line-height:1.5; }
+/* Toggle */
+.toggle { position:relative; width:40px; height:22px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; position:absolute; }
+.toggle-track { position:absolute; inset:0; background:var(--s4); border-radius:999px; cursor:pointer; transition:background .2s; }
+.toggle input:checked + .toggle-track { background:var(--ac); }
+.toggle-thumb { position:absolute; top:3px; left:3px; width:16px; height:16px; background:#fff; border-radius:50%; transition:transform .2s; pointer-events:none; }
+.toggle input:checked ~ .toggle-thumb { transform:translateX(18px); }
+/* Select */
+.settings-select { background:var(--s3); border:1px solid var(--s4); color:var(--i1); font-family:inherit; font-size:13px; padding:7px 28px 7px 10px; border-radius:8px; cursor:pointer; outline:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23847866' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; }
+/* Theme swatches in settings */
+.theme-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:16px 24px; }
+.theme-swatch-card { border:1px solid var(--s3); border-radius:10px; overflow:hidden; cursor:pointer; transition:border-color .15s; }
+.theme-swatch-card:hover { border-color:var(--i3); }
+.theme-swatch-card.active { border-color:var(--ac); box-shadow:0 0 0 1px var(--ac); }
+.theme-swatch-preview { height:44px; display:flex; align-items:flex-end; padding:8px; gap:3px; }
+.theme-swatch-name { font-size:11px; color:var(--i2); padding:6px 8px; background:var(--s2); }
+/* Danger zone */
+.settings-danger { padding:16px 24px 20px; }
+.danger-btn { padding:8px 16px; border-radius:8px; border:1px solid var(--err); background:transparent; color:var(--err); font-family:inherit; font-size:13px; cursor:pointer; transition:background .15s; }
+.danger-btn:hover { background:var(--errbg); }
+
+/* ── SECTION 3: ÇOKLU DOSYA ── */
+.file-tool { display:flex;flex-direction:column;gap:0; }
+.file-panel { margin-top:8px; background:var(--s2); border:1px solid var(--s3); border-radius:10px; overflow:hidden; animation:slideDown .25s var(--ease); }
+.file-panel-header { padding:10px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--s3); }
+.file-panel-title { font-size:12px; color:var(--i2); font-family:'JetBrains Mono',monospace; }
+.file-panel-actions { display:flex; gap:4px; }
+.file-panel-btn { padding:4px 10px; border-radius:6px; font-size:11px; font-family:inherit; cursor:pointer; border:1px solid var(--s3); background:transparent; color:var(--i2); transition:all .15s; }
+.file-panel-btn:hover { border-color:var(--i3); color:var(--i1); }
+.file-panel-btn.danger { color:var(--err); border-color:var(--err); }
+.file-panel-btn.danger:hover { background:var(--errbg); }
+.file-search { padding:8px 14px; border-bottom:1px solid var(--s3); display:flex; align-items:center; gap:8px; }
+.file-search input { flex:1; background:transparent; border:none; outline:none; color:var(--i1); font-family:'JetBrains Mono',monospace; font-size:12px; }
+.file-search input::placeholder { color:var(--i3); }
+.file-list { max-height:220px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--s3) transparent; }
+.file-item { display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid var(--hair); cursor:pointer; transition:background .12s; }
+.file-item:hover { background:var(--s3); }
+.file-item:last-child { border-bottom:none; }
+.file-cb { width:14px;height:14px;accent-color:var(--ac);flex-shrink:0;cursor:pointer; }
+.file-icon { width:16px;height:16px;flex-shrink:0;color:var(--i3); }
+.file-name { flex:1; font-size:12px; font-family:'JetBrains Mono',monospace; color:var(--i2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.file-item.checked .file-name { color:var(--i1); }
+.file-meta { font-size:10.5px; color:var(--i3); flex-shrink:0; }
+.file-match { font-size:11px; color:var(--ac); flex-shrink:0; }
+/* Diff view */
+.diff-view { font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.7; padding:10px 14px; max-height:180px; overflow-y:auto; border-top:1px solid var(--s3); }
+.diff-add { color:var(--ok); display:block; background:rgba(143,162,119,.08); padding:0 4px; }
+.diff-del { color:var(--err); display:block; background:rgba(201,112,100,.08); padding:0 4px; }
+.diff-ctx { color:var(--i3); display:block; padding:0 4px; }
+.diff-hunk { color:var(--ac); display:block; padding:0 4px; margin:4px 0; }
+
+/* ── SECTION 4: BİLDİRİMLER ── */
+.notif-center { background:var(--s2); border:1px solid var(--s3); border-radius:var(--rp); overflow:hidden; }
+.notif-header { padding:16px 20px; border-bottom:1px solid var(--s3); display:flex; align-items:center; justify-content:space-between; }
+.notif-title { font-family:'Instrument Serif',serif; font-size:20px; color:var(--i1); }
+.notif-clear { font-size:12px; color:var(--i3); cursor:pointer; padding:4px 8px; border-radius:6px; transition:all .15s; }
+.notif-clear:hover { color:var(--ac); background:var(--acbg); }
+.notif-tabs { display:flex; border-bottom:1px solid var(--s3); padding:0 12px; }
+.notif-tab { padding:10px 12px; font-size:12.5px; color:var(--i3); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; display:flex; align-items:center; gap:5px; }
+.notif-tab:hover { color:var(--i1); }
+.notif-tab.active { color:var(--ac); border-bottom-color:var(--ac); }
+.notif-badge { background:var(--ac); color:var(--s1); font-size:10px; font-weight:600; padding:1px 5px; border-radius:999px; }
+.notif-tab .notif-badge { background:var(--s4); color:var(--i2); }
+.notif-tab.active .notif-badge { background:var(--ac); color:var(--s1); }
+.notif-list { display:none; }
+.notif-list.active { display:block; }
+.notif-item { display:flex; gap:12px; padding:14px 20px; border-bottom:1px solid var(--hair); transition:background .12s; cursor:pointer; }
+.notif-item:hover { background:var(--s3); }
+.notif-item:last-child { border-bottom:none; }
+.notif-item.unread { border-left:2px solid var(--ac); padding-left:18px; }
+.notif-item-icon { width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px; }
+.notif-item-icon.reminder { background:var(--acbg); color:var(--ac); }
+.notif-item-icon.system { background:var(--okbg); color:var(--ok); }
+.notif-item-icon.warn { background:var(--warnbg); color:var(--warn); }
+.notif-item-icon.err { background:var(--errbg); color:var(--err); }
+.notif-item-body { flex:1; min-width:0; }
+.notif-item-title { font-size:13px; color:var(--i1); font-weight:500; line-height:1.4; }
+.notif-item-desc { font-size:12px; color:var(--i3); margin-top:2px; line-height:1.5; }
+.notif-item-time { font-size:11px; color:var(--i3); flex-shrink:0; margin-top:1px; }
+.notif-item-actions { display:flex; gap:6px; margin-top:8px; }
+.notif-act-btn { padding:4px 10px; border-radius:6px; font-size:11.5px; font-family:inherit; cursor:pointer; border:1px solid var(--s4); background:transparent; color:var(--i2); transition:all .15s; }
+.notif-act-btn:hover { color:var(--i1); border-color:var(--i3); }
+.notif-act-btn.primary { background:var(--ac); border-color:var(--ac); color:var(--s1); }
+.notif-act-btn.primary:hover { opacity:.85; }
+/* Background tasks */
+.bg-tasks { margin-top:20px; }
+.bg-tasks-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.bg-tasks-title { font-size:11px; color:var(--i3); text-transform:uppercase; letter-spacing:.08em; }
+.bg-task-item { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--s2); border:1px solid var(--s3); border-radius:10px; margin-bottom:8px; }
+.bg-task-spin { width:16px;height:16px;border:2px solid var(--s4);border-top-color:var(--ac);border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0; }
+.bg-task-done { width:16px;height:16px;border-radius:50%;background:var(--okbg);border:1px solid var(--ok);display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.bg-task-done svg { width:9px;height:9px;color:var(--ok); }
+.bg-task-body { flex:1;min-width:0; }
+.bg-task-title { font-size:13px;color:var(--i1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bg-task-sub { font-size:11px;color:var(--i3);margin-top:1px; }
+.bg-task-cancel { font-size:11.5px;color:var(--i3);cursor:pointer;padding:4px 8px;border-radius:5px;transition:all .15s;white-space:nowrap; }
+.bg-task-cancel:hover { color:var(--err); background:var(--errbg); }
+
+/* Inline approval */
+.inline-approval { align-self:flex-start; max-width:100%; animation:fadeUp .4s ease-out; }
+.ia-header { display:flex; align-items:center; gap:5px; margin-bottom:3px; font-size:12px; color:var(--ac); font-family:'Instrument Serif',serif; }
+.ia-header .sig { width:12px;height:12px;color:var(--ac); }
+.ia-text { font-size:14px; line-height:1.5; color:var(--i1); }
+.ia-target { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px; background:var(--acbg); color:var(--ac); padding:2px 7px; border-radius:4px; margin:6px 0; }
+.ia-target.warn { background:var(--warnbg); color:var(--warn); }
+.ia-risk { font-size:12px; color:var(--warn); margin:6px 0 8px; display:flex; align-items:flex-start; gap:6px; line-height:1.5; }
+.ia-risk::before { content:'⚠'; font-size:11px; margin-top:1px; flex-shrink:0; }
+.ia-actions { display:flex; gap:7px; }
+.ia-btn { flex:1; padding:8px 14px; border-radius:9px; font-size:13px; font-family:inherit; font-weight:500; cursor:pointer; border:1px solid transparent; transition:opacity .15s,transform .05s; text-align:center; }
+.ia-btn:active { transform:scale(.98); }
+.ia-btn.approve { background:var(--ac); color:var(--s1); }
+.ia-btn.approve:hover { opacity:.85; }
+.ia-btn.approve.warn { background:var(--warn); }
+.ia-btn.reject { background:transparent; color:var(--i2); border-color:var(--s4); }
+.ia-btn.reject:hover { border-color:var(--i3); }
+
+/* ── SHEET (mobil overlay) ── */
+.sheet-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(4px); z-index:60; display:none; }
+.sheet-backdrop.open { display:block; }
+.sheet { position:absolute; bottom:0; left:0; right:0; background:var(--s2); border-radius:20px 20px 0 0; padding:16px 0 28px; z-index:70; transform:translateY(100%); transition:transform .3s var(--ease); max-height:85%; overflow-y:auto; }
+.sheet.open { transform:translateY(0); }
+.sheet-handle { width:34px;height:4px;background:var(--s3);border-radius:2px;margin:0 auto 16px; }
+.sheet-head { padding:0 20px 14px; display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--s3); }
+.sheet-head-title { font-family:'Instrument Serif',serif; font-size:22px; color:var(--i1); }
+.sheet-head-close { color:var(--i3); font-size:20px; cursor:pointer; }
+.sheet-body { padding:12px 20px; }
+
+/* ─ carousel (theme previews in settings mobile sheet) ─ */
+.swatch-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+.swatch-row::-webkit-scrollbar { display:none; }
+.swatch-chip { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; }
+.swatch-chip .circle { width:44px;height:44px;border-radius:50%;border:2px solid transparent;transition:all .15s; }
+.swatch-chip.on .circle { border-color:#fff;transform:scale(1.1); }
+.swatch-chip .chip-lbl { font-size:10px; color:var(--i3); }
+
+/* ── DETAIL / EXPLAINER ── */
+.explainer { background:var(--s2); border:1px solid var(--s3); border-radius:var(--rp); padding:20px 24px; margin-bottom:24px; }
+.explainer-title { font-family:'Instrument Serif',serif; font-size:17px; color:var(--i1); margin-bottom:8px; }
+.explainer-body { font-size:13.5px; color:var(--i2); line-height:1.7; }
+.explainer-body strong { color:var(--i1); font-weight:500; }
+.rule-list { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+.rule-item { display:flex; gap:10px; font-size:13px; color:var(--i2); line-height:1.5; }
+.rule-item::before { content:'›'; color:var(--ac); flex-shrink:0; font-size:14px; }
+.decision-tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:500; margin-right:4px; }
+.dt-green { background:var(--okbg); color:var(--ok); }
+.dt-amber { background:var(--warnbg); color:var(--warn); }
+.dt-red { background:var(--errbg); color:var(--err); }
+
+/* ── UTIL ── */
+.two-col { display:grid; gap:24px; }
+@media(min-width:900px) { .two-col { grid-template-columns:1fr 1fr; } }
+.card-label { font-size:11px; color:var(--i3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eye">Runa — Tasarım Sistemi · Kalan 4 Konu</div>
+  <h1>Görsel Üretme · Ayarlar · Çoklu Dosya · Bildirimler</h1>
+  <p>Önceki artifact serileriyle aynı tasarım dilinde — Warm Paper paleti, Instrument Serif, tool-line pattern, inline approval. Her bölüm mobil + masaüstü için.</p>
+</div>
+
+<nav class="sticky-nav" id="top-nav">
+  <a href="#visgen" class="active"><span class="num">01</span> Görsel Üretme</a>
+  <a href="#settings"><span class="num">02</span> Ayarlar</a>
+  <a href="#multifile"><span class="num">03</span> Çoklu Dosya</a>
+  <a href="#notifs"><span class="num">04</span> Bildirimler</a>
+</nav>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════
+     BÖLÜM 01 — GÖRSEL ÜRETME
+     ══════════════════════════════════════ -->
+<section class="block" id="visgen">
+  <div class="sec-eye">Bölüm 01</div>
+  <h2 class="sec-title">Görsel oluşturma akışı</h2>
+  <p class="sec-lead">
+    Sohbet içinden tetiklenir — ayrı mod veya sekme yok. Kullanıcı "<strong>bu fotoğrafı düzenle</strong>" veya "<strong>bir afiş oluştur</strong>" der; Runa tool satırıyla başlar, sonuç doğrudan sohbet akışına gömülür. <strong>Varyasyon · Düzenle · Yeniden Oluştur · Kaydet</strong> aksiyonları sonucun altında durur — dashboard değil, devam eden sohbet.
+  </p>
+
+  <div class="explainer">
+    <div class="explainer-title">Tasarım kararları</div>
+    <div class="explainer-body">
+      <div class="rule-list">
+        <div class="rule-item">Görsel üretme bir <strong>tool aktivitesi</strong> — "görsel oluşturuluyor ›" tek satır, açılınca prompt + ayarlar görünür. Asistan mesajından önce gelir.</div>
+        <div class="rule-item">Üretilen görsel compact hâlde (180–220px kare) sohbete gömülür. Tıklanınca tam boyuta açılır — ayrı ekran yok, sheet yok.</div>
+        <div class="rule-item">Yeniden oluşturma: kullanıcı doğal dille yazar ("daha koyu yap", "siluet kalsın"). Teknik prompt editörü yoktur.</div>
+        <div class="rule-item">3 varyasyon küçük kare olarak altında durur; seçilenin border'ı accent rengine döner.</div>
+        <div class="rule-item"><strong>Kaydet</strong> → Runa dosyaya yazar. Yüksek-risk (üzerine yazma) → inline approval devreye girer.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme Picker -->
+  <div class="theme-strip" id="ts-visgen">
+    <span class="lbl">Tema</span>
+    <div class="tsw on" style="background:#E0805C" data-th="" data-sec="visgen" title="Ember Dark"></div>
+    <div class="tsw" style="background:#7A9B6F" data-th="th-sage" data-sec="visgen" title="Sage"></div>
+    <div class="tsw" style="background:#7A95B8" data-th="th-slate" data-sec="visgen" title="Slate"></div>
+    <div class="tsw" style="background:#A287B5" data-th="th-plum" data-sec="visgen" title="Plum"></div>
+    <div class="tsw" style="background:#C9A878" data-th="th-sand" data-sec="visgen" title="Sand"></div>
+    <div class="tsw" style="background:#D88C8C" data-th="th-rose" data-sec="visgen" title="Rose"></div>
+    <div class="tsw" style="background:#F6F1E8;border:1px solid #ddd" data-th="th-light" data-sec="visgen" title="Açık"></div>
+  </div>
+
+  <div class="frames" id="visgen-frames">
+    <!-- MOBILE -->
+    <div class="mob" id="vg-mob" style="--s1:#14110D;--s2:#1E1A14;--s3:#2A241C;--s4:#332C22;--i1:#E8DFCD;--i2:#B9AE99;--i3:#847866;--ac:#E0805C;--ac2:#F4A876;--acbg:#2A1E15;--ok:#8FA277;--okbg:#1D2618;--err:#C97064;--errbg:#2A1A18;--warn:#D4A055;--warnbg:#2A2118;--ubg:#E8DFCD;--ufg:#14110D;--hair:rgba(232,223,205,0.08);">
+      <div class="mob-notch"></div>
+      <div class="mob-status"><span>09:41</span><span class="icons">▲ ◆ ████</span></div>
+      <div class="mob-header">
+        <div class="mob-header-l">
+          <div class="mob-icon-btn" onclick="vgMobMenu()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+          </div>
+          <div>
+            <div class="mob-brand">Runa</div>
+            <div class="mob-sub"><span class="pulse-dot" style="color:var(--ok);background:var(--ok)"></span>Tasarım ajansı projesi</div>
+          </div>
+        </div>
+        <div class="mob-icon-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M12 12l3 3"/></svg>
+        </div>
+      </div>
+      <div class="mob-body" id="vg-mob-body">
+        <div class="time-div">BUGÜN</div>
+        <div class="m-user">Projemiz için sade bir logo taslağı çizer misin? Turuncu tonlarda, minimal.</div>
+        <div class="m-agent">
+          <div class="m-agent-hd">
+            <span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+            Runa
+          </div>
+          <div class="m-agent-body">Anladım, turuncu-minimal logo taslağı. Oluşturuyorum —</div>
+        </div>
+        <div class="tool-ln" onclick="toggleVgTool(this)">
+          <span class="tool-dot"></span>
+          <span>görsel oluşturuluyor</span>
+          <span class="tool-chev">›</span>
+        </div>
+        <div class="file-panel" id="vg-tool-detail" style="display:none;max-width:100%;">
+          <div class="file-panel-header">
+            <span class="file-panel-title">Prompt · Ayarlar</span>
+          </div>
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:11px;color:var(--i3);font-family:'JetBrains Mono',monospace;">Prompt</div>
+            <div style="font-size:12.5px;color:var(--i2);line-height:1.5;">Minimal logo, geometric shapes, warm orange tones, white background, clean vector style</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px;">
+              <div style="background:var(--s3);border-radius:7px;padding:7px 10px;">
+                <div style="font-size:10px;color:var(--i3);">Stil</div>
+                <div style="font-size:12px;color:var(--i1);">Minimal Vector</div>
+              </div>
+              <div style="background:var(--s3);border-radius:7px;padding:7px 10px;">
+                <div style="font-size:10px;color:var(--i3);">Oran</div>
+                <div style="font-size:12px;color:var(--i1);">1:1</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Result -->
+        <div class="m-agent" id="vg-result" style="display:none;width:100%">
+          <div class="m-agent-hd">
+            <span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+            Runa
+          </div>
+          <div class="m-agent-body" style="width:100%">
+            Hazır. Turuncu geometrik bir monogram çıkardım — döndürülmüş kare, iki ton. Beğenmezsen varyasyonlardan seçebilir veya istediğin değişikliği yazabilirsin.
+            <div class="img-gen-preview" style="margin-top:10px;">
+              <div style="background:linear-gradient(135deg,#F6F1E8 0%,#F0E4D0 100%);aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;position:relative;">
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                  <rect x="22" y="22" width="56" height="56" rx="6" fill="#E0805C" transform="rotate(12 50 50)"/>
+                  <rect x="30" y="30" width="40" height="40" rx="4" fill="#F4A876" transform="rotate(12 50 50)"/>
+                  <text x="50" y="57" text-anchor="middle" font-family="serif" font-size="26" font-weight="bold" fill="white">R</text>
+                </svg>
+              </div>
+            </div>
+            <div class="img-actions">
+              <button class="img-btn primary" onclick="vgRegenMob()">↺ Yeniden</button>
+              <button class="img-btn" onclick="showSheet('vg-edit-sheet')">✎ Düzenle</button>
+              <button class="img-btn" onclick="vgSaveMob()">↓ Kaydet</button>
+            </div>
+            <div class="img-variations" style="margin-top:8px;">
+              <div class="img-var active" onclick="selectVar(this)" style="background:linear-gradient(135deg,#F6F1E8,#F0E4D0);display:flex;align-items:center;justify-content:center;">
+                <svg width="36" height="36" viewBox="0 0 100 100"><rect x="22" y="22" width="56" height="56" rx="6" fill="#E0805C" transform="rotate(12 50 50)"/><rect x="30" y="30" width="40" height="40" rx="4" fill="#F4A876" transform="rotate(12 50 50)"/><text x="50" y="57" text-anchor="middle" font-family="serif" font-size="26" font-weight="bold" fill="white">R</text></svg>
+              </div>
+              <div class="img-var" onclick="selectVar(this)" style="background:#14110D;display:flex;align-items:center;justify-content:center;">
+                <svg width="36" height="36" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#E0805C" stroke-width="4"/><text x="50" y="57" text-anchor="middle" font-family="serif" font-size="26" font-weight="bold" fill="#E0805C">R</text></svg>
+              </div>
+              <div class="img-var" onclick="selectVar(this)" style="background:linear-gradient(135deg,#2A1E15,#332C22);display:flex;align-items:center;justify-content:center;">
+                <svg width="36" height="36" viewBox="0 0 100 100"><polygon points="50,12 88,62 12,62" fill="none" stroke="#F4A876" stroke-width="3"/><text x="50" y="58" text-anchor="middle" font-family="serif" font-size="20" font-weight="bold" fill="#F4A876">R</text></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Save approval -->
+        <div class="inline-approval" id="vg-save-approval" style="display:none;">
+          <div class="ia-header">
+            <span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+            Runa
+          </div>
+          <div class="ia-text">Kaydetmeden önce onayını alayım —</div>
+          <div class="ia-target">~/Masaüstü/runa-logo.png</div>
+          <div class="ia-actions">
+            <button class="ia-btn approve" onclick="vgSaveConfirm()">Kaydet</button>
+            <button class="ia-btn reject" onclick="document.getElementById('vg-save-approval').style.display='none'">Vazgeç</button>
+          </div>
+        </div>
+      </div>
+      <!-- Generating shimmer overlay -->
+      <div id="vg-generating" style="display:none;position:absolute;bottom:80px;left:18px;right:18px;background:var(--s2);border:1px solid var(--s3);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:12.5px;" class="shimmer-txt">Görsel oluşturuluyor…</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--i3);">stable diffusion · turuncu minimal</div>
+      </div>
+      <div class="mob-composer">
+        <div class="composer-inner">
+          <input class="composer-input" id="vg-mob-input" placeholder="Nasıl değiştireyim?" onkeydown="if(event.key==='Enter')sendVgMob()">
+          <button class="composer-send" onclick="sendVgMob()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/><polyline points="9 4 13 8 9 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- Edit sheet -->
+      <div class="sheet-backdrop" id="vg-edit-backdrop" onclick="closeSheet('vg-edit')"></div>
+      <div class="sheet" id="vg-edit-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div class="sheet-head-title">Görsel Düzenle</div>
+          <div class="sheet-head-close" onclick="closeSheet('vg-edit')">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--i3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Stil</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">
+              <div onclick="selectStyle(this)" class="img-btn active-style" style="border-color:var(--ac);color:var(--ac);">Minimal Vector</div>
+              <div onclick="selectStyle(this)" class="img-btn">Flat İllüstrasyon</div>
+              <div onclick="selectStyle(this)" class="img-btn">3D Render</div>
+              <div onclick="selectStyle(this)" class="img-btn">Çizgi Sanatı</div>
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--i3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Oran</div>
+            <div style="display:flex;gap:6px;">
+              <div onclick="selectRatio(this)" class="img-btn" style="border-color:var(--ac);color:var(--ac);">1:1</div>
+              <div onclick="selectRatio(this)" class="img-btn">16:9</div>
+              <div onclick="selectRatio(this)" class="img-btn">4:3</div>
+              <div onclick="selectRatio(this)" class="img-btn">9:16</div>
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--i3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Ek not</div>
+            <textarea style="width:100%;background:var(--s3);border:1px solid var(--s4);border-radius:8px;color:var(--i1);font-family:inherit;font-size:13px;padding:10px;outline:none;resize:none;height:72px;" placeholder="arka plan beyaz olsun, yazı biraz büyüsün…"></textarea>
+          </div>
+          <button class="img-btn primary" style="width:100%;justify-content:center;padding:10px;" onclick="closeSheet('vg-edit');vgRegenMob()">↺ Yeniden Oluştur</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESKTOP -->
+    <div class="dt" id="vg-dt" style="--s1:#14110D;--s2:#1E1A14;--s3:#2A241C;--s4:#332C22;--i1:#E8DFCD;--i2:#B9AE99;--i3:#847866;--ac:#E0805C;--ac2:#F4A876;--acbg:#2A1E15;--ok:#8FA277;--okbg:#1D2618;--err:#C97064;--errbg:#2A1A18;--warn:#D4A055;--warnbg:#2A2118;--ubg:#E8DFCD;--ufg:#14110D;--hair:rgba(232,223,205,0.08);">
+      <div class="dt-titlebar">
+        <div style="display:flex;gap:6px;"><div class="dt-dot r"></div><div class="dt-dot y"></div><div class="dt-dot g"></div></div>
+        <div class="dt-url">runa.app — Tasarım ajansı projesi</div>
+      </div>
+      <div class="dt-body" style="grid-template-columns:240px 1fr;">
+        <div class="dt-sidebar">
+          <div class="dt-sidebar-header">
+            <span class="dt-sidebar-brand"><span class="sig" style="width:16px;height:16px;color:var(--ac)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Runa</span>
+          </div>
+          <div class="dt-nav">
+            <div class="dt-nav-item active"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h10v10H2z"/></svg>Sohbet</div>
+            <div class="dt-nav-item"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 7h12M7 1v12"/></svg>Yeni Sohbet</div>
+            <div class="dt-nav-item"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>Geçmiş</div>
+          </div>
+          <div class="dt-convo-list" style="margin-top:12px;">
+            <div class="dt-convo-item active"><div class="dt-convo-title active">Tasarım ajansı projesi</div><div class="dt-convo-meta">Bugün · 3 mesaj</div></div>
+            <div class="dt-convo-item"><div class="dt-convo-title">Runa API entegrasyonu</div><div class="dt-convo-meta">Dün · 12 mesaj</div></div>
+            <div class="dt-convo-item"><div class="dt-convo-title">Sunucu backup planı</div><div class="dt-convo-meta">2 gün önce</div></div>
+          </div>
+        </div>
+        <div class="dt-main">
+          <div class="dt-header">
+            <div class="dt-header-l">
+              <div class="dt-header-title">Tasarım ajansı projesi</div>
+              <div class="dt-header-sub"><span class="pulse-dot" style="color:var(--ok);background:var(--ok)"></span>MacBook Pro üzerinde</div>
+            </div>
+            <div class="dt-header-actions">
+              <button class="dt-btn-icon" title="Dışa aktar"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 9V1M4 4l3-3 3 3M2 10v2h10v-2"/></svg></button>
+              <button class="dt-btn-icon" title="Arama"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><path d="M10 10l3 3"/></svg></button>
+            </div>
+          </div>
+          <div class="dt-messages" id="vg-dt-body">
+            <div class="time-div" style="align-self:center;font-size:10px;color:var(--i3);">BUGÜN</div>
+            <div class="dt-user">Projemiz için sade bir logo taslağı çizer misin? Turuncu tonlarda, minimal.</div>
+            <div class="dt-agent">
+              <div class="dt-agent-hd"><span class="sig" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Runa</div>
+              <div class="dt-agent-body">Anladım, turuncu-minimal logo taslağı. Oluşturuyorum —</div>
+            </div>
+            <div class="tool-ln" onclick="toggleVgDtTool(this)">
+              <span class="tool-dot"></span>
+              <span>görsel oluşturuldu · stable diffusion</span>
+              <span class="tool-chev">›</span>
+            </div>
+            <div id="vg-dt-tool-detail" style="display:none;" class="file-panel">
+              <div class="file-panel-header"><span class="file-panel-title">Prompt · Stable Diffusion</span></div>
+              <div style="padding:12px 14px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--i2);line-height:1.6;">Minimal logo, geometric shapes, warm orange tones, white background, clean vector style, no text, centered composition</div>
+            </div>
+            <div class="dt-agent">
+              <div class="dt-agent-hd"><span class="sig" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Runa</div>
+              <div class="dt-agent-body" style="width:100%">
+                Hazır. Turuncu geometrik monogram — döndürülmüş kare, iki ton. Varyasyonlardan seçebilir veya "daha sade olsun" gibi yazabilirsin.
+                <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;margin-top:12px;align-items:start;">
+                  <div>
+                    <div style="background:linear-gradient(135deg,#F6F1E8 0%,#F0E4D0 100%);border-radius:10px;border:1px solid var(--s3);aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;">
+                      <svg width="110" height="110" viewBox="0 0 100 100"><rect x="22" y="22" width="56" height="56" rx="6" fill="#E0805C" transform="rotate(12 50 50)"/><rect x="30" y="30" width="40" height="40" rx="4" fill="#F4A876" transform="rotate(12 50 50)"/><text x="50" y="57" text-anchor="middle" font-family="serif" font-size="26" font-weight="bold" fill="white">R</text></svg>
+                    </div>
+                    <div class="img-actions" style="margin-top:8px;">
+                      <button class="img-btn primary">↺ Yeniden</button>
+                      <button class="img-btn">✎ Düzenle</button>
+                      <button class="img-btn">↓ Kaydet</button>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--i3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;">Varyasyonlar</div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+                      <div style="aspect-ratio:1/1;background:linear-gradient(135deg,#F6F1E8,#F0E4D0);border-radius:8px;border:2px solid var(--ac);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                        <svg width="42" height="42" viewBox="0 0 100 100"><rect x="22" y="22" width="56" height="56" rx="6" fill="#E0805C" transform="rotate(12 50 50)"/><rect x="30" y="30" width="40" height="40" rx="4" fill="#F4A876" transform="rotate(12 50 50)"/><text x="50" y="57" text-anchor="middle" font-family="serif" font-size="26" font-weight="bold" fill="white">R</text></svg>
+                      </div>
+                      <div style="aspect-ratio:1/1;background:#14110D;border-radius:8px;border:1px solid var(--s3);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                        <svg width="42" height="42" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#E0805C" stroke-width="4"/><text x="50" y="57" text-anchor="middle" font-family="serif" font-size="26" font-weight="bold" fill="#E0805C">R</text></svg>
+                      </div>
+                      <div style="aspect-ratio:1/1;background:linear-gradient(135deg,#2A1E15,#332C22);border-radius:8px;border:1px solid var(--s3);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                        <svg width="42" height="42" viewBox="0 0 100 100"><polygon points="50,12 88,62 12,62" fill="none" stroke="#F4A876" stroke-width="3"/><text x="50" y="58" text-anchor="middle" font-family="serif" font-size="20" font-weight="bold" fill="#F4A876">R</text></svg>
+                      </div>
+                    </div>
+                    <div style="margin-top:12px;padding:10px 12px;background:var(--s3);border-radius:8px;">
+                      <div style="font-size:11px;color:var(--i3);margin-bottom:5px;">Değiştirmek için yaz</div>
+                      <div style="font-size:13px;color:var(--i2);">Arka plan siyah olsun, turuncu hareket etsin</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dt-composer">
+            <textarea class="dt-input" placeholder="Nasıl değiştireyim? arka plan koyu olsun, yazı büyüsün…" rows="1"></textarea>
+            <button class="dt-send">Gönder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BÖLÜM 02 — AYARLAR
+     ══════════════════════════════════════ -->
+<section class="block" id="settings">
+  <div class="sec-eye">Bölüm 02</div>
+  <h2 class="sec-title">Ayarlar hiyerarşisi</h2>
+  <p class="sec-lead">
+    Masaüstünde <strong>iki sütun</strong> — sol nav, sağ içerik. Mobilde <strong>bottom sheet</strong> üzerine full-screen panel. Altı ana kategori; her biri kendi konuşma modeli, görünüm, cihaz, gizlilik seçenekleriyle. <strong>Developer Mode</strong> yerine <strong>"Detaylı görünüm"</strong> toggle'ı — herkese açık, teknik tıkırım değil derinlik kontrolü.
+  </p>
+
+  <div class="theme-strip" id="ts-settings">
+    <span class="lbl">Tema</span>
+    <div class="tsw on" style="background:#E0805C" data-th="" data-sec="settings" title="Ember Dark"></div>
+    <div class="tsw" style="background:#7A9B6F" data-th="th-sage" data-sec="settings" title="Sage"></div>
+    <div class="tsw" style="background:#7A95B8" data-th="th-slate" data-sec="settings" title="Slate"></div>
+    <div class="tsw" style="background:#A287B5" data-th="th-plum" data-sec="settings" title="Plum"></div>
+    <div class="tsw" style="background:#C9A878" data-th="th-sand" data-sec="settings" title="Sand"></div>
+    <div class="tsw" style="background:#D88C8C" data-th="th-rose" data-sec="settings" title="Rose"></div>
+    <div class="tsw" style="background:#F6F1E8;border:1px solid #ddd" data-th="th-light" data-sec="settings" title="Açık"></div>
+  </div>
+
+  <!-- Desktop Settings -->
+  <div style="background:var(--s1);border:1px solid #2a2a2a;border-radius:14px;overflow:hidden;box-shadow:0 28px 72px rgba(0,0,0,.65);margin-bottom:28px;" id="settings-dt-frame" class="">
+    <div style="padding:9px 16px;background:#000;display:flex;align-items:center;gap:8px;border-bottom:1px solid #111;">
+      <div class="dt-dot r"></div><div class="dt-dot y"></div><div class="dt-dot g"></div>
+      <span style="color:#555;font-size:11px;margin-left:8px;">runa.app/settings</span>
+    </div>
+    <div style="display:grid;grid-template-columns:220px 1fr;min-height:580px;" class="">
+      <!-- Nav -->
+      <div style="border-right:1px solid var(--s3);padding:12px 8px;background:var(--s1);" id="settings-nav-panel">
+        <div style="padding:8px 10px 4px;font-size:12px;color:var(--i1);font-weight:500;display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span class="sig" style="width:14px;height:14px;color:var(--ac)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Ayarlar
+        </div>
+        <div id="settings-nav">
+          <div class="settings-nav-item active" onclick="showSettingsPanel('hesap',this)">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="5" r="3"/><path d="M1 13c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+            Hesap
+          </div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('gorunum',this)">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><circle cx="7" cy="7" r="2"/></svg>
+            Görünüm
+          </div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('konusma',this)">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h10v8H8l-3 2-1-2H2z"/></svg>
+            Konuşma Tarzı
+          </div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('bildirimler',this)">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 1a4 4 0 014 4v4l1 1H2l1-1V5a4 4 0 014-4zM5 10v1a2 2 0 004 0v-1"/></svg>
+            Bildirimler
+          </div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('cihazlar',this)">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="12" height="8" rx="1.5"/><path d="M5 11l-.5 2M9 11l.5 2M3 13h8"/></svg>
+            Cihazlar
+          </div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('gizlilik',this)">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 1L2 4v4c0 3 2.5 4.8 5 5.5 2.5-.7 5-2.5 5-5.5V4L7 1z"/></svg>
+            Gizlilik
+          </div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('hakkinda',this)">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 6v4M7 4.5v.5"/></svg>
+            Hakkında
+          </div>
+        </div>
+      </div>
+      <!-- Content -->
+      <div style="background:var(--s1);overflow-y:auto;">
+        <!-- Hesap panel -->
+        <div class="settings-panel active" id="sp-hesap">
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">Hesap</div>
+            <div class="settings-panel-sub">Profil ve güvenlik bilgileriniz</div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">E-posta</div>
+                <div class="settings-row-desc">kullanici@ornek.com</div>
+              </div>
+              <button style="padding:6px 12px;border-radius:7px;border:1px solid var(--s4);background:transparent;color:var(--i2);font-family:inherit;font-size:12px;cursor:pointer;">Değiştir</button>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Şifre</div>
+                <div class="settings-row-desc">Son değişiklik: 3 ay önce</div>
+              </div>
+              <button style="padding:6px 12px;border-radius:7px;border:1px solid var(--s4);background:transparent;color:var(--i2);font-family:inherit;font-size:12px;cursor:pointer;">Güncelle</button>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Hesap planı</div>
+                <div class="settings-row-desc">Ücretsiz · 5/5 cihaz kullanıldı</div>
+              </div>
+              <button style="padding:6px 12px;border-radius:7px;background:var(--ac);border:none;color:var(--s1);font-family:inherit;font-size:12px;cursor:pointer;font-weight:500;">Yükselt</button>
+            </div>
+          </div>
+          <div class="settings-danger">
+            <button class="danger-btn">Hesabı sil</button>
+          </div>
+        </div>
+        <!-- Görünüm panel -->
+        <div class="settings-panel" id="sp-gorunum">
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">Görünüm</div>
+            <div class="settings-panel-sub">Renk tonu, aydınlık ve tipografi</div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Aydınlık modu</div>
+                <div class="settings-row-desc">Koyu, açık veya sistem tercihi</div>
+              </div>
+              <select class="settings-select">
+                <option>Koyu</option>
+                <option>Açık</option>
+                <option>Sistem</option>
+              </select>
+            </div>
+            <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:12px;">
+              <div class="settings-row-label">Renk tonu</div>
+              <div class="theme-grid" style="padding:0;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;width:100%;">
+                <div class="theme-swatch-card active" onclick="selectThemeSwatch(this)">
+                  <div class="theme-swatch-preview" style="background:#14110D;"><div style="width:10px;height:10px;border-radius:50%;background:#E0805C;"></div></div>
+                  <div class="theme-swatch-name">Ember</div>
+                </div>
+                <div class="theme-swatch-card" onclick="selectThemeSwatch(this)">
+                  <div class="theme-swatch-preview" style="background:#0F1410;"><div style="width:10px;height:10px;border-radius:50%;background:#7A9B6F;"></div></div>
+                  <div class="theme-swatch-name">Sage</div>
+                </div>
+                <div class="theme-swatch-card" onclick="selectThemeSwatch(this)">
+                  <div class="theme-swatch-preview" style="background:#0E1116;"><div style="width:10px;height:10px;border-radius:50%;background:#7A95B8;"></div></div>
+                  <div class="theme-swatch-name">Slate</div>
+                </div>
+                <div class="theme-swatch-card" onclick="selectThemeSwatch(this)">
+                  <div class="theme-swatch-preview" style="background:#14101A;"><div style="width:10px;height:10px;border-radius:50%;background:#A287B5;"></div></div>
+                  <div class="theme-swatch-name">Plum</div>
+                </div>
+                <div class="theme-swatch-card" onclick="selectThemeSwatch(this)">
+                  <div class="theme-swatch-preview" style="background:#15120D;"><div style="width:10px;height:10px;border-radius:50%;background:#C9A878;"></div></div>
+                  <div class="theme-swatch-name">Sand</div>
+                </div>
+                <div class="theme-swatch-card" onclick="selectThemeSwatch(this)">
+                  <div class="theme-swatch-preview" style="background:#18110F;"><div style="width:10px;height:10px;border-radius:50%;background:#D88C8C;"></div></div>
+                  <div class="theme-swatch-name">Rose</div>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Detaylı görünüm</div>
+                <div class="settings-row-desc">Araç çalıştırma adımlarını, hata ayrıntılarını ve teknik bilgileri gösterir</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="dev-mode-toggle">
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Mesaj animasyonları</div>
+                <div class="settings-row-desc">Shimmer ve yazılma animasyonları</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked>
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Yazı boyutu</div>
+              </div>
+              <select class="settings-select">
+                <option>Küçük</option>
+                <option selected>Orta</option>
+                <option>Büyük</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <!-- Konuşma Tarzı -->
+        <div class="settings-panel" id="sp-konusma">
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">Konuşma Tarzı</div>
+            <div class="settings-panel-sub">Runa sizinle nasıl konuşsun?</div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:12px;">
+              <div class="settings-row-label">Temel ton</div>
+              <div style="display:flex;flex-direction:column;gap:6px;width:100%;">
+                <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;cursor:pointer;border:1px solid var(--acbg);">
+                  <input type="radio" name="ton" value="mirror" checked style="accent-color:var(--ac);margin-top:1px;">
+                  <div><div style="font-size:13px;color:var(--i1);font-weight:500;">Ayna (Varsayılan)</div><div style="font-size:12px;color:var(--i3);margin-top:2px;">Senin tonuna uyum sağlar — kısa konuşursan kısa yanıtlar, detaylı sorularsa detaylı yanıtlar</div></div>
+                </label>
+                <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s2);border-radius:8px;cursor:pointer;border:1px solid var(--s3);">
+                  <input type="radio" name="ton" value="formal" style="accent-color:var(--ac);margin-top:1px;">
+                  <div><div style="font-size:13px;color:var(--i1);font-weight:500;">Resmi</div><div style="font-size:12px;color:var(--i3);margin-top:2px;">Her zaman saygılı, mesafeli ve düzgün cümle yapısıyla</div></div>
+                </label>
+                <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s2);border-radius:8px;cursor:pointer;border:1px solid var(--s3);">
+                  <input type="radio" name="ton" value="casual" style="accent-color:var(--ac);margin-top:1px;">
+                  <div><div style="font-size:13px;color:var(--i1);font-weight:500;">Samimi</div><div style="font-size:12px;color:var(--i3);margin-top:2px;">Rahat ve konuşma dilinde, gereksiz formalitesiz</div></div>
+                </label>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Yanıt uzunluğu</div>
+                <div class="settings-row-desc">Tercih ettiğiniz yanıt uzunluğu</div>
+              </div>
+              <select class="settings-select">
+                <option>Kısa</option>
+                <option selected>Dengeli</option>
+                <option>Ayrıntılı</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Onay bekle (yüksek risk)</div>
+                <div class="settings-row-desc">Dosya silme veya sistem değişikliklerinde onay ister</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked>
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+        <!-- Bildirimler -->
+        <div class="settings-panel" id="sp-bildirimler">
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">Bildirimler</div>
+            <div class="settings-panel-sub">Hangi durumlarda bildirim alacağınızı seçin</div>
+          </div>
+          <div class="settings-group">
+            <div style="font-size:11px;color:var(--i3);text-transform:uppercase;letter-spacing:.08em;padding:14px 0 6px;">Hatırlatmalar</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Push bildirimleri</div>
+                <div class="settings-row-desc">Runa'ya söylediğiniz hatırlatmaları push olarak alın</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div style="font-size:11px;color:var(--i3);text-transform:uppercase;letter-spacing:.08em;padding:14px 0 6px;">Sistem</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Görev tamamlandı</div>
+                <div class="settings-row-desc">Uzun süren işlemler bitince bildir</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Onay bekleyen işlem</div>
+                <div class="settings-row-desc">Onayınızı bekleyen bir eylem olduğunda</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Hata bildirimleri</div>
+                <div class="settings-row-desc">Cihaz veya araç hatalarında</div>
+              </div>
+              <label class="toggle"><input type="checkbox"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Sessiz saatler</div>
+                <div class="settings-row-desc">Bu saatler arasında bildirim gönderilmez</div>
+              </div>
+              <div style="display:flex;gap:4px;align-items:center;">
+                <select class="settings-select" style="width:70px;">
+                  <option>22:00</option><option>23:00</option><option selected>00:00</option>
+                </select>
+                <span style="color:var(--i3);font-size:12px;">–</span>
+                <select class="settings-select" style="width:70px;">
+                  <option selected>08:00</option><option>09:00</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Cihazlar -->
+        <div class="settings-panel" id="sp-cihazlar">
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">Cihazlar</div>
+            <div class="settings-panel-sub">Hesabınıza bağlı tüm cihazlar</div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:10px;">
+              <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--acbg);border-radius:10px;border:1px solid var(--ac);">
+                  <div style="width:36px;height:36px;background:var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--s1);font-size:18px;flex-shrink:0;">💻</div>
+                  <div style="flex:1;">
+                    <div style="font-size:13px;color:var(--i1);font-weight:500;">MacBook Pro <span style="font-size:11px;color:var(--ac);font-weight:400;">(Bu cihaz)</span></div>
+                    <div style="font-size:11px;color:var(--i3);margin-top:2px;">macOS 15.3 · Son aktif: Şu an</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s3);border-radius:10px;">
+                  <div style="width:36px;height:36px;background:var(--s4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📱</div>
+                  <div style="flex:1;">
+                    <div style="font-size:13px;color:var(--i1);font-weight:500;">iPhone 16 Pro</div>
+                    <div style="font-size:11px;color:var(--i3);margin-top:2px;">iOS 18.3 · Son aktif: 2 saat önce</div>
+                  </div>
+                  <button style="padding:4px 10px;border-radius:6px;border:1px solid var(--errbg);background:transparent;color:var(--err);font-family:inherit;font-size:11px;cursor:pointer;">Bağlantıyı kes</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s3);border-radius:10px;">
+                  <div style="width:36px;height:36px;background:var(--s4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🖥️</div>
+                  <div style="flex:1;">
+                    <div style="font-size:13px;color:var(--i1);font-weight:500;">Ubuntu Server</div>
+                    <div style="font-size:11px;color:var(--i3);margin-top:2px;">Linux 22.04 · Çevrimiçi</div>
+                  </div>
+                  <button style="padding:4px 10px;border-radius:6px;border:1px solid var(--errbg);background:transparent;color:var(--err);font-family:inherit;font-size:11px;cursor:pointer;">Bağlantıyı kes</button>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--i3);">Yeni cihaz eklemek için o cihazda Runa'yı açıp aynı hesapla giriş yap — otomatik görünür.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Gizlilik -->
+        <div class="settings-panel" id="sp-gizlilik">
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">Gizlilik</div>
+            <div class="settings-panel-sub">Verinizin nasıl kullanıldığı</div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Sohbet geçmişi</div>
+                <div class="settings-row-desc">Runa, önceki sohbetlerden öğrenseyim mi?</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Anonim kullanım istatistikleri</div>
+                <div class="settings-row-desc">Runa'yı geliştirmemize yardımcı olur; kimlik bilgisi içermez</div>
+              </div>
+              <label class="toggle"><input type="checkbox"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Sohbet geçmişini sil</div>
+                <div class="settings-row-desc">Tüm konuşmalarınız silinir, geri alınamaz</div>
+              </div>
+              <button class="danger-btn" style="padding:6px 12px;font-size:12px;">Sil</button>
+            </div>
+          </div>
+        </div>
+        <!-- Hakkında -->
+        <div class="settings-panel" id="sp-hakkinda">
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">Hakkında</div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">Sürüm</div></div>
+              <span style="font-size:13px;color:var(--i3);font-family:'JetBrains Mono',monospace;">1.0.0-beta.4</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">Lisans</div></div>
+              <span style="font-size:13px;color:var(--i3);">Özel Lisans</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">Gizlilik Politikası</div></div>
+              <span style="font-size:13px;color:var(--ac);cursor:pointer;">Görüntüle ›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Settings Frame -->
+  <div style="margin-top:16px;">
+    <div class="card-label">Mobil — Ayarlar bottom sheet akışı</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <!-- Mob frame: Settings list -->
+      <div class="mob" style="height:680px;--s1:#14110D;--s2:#1E1A14;--s3:#2A241C;--s4:#332C22;--i1:#E8DFCD;--i2:#B9AE99;--i3:#847866;--ac:#E0805C;--ac2:#F4A876;--acbg:#2A1E15;--ok:#8FA277;--okbg:#1D2618;--err:#C97064;--errbg:#2A1A18;--warn:#D4A055;--warnbg:#2A2118;--ubg:#E8DFCD;--ufg:#14110D;--hair:rgba(232,223,205,0.08);">
+        <div class="mob-notch"></div>
+        <div class="mob-status"><span>09:41</span><span class="icons">▲ ◆ ████</span></div>
+        <div class="mob-header">
+          <div class="mob-header-l">
+            <div class="mob-icon-btn">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4 6 8 2 12 6"/><polyline points="4 10 8 14 12 10"/></svg>
+            </div>
+            <div class="mob-brand">Ayarlar</div>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:12px 14px;" class="mob-body">
+          <div style="margin-bottom:6px;font-size:10.5px;color:var(--i3);text-transform:uppercase;letter-spacing:.08em;">Kişiselleştirme</div>
+          <div style="background:var(--s2);border-radius:12px;overflow:hidden;border:1px solid var(--s3);margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" onclick="openSettingsMob('Görünüm')">
+              <span style="font-size:18px;">🎨</span>
+              <span style="flex:1;font-size:14px;color:var(--i1);">Görünüm</span>
+              <span style="color:var(--i3);font-size:16px;">›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" onclick="openSettingsMob('Konuşma Tarzı')">
+              <span style="font-size:18px;">💬</span>
+              <span style="flex:1;font-size:14px;color:var(--i1);">Konuşma Tarzı</span>
+              <span style="color:var(--i3);font-size:16px;">›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;" onclick="openSettingsMob('Bildirimler')">
+              <span style="font-size:18px;">🔔</span>
+              <span style="flex:1;font-size:14px;color:var(--i1);">Bildirimler</span>
+              <span style="color:var(--i3);font-size:16px;">›</span>
+            </div>
+          </div>
+          <div style="margin-bottom:6px;font-size:10.5px;color:var(--i3);text-transform:uppercase;letter-spacing:.08em;">Cihaz ve Hesap</div>
+          <div style="background:var(--s2);border-radius:12px;overflow:hidden;border:1px solid var(--s3);margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" onclick="openSettingsMob('Cihazlar')">
+              <span style="font-size:18px;">💻</span>
+              <span style="flex:1;font-size:14px;color:var(--i1);">Cihazlar</span>
+              <div style="background:var(--acbg);color:var(--ac);font-size:11px;padding:1px 7px;border-radius:999px;">3</div>
+              <span style="color:var(--i3);font-size:16px;">›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;" onclick="openSettingsMob('Hesap')">
+              <span style="font-size:18px;">👤</span>
+              <span style="flex:1;font-size:14px;color:var(--i1);">Hesap</span>
+              <span style="color:var(--i3);font-size:16px;">›</span>
+            </div>
+          </div>
+          <div style="background:var(--s2);border-radius:12px;overflow:hidden;border:1px solid var(--s3);">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" onclick="openSettingsMob('Gizlilik')">
+              <span style="font-size:18px;">🔒</span>
+              <span style="flex:1;font-size:14px;color:var(--i1);">Gizlilik</span>
+              <span style="color:var(--i3);font-size:16px;">›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;">
+              <span style="font-size:18px;">ℹ️</span>
+              <span style="flex:1;font-size:14px;color:var(--i1);">Hakkında</span>
+              <span style="color:var(--i3);font-size:12px;font-family:'JetBrains Mono',monospace;">1.0.0-β4 ›</span>
+            </div>
+          </div>
+        </div>
+        <!-- Settings detail sheet -->
+        <div class="sheet-backdrop" id="set-mob-backdrop" onclick="closeMobSettings()"></div>
+        <div class="sheet" id="set-mob-sheet" style="max-height:90%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <div class="sheet-head-title" id="set-mob-title">Görünüm</div>
+            <div class="sheet-head-close" onclick="closeMobSettings()">✕</div>
+          </div>
+          <div class="sheet-body" id="set-mob-body">
+            <div style="font-size:11px;color:var(--i3);margin-bottom:10px;">Renk tonu</div>
+            <div class="swatch-row">
+              <div class="swatch-chip on"><div class="circle" style="background:linear-gradient(135deg,#14110D,#E0805C);"></div><div class="chip-lbl">Ember</div></div>
+              <div class="swatch-chip"><div class="circle" style="background:linear-gradient(135deg,#0F1410,#7A9B6F);"></div><div class="chip-lbl">Sage</div></div>
+              <div class="swatch-chip"><div class="circle" style="background:linear-gradient(135deg,#0E1116,#7A95B8);"></div><div class="chip-lbl">Slate</div></div>
+              <div class="swatch-chip"><div class="circle" style="background:linear-gradient(135deg,#14101A,#A287B5);"></div><div class="chip-lbl">Plum</div></div>
+              <div class="swatch-chip"><div class="circle" style="background:linear-gradient(135deg,#15120D,#C9A878);"></div><div class="chip-lbl">Sand</div></div>
+              <div class="swatch-chip"><div class="circle" style="background:linear-gradient(135deg,#18110F,#D88C8C);"></div><div class="chip-lbl">Rose</div></div>
+            </div>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-size:14px;color:var(--i1);">Aydınlık</div>
+                  <div style="font-size:11px;color:var(--i3);">Koyu / Açık / Sistem</div>
+                </div>
+                <select class="settings-select"><option>Koyu</option><option>Açık</option><option>Sistem</option></select>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-size:14px;color:var(--i1);">Detaylı görünüm</div>
+                  <div style="font-size:11px;color:var(--i3);">Teknik adımları göster</div>
+                </div>
+                <label class="toggle"><input type="checkbox"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BÖLÜM 03 — ÇOKLU DOSYA
+     ══════════════════════════════════════ -->
+<section class="block" id="multifile">
+  <div class="sec-eye">Bölüm 03</div>
+  <h2 class="sec-title">Çoklu dosya yönetimi</h2>
+  <p class="sec-lead">
+    Dosya işlemleri sohbet içinde kalır — ayrı panel yok. Tool satırı "<strong>3 dosya okundu ›</strong>" açılınca liste + seçme + arama + toplu işlem. Dosya değişikliği sonrası <strong>diff görünümü</strong> inline açılır. Büyük topluluk işlemleri yüksek-risk onay gerektirir.
+  </p>
+
+  <div class="explainer">
+    <div class="explainer-title">Dosya işlem kalıpları</div>
+    <div class="explainer-body">
+      <div class="rule-list">
+        <div class="rule-item"><span class="decision-tag dt-green">Düşük risk</span> Dosya okuma, listeleme, arama → onaysız, tool satırında özetlenir</div>
+        <div class="rule-item"><span class="decision-tag dt-amber">Orta risk</span> Tek dosya yazma/değiştirme → inline onay, hedef dosya gösterilir</div>
+        <div class="rule-item"><span class="decision-tag dt-red">Yüksek risk</span> Toplu silme, dizin temizleme → uyarı bandlı inline onay, geri alınamaz notu</div>
+        <div class="rule-item">Diff görünümü her zaman collapsible → varsayılan kapalı, kullanıcı isterse açar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-strip" id="ts-multifile">
+    <span class="lbl">Tema</span>
+    <div class="tsw on" style="background:#E0805C" data-th="" data-sec="multifile" title="Ember Dark"></div>
+    <div class="tsw" style="background:#7A9B6F" data-th="th-sage" data-sec="multifile"></div>
+    <div class="tsw" style="background:#7A95B8" data-th="th-slate" data-sec="multifile"></div>
+    <div class="tsw" style="background:#A287B5" data-th="th-plum" data-sec="multifile"></div>
+    <div class="tsw" style="background:#C9A878" data-th="th-sand" data-sec="multifile"></div>
+    <div class="tsw" style="background:#D88C8C" data-th="th-rose" data-sec="multifile"></div>
+    <div class="tsw" style="background:#F6F1E8;border:1px solid #ddd" data-th="th-light" data-sec="multifile"></div>
+  </div>
+
+  <div class="frames" id="multifile-frames">
+    <!-- MOBILE -->
+    <div class="mob" id="mf-mob" style="--s1:#14110D;--s2:#1E1A14;--s3:#2A241C;--s4:#332C22;--i1:#E8DFCD;--i2:#B9AE99;--i3:#847866;--ac:#E0805C;--ac2:#F4A876;--acbg:#2A1E15;--ok:#8FA277;--okbg:#1D2618;--err:#C97064;--errbg:#2A1A18;--warn:#D4A055;--warnbg:#2A2118;--ubg:#E8DFCD;--ufg:#14110D;--hair:rgba(232,223,205,0.08);">
+      <div class="mob-notch"></div>
+      <div class="mob-status"><span>09:41</span><span class="icons">▲ ◆ ████</span></div>
+      <div class="mob-header">
+        <div class="mob-header-l">
+          <div class="mob-icon-btn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg></div>
+          <div><div class="mob-brand">Runa</div><div class="mob-sub"><span class="pulse-dot" style="color:var(--ok);background:var(--ok)"></span>Proje klasörü</div></div>
+        </div>
+      </div>
+      <div class="mob-body" id="mf-mob-body">
+        <div class="time-div">BUGÜN</div>
+        <div class="m-user">apps/web/src klasöründe "hardcoded" geçen tüm metinleri bul ve çıktıyı lokalizasyon dosyasına taşı.</div>
+        <div class="m-agent">
+          <div class="m-agent-hd"><span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>Runa</div>
+          <div class="m-agent-body">Tarıyorum —</div>
+        </div>
+        <div class="tool-ln" onclick="toggleTool(this,'mf-read-detail')">
+          <span class="tool-dot"></span>
+          <span>47 dosya tarandı</span>
+          <span class="tool-chev">›</span>
+        </div>
+        <div class="file-panel" id="mf-read-detail" style="display:none;">
+          <div class="file-panel-header">
+            <span class="file-panel-title">apps/web/src — 47 dosya</span>
+          </div>
+          <div class="file-search">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="3.5"/><path d="M8 8l2.5 2.5"/></svg>
+            <input placeholder="dosya ara…" oninput="filterFiles(this)">
+          </div>
+          <div class="file-list" id="mf-file-list">
+            <div class="file-item" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb"><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">ChatHeader.tsx</span><span class="file-match">3 eşleşme</span></div>
+            <div class="file-item checked" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb" checked><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">ApprovalBlock.tsx</span><span class="file-match">8 eşleşme</span></div>
+            <div class="file-item checked" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb" checked><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">WorkInsightPanel.tsx</span><span class="file-match">5 eşleşme</span></div>
+            <div class="file-item" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb"><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">EmptyState.tsx</span><span class="file-match">2 eşleşme</span></div>
+            <div class="file-item" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb"><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">ToolResultBlock.tsx</span><span class="file-match">6 eşleşme</span></div>
+          </div>
+          <div class="file-panel-header" style="border-top:1px solid var(--s3);border-bottom:none;">
+            <div class="file-panel-actions">
+              <button class="file-panel-btn" onclick="mfSelectAll()">Tümünü seç</button>
+              <button class="file-panel-btn" onclick="mfProcess()">2 seçili · Taşı ›</button>
+            </div>
+          </div>
+        </div>
+        <!-- After processing -->
+        <div class="m-agent" id="mf-result" style="display:none;">
+          <div class="m-agent-hd"><span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>Runa</div>
+          <div class="m-agent-body">13 metin çıkarıldı, <strong>tr.json</strong> dosyasına eklendi. Değişiklikleri aşağıda inceleyebilirsin.</div>
+        </div>
+        <div class="tool-ln" id="mf-diff-trigger" style="display:none;" onclick="toggleTool(this,'mf-diff-panel')">
+          <span class="tool-dot"></span>
+          <span>tr.json güncellendi · 13 satır</span>
+          <span class="tool-chev">›</span>
+        </div>
+        <div class="file-panel" id="mf-diff-panel" style="display:none;">
+          <div class="file-panel-header">
+            <span class="file-panel-title">tr.json — diff</span>
+          </div>
+          <div class="diff-view">
+            <span class="diff-hunk">@@ -12,4 +12,17 @@</span>
+            <span class="diff-ctx">  "common": {</span>
+            <span class="diff-add">+   "trustDecision": "Güven kararı",</span>
+            <span class="diff-add">+   "liveWorkNotes": "Canlı çalışma notları",</span>
+            <span class="diff-add">+   "actionResult": "İşlem sonucu",</span>
+            <span class="diff-add">+   "noTargetInfo": "Hedef bilgisi yok",</span>
+            <span class="diff-add">+   "commandRunning": "Komut çalıştırılıyor",</span>
+            <span class="diff-ctx">  }</span>
+          </div>
+        </div>
+        <!-- High risk approval example -->
+        <div class="inline-approval" id="mf-highrisk" style="display:none;">
+          <div class="ia-header"><span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>Runa</div>
+          <div class="ia-text">Eski çeviri dosyalarını temizleyeyim mi?</div>
+          <div class="ia-target warn">47 dosya silinecek · geri alınamaz</div>
+          <div class="ia-risk">Bu işlem kalıcıdır. Yedek almak ister misin önce?</div>
+          <div class="ia-actions">
+            <button class="ia-btn approve warn">Sil</button>
+            <button class="ia-btn reject">Vazgeç</button>
+          </div>
+        </div>
+      </div>
+      <div class="mob-composer">
+        <div class="composer-inner">
+          <input class="composer-input" placeholder="Devam…" id="mf-input" onkeydown="if(event.key==='Enter')mfSend()">
+          <button class="composer-send" onclick="mfSend()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/><polyline points="9 4 13 8 9 12"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESKTOP multi-file -->
+    <div class="dt" id="mf-dt" style="--s1:#14110D;--s2:#1E1A14;--s3:#2A241C;--s4:#332C22;--i1:#E8DFCD;--i2:#B9AE99;--i3:#847866;--ac:#E0805C;--ac2:#F4A876;--acbg:#2A1E15;--ok:#8FA277;--okbg:#1D2618;--err:#C97064;--errbg:#2A1A18;--warn:#D4A055;--warnbg:#2A2118;--ubg:#E8DFCD;--ufg:#14110D;--hair:rgba(232,223,205,0.08);">
+      <div class="dt-titlebar"><div style="display:flex;gap:6px;"><div class="dt-dot r"></div><div class="dt-dot y"></div><div class="dt-dot g"></div></div><div class="dt-url">runa.app — Proje klasörü</div></div>
+      <div class="dt-body" style="grid-template-columns:240px 1fr;">
+        <div class="dt-sidebar">
+          <div class="dt-sidebar-header"><span class="dt-sidebar-brand"><span class="sig" style="width:16px;height:16px;color:var(--ac)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Runa</span></div>
+          <div class="dt-nav">
+            <div class="dt-nav-item active"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h10v10H2z"/></svg>Sohbet</div>
+            <div class="dt-nav-item"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/></svg>Geçmiş</div>
+          </div>
+          <div class="dt-convo-list" style="margin-top:10px;">
+            <div class="dt-convo-item active"><div class="dt-convo-title active">Lokalizasyon geçişi</div><div class="dt-convo-meta">Bugün · 4 mesaj</div></div>
+            <div class="dt-convo-item"><div class="dt-convo-title">API entegrasyon</div><div class="dt-convo-meta">Dün</div></div>
+          </div>
+        </div>
+        <div class="dt-main">
+          <div class="dt-header">
+            <div class="dt-header-l"><div class="dt-header-title">Lokalizasyon geçişi</div><div class="dt-header-sub"><span class="pulse-dot" style="color:var(--ok);background:var(--ok)"></span>MacBook Pro üzerinde</div></div>
+          </div>
+          <div class="dt-messages">
+            <div class="dt-user">apps/web/src içindeki tüm hardcoded Türkçe metinleri lokalizasyon dosyasına taşı.</div>
+            <div class="dt-agent">
+              <div class="dt-agent-hd"><span class="sig" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Runa</div>
+              <div class="dt-agent-body">Tarıyorum —</div>
+            </div>
+            <div class="tool-ln" onclick="toggleTool(this,'mf-dt-files')"><span class="tool-dot"></span><span>47 dosya tarandı · 13 metin bulundu</span><span class="tool-chev">›</span></div>
+            <div class="file-panel" id="mf-dt-files" style="display:none;max-width:640px;">
+              <div class="file-panel-header">
+                <span class="file-panel-title">apps/web/src — Eşleşen dosyalar</span>
+                <div class="file-panel-actions">
+                  <button class="file-panel-btn" onclick="document.querySelectorAll('#mf-dt-flist .file-cb').forEach(c=>{c.checked=true;c.closest('.file-item').classList.add('checked')})">Tümünü seç</button>
+                  <button class="file-panel-btn primary" style="background:var(--ac);color:var(--s1);border-color:var(--ac);">Seçilenleri taşı ›</button>
+                </div>
+              </div>
+              <div class="file-search"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="3.5"/><path d="M8 8l2.5 2.5"/></svg><input placeholder="dosya ara…"></div>
+              <div class="file-list" id="mf-dt-flist" style="max-height:180px;">
+                <div class="file-item checked" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb" checked><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">ApprovalBlock.tsx</span><span class="file-meta">8 satır</span><span class="file-match">8 eşleşme</span></div>
+                <div class="file-item checked" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb" checked><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">WorkInsightPanel.tsx</span><span class="file-meta">5 satır</span><span class="file-match">5 eşleşme</span></div>
+                <div class="file-item" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb"><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">ChatHeader.tsx</span><span class="file-meta">3 satır</span><span class="file-match">3 eşleşme</span></div>
+                <div class="file-item" onclick="toggleFileCheck(this)"><input type="checkbox" class="file-cb"><svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4V2z"/><path d="M10 2v3h3"/></svg><span class="file-name">ToolResultBlock.tsx</span><span class="file-meta">6 satır</span><span class="file-match">6 eşleşme</span></div>
+              </div>
+            </div>
+            <div class="dt-agent">
+              <div class="dt-agent-hd"><span class="sig" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Runa</div>
+              <div class="dt-agent-body">13 metin çıkarıldı, <strong>tr.json</strong> güncellendi. Diff'i açabilirsin.</div>
+            </div>
+            <div class="tool-ln" onclick="toggleTool(this,'mf-dt-diff')"><span class="tool-dot"></span><span>tr.json · 13 satır eklendi</span><span class="tool-chev">›</span></div>
+            <div class="file-panel" id="mf-dt-diff" style="display:none;max-width:640px;">
+              <div class="file-panel-header"><span class="file-panel-title">tr.json — diff · +13 / -0</span></div>
+              <div class="diff-view">
+                <span class="diff-hunk">@@ -12,4 +12,17 @@ "common": {</span>
+                <span class="diff-ctx">  "common": {</span>
+                <span class="diff-add">+   "trustDecision": "Güven kararı",</span>
+                <span class="diff-add">+   "liveWorkNotes": "Canlı çalışma notları",</span>
+                <span class="diff-add">+   "actionResult": "İşlem sonucu",</span>
+                <span class="diff-add">+   "noTargetInfo": "Hedef bilgisi yok",</span>
+                <span class="diff-add">+   "commandRunning": "Komut çalıştırılıyor",</span>
+                <span class="diff-add">+   "approvalPending": "Onay bekleniyor",</span>
+                <span class="diff-add">+   "resolvedApproved": "İzin verildi",</span>
+                <span class="diff-add">+   "resolvedRejected": "Reddedildi",</span>
+                <span class="diff-ctx">  }</span>
+              </div>
+            </div>
+          </div>
+          <div class="dt-composer">
+            <textarea class="dt-input" placeholder="Devam et veya başka bir şey sor…" rows="1"></textarea>
+            <button class="dt-send">Gönder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BÖLÜM 04 — BİLDİRİMLER
+     ══════════════════════════════════════ -->
+<section class="block" id="notifs">
+  <div class="sec-eye">Bölüm 04</div>
+  <h2 class="sec-title">Bildirimler &amp; arka plan görevleri</h2>
+  <p class="sec-lead">
+    İki kategori: <strong>Hatırlatmalar</strong> (kullanıcının söylediği, Runa'nın kaydettiği) ve <strong>Sistem</strong> (görev bitti, onay bekliyor, cihaz hatası). Bildirim merkezi mobilde sohbet header'ından açılan bir <strong>sheet</strong>, masaüstünde sağ kenardan açılan bir <strong>panel</strong>. Arka planda çalışan görevler her zaman görünür; sohbeti kilitlemez.
+  </p>
+
+  <div class="explainer">
+    <div class="explainer-title">Hatırlatma akışı</div>
+    <div class="explainer-body">
+      Kullanıcı sohbette "yarın saat 10'da toplantımı hatırlat" der → Runa onay ister ("kaydedeyim mi?") → kullanıcı onaylar → kaydolur → zamanı gelince OS push bildirimi, tıklayınca doğrudan ilgili sohbete düşer.
+      <div class="rule-list" style="margin-top:8px;">
+        <div class="rule-item">Hatırlatmalar silinebilir, ertelenebilir (10dk / 1s / yarın)</div>
+        <div class="rule-item">Sistem bildirimleri ayarlardan kategori bazında kapatılabilir</div>
+        <div class="rule-item">Sessiz saatler tüm kategorilere uygulanır</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-strip" id="ts-notifs">
+    <span class="lbl">Tema</span>
+    <div class="tsw on" style="background:#E0805C" data-th="" data-sec="notifs" title="Ember Dark"></div>
+    <div class="tsw" style="background:#7A9B6F" data-th="th-sage" data-sec="notifs"></div>
+    <div class="tsw" style="background:#7A95B8" data-th="th-slate" data-sec="notifs"></div>
+    <div class="tsw" style="background:#A287B5" data-th="th-plum" data-sec="notifs"></div>
+    <div class="tsw" style="background:#C9A878" data-th="th-sand" data-sec="notifs"></div>
+    <div class="tsw" style="background:#D88C8C" data-th="th-rose" data-sec="notifs"></div>
+    <div class="tsw" style="background:#F6F1E8;border:1px solid #ddd" data-th="th-light" data-sec="notifs"></div>
+  </div>
+
+  <div class="frames" id="notifs-frames">
+    <!-- MOBILE -->
+    <div class="mob" id="notif-mob" style="--s1:#14110D;--s2:#1E1A14;--s3:#2A241C;--s4:#332C22;--i1:#E8DFCD;--i2:#B9AE99;--i3:#847866;--ac:#E0805C;--ac2:#F4A876;--acbg:#2A1E15;--ok:#8FA277;--okbg:#1D2618;--err:#C97064;--errbg:#2A1A18;--warn:#D4A055;--warnbg:#2A2118;--ubg:#E8DFCD;--ufg:#14110D;--hair:rgba(232,223,205,0.08);">
+      <div class="mob-notch"></div>
+      <div class="mob-status"><span>09:41</span><span class="icons">▲ ◆ ████</span></div>
+      <div class="mob-header">
+        <div class="mob-header-l">
+          <div class="mob-icon-btn" onclick="openSheet('notif-sheet','notif-sheet-backdrop')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg></div>
+          <div><div class="mob-brand">Runa</div><div class="mob-sub"><span class="pulse-dot" style="color:var(--ok);background:var(--ok)"></span>MacBook Pro üzerinde</div></div>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <div class="mob-icon-btn" style="position:relative;" onclick="openSheet('notif-sheet','notif-sheet-backdrop')">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a4 4 0 014 4v4l1 1H3l1-1V5a4 4 0 014-4zM6 11v.5a2 2 0 004 0V11"/></svg>
+            <div style="position:absolute;top:4px;right:4px;width:7px;height:7px;background:var(--ac);border-radius:50%;border:1.5px solid var(--s1);"></div>
+          </div>
+        </div>
+      </div>
+      <div class="mob-body">
+        <div class="time-div">BUGÜN</div>
+        <!-- Reminder save flow -->
+        <div class="m-user">Yarın saat 14:00'de müşteri sunumunu hatırlat bana.</div>
+        <div class="m-agent">
+          <div class="m-agent-hd"><span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>Runa</div>
+          <div class="m-agent-body">Yarın 14:00'da "Müşteri sunumu" için hatırlatalım mı?
+            <div style="margin-top:8px;padding:10px 12px;background:var(--s3);border-radius:10px;border:1px solid var(--s4);">
+              <div style="font-size:12px;color:var(--i3);margin-bottom:3px;">Yarın · 14:00</div>
+              <div style="font-size:13.5px;color:var(--i1);">📌 Müşteri sunumu</div>
+            </div>
+            <div class="ia-actions" style="margin-top:8px;">
+              <button class="ia-btn approve" onclick="notifSaveConfirm(this)">Kaydet</button>
+              <button class="ia-btn reject">Vazgeç</button>
+            </div>
+          </div>
+        </div>
+        <!-- Background task in chat -->
+        <div class="m-agent">
+          <div class="m-agent-hd"><span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>Runa</div>
+          <div class="m-agent-body">Docker build başlattım. Uzun sürebilir — arka planda devam eder, bitince bildiririm. Bu sohbete devam edebiliriz.</div>
+        </div>
+        <div class="tool-ln">
+          <div class="bg-task-spin" style="width:10px;height:10px;border-width:1.5px;"></div>
+          <span style="color:var(--ac)">docker build çalışıyor · arka planda</span>
+        </div>
+        <div class="m-user">Tamam, şimdi başka bir şeyle devam edelim…</div>
+      </div>
+      <!-- Notification Sheet -->
+      <div class="sheet-backdrop" id="notif-sheet-backdrop" onclick="closeSheet('notif-sheet','notif-sheet-backdrop')"></div>
+      <div class="sheet" id="notif-sheet">
+        <div class="sheet-handle"></div>
+        <div style="padding:0 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--s3);">
+          <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--i1);">Bildirimler</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:12px;color:var(--i3);cursor:pointer;" onclick="clearAllNotifs()">Temizle</span>
+            <div class="sheet-head-close" onclick="closeSheet('notif-sheet','notif-sheet-backdrop')">✕</div>
+          </div>
+        </div>
+        <div class="notif-tabs">
+          <div class="notif-tab active" onclick="switchNotifTab(this,'notif-tab-all')">Tümü <span class="notif-badge">4</span></div>
+          <div class="notif-tab" onclick="switchNotifTab(this,'notif-tab-remind')">Hatırlatmalar <span class="notif-badge">2</span></div>
+          <div class="notif-tab" onclick="switchNotifTab(this,'notif-tab-system')">Sistem <span class="notif-badge">2</span></div>
+        </div>
+        <div class="notif-list active" id="notif-tab-all" style="padding:4px 0;">
+          <div class="notif-item unread" id="notif1">
+            <div class="notif-item-icon reminder">📌</div>
+            <div class="notif-item-body">
+              <div class="notif-item-title">Müşteri sunumu · 14:00</div>
+              <div class="notif-item-desc">Yarın saat 14:00'da hatırlattın.</div>
+              <div class="notif-item-actions">
+                <button class="notif-act-btn" onclick="snoozeNotif(this)">10 dk ertele</button>
+                <button class="notif-act-btn" onclick="dismissNotif(this)">Kapat</button>
+              </div>
+            </div>
+            <div class="notif-item-time">1sa</div>
+          </div>
+          <div class="notif-item unread" id="notif2">
+            <div class="notif-item-icon system">✓</div>
+            <div class="notif-item-body">
+              <div class="notif-item-title">Docker build tamamlandı</div>
+              <div class="notif-item-desc">Ubuntu Server · 4m 23s · başarılı</div>
+              <div class="notif-item-actions">
+                <button class="notif-act-btn primary" onclick="goToChat(this)">Sohbete dön</button>
+                <button class="notif-act-btn" onclick="dismissNotif(this)">Kapat</button>
+              </div>
+            </div>
+            <div class="notif-item-time">12dk</div>
+          </div>
+          <div class="notif-item" id="notif3">
+            <div class="notif-item-icon remind" style="background:var(--acbg);color:var(--ac)">📌</div>
+            <div class="notif-item-body">
+              <div class="notif-item-title">Haftalık raporun var</div>
+              <div class="notif-item-desc">Her Pazartesi 09:00 · tekrarlayan</div>
+            </div>
+            <div class="notif-item-time">2g</div>
+          </div>
+          <div class="notif-item" id="notif4">
+            <div class="notif-item-icon warn">!</div>
+            <div class="notif-item-body">
+              <div class="notif-item-title">Onay bekliyor</div>
+              <div class="notif-item-desc">Ubuntu Server'da bir işlem onayını bekliyor</div>
+              <div class="notif-item-actions">
+                <button class="notif-act-btn primary" onclick="goToChat(this)">Onayla</button>
+              </div>
+            </div>
+            <div class="notif-item-time">3dk</div>
+          </div>
+        </div>
+        <div class="notif-list" id="notif-tab-remind" style="padding:4px 0;">
+          <div class="notif-item unread"><div class="notif-item-icon reminder">📌</div><div class="notif-item-body"><div class="notif-item-title">Müşteri sunumu · 14:00</div><div class="notif-item-desc">Yarın saat 14:00</div><div class="notif-item-actions"><button class="notif-act-btn" onclick="snoozeNotif(this)">10 dk ertele</button><button class="notif-act-btn" onclick="dismissNotif(this)">Kapat</button></div></div><div class="notif-item-time">1sa</div></div>
+          <div class="notif-item"><div class="notif-item-icon reminder">📌</div><div class="notif-item-body"><div class="notif-item-title">Haftalık rapor</div><div class="notif-item-desc">Her Pazartesi 09:00 · tekrarlayan</div></div><div class="notif-item-time">2g</div></div>
+        </div>
+        <div class="notif-list" id="notif-tab-system" style="padding:4px 0;">
+          <div class="notif-item unread"><div class="notif-item-icon system">✓</div><div class="notif-item-body"><div class="notif-item-title">Docker build tamamlandı</div><div class="notif-item-desc">Ubuntu Server · başarılı</div><div class="notif-item-actions"><button class="notif-act-btn primary" onclick="goToChat(this)">Sohbete dön</button></div></div><div class="notif-item-time">12dk</div></div>
+          <div class="notif-item unread"><div class="notif-item-icon warn">!</div><div class="notif-item-body"><div class="notif-item-title">Onay bekliyor</div><div class="notif-item-desc">Ubuntu Server'da işlem bekliyor</div><div class="notif-item-actions"><button class="notif-act-btn primary" onclick="goToChat(this)">Onayla</button></div></div><div class="notif-item-time">3dk</div></div>
+        </div>
+      </div>
+      <div class="mob-composer">
+        <div class="composer-inner">
+          <input class="composer-input" placeholder="Sohbete devam et…">
+          <button class="composer-send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/><polyline points="9 4 13 8 9 12"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop notifs + bg tasks -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <!-- Notification center desktop -->
+      <div style="background:var(--s1);border:1px solid #2a2a2a;border-radius:14px;overflow:hidden;box-shadow:0 20px 48px rgba(0,0,0,.5);" id="notif-dt-frame">
+        <div style="padding:9px 16px;background:#000;display:flex;align-items:center;gap:8px;border-bottom:1px solid #111;"><div class="dt-dot r"></div><div class="dt-dot y"></div><div class="dt-dot g"></div><span style="color:#555;font-size:11px;margin-left:8px;">runa.app — Bildirim merkezi</span></div>
+        <div style="display:grid;grid-template-columns:1fr 280px;height:460px;">
+          <!-- Chat side -->
+          <div style="border-right:1px solid var(--s3);display:flex;flex-direction:column;" id="notif-dt-chat">
+            <div style="padding:12px 20px;border-bottom:1px solid var(--s3);display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:14px;color:var(--i1);font-weight:500;">Proje sohbeti</div>
+                <div style="font-size:11px;color:var(--i3);display:flex;align-items:center;gap:5px;margin-top:1px;"><span class="pulse-dot" style="color:var(--ok);background:var(--ok)"></span>MacBook Pro üzerinde</div>
+              </div>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+              <div class="dt-user">Docker build başlat Ubuntu Server'da, uzun sürebilir.</div>
+              <div class="dt-agent">
+                <div class="dt-agent-hd"><span class="sig" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span> Runa</div>
+                <div class="dt-agent-body">Docker build başlattım. Arka planda devam eder — bitince bildiririm. Bu sohbette devam edebiliriz.</div>
+              </div>
+              <div class="tool-ln"><div class="bg-task-spin" style="width:10px;height:10px;border-width:1.5px;"></div><span style="color:var(--ac)">docker build · Ubuntu Server · çalışıyor</span></div>
+              <div class="dt-user">Tamam, bu sırada başka bir şey konuşalım.</div>
+            </div>
+            <div style="padding:10px 16px 14px;border-top:1px solid var(--s3);background:var(--s1);display:flex;gap:8px;">
+              <textarea style="flex:1;background:var(--s2);border:1px solid var(--s3);border-radius:10px;padding:9px 12px;color:var(--i1);font-family:inherit;font-size:13px;outline:none;resize:none;height:38px;" placeholder="Sohbete devam et…"></textarea>
+              <button style="padding:8px 16px;border-radius:9px;background:var(--ac);color:var(--s1);border:none;font-family:inherit;font-size:12.5px;font-weight:500;cursor:pointer;white-space:nowrap;">Gönder</button>
+            </div>
+          </div>
+          <!-- Notification panel -->
+          <div style="display:flex;flex-direction:column;overflow:hidden;">
+            <div style="padding:12px 16px 10px;border-bottom:1px solid var(--s3);display:flex;align-items:center;justify-content:space-between;">
+              <div style="font-size:13px;color:var(--i1);font-weight:500;display:flex;align-items:center;gap:6px;">
+                Bildirimler
+                <span style="background:var(--ac);color:var(--s1);font-size:10px;font-weight:600;padding:1px 5px;border-radius:999px;">4</span>
+              </div>
+              <span style="font-size:11px;color:var(--i3);cursor:pointer;">Temizle</span>
+            </div>
+            <div style="flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--s3) transparent;">
+              <!-- bg tasks -->
+              <div style="padding:10px 14px 6px;">
+                <div style="font-size:10px;color:var(--i3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Arka Plan</div>
+                <div class="bg-task-item" style="padding:10px 12px;">
+                  <div class="bg-task-spin"></div>
+                  <div class="bg-task-body">
+                    <div class="bg-task-title">docker build</div>
+                    <div class="bg-task-sub">Ubuntu Server · 2:34 geçti</div>
+                  </div>
+                  <span class="bg-task-cancel">İptal</span>
+                </div>
+              </div>
+              <!-- Notifications -->
+              <div style="padding:6px 14px;">
+                <div style="font-size:10px;color:var(--i3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Bildirimler</div>
+                <div class="notif-item unread" style="padding:10px 4px;gap:9px;border-radius:8px;">
+                  <div class="notif-item-icon warn" style="width:26px;height:26px;font-size:12px;">!</div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title" style="font-size:12.5px;">Onay bekliyor</div>
+                    <div class="notif-item-desc" style="font-size:11px;">3 dk önce</div>
+                    <div class="notif-item-actions"><button class="notif-act-btn primary" style="font-size:11px;padding:3px 9px;">Onayla</button></div>
+                  </div>
+                </div>
+                <div class="notif-item" style="padding:10px 4px;gap:9px;border-radius:8px;">
+                  <div class="notif-item-icon reminder" style="width:26px;height:26px;font-size:12px;">📌</div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title" style="font-size:12.5px;">Müşteri sunumu · 14:00</div>
+                    <div class="notif-item-desc" style="font-size:11px;">Yarın</div>
+                  </div>
+                </div>
+                <div class="notif-item" style="padding:10px 4px;gap:9px;border-radius:8px;">
+                  <div class="notif-item-icon reminder" style="width:26px;height:26px;font-size:12px;">📌</div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title" style="font-size:12.5px;">Haftalık rapor</div>
+                    <div class="notif-item-desc" style="font-size:11px;">Pazartesi 09:00 · tekrarlayan</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Background tasks explainer -->
+      <div class="explainer">
+        <div class="explainer-title">Arka plan görev davranışı</div>
+        <div class="explainer-body">
+          <div class="rule-list">
+            <div class="rule-item">Uzun süren görev başlatıldığında Runa sohbette bildirir: "arka planda devam eder, bitince haber veririm." Sohbet kilitlenmez.</div>
+            <div class="rule-item">Görev süresince sohbette spinner tool satırı durur. Görev bitince satır tamamlandı ikonuna döner.</div>
+            <div class="rule-item">Kullanıcı farklı sohbete geçse bile bildirim panel'inde görev görünür. Tıklanınca ilgili sohbete döner.</div>
+            <div class="rule-item">Görev hata verirse: sohbette hata mesajı + bildirim panelinde kırmızı ikona döner. "Yeniden dene" aksiyonu inline.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /container -->
+
+<script>
+/* ── THEME SWITCHER ── */
+const themeTokens = {
+  "":        {s1:"#14110D",s2:"#1E1A14",s3:"#2A241C",s4:"#332C22",i1:"#E8DFCD",i2:"#B9AE99",i3:"#847866",ac:"#E0805C",ac2:"#F4A876",acbg:"#2A1E15",ok:"#8FA277",okbg:"#1D2618",err:"#C97064",errbg:"#2A1A18",warn:"#D4A055",warnbg:"#2A2118",ubg:"#E8DFCD",ufg:"#14110D",hair:"rgba(232,223,205,0.08)"},
+  "th-sage": {s1:"#0F1410",s2:"#161D18",s3:"#1F2823",s4:"#283524",i1:"#DEE3D7",i2:"#A8AFA0",i3:"#7A8074",ac:"#7A9B6F",ac2:"#9FBC93",acbg:"#1B2620",ok:"#C7916B",okbg:"#2A2018",err:"#C97064",errbg:"#2A1A18",warn:"#D4A055",warnbg:"#2A2118",ubg:"#DEE3D7",ufg:"#0F1410",hair:"rgba(222,227,215,0.08)"},
+  "th-slate":{s1:"#0E1116",s2:"#161A21",s3:"#1F242D",s4:"#272E3A",i1:"#D8DEE9",i2:"#A0A8B5",i3:"#707684",ac:"#7A95B8",ac2:"#9FB5D2",acbg:"#1A2330",ok:"#8FA8A0",okbg:"#182824",err:"#C97064",errbg:"#2A1A18",warn:"#D4A055",warnbg:"#2A2118",ubg:"#D8DEE9",ufg:"#0E1116",hair:"rgba(216,222,233,0.08)"},
+  "th-plum": {s1:"#14101A",s2:"#1D1825",s3:"#2A2333",s4:"#342C40",i1:"#E3DCEA",i2:"#ADA4B8",i3:"#7E7689",ac:"#A287B5",ac2:"#C0A8D0",acbg:"#271F33",ok:"#8FA277",okbg:"#1D2618",err:"#C97064",errbg:"#2A1A18",warn:"#D4A055",warnbg:"#2A2118",ubg:"#E3DCEA",ufg:"#14101A",hair:"rgba(227,220,234,0.08)"},
+  "th-sand": {s1:"#15120D",s2:"#1F1B15",s3:"#2B261D",s4:"#362F24",i1:"#E8E0CC",i2:"#B5AC97",i3:"#7F7765",ac:"#C9A878",ac2:"#DEBE92",acbg:"#2A2218",ok:"#8FA277",okbg:"#1D2618",err:"#C97064",errbg:"#2A1A18",warn:"#D4A055",warnbg:"#2A2118",ubg:"#E8E0CC",ufg:"#15120D",hair:"rgba(232,224,204,0.08)"},
+  "th-rose": {s1:"#18110F",s2:"#211719",s3:"#2E2122",s4:"#3A292B",i1:"#EFDCD8",i2:"#C2A8A5",i3:"#8A7370",ac:"#D88C8C",ac2:"#ECAAA8",acbg:"#2D1D1F",ok:"#B5A87A",okbg:"#2A2618",err:"#C97064",errbg:"#2A1A18",warn:"#D4A055",warnbg:"#2A2118",ubg:"#EFDCD8",ufg:"#18110F",hair:"rgba(239,220,216,0.08)"},
+  "th-light":{s1:"#F6F1E8",s2:"#EDE6D6",s3:"#DFD5BE",s4:"#D0C8AD",i1:"#1F1B16",i2:"#3A332A",i3:"#6E6356",ac:"#B85A3C",ac2:"#D97757",acbg:"#F0E0D2",ok:"#6B7A5C",okbg:"#E8EFE0",err:"#A14638",errbg:"#F2E0DC",warn:"#9E6F2A",warnbg:"#F2EAD7",ubg:"#1F1B16",ufg:"#F6F1E8",hair:"rgba(31,27,22,0.1)"}
+};
+
+const sectionFrameIds = {
+  visgen: ['vg-mob','vg-dt'],
+  settings: ['settings-dt-frame','notif-dt-frame'], // also handled below
+  multifile: ['mf-mob','mf-dt'],
+  notifs: ['notif-mob','notif-dt-frame']
+};
+
+function applyThemeToEl(el, tk) {
+  const t = themeTokens[tk] || themeTokens[""];
+  Object.entries(t).forEach(([k,v]) => el.style.setProperty('--'+k, v));
+}
+
+document.querySelectorAll('.tsw').forEach(sw => {
+  sw.addEventListener('click', function() {
+    const sec = this.dataset.sec;
+    const th = this.dataset.th;
+    // Update active swatch
+    document.querySelectorAll(`.theme-strip[id="ts-${sec}"] .tsw`).forEach(s => s.classList.remove('on'));
+    this.classList.add('on');
+    // Apply to all frames in that section
+    const frameSection = document.getElementById(sec+'-frames') || document.getElementById(sec);
+    if (frameSection) {
+      frameSection.querySelectorAll('.mob,.dt').forEach(el => applyThemeToEl(el, th));
+    }
+    // Settings has dt frame outside section
+    if (sec === 'settings') {
+      const dtf = document.getElementById('settings-dt-frame');
+      if (dtf) applyThemeToEl(dtf, th);
+    }
+  });
+});
+
+/* ── NAV SCROLL SPY ── */
+const sections = ['visgen','settings','multifile','notifs'];
+const navLinks = document.querySelectorAll('.sticky-nav a');
+window.addEventListener('scroll', () => {
+  let current = 'visgen';
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && window.scrollY >= el.offsetTop - 80) current = id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}, {passive:true});
+
+/* ── TOOL LINE TOGGLE ── */
+function toggleTool(el, panelId) {
+  el.classList.toggle('open');
+  const panel = panelId ? document.getElementById(panelId) : el.nextElementSibling;
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+/* ── VG MOBILE ── */
+function toggleVgTool(el) {
+  el.classList.toggle('open');
+  const d = document.getElementById('vg-tool-detail');
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+  if (d.style.display === 'block') {
+    setTimeout(() => {
+      document.getElementById('vg-generating').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('vg-generating').style.display = 'none';
+        document.getElementById('vg-result').style.display = 'block';
+        scrollMobBody('vg-mob');
+      }, 2000);
+    }, 300);
+  }
+}
+function toggleVgDtTool(el) {
+  el.classList.toggle('open');
+  const d = document.getElementById('vg-dt-tool-detail');
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+function vgRegenMob() {
+  const result = document.getElementById('vg-result');
+  result.style.display = 'none';
+  document.getElementById('vg-generating').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('vg-generating').style.display = 'none';
+    result.style.display = 'block';
+    scrollMobBody('vg-mob');
+  }, 2200);
+}
+function vgSaveMob() {
+  document.getElementById('vg-save-approval').style.display = 'block';
+  scrollMobBody('vg-mob');
+}
+function vgSaveConfirm() {
+  const ap = document.getElementById('vg-save-approval');
+  ap.innerHTML = '<div class="m-agent-hd" style="color:var(--ok)">✓ ~/Masaüstü/runa-logo.png kaydedildi</div>';
+}
+function sendVgMob() {
+  const input = document.getElementById('vg-mob-input');
+  const text = input.value.trim(); if (!text) return;
+  input.value = '';
+  const body = document.getElementById('vg-mob-body');
+  const msg = document.createElement('div'); msg.className = 'm-user'; msg.textContent = text;
+  body.appendChild(msg);
+  const thinking = document.createElement('div'); thinking.className = 'm-agent';
+  thinking.innerHTML = '<div class="m-agent-hd"><span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>Runa</div><div class="m-agent-body"><span class="shimmer-txt">Görsel güncelleniyor…</span></div>';
+  body.appendChild(thinking);
+  scrollMobBody('vg-mob');
+  setTimeout(() => {
+    thinking.querySelector('.m-agent-body').innerHTML = 'Güncellendi. Varyasyonlar hâlâ geçerli.';
+    scrollMobBody('vg-mob');
+  }, 2000);
+}
+function selectVar(el) {
+  el.closest('.img-variations').querySelectorAll('.img-var').forEach(v => v.classList.remove('active'));
+  el.classList.add('active');
+}
+function selectStyle(el) {
+  el.closest('div').querySelectorAll('.img-btn').forEach(b => { b.style.borderColor=''; b.style.color=''; });
+  el.style.borderColor = 'var(--ac)'; el.style.color = 'var(--ac)';
+}
+function selectRatio(el) {
+  el.closest('div').querySelectorAll('.img-btn').forEach(b => { b.style.borderColor=''; b.style.color=''; });
+  el.style.borderColor = 'var(--ac)'; el.style.color = 'var(--ac)';
+}
+
+/* ── SETTINGS ── */
+function showSettingsPanel(id, el) {
+  document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('sp-'+id).classList.add('active');
+  document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+function selectThemeSwatch(el) {
+  el.closest('.theme-grid,.theme-swatch-card')?.querySelectorAll('.theme-swatch-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+function openSettingsMob(title) {
+  document.getElementById('set-mob-title').textContent = title;
+  document.getElementById('set-mob-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('set-mob-sheet').classList.add('open'), 10);
+}
+function closeMobSettings() {
+  document.getElementById('set-mob-sheet').classList.remove('open');
+  document.getElementById('set-mob-backdrop').classList.remove('open');
+}
+
+/* ── MULTI FILE ── */
+function filterFiles(input) {
+  const q = input.value.toLowerCase();
+  document.querySelectorAll('#mf-file-list .file-item').forEach(item => {
+    item.style.display = item.querySelector('.file-name').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+function toggleFileCheck(el) {
+  const cb = el.querySelector('.file-cb');
+  cb.checked = !cb.checked;
+  el.classList.toggle('checked', cb.checked);
+}
+function mfSelectAll() {
+  document.querySelectorAll('#mf-file-list .file-item').forEach(item => {
+    item.querySelector('.file-cb').checked = true; item.classList.add('checked');
+  });
+}
+function mfProcess() {
+  document.getElementById('mf-read-detail').style.display = 'none';
+  document.getElementById('mf-result').style.display = 'block';
+  document.getElementById('mf-diff-trigger').style.display = 'flex';
+  scrollMobBody('mf-mob');
+}
+function mfSend() {
+  const input = document.getElementById('mf-input');
+  const text = input.value.trim(); if (!text) return;
+  input.value = '';
+  const body = document.getElementById('mf-mob-body');
+  const msg = document.createElement('div'); msg.className = 'm-user'; msg.textContent = text;
+  body.appendChild(msg);
+  if (text.toLowerCase().includes('sil') || text.toLowerCase().includes('temizle')) {
+    setTimeout(() => { document.getElementById('mf-highrisk').style.display = 'block'; scrollMobBody('mf-mob'); }, 800);
+  } else {
+    const reply = document.createElement('div'); reply.className = 'm-agent';
+    reply.innerHTML = '<div class="m-agent-hd"><span class="sig" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>Runa</div><div class="m-agent-body"><span class="shimmer-txt">Bakıyorum…</span></div>';
+    body.appendChild(reply);
+    setTimeout(() => { reply.querySelector('.m-agent-body').textContent = 'Tamam, bakıyorum.'; }, 1500);
+  }
+  scrollMobBody('mf-mob');
+}
+
+/* ── NOTIFICATIONS ── */
+function switchNotifTab(el, tabId) {
+  document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.notif-list').forEach(l => l.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+function dismissNotif(btn) {
+  const item = btn.closest('.notif-item');
+  item.style.opacity = '0'; item.style.transition = 'opacity .3s';
+  setTimeout(() => item.remove(), 300);
+}
+function snoozeNotif(btn) {
+  const item = btn.closest('.notif-item');
+  item.querySelector('.notif-item-desc').textContent = '10 dakika sonra tekrar hatırlatılacak';
+  item.classList.remove('unread');
+  btn.textContent = 'Ertelendi ✓'; btn.disabled = true;
+}
+function goToChat(btn) { closeSheet('notif-sheet','notif-sheet-backdrop'); }
+function clearAllNotifs() {
+  document.querySelectorAll('.notif-list.active .notif-item').forEach(item => {
+    item.style.opacity = '0'; item.style.transition = 'opacity .2s';
+    setTimeout(() => item.remove(), 250);
+  });
+}
+function notifSaveConfirm(btn) {
+  const parent = btn.closest('.ia-actions');
+  parent.innerHTML = '<div style="font-size:13px;color:var(--ok);">✓ Kaydedildi · Yarın 14:00</div>';
+}
+
+/* ── SHEETS ── */
+function openSheet(sheetId, backdropId) {
+  document.getElementById(backdropId).classList.add('open');
+  setTimeout(() => document.getElementById(sheetId).classList.add('open'), 10);
+}
+function closeSheet(sheetId, backdropId) {
+  document.getElementById(sheetId).classList.remove('open');
+  document.getElementById(backdropId).classList.remove('open');
+}
+function showSheet(sheetId) {
+  const el = document.getElementById(sheetId);
+  if (!el) return;
+  const backdrop = el.previousElementSibling;
+  if (backdrop) backdrop.classList.add('open');
+  setTimeout(() => el.classList.add('open'), 10);
+}
+
+/* ── SCROLL HELPER ── */
+function scrollMobBody(mobId) {
+  const mob = document.getElementById(mobId);
+  if (mob) { const body = mob.querySelector('.mob-body'); if (body) body.scrollTop = body.scrollHeight; }
+}
+
+/* ── VG MOB MENU ── */
+function vgMobMenu() { /* placeholder for menu sheet */ }
+</script>
+</body>
+</html>

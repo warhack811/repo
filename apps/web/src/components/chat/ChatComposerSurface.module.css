@@ -1,4 +1,4 @@
-.root {
+﻿.root {
 	box-shadow: none;
 	display: grid;
 	gap: 16px;
@@ -13,7 +13,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .title {
@@ -83,7 +83,7 @@
 	align-items: center;
 	background: var(--surface-chip);
 	border: 1px solid var(--border-default);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	color: var(--text-primary);
 	cursor: pointer;
 	display: inline-flex;
