@@ -999,6 +999,13 @@ pre {
 	color: hsl(var(--color-text));
 }
 
+.runa-chat-empty-state__tip {
+	color: hsl(var(--color-text-soft));
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0;
+}
+
 .runa-nav-meta {
 	display: flex;
 	flex-wrap: wrap;

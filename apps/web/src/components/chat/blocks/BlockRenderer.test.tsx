@@ -1,4 +1,4 @@
-import type { RenderBlock } from '@runa/types';
+﻿import type { RenderBlock } from '@runa/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
@@ -117,9 +117,9 @@ const sampleBlocks: readonly RenderBlock[] = [
 		created_at: createdAt,
 		id: 'timeline:block',
 		payload: {
-			items: [{ kind: 'run_started', label: 'Runa işi başlattı', state: 'active' }],
+			items: [{ kind: 'run_started', label: 'Runa iÅŸi baÅŸlattÄ±', state: 'active' }],
 			summary: 'Runa started the work.',
-			title: 'Çalışma akışı',
+			title: 'Ã‡alÄ±ÅŸma akÄ±ÅŸÄ±',
 		},
 		schema_version: 1,
 		type: 'run_timeline_block',
@@ -261,7 +261,7 @@ const sampleBlocks: readonly RenderBlock[] = [
 			run_id: 'run_renderer',
 			sequence_no: 7,
 			status: 'completed',
-			text: 'package.json dosyasını kontrol ediyorum.',
+			text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
 			turn_index: 1,
 			linked_tool_call_id: 'call_renderer',
 		},
@@ -316,7 +316,7 @@ describe('BlockRenderer', () => {
 		expect(BlockRenderer({ block: workspaceBlock })).toEqual(null);
 	});
 
-	it('renders tool results as user-facing work cards outside developer mode', () => {
+	it('renders tool results as single-line activity outside developer mode', () => {
 		const toolBlock = sampleBlocks.find((block) => block.type === 'tool_result');
 
 		if (!toolBlock) {
@@ -328,10 +328,11 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={toolBlock} isDeveloperMode />,
 		);
 
-		expect(markup).toContain('İşlem sonucu');
-		expect(markup).toContain('Dosya okundu');
+		expect(markup).toContain('<details');
+		expect(markup).toContain('Dosya okuma');
 		expect(markup).toContain('Dosya okuma tamamlandı.');
-		expect(markup).toContain('tamamlandı');
+		expect(markup).not.toContain('İşlem sonucu');
+		expect(markup).not.toContain('Hata kodu:');
 		expect(markup).not.toContain('file.read');
 		expect(markup).not.toContain('call_renderer');
 		expect(markup).not.toContain('Object{ok}');
@@ -348,7 +349,7 @@ describe('BlockRenderer', () => {
 
 		const markup = renderToStaticMarkup(<BlockRenderer block={narrationBlock} replayMode />);
 
-		expect(markup).toContain('package.json dosyasını kontrol ediyorum.');
+		expect(markup).toContain('package.json dosyasÄ±nÄ± kontrol ediyorum.');
 		expect(markup).toContain('_replay_');
 		expect(markup).not.toContain('run_renderer');
 		expect(markup).not.toContain('call_renderer');
@@ -408,13 +409,13 @@ describe('BlockRenderer', () => {
 						call_id: 'call_file_write',
 						detail: 'file.write completed successfully.',
 						kind: 'tool_completed',
-						label: 'Dosya güncellendi',
+						label: 'Dosya gÃ¼ncellendi',
 						state: 'success',
 						tool_name: 'file.write',
 					},
 				],
-				summary: 'Runa dosya yazma onayı aldı.',
-				title: 'Çalışma akışı',
+				summary: 'Runa dosya yazma onayÄ± aldÄ±.',
+				title: 'Ã‡alÄ±ÅŸma akÄ±ÅŸÄ±',
 			},
 			schema_version: 1,
 			type: 'run_timeline_block',

@@ -194,8 +194,9 @@ export function ChatPage({
 	);
 
 	const isRunCompleted = currentRunProgress?.status_tone === 'success';
+	const isRunInProgress = currentRunProgress !== null && !isRunCompleted;
 	const currentRunProgressPanel =
-		currentRunProgress && !isRunCompleted ? (
+		isDeveloperMode && currentRunProgress && !isRunCompleted ? (
 			<RunProgressPanel
 				feedbackBanner={currentRunFeedbackBanner}
 				isDeveloperMode={isDeveloperMode}
@@ -240,7 +241,7 @@ export function ChatPage({
 		/>
 	);
 	const hasVisibleRunSurface =
-		currentRunProgressPanel !== null ||
+		isRunInProgress ||
 		currentPresentationContent !== null ||
 		currentStreamingText.trim().length > 0;
 	const shouldShowEmptyComposerSuggestions =
@@ -319,7 +320,6 @@ export function ChatPage({
 						activeConversationMessages={activeConversationMessages}
 						currentPresentationContent={currentPresentationContent}
 						currentRunId={currentRunId}
-						currentRunProgressPanel={currentRunProgressPanel}
 						currentStreamingRunId={currentStreamingRunId}
 						currentStreamingText={currentStreamingText}
 						emptyStateContent={null}

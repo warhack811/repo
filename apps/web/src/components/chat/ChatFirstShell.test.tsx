@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from 'react-dom/server';
+﻿import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
@@ -32,7 +32,8 @@ describe('chat-first shell pieces', () => {
 		expect(markup).toContain('Kod yaz veya gözden geçir');
 		expect(markup).toContain('Araştır ve özetle');
 		expect(markup).toContain('Doküman hazırla');
-		expect(markup).toContain('Bir dosyayı analiz et');
+		expect(markup).not.toContain('Bir dosyayı analiz et');
+		expect(markup).toContain('Ctrl+K ile komut paleti açılır');
 		expect(markup).not.toContain('operator');
 		expect(markup).not.toContain('Masaüstü hedefi');
 		expect(markup).not.toContain('burada görünür');

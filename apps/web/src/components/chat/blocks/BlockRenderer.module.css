@@ -514,6 +514,66 @@
 	min-width: 0;
 }
 
+.toolLine {
+	border-bottom: 1px solid var(--border-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 6px 0;
+}
+
+.toolLineSummary {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	list-style: none;
+	min-width: 0;
+}
+
+.toolLineSummary::-webkit-details-marker {
+	display: none;
+}
+
+.toolLineIcon {
+	color: hsl(var(--color-text-soft));
+	display: inline-flex;
+	font-size: 14px;
+	font-weight: 600;
+	justify-content: center;
+	width: 14px;
+}
+
+.toolLineLabel {
+	color: hsl(var(--color-text));
+	font-size: 0.875rem;
+	font-weight: 600;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.toolLineChevron {
+	color: hsl(var(--color-text-soft));
+	flex-shrink: 0;
+	margin-left: auto;
+	transition: transform 160ms ease;
+}
+
+.toolLine[open] .toolLineChevron {
+	transform: rotate(90deg);
+}
+
+.toolLineDetail {
+	color: hsl(var(--color-text-muted));
+	font-size: 0.875rem;
+	line-height: 1.6;
+	padding-left: 22px;
+}
+
+.toolLineDetail p {
+	margin: 0;
+}
+
 @keyframes approval-pulse {
 	0%,
 	100% {

@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+﻿import type { ReactElement } from 'react';
 
 import type { PresentationRunSurface, RunTransportSummary } from '../../lib/chat-runtime/types.js';
 import type { ApprovalResolveDecision, InspectionTargetKind, RenderBlock } from '../../ws-types.js';
@@ -125,20 +125,10 @@ export function PresentationRunSurfaceCard({
 		return (
 			<div key={surface.run_id} className={styles['card']}>
 				<div className={styles['summary']}>
-					<div className={styles['summaryContent']}>
-						<div className={styles['eyebrow']}>mevcut çalışma</div>
-						<div className={styles['row']}>
-							<strong className={styles['title']}>Canlı çalışma</strong>
-							<code className={styles['correlationChip']}>ana akış</code>
-						</div>
-						<div className={styles['description']}>
-							Sonuçlar ve gereken onaylar sohbetten kopmadan ilerler.
-						</div>
-						{visibleCorrelationLabel ? (
-							<code className={styles['correlationChip']}>{visibleCorrelationLabel}</code>
-						) : null}
-					</div>
 					{metaChips}
+					{visibleCorrelationLabel ? (
+						<code className={styles['correlationChip']}>{visibleCorrelationLabel}</code>
+					) : null}
 				</div>
 				{blockList}
 			</div>
@@ -154,18 +144,10 @@ export function PresentationRunSurfaceCard({
 		>
 			<summary className={styles['summary']}>
 				<div className={styles['summaryContent']}>
-					<div className={styles['pastCardContent']}>
-						<div className={styles['pastEyebrow']}>geçmiş çalışma</div>
-						<div className={styles['pastRow']}>
-							<strong className={styles['pastTitle']}>Önceki çalışma özeti</strong>
-							{visibleCorrelationLabel ? (
-								<code className={styles['pastCorrelationChip']}>{visibleCorrelationLabel}</code>
-							) : null}
-						</div>
-						<div className={styles['pastDescription']}>
-							Canlı akış önde kalır. Eski özetleri gerektiğinde açabilirsin.
-						</div>
-					</div>
+					<strong className={styles['pastTitle']}>Önceki tool sonuçları ›</strong>
+					{visibleCorrelationLabel ? (
+						<code className={styles['pastCorrelationChip']}>{visibleCorrelationLabel}</code>
+					) : null}
 					{metaChips}
 				</div>
 			</summary>

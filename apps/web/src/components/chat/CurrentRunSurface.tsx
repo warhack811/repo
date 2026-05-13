@@ -12,7 +12,6 @@ type CurrentRunSurfaceProps = Readonly<{
 	activeConversationMessages: readonly ConversationMessage[];
 	currentPresentationContent: ReactNode;
 	currentRunId: string | undefined;
-	currentRunProgressPanel: ReactNode;
 	currentStreamingRunId: string | null;
 	currentStreamingText: string;
 	emptyStateContent: ReactNode;
@@ -24,16 +23,12 @@ export function CurrentRunSurface({
 	activeConversationMessages,
 	currentPresentationContent,
 	currentRunId,
-	currentRunProgressPanel,
 	currentStreamingRunId,
 	currentStreamingText,
 	emptyStateContent,
 	isHistoryLoading = false,
 }: CurrentRunSurfaceProps): ReactElement | null {
-	const isBusy =
-		currentStreamingText.trim().length > 0 ||
-		currentRunProgressPanel !== null ||
-		currentPresentationContent !== null;
+	const isBusy = currentStreamingText.trim().length > 0 || currentPresentationContent !== null;
 	const hasTranscript = activeConversationMessages.length > 0;
 	const shouldShowEmptyState =
 		!isBusy && !hasTranscript && !isHistoryLoading && emptyStateContent !== null;
@@ -62,7 +57,6 @@ export function CurrentRunSurface({
 						activeConversationMessages={activeConversationMessages}
 					/>
 				) : null}
-				{currentRunProgressPanel}
 				<StreamingMessageSurface
 					currentRunId={currentRunId}
 					currentStreamingRunId={currentStreamingRunId}

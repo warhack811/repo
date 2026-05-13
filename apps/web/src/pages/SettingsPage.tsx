@@ -203,6 +203,8 @@ export function SettingsPage({
 
 	useEffect(() => {
 		const normalizedAccessToken = accessToken?.trim() ?? '';
+		const reloadNonce = workspaceDirectoriesReloadNonce;
+		void reloadNonce;
 
 		if (normalizedAccessToken.length === 0) {
 			setWorkspaceDirectories([]);

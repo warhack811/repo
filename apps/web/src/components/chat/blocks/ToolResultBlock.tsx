@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, TerminalSquare } from 'lucide-react';
+﻿import { ChevronRight } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import {
@@ -9,7 +9,6 @@ import {
 	ToolOutput,
 } from '../../../components/ai-elements/tool.js';
 import type { RenderBlock } from '../../../ws-types.js';
-import { cx } from '../../ui/ui-utils.js';
 import { formatWorkDetail, formatWorkToolLabel } from '../workNarrationFormat.js';
 import styles from './BlockRenderer.module.css';
 
@@ -19,28 +18,28 @@ type ToolResultBlockProps = Readonly<{
 }>;
 
 function getFriendlyToolTitle(toolName: string | undefined): string {
-	if (!toolName) return 'İşlem tamamlandı';
+	if (!toolName) return 'Islem tamamlandi';
 	const map: Record<string, string> = {
 		'file.read': 'Dosya okundu',
-		'file.write': 'Dosya güncellendi',
+		'file.write': 'Dosya guncellendi',
 		'file.list': 'Dizin listelendi',
 		'file.delete': 'Dosya silindi',
-		'web.search': 'Web araması yapıldı',
+		'web.search': 'Web aramasi yapildi',
 		'web.fetch': 'Sayfa getirildi',
-		'shell.exec': 'Komut çalıştı',
-		'search.codebase': 'Kod tarandı',
-		'desktop.click': 'Masaüstünde tıklandı',
+		'shell.exec': 'Komut calisti',
+		'search.codebase': 'Kod tarandi',
+		'desktop.click': 'Masaustunde tiklandi',
 		'desktop.clipboard.read': 'Pano okundu',
-		'desktop.clipboard.write': 'Pano güncellendi',
-		'desktop.keypress': 'Klavye kısayolu çalıştı',
-		'desktop.launch': 'Uygulama başlatıldı',
-		'desktop.scroll': 'Masaüstü kaydırıldı',
-		'desktop.screenshot': 'Ekran görüntüsü alındı',
-		'desktop.type': 'Masaüstüne yazıldı',
+		'desktop.clipboard.write': 'Pano guncellendi',
+		'desktop.keypress': 'Klavye kisayolu calisti',
+		'desktop.launch': 'Uygulama baslatildi',
+		'desktop.scroll': 'Masaustu kaydirildi',
+		'desktop.screenshot': 'Ekran goruntusu alindi',
+		'desktop.type': 'Masaustune yazildi',
 		'memory.write': 'Bilgi kaydedildi',
 		'memory.read': 'Bellek okundu',
 	};
-	return map[toolName] ?? `${formatWorkToolLabel(toolName)} tamamlandı`;
+	return map[toolName] ?? `${formatWorkToolLabel(toolName)} tamamlandi`;
 }
 
 function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{
@@ -49,14 +48,14 @@ function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{
 }> {
 	if (block.payload.status === 'success') {
 		return {
-			summary: 'Sonuç sohbet akışına eklendi.',
+			summary: 'Sonuc sohbet akisina eklendi.',
 			title: getFriendlyToolTitle(block.payload.tool_name),
 		};
 	}
 
 	return {
-		summary: 'Bu adım tamamlanamadı. Gerekirse yeniden deneyebilirsin.',
-		title: 'İşlem tamamlanamadı',
+		summary: 'Bu adim tamamlanamadi. Gerekirse yeniden deneyebilirsin.',
+		title: 'Islem tamamlanamadi',
 	};
 }
 
@@ -94,43 +93,18 @@ export function ToolResultBlock({
 
 	if (!isDeveloperMode) {
 		return (
-			<article
-				className={cx(
-					styles['toolResultCard'],
-					isSuccess ? styles['toolResultSuccess'] : styles['toolResultError'],
-				)}
-			>
-				<div className={styles['toolResultHeader']}>
-					<div className={styles['headerStack']}>
-						<span className={styles['eyebrow']}>İşlem sonucu</span>
-						<h3 className={styles['title']}>{friendlyCopy.title}</h3>
-					</div>
-					<span className={styles['toolResultStatus']}>
-						{isSuccess ? (
-							<CheckCircle2 aria-hidden="true" size={16} />
-						) : (
-							<AlertTriangle aria-hidden="true" size={16} />
-						)}
-						{isSuccess ? 'tamamlandı' : 'hata'}
+			<details className={styles['toolLine']}>
+				<summary className={styles['toolLineSummary']}>
+					<span className={styles['toolLineIcon']} aria-hidden>
+						{isSuccess ? '•' : '!'}
 					</span>
+					<span className={styles['toolLineLabel']}>{friendlyToolLabel}</span>
+					<ChevronRight aria-hidden size={14} className={styles['toolLineChevron']} />
+				</summary>
+				<div className={styles['toolLineDetail']}>
+					<p>{friendlySummary}</p>
 				</div>
-				<div className={styles['toolResultBody']}>
-					<p className={styles['summary']}>{friendlySummary}</p>
-					<div className={styles['chipRow']}>
-						<span className={styles['chip']}>
-							<TerminalSquare aria-hidden="true" size={14} />
-							{friendlyToolLabel}
-						</span>
-						{isSuccess ? null : (
-							<span className={styles['chip']}>
-								{block.payload.error_code
-									? `Hata kodu: ${block.payload.error_code}`
-									: 'Tekrar denenebilir'}
-							</span>
-						)}
-					</div>
-				</div>
-			</article>
+			</details>
 		);
 	}
 

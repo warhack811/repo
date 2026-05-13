@@ -1,4 +1,4 @@
-import { BookOpen, Code2, FileText, Search } from 'lucide-react';
+﻿import { Code2, FileText, Search } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type EmptyStateProps = Readonly<{
@@ -26,13 +26,6 @@ const suggestions = [
 		label: 'Doküman hazırla',
 		prompt: 'Bu dokümanı hedef kitleye göre net, profesyonel ve uygulanabilir hale getir: ',
 	},
-	{
-		description: 'Dosya, ekran görüntüsü veya fikirdeki eksik adımı bul.',
-		icon: BookOpen,
-		label: 'Bir dosyayı analiz et',
-		prompt:
-			'Şu dosya veya fikri inceleyip eksikleri, riskleri ve uygulanabilir sonraki adımı netleştir: ',
-	},
 ] as const;
 
 export function EmptyState({ onSubmitSuggestion }: EmptyStateProps): ReactElement {
@@ -55,6 +48,7 @@ export function EmptyState({ onSubmitSuggestion }: EmptyStateProps): ReactElemen
 					);
 				})}
 			</div>
+			<p className="runa-chat-empty-state__tip">İpucu: Ctrl+K ile komut paleti açılır.</p>
 		</aside>
 	);
 }
