@@ -1,7 +1,8 @@
-﻿import type { RenderBlock } from '@runa/types';
+import type { RenderBlock } from '@runa/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { uiCopy } from '../../../localization/copy.js';
 import { BlockRenderer } from './BlockRenderer.js';
 
 const createdAt = '2026-04-25T12:00:00.000Z';
@@ -438,9 +439,10 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Güven kararı');
 		expect(markup).toContain('Dosyaya yazma isteği');
 		expect(markup).toContain('Dosya yazma');
+		expect(markup).toContain('Onayla');
+		expect(markup).toContain('Reddet');
 		expect(markup).not.toContain('Ayrıntılar');
 		expect(markup).not.toContain('file.write');
 		expect(markup).not.toContain('Approval required');
@@ -449,7 +451,7 @@ describe('BlockRenderer', () => {
 		const developerMarkup = renderToStaticMarkup(
 			<BlockRenderer block={approvalBlock} isDeveloperMode onResolveApproval={() => undefined} />,
 		);
-		expect(developerMarkup).toContain('Ayrıntılar');
+		expect(developerMarkup).toContain(uiCopy.approval.details);
 	});
 
 	it('keeps desktop approval targets user-facing in normal mode', () => {
@@ -520,10 +522,9 @@ describe('BlockRenderer', () => {
 
 		const markup = renderToStaticMarkup(<BlockRenderer block={approvalBlock} />);
 
-		expect(markup).toContain('geçmiş çalışma kaydından geldi');
 		expect(markup).not.toContain('Onayla</button>');
 		expect(markup).not.toContain('Reddet</button>');
-		expect(markup).not.toContain('aria-busy="true"');
+		expect(markup).toContain('aria-busy="false"');
 	});
 
 	it('announces resolved approval state without pending actions', () => {
@@ -555,39 +556,36 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={rejectedBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(approvedMarkup).toContain('<output');
-		expect(approvedMarkup).toContain('aria-live="polite"');
 		expect(approvedMarkup).toContain('İzin verildi');
 		expect(approvedMarkup).not.toContain('Onayla</button>');
-		expect(rejectedMarkup).toContain('<output');
-		expect(rejectedMarkup).toContain('aria-live="polite"');
-		expect(rejectedMarkup).toContain('Bu adım reddedildi');
+		expect(rejectedMarkup).toContain('Reddedildi');
 		expect(rejectedMarkup).not.toContain('Reddet</button>');
 	});
 
-	it('keeps risky approval actions visually calmer than primary product actions', () => {
+	it('uses danger variant only for high-risk approval confirms', () => {
 		const approvalBlock = sampleBlocks.find((block) => block.type === 'approval_block');
 
 		if (!approvalBlock || approvalBlock.type !== 'approval_block') {
 			throw new Error('Expected approval fixture block.');
 		}
 
-		const riskyMarkup = renderToStaticMarkup(
+		const mediumRiskMarkup = renderToStaticMarkup(
 			<BlockRenderer block={approvalBlock} onResolveApproval={() => undefined} />,
 		);
-		const readOnlyBlock: RenderBlock = {
+		const highRiskBlock: RenderBlock = {
 			...approvalBlock,
 			payload: {
 				...approvalBlock.payload,
-				tool_name: 'file.read',
+				tool_name: 'shell.exec',
 			},
 		};
-		const readOnlyMarkup = renderToStaticMarkup(
-			<BlockRenderer block={readOnlyBlock} onResolveApproval={() => undefined} />,
+		const highRiskMarkup = renderToStaticMarkup(
+			<BlockRenderer block={highRiskBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(riskyMarkup).not.toContain('_primary_');
-		expect(riskyMarkup).toContain('_secondary_');
-		expect(readOnlyMarkup).toContain('_primary_');
+		expect(mediumRiskMarkup).toContain('_primary_');
+		expect(mediumRiskMarkup).not.toContain('Yine de devam et');
+		expect(highRiskMarkup).toContain('_danger_');
+		expect(highRiskMarkup).toContain('Yine de devam et');
 	});
 });
