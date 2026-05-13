@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import '../../src/styles/index.css';
 import '../../src/styles/routes/chat-migration.css';
-import { AppNav } from '../../src/components/app/AppNav.js';
+import { AppSidebar } from '../../src/components/app/AppSidebar.js';
 import { ChatLayout } from '../../src/components/chat/ChatLayout.js';
 import { ConversationSidebar } from '../../src/components/chat/ConversationSidebar.js';
 import { RunaModal, RunaSheet } from '../../src/components/ui/index.js';
@@ -31,7 +31,6 @@ function Fixture(): JSX.Element {
 		<MemoryRouter initialEntries={['/chat']}>
 			<main className="runa-page runa-page--chat-product">
 				<div className="runa-shell-frame runa-shell-frame--chat">
-					<AppNav activePage="chat" />
 					<button
 						className="runa-button runa-button--secondary"
 						onClick={() => setIsSidebarOpen(true)}
@@ -64,23 +63,27 @@ function Fixture(): JSX.Element {
 							</section>
 						}
 						onCloseSidebar={() => setIsSidebarOpen(false)}
-						onToggleSidebar={() => setIsSidebarOpen((current) => !current)}
 						sidebar={
-							<ConversationSidebar
-								activeConversationId="conv_mobile"
-								activeConversationMembers={[]}
-								activeConversationSummary={conversations[0] ?? null}
-								conversationError={null}
-								conversations={conversations}
-								isLoading={false}
-								isMemberLoading={false}
-								isOpen={isSidebarOpen}
-								memberError={null}
-								onClose={() => setIsSidebarOpen(false)}
-								onRemoveMember={async () => undefined}
-								onSelectConversation={() => undefined}
-								onShareMember={async () => undefined}
-								onStartNewConversation={() => undefined}
+							<AppSidebar
+								activePage="chat"
+								conversationSidebar={
+									<ConversationSidebar
+										activeConversationId="conv_mobile"
+										activeConversationMembers={[]}
+										activeConversationSummary={conversations[0] ?? null}
+										conversationError={null}
+										conversations={conversations}
+										isLoading={false}
+										isMemberLoading={false}
+										isOpen={isSidebarOpen}
+										memberError={null}
+										onClose={() => setIsSidebarOpen(false)}
+										onRemoveMember={async () => undefined}
+										onSelectConversation={() => undefined}
+										onShareMember={async () => undefined}
+										onStartNewConversation={() => undefined}
+									/>
+								}
 							/>
 						}
 					/>

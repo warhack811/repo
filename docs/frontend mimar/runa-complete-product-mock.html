@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Runa — Tam Ürün Mock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    :root {
+      --surface-1: #14110D;
+      --surface-2: #1E1A14;
+      --surface-3: #2A241C;
+      --surface-4: #332C22;
+      --overlay: rgba(20, 17, 13, 0.82);
+      --ink-1: #E8DFCD;
+      --ink-2: #B9AE99;
+      --ink-3: #847866;
+      --accent: #E0805C;
+      --accent-2: #F4A876;
+      --accent-bg: #2A1E15;
+      --status: #8FA277;
+      --status-bg: #1D2618;
+      --warn: #D4A055;
+      --warn-bg: #2A2118;
+      --error: #C97064;
+      --error-bg: #2A1A18;
+      --user-bg: #E8DFCD;
+      --user-fg: #14110D;
+      --hairline: rgba(232, 223, 205, 0.08);
+      --shadow: 0 22px 56px rgba(0, 0, 0, 0.34);
+      --radius-panel: 14px;
+      --radius-card: 14px;
+      --radius-input: 12px;
+      --radius-pill: 999px;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --topbar-h: 66px;
+    }
+
+    body.th-light {
+      --surface-1: #F6F1E8;
+      --surface-2: #EDE6D6;
+      --surface-3: #DFD5BE;
+      --surface-4: #D0C8AD;
+      --overlay: rgba(246, 241, 232, 0.82);
+      --ink-1: #1F1B16;
+      --ink-2: #3A332A;
+      --ink-3: #6E6356;
+      --accent: #B85A3C;
+      --accent-2: #D97757;
+      --accent-bg: #F0E0D2;
+      --status: #6B7A5C;
+      --status-bg: #E2E9D8;
+      --warn: #9E6F2A;
+      --warn-bg: #F2EAD7;
+      --error: #A14638;
+      --error-bg: #F2E0DC;
+      --user-bg: #1F1B16;
+      --user-fg: #F6F1E8;
+      --hairline: rgba(31, 27, 22, 0.1);
+      --shadow: 0 20px 48px rgba(45, 35, 23, 0.14);
+    }
+
+    body.th-rose {
+      --surface-1: #18110F;
+      --surface-2: #211719;
+      --surface-3: #2E2122;
+      --surface-4: #3A292B;
+      --overlay: rgba(24, 17, 15, 0.84);
+      --ink-1: #EFDCD8;
+      --ink-2: #C2A8A5;
+      --ink-3: #8A7370;
+      --accent: #D88C8C;
+      --accent-2: #ECAAA8;
+      --accent-bg: #2D1D1F;
+      --status: #B5A87A;
+      --status-bg: #282719;
+      --user-bg: #EFDCD8;
+      --user-fg: #18110F;
+      --hairline: rgba(239, 220, 216, 0.08);
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--ink-1);
+      background: var(--surface-1);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow: hidden;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    a { color: inherit; }
+    .hidden { display: none !important; }
+    .desktop-only { display: initial; }
+    .mobile-only { display: none !important; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes shimmer { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; } 70% { box-shadow: 0 0 0 7px transparent; opacity: .72; } 100% { box-shadow: 0 0 0 0 transparent; opacity: 1; } }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .runa-mark { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; color: var(--accent); flex: 0 0 auto; }
+    .runa-mark.mobile-only { width: 12px; height: 12px; }
+    .runa-mark svg { width: 100%; height: 100%; display: block; }
+    .pulse-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--status); color: var(--status); display: inline-block; animation: pulse 2s ease-out infinite; }
+    .shimmer-text { background: linear-gradient(90deg, var(--ink-3) 0%, var(--ink-1) 50%, var(--ink-3) 100%); background-size: 220% 100%; color: transparent; -webkit-background-clip: text; background-clip: text; animation: shimmer 2.2s linear infinite; }
+    .kbd { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); padding: 2px 6px; border-radius: 6px; border: 1px solid var(--surface-4); background: var(--surface-2); }
+
+    /* Auth */
+    .auth-shell, .onboarding-shell {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      overflow: auto;
+    }
+    .auth-wrap { width: min(1040px, 100%); display: grid; grid-template-columns: 1fr 420px; gap: 28px; align-items: stretch; }
+    .auth-copy {
+      border: 1px solid var(--surface-3);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--surface-2) 86%, transparent), color-mix(in srgb, var(--surface-1) 88%, transparent));
+      border-radius: 28px;
+      padding: 42px;
+      min-height: 620px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-copy::after { content: ''; position: absolute; inset: auto -18% -34% auto; width: 320px; height: 320px; border-radius: 999px; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%); pointer-events: none; }
+    .auth-logo { width: 52px; height: 52px; color: var(--accent); margin-bottom: 22px; }
+    .auth-eyebrow { color: var(--ink-3); text-transform: uppercase; letter-spacing: .13em; font-size: 12px; margin-bottom: 14px; }
+    .auth-title { font-family: var(--font-serif); font-size: clamp(44px, 7vw, 76px); line-height: .94; letter-spacing: -.035em; margin: 0 0 18px; font-weight: 400; }
+    .auth-lead { color: var(--ink-2); font-size: 16px; max-width: 560px; margin: 0; }
+    .auth-proof { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 32px; position: relative; z-index: 1; }
+    .proof-card { padding: 14px; border-radius: 16px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--surface-2) 68%, transparent); }
+    .proof-card strong { display: block; font-family: var(--font-serif); font-size: 22px; font-weight: 400; margin-bottom: 4px; }
+    .proof-card span { color: var(--ink-3); font-size: 12px; }
+    .auth-card { border: 1px solid var(--surface-3); border-radius: 28px; background: color-mix(in srgb, var(--surface-2) 92%, transparent); padding: 24px; box-shadow: var(--shadow); align-self: center; }
+    .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface-1); border-radius: 14px; border: 1px solid var(--hairline); margin-bottom: 20px; }
+    .auth-tab { color: var(--ink-3); background: transparent; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+    .auth-tab.active { color: var(--accent); background: var(--accent-bg); font-weight: 600; }
+    .field { display: grid; gap: 7px; margin-bottom: 14px; }
+    .label-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    label, .label { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .input, .select, textarea.input {
+      width: 100%;
+      color: var(--ink-1);
+      background: var(--surface-1);
+      border: 1px solid var(--surface-3);
+      border-radius: var(--radius-input);
+      padding: 12px 14px;
+      outline: none;
+      transition: border .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    textarea.input { resize: vertical; min-height: 82px; }
+    .input:focus, .select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+    .input::placeholder { color: var(--ink-3); }
+    .primary-btn, .ghost-btn, .danger-btn, .mini-btn, .pill-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: var(--radius-input);
+      padding: 11px 14px;
+      font-weight: 600;
+      transition: transform .05s ease, opacity .15s ease, background .15s ease, border .15s ease;
+      white-space: nowrap;
+    }
+    .primary-btn { background: var(--accent); color: var(--surface-1); }
+    .primary-btn:hover { opacity: .9; }
+    .primary-btn:active, .ghost-btn:active, .danger-btn:active, .mini-btn:active, .pill-btn:active { transform: scale(.985); }
+    .ghost-btn { color: var(--ink-2); background: transparent; border: 1px solid var(--surface-3); }
+    .ghost-btn:hover { color: var(--ink-1); border-color: var(--surface-4); background: var(--surface-3); }
+    .danger-btn { background: var(--error); color: var(--surface-1); }
+    .mini-btn { padding: 7px 10px; font-size: 12px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--surface-3); border-radius: 10px; }
+    .mini-btn:hover { color: var(--ink-1); border-color: var(--surface-4); }
+    .pill-btn { padding: 8px 12px; font-size: 12px; border-radius: var(--radius-pill); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--surface-3); }
+    .pill-btn.active { background: var(--accent-bg); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 42%, var(--surface-3)); }
+    .auth-oauth { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .auth-divider { display: flex; gap: 10px; align-items: center; color: var(--ink-3); font-size: 11px; margin: 18px 0 12px; text-transform: lowercase; }
+    .auth-divider::before, .auth-divider::after { content: ''; height: 1px; background: var(--surface-3); flex: 1; }
+    .auth-note { color: var(--ink-3); font-size: 12px; line-height: 1.55; text-align: center; margin: 16px 0 0; }
+    .auth-error { color: var(--error); background: var(--error-bg); border: 1px solid color-mix(in srgb, var(--error) 36%, transparent); padding: 9px 11px; border-radius: 12px; font-size: 12px; margin: 0 0 14px; display: none; }
+    .auth-error.show { display: block; animation: fadeInUp .25s ease; }
+    .dev-login { margin-top: 14px; border-top: 1px solid var(--hairline); padding-top: 14px; }
+    .dev-login summary { cursor: pointer; color: var(--ink-3); font-size: 12px; }
+
+    /* Onboarding */
+    .onboarding-card { width: min(760px, 100%); border: 1px solid var(--surface-3); border-radius: 30px; background: color-mix(in srgb, var(--surface-2) 94%, transparent); box-shadow: var(--shadow); overflow: hidden; }
+    .onboarding-head { padding: 30px 34px 18px; border-bottom: 1px solid var(--hairline); display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+    .step-kicker { color: var(--ink-3); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    .onboarding-title { font-family: var(--font-serif); font-size: 38px; line-height: 1; margin: 8px 0 0; font-weight: 400; }
+    .step-dots { display: flex; gap: 6px; padding-top: 6px; }
+    .step-dots span { width: 8px; height: 8px; border-radius: 999px; background: var(--surface-4); }
+    .step-dots span.active, .step-dots span.done { background: var(--accent); }
+    .onboarding-body { padding: 28px 34px; }
+    .onboarding-step { display: none; animation: fadeInUp .3s ease; }
+    .onboarding-step.active { display: block; }
+    .onboarding-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+    .choice-card, .device-card, .file-card, .notif-item, .settings-card, .image-card {
+      border: 1px solid var(--surface-3);
+      background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+      border-radius: var(--radius-card);
+      padding: 14px;
+      transition: border .15s ease, background .15s ease, transform .15s ease;
+    }
+    .choice-card { cursor: pointer; }
+    .choice-card:hover, .device-card.clickable:hover, .file-card.clickable:hover { transform: translateY(-1px); border-color: var(--surface-4); }
+    .choice-card.selected, .device-card.active { border-color: var(--accent); background: var(--accent-bg); }
+    .choice-icon { font-size: 20px; margin-bottom: 8px; }
+    .choice-title { font-weight: 700; color: var(--ink-1); font-size: 14px; }
+    .choice-desc { color: var(--ink-3); font-size: 12px; margin-top: 4px; line-height: 1.45; }
+    .onboarding-foot { border-top: 1px solid var(--hairline); padding: 18px 34px 28px; display: flex; justify-content: space-between; gap: 12px; }
+
+    /* App Shell */
+    .app-shell { height: 100dvh; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: var(--surface-1); overflow: hidden; }
+    .sidebar { border-right: 1px solid var(--surface-3); background: color-mix(in srgb, var(--surface-1) 92%, #000 8%); display: flex; flex-direction: column; min-width: 0; }
+    .sidebar-head { padding: 18px 16px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 9px; font-family: var(--font-serif); font-size: 24px; line-height: 1; }
+    .brand .runa-mark { width: 18px; height: 18px; }
+    .nav-block { padding: 0 10px; display: grid; gap: 3px; }
+    .nav-item { width: 100%; display: flex; align-items: center; gap: 10px; color: var(--ink-3); background: transparent; padding: 9px 10px; border-radius: 10px; text-align: left; font-size: 13px; }
+    .nav-item:hover { color: var(--ink-1); background: var(--surface-2); }
+    .nav-item.active { color: var(--accent); background: var(--accent-bg); }
+    .nav-icon { width: 18px; text-align: center; opacity: .9; }
+    .nav-badge { margin-left: auto; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); }
+    .new-chat-btn { margin: 0 10px 12px; }
+    .sidebar-section-title { padding: 16px 18px 8px; color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+    .convo-list { padding: 0 10px; overflow: auto; display: grid; gap: 3px; }
+    .convo-item { display: grid; gap: 2px; width: 100%; color: var(--ink-2); background: transparent; text-align: left; padding: 9px 10px; border-radius: 10px; }
+    .convo-item:hover, .convo-item.active { background: var(--surface-2); color: var(--ink-1); }
+    .convo-title { font-size: 12.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .convo-meta { color: var(--ink-3); font-size: 11px; }
+    .sidebar-foot { margin-top: auto; padding: 12px 10px 14px; border-top: 1px solid var(--hairline); display: grid; gap: 8px; }
+    .device-mini { display: flex; align-items: center; gap: 9px; padding: 10px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--surface-3); cursor: pointer; }
+    .device-mini:hover { border-color: var(--surface-4); }
+    .device-mini-title { font-size: 12.5px; color: var(--ink-1); }
+    .device-mini-sub { color: var(--ink-3); font-size: 11px; }
+    .main { height: 100dvh; min-width: 0; display: flex; flex-direction: column; }
+    .topbar { height: var(--topbar-h); flex: 0 0 var(--topbar-h); border-bottom: 1px solid var(--surface-3); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px; background: color-mix(in srgb, var(--surface-1) 88%, transparent); backdrop-filter: blur(16px); z-index: 30; }
+    .topbar-left { min-width: 0; display: flex; align-items: center; gap: 12px; }
+    .topbar-title { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .topbar-sub { display: flex; align-items: center; gap: 7px; color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+    .topbar-actions { display: flex; align-items: center; gap: 7px; }
+    .icon-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; color: var(--ink-3); background: transparent; border: 1px solid transparent; }
+    .icon-btn:hover { color: var(--ink-1); background: var(--surface-2); border-color: var(--surface-3); }
+    .view-host { flex: 1; min-height: 0; overflow: auto; padding: 22px; }
+    .stage { max-width: 980px; margin: 0 auto; animation: fadeInUp .25s ease; }
+    .chat-stage { max-width: 680px; height: 100%; min-height: 0; display: flex; flex-direction: column; margin: 0 auto; }
+    .chat-scroll { flex: 1; min-height: 0; overflow: auto; padding: 10px 6px 22px; display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth; }
+    .day-divider { align-self: center; font-size: 11px; color: var(--ink-3); padding: 4px 11px; border-radius: 999px; background: color-mix(in srgb, var(--surface-2) 56%, transparent); border: 1px solid var(--hairline); }
+    .msg-user { align-self: flex-end; max-width: min(78%, 560px); background: var(--user-bg); color: var(--user-fg); padding: 10px 15px; border-radius: 18px 18px 5px 18px; font-size: 14.5px; line-height: 1.52; animation: fadeInUp .25s ease; }
+    .msg-agent { align-self: flex-start; width: min(100%, 640px); display: grid; grid-template-columns: 22px 1fr; gap: 9px; animation: fadeInUp .25s ease; }
+    .msg-agent .runa-mark { width: 18px; height: 18px; margin-top: 2px; }
+    .agent-name { display: none; }
+    .agent-content { color: var(--ink-1); font-size: 14.5px; line-height: 1.64; }
+    .agent-content strong { color: var(--accent); font-weight: 600; }
+    .agent-content p { margin: 0 0 10px; }
+    .agent-content p:last-child { margin-bottom: 0; }
+    .stream-cursor { display: inline-block; width: 2px; height: 1em; background: var(--accent); vertical-align: -2px; margin-left: 2px; animation: blink 1s infinite; }
+    .tool-line { align-self: flex-start; display: inline-flex; align-items: center; gap: 7px; color: var(--ink-3); background: transparent; padding: 3px 0; font-family: var(--font-mono); font-size: 11.5px; }
+    .tool-line:hover { color: var(--ink-2); }
+    .tool-dot { width: 5px; height: 5px; border-radius: 999px; background: var(--accent); flex: 0 0 auto; }
+    .tool-line .chev { opacity: .5; transition: transform .18s ease; }
+    .tool-line.open .chev { transform: rotate(90deg); }
+    .tool-detail, .detail-panel { margin: 6px 0 0 0; border-left: 2px solid var(--accent); background: color-mix(in srgb, var(--surface-2) 78%, transparent); border-radius: 0 12px 12px 0; padding: 10px 12px; color: var(--ink-2); font-family: var(--font-mono); font-size: 11.5px; line-height: 1.55; overflow-x: auto; display: none; }
+    .tool-detail.open, .detail-panel.open { display: block; animation: fadeInUp .2s ease; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0 0; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--surface-3); color: var(--ink-3); font-size: 11.5px; }
+    .chip.accent { color: var(--accent); background: var(--accent-bg); border-color: color-mix(in srgb, var(--accent) 38%, var(--surface-3)); }
+    .chip.ok { color: var(--status); background: var(--status-bg); }
+    .chip.warn { color: var(--warn); background: var(--warn-bg); }
+    .approval { align-self: flex-start; width: min(100%, 620px); border: 1px solid var(--surface-3); background: color-mix(in srgb, var(--surface-2) 82%, transparent); border-radius: 12px; padding: 12px; animation: fadeInUp .25s ease; }
+    .approval.warn { border-color: color-mix(in srgb, var(--warn) 38%, var(--surface-3)); background: var(--warn-bg); }
+    .approval-top { display: flex; gap: 9px; align-items: flex-start; }
+    .approval .runa-mark { width: 18px; height: 18px; margin-top: 1px; }
+    .approval-q { font-size: 14px; color: var(--ink-1); line-height: 1.55; }
+    .approval-target { display: inline-flex; align-items: center; max-width: 100%; padding: 4px 8px; border-radius: 8px; margin: 8px 0 10px; font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); background: var(--surface-1); border: 1px solid var(--surface-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .approval.warn .approval-target { border-color: color-mix(in srgb, var(--warn) 40%, var(--surface-3)); color: var(--warn); }
+    .approval-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .approval-resolved { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; color: var(--ink-3); background: color-mix(in srgb, var(--surface-2) 74%, transparent); border: 1px solid var(--hairline); border-radius: 999px; padding: 7px 10px; font-size: 12px; }
+    .error-card { align-self: flex-start; max-width: 620px; border-left: 2px solid var(--error); background: var(--error-bg); color: var(--ink-1); border-radius: 0 12px 12px 0; padding: 12px 13px; animation: fadeInUp .25s ease; }
+    .error-card strong { color: var(--error); }
+    .image-preview { max-width: 460px; border: 1px solid var(--surface-3); border-radius: 16px; overflow: hidden; background: var(--surface-2); margin-top: 8px; }
+    .image-art { min-height: 260px; background: radial-gradient(circle at 25% 20%, var(--accent-2), transparent 24%), radial-gradient(circle at 78% 30%, var(--status), transparent 22%), linear-gradient(135deg, var(--surface-3), var(--accent-bg)); position: relative; }
+    .image-art::after { content: ''; position: absolute; inset: 18%; border: 2px solid color-mix(in srgb, var(--ink-1) 38%, transparent); border-radius: 32% 68% 58% 42% / 34% 31% 69% 66%; box-shadow: inset 0 0 0 18px color-mix(in srgb, var(--surface-1) 28%, transparent); }
+    .image-meta { padding: 11px 12px; color: var(--ink-3); font-family: var(--font-mono); font-size: 11px; line-height: 1.6; border-top: 1px solid var(--surface-3); }
+    .composer-wrap { flex: 0 0 auto; padding: 12px 0 0; background: linear-gradient(180deg, transparent, var(--surface-1) 30%); }
+    .composer { display: flex; gap: 9px; align-items: flex-end; background: var(--surface-2); border: 1px solid var(--surface-3); border-radius: 14px; padding: 8px 8px 8px 12px; box-shadow: 0 12px 28px rgba(0,0,0,.12); }
+    .composer textarea { flex: 1; min-height: 36px; max-height: 130px; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink-1); padding: 8px 2px 6px; }
+    .composer textarea::placeholder { color: var(--ink-3); }
+    .send-btn { width: 36px; height: 36px; border-radius: 999px; background: var(--accent); color: var(--surface-1); font-weight: 800; }
+    .send-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 7px; padding: 10px 4px 0; }
+
+    /* General views */
+    .view-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 20px; }
+    .view-kicker { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 6px; }
+    .view-title { font-family: var(--font-serif); font-size: 42px; font-weight: 400; line-height: 1; letter-spacing: -.02em; margin: 0; }
+    .view-lead { color: var(--ink-3); max-width: 680px; font-size: 14px; margin: 10px 0 0; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .panel { border: 1px solid var(--surface-3); background: color-mix(in srgb, var(--surface-2) 82%, transparent); border-radius: var(--radius-panel); padding: 18px; }
+    .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 700; margin-bottom: 12px; }
+    .muted { color: var(--ink-3); }
+    .small { font-size: 12px; }
+    .mono { font-family: var(--font-mono); }
+    .device-card { display: flex; align-items: flex-start; gap: 13px; }
+    .device-icon { width: 42px; height: 42px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-1); border: 1px solid var(--surface-3); font-size: 20px; }
+    .device-title { font-weight: 700; }
+    .device-meta { color: var(--ink-3); font-size: 12px; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .device-actions { display: flex; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
+    .settings-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .settings-nav { display: grid; gap: 4px; position: sticky; top: 0; }
+    .settings-panel { display: grid; gap: 14px; }
+    .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+    .settings-row:last-child { border-bottom: 0; }
+    .settings-row-text strong { display: block; font-size: 14px; }
+    .settings-row-text span { display: block; color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+    .toggle { position: relative; display: inline-flex; width: 42px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle span { position: absolute; cursor: pointer; inset: 0; border-radius: 999px; background: var(--surface-3); transition: .2s ease; }
+    .toggle span::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 999px; background: var(--ink-2); transition: .2s ease; }
+    .toggle input:checked + span { background: var(--accent-bg); }
+    .toggle input:checked + span::before { transform: translateX(18px); background: var(--accent); }
+    .segmented { display: inline-flex; gap: 4px; padding: 4px; border-radius: 13px; background: var(--surface-1); border: 1px solid var(--surface-3); }
+    .segmented button { background: transparent; color: var(--ink-3); padding: 7px 10px; border-radius: 9px; font-size: 12px; }
+    .segmented button.active { background: var(--accent-bg); color: var(--accent); font-weight: 700; }
+    .file-list { display: grid; gap: 8px; }
+    .file-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .file-main { min-width: 0; }
+    .file-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+    .diff-box { background: var(--surface-1); border: 1px solid var(--surface-3); border-radius: 12px; overflow: auto; padding: 12px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; }
+    .diff-add { color: var(--status); }
+    .diff-del { color: var(--error); }
+    .diff-ctx { color: var(--ink-3); }
+    .image-generator { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .image-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .image-card { padding: 0; overflow: hidden; }
+    .image-card .image-art { min-height: 220px; }
+    .image-card-body { padding: 12px; display: grid; gap: 9px; }
+    .notif-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .notif-item { display: grid; grid-template-columns: 9px 1fr auto; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+    .notif-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--surface-4); margin-top: 7px; }
+    .notif-item.unread .notif-dot { background: var(--accent); color: var(--accent); animation: pulse 2s ease infinite; }
+    .notif-title { font-weight: 700; font-size: 14px; }
+    .notif-body { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+    .timeline { border-left: 1px solid var(--surface-3); margin-left: 8px; padding-left: 16px; display: grid; gap: 12px; }
+    .timeline-item { position: relative; }
+    .timeline-item::before { content: ''; position: absolute; left: -21px; top: 4px; width: 9px; height: 9px; border-radius: 999px; background: var(--accent); }
+
+    /* Overlays */
+    .toast-stack { position: fixed; right: 18px; bottom: 18px; z-index: 130; display: grid; gap: 8px; width: min(360px, calc(100vw - 36px)); }
+    .toast { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--surface-3); background: color-mix(in srgb, var(--surface-2) 92%, transparent); backdrop-filter: blur(12px); border-radius: 14px; box-shadow: var(--shadow); animation: slideUp .22s ease; }
+    .toast strong { display: block; font-size: 13px; }
+    .toast span { color: var(--ink-3); font-size: 12px; display: block; margin-top: 2px; }
+    .modal-backdrop, .sheet-backdrop, .palette-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.48); backdrop-filter: blur(10px); z-index: 90; display: none; }
+    .modal-backdrop.open, .sheet-backdrop.open, .palette-backdrop.open { display: block; }
+    .modal { position: fixed; z-index: 100; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 28px)); max-height: calc(100dvh - 40px); overflow: auto; border: 1px solid var(--surface-3); background: var(--surface-2); border-radius: 22px; box-shadow: var(--shadow); display: none; }
+    .modal.open { display: block; animation: fadeInUp .2s ease; }
+    .modal-head { padding: 18px 18px 12px; display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--hairline); }
+    .modal-title { font-family: var(--font-serif); font-size: 27px; line-height: 1; }
+    .modal-body { padding: 18px; }
+    .modal-foot { padding: 0 18px 18px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+    .sheet { position: fixed; z-index: 100; left: 50%; bottom: 0; transform: translateX(-50%) translateY(110%); width: min(560px, 100%); max-height: min(86dvh, 760px); overflow: auto; background: var(--surface-2); border: 1px solid var(--surface-3); border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: var(--shadow); transition: transform .26s cubic-bezier(.16,1,.3,1); }
+    .sheet.open { transform: translateX(-50%) translateY(0); }
+    .sheet-head { padding: 16px 18px 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--hairline); }
+    .sheet-title { font-family: var(--font-serif); font-size: 27px; }
+    .sheet-body { padding: 14px 18px 22px; }
+    .sheet-list { display: grid; gap: 7px; }
+    .sheet-item { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink-1); background: var(--surface-1); border: 1px solid var(--surface-3); border-radius: 14px; padding: 12px; text-align: left; }
+    .sheet-item:hover { border-color: var(--surface-4); }
+    .palette { position: fixed; z-index: 101; left: 50%; top: 13vh; transform: translateX(-50%); width: min(640px, calc(100vw - 28px)); border: 1px solid var(--surface-3); background: var(--surface-2); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; display: none; }
+    .palette.open { display: block; animation: fadeInUp .16s ease; }
+    .palette-input { width: 100%; border: 0; outline: 0; padding: 18px 20px; background: transparent; color: var(--ink-1); font-size: 15px; border-bottom: 1px solid var(--surface-3); }
+    .palette-list { max-height: 420px; overflow: auto; padding: 8px; display: grid; gap: 4px; }
+    .palette-item { width: 100%; display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; color: var(--ink-2); background: transparent; text-align: left; padding: 10px; border-radius: 12px; }
+    .palette-item:hover { background: var(--surface-3); color: var(--ink-1); }
+    .palette-item small { color: var(--ink-3); }
+
+    @media (max-width: 980px) {
+      .auth-wrap { grid-template-columns: 1fr; }
+      .auth-copy { min-height: auto; }
+      .auth-proof { grid-template-columns: 1fr; }
+      .image-generator, .settings-layout { grid-template-columns: 1fr; }
+      .settings-nav { position: static; display: flex; overflow: auto; padding-bottom: 4px; }
+      .settings-nav .nav-item { width: auto; white-space: nowrap; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 820px) {
+      body { overflow: hidden; }
+      .desktop-only { display: none !important; }
+      .mobile-only { display: inline-flex !important; }
+      .app-shell { display: block; height: 100dvh; }
+      .sidebar { display: none; }
+      .main { height: 100dvh; }
+      .topbar { padding: 0 12px; height: 62px; flex-basis: 62px; }
+      .topbar-actions { gap: 3px; }
+      .view-host { padding: 12px 14px; }
+      .chat-stage { height: 100%; max-width: 100%; }
+      .chat-scroll { padding: 6px 2px 18px; gap: 17px; }
+      .msg-user { max-width: 84%; }
+      .msg-agent { grid-template-columns: 16px 1fr; gap: 8px; }
+      .msg-agent > .runa-mark { display: inline-flex; width: 12px; height: 12px; margin-top: 4px; }
+      .composer-wrap { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+      .suggestions { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+      .suggestions .pill-btn { flex: 0 0 auto; }
+      .view-title { font-size: 34px; }
+      .view-head { display: grid; }
+      .grid-2, .grid-3, .onboarding-grid, .image-grid { grid-template-columns: 1fr; }
+      .toast-stack { left: 14px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); width: auto; }
+      .auth-shell, .onboarding-shell { padding: 14px; align-items: start; }
+      .auth-copy { padding: 28px; border-radius: 24px; }
+      .auth-card { border-radius: 24px; }
+      .onboarding-head, .onboarding-body, .onboarding-foot { padding-left: 20px; padding-right: 20px; }
+    }
+
+    @media (max-width: 520px) {
+      .auth-title { font-size: 48px; }
+      .auth-oauth { grid-template-columns: 1fr; }
+      .topbar-title { max-width: 170px; }
+      .modal { width: calc(100vw - 18px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body class="th-ember">
+  <div id="authScreen" class="auth-shell"></div>
+  <div id="onboardingScreen" class="onboarding-shell hidden"></div>
+  <div id="appShell" class="app-shell hidden"></div>
+
+  <div id="modalBackdrop" class="modal-backdrop" data-action="close-modal"></div>
+  <div id="modalRoot" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div>
+
+  <div id="sheetBackdrop" class="sheet-backdrop" data-action="close-sheet"></div>
+  <aside id="sheetRoot" class="sheet" aria-label="Alt menü"></aside>
+
+  <div id="paletteBackdrop" class="palette-backdrop" data-action="close-command"></div>
+  <div id="commandPalette" class="palette" role="dialog" aria-label="Komut paleti">
+    <input id="commandInput" class="palette-input" placeholder="Git, ara veya çalıştır…" autocomplete="off" />
+    <div id="commandList" class="palette-list"></div>
+  </div>
+
+  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+  <input id="fileInput" type="file" multiple class="hidden" />
+
+  <script>
+    const STORAGE_KEY = 'runa-complete-product-mock-v1';
+
+    const markPaths = {
+      micro: [
+        'M24 5 C27.2 5 29.6 7.3 29.6 10.6 C29.6 13.7 27.3 16 24 16 C20.8 16 18.4 13.7 18.4 10.6 C18.4 7.3 20.8 5 24 5 Z',
+        'M33.8 10.8 C36.9 11.1 39.1 13.9 38.8 17 C38.5 20 35.8 22.1 32.8 21.8 C29.7 21.5 27.6 18.9 27.9 15.8 C28.2 12.8 30.8 10.6 33.8 10.8 Z',
+        'M35 27.1 C37.5 28.7 38.3 31.9 36.8 34.5 C35.2 37.2 32 38 29.4 36.5 C26.8 35 26 31.7 27.6 29.1 C29.1 26.5 32.4 25.6 35 27.1 Z',
+        'M24.2 31.6 C27.3 31.7 29.7 34.2 29.6 37.2 C29.5 40.3 27 42.7 24 42.6 C20.9 42.5 18.5 40 18.6 37 C18.7 33.9 21.1 31.5 24.2 31.6 Z',
+        'M12.9 27.3 C15.6 25.9 18.8 26.9 20.2 29.6 C21.6 32.3 20.6 35.5 17.9 36.9 C15.2 38.2 12 37.2 10.6 34.5 C9.2 31.8 10.2 28.7 12.9 27.3 Z',
+        'M14.3 11 C17.4 10.8 20 13 20.3 16 C20.6 19.1 18.4 21.7 15.3 22 C12.3 22.3 9.6 20.1 9.3 17 C9 14 11.2 11.3 14.3 11 Z'
+      ],
+      regular: [
+        'M24 4 C27.9 4 31 7.1 31 11 C31 14.8 27.9 18 24 18 C20.1 18 17 14.8 17 11 C17 7.1 20.1 4 24 4 Z',
+        'M34 10 C37.8 10.2 40.6 13.3 40.3 17.2 C40.1 20.8 37 23.6 33.2 23.3 C29.3 23.1 26.5 20 26.8 16.2 C27 12.3 30.1 9.6 34 10 Z',
+        'M35 27 C38.2 28.8 39.2 32.8 37.4 36 C35.6 39.2 31.7 40.2 28.5 38.4 C25.3 36.6 24.2 32.7 26 29.5 C27.8 26.3 31.8 25.2 35 27 Z',
+        'M24 30 C27.9 30 31 33.1 31 37 C31 40.9 27.9 44 24 44 C20.1 44 17 40.9 17 37 C17 33.1 20.1 30 24 30 Z',
+        'M13 27 C16.2 25.2 20.2 26.3 22 29.5 C23.8 32.7 22.7 36.6 19.5 38.4 C16.3 40.2 12.4 39.2 10.6 36 C8.8 32.8 9.8 28.8 13 27 Z',
+        'M14 10 C17.9 9.6 21 12.3 21.4 16.2 C21.8 20 19 23.1 15.2 23.5 C11.3 23.9 8.2 21.2 7.8 17.4 C7.4 13.5 10.2 10.4 14 10 Z'
+      ],
+      bold: [
+        'M24 3.5 C28.5 3.5 32 7.2 32 11.7 C32 16 28.5 19.6 24 19.6 C19.5 19.6 16 16 16 11.7 C16 7.2 19.5 3.5 24 3.5 Z',
+        'M34.3 9.7 C38.6 10 41.8 13.6 41.5 17.9 C41.2 22 37.6 25.1 33.5 24.8 C29.2 24.5 26.1 20.9 26.4 16.6 C26.7 12.5 30.2 9.4 34.3 9.7 Z',
+        'M35.6 26.4 C39.2 28.4 40.5 33 38.5 36.7 C36.5 40.3 32 41.5 28.3 39.5 C24.7 37.5 23.4 32.9 25.4 29.3 C27.4 25.6 31.9 24.4 35.6 26.4 Z',
+        'M24 29.8 C28.5 29.8 32 33.4 32 37.9 C32 42.4 28.5 46 24 46 C19.5 46 16 42.4 16 37.9 C16 33.4 19.5 29.8 24 29.8 Z',
+        'M12.4 26.4 C16.1 24.4 20.6 25.6 22.6 29.3 C24.6 32.9 23.3 37.5 19.7 39.5 C16 41.5 11.5 40.3 9.5 36.7 C7.5 33 8.8 28.4 12.4 26.4 Z',
+        'M13.7 9.7 C17.8 9.3 21.3 12.2 21.8 16.4 C22.2 20.5 19.2 24.1 15.1 24.5 C10.9 24.9 7.4 21.9 7 17.8 C6.6 13.6 9.5 10.1 13.7 9.7 Z'
+      ]
+    };
+
+    const markPalette = ['var(--accent)', 'var(--accent-2)', '#9A9273', 'var(--accent)', 'var(--accent-2)', '#8E896E'];
+    const markOpacity = [1, 0.94, 0.92, 0.9, 0.88, 0.9];
+
+    function markSvg(cls = 'runa-mark', weight = 'regular', variant = 'brand') {
+      const set = markPaths[weight] || markPaths.regular;
+      const mono = variant === 'mono';
+      const body = set.map((d, i) => {
+        const fill = mono ? 'currentColor' : markPalette[i % markPalette.length];
+        const opacity = mono ? 1 : markOpacity[i % markOpacity.length];
+        return `<path d="${d}" fill="${fill}" opacity="${opacity}"/>`;
+      }).join('');
+      return `<span class="${cls}" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none">${body}</svg></span>`;
+    }
+
+    const defaultState = () => ({
+      auth: false,
+      authMode: 'signin',
+      onboarding: false,
+      onboardingStep: 0,
+      currentView: 'chat',
+      settingsTab: 'appearance',
+      notificationFilter: 'all',
+      activeConversationId: 'launch',
+      activeDeviceId: 'macbook',
+      selectedFileIds: [],
+      profile: { name: 'Deniz Arslan', email: 'deniz@runa.local', company: 'Runa Labs', role: 'Ürün' },
+      settings: {
+        theme: 'th-ember',
+        tone: 'mirror',
+        length: 'balanced',
+        autoTheme: false,
+        motion: true,
+        compact: false,
+        advanced: false,
+        emailNotifications: true,
+        pushNotifications: true,
+        quietHours: true,
+        learning: true,
+        dataRetention: '90',
+        language: 'tr'
+      },
+      onboardingPrefs: { focus: 'projects', device: 'desktop', tone: 'mirror' },
+      conversations: [
+        { id: 'launch', title: 'Launch hazırlığı', meta: 'Bugün · 6 mesaj' },
+        { id: 'report', title: 'Rapor dosyaları', meta: 'Dün · 11 mesaj' },
+        { id: 'visual', title: 'Logo denemeleri', meta: 'Pazartesi · 4 mesaj' }
+      ],
+      messages: [
+        { id: 'm1', role: 'agent', content: 'Günaydın Deniz. Launch klasörünü ve açık işi hatırlıyorum. Bugün istersen önce **kalan kritik dosyaları** tarayıp kısa bir plan çıkarabilirim.' },
+        { id: 'm2', role: 'user', content: 'apps/web içindeki chat yapısını kontrol et, gereksiz tekrarları söyle' },
+        { id: 'm3', type: 'tool', summary: '3 dosya incelendi', target: 'MacBook Pro', open: false, detail: '$ rg "RunProgressPanel|WorkInsightPanel|ApprovalBlock" apps/web/src\napps/web/src/components/chat/RunProgressPanel.tsx\napps/web/src/components/chat/WorkInsightPanel.tsx\napps/web/src/components/chat/blocks/ApprovalBlock.tsx\n\nSonuç: Aynı çalışma özeti 3 yüzeyde tekrar ediyor.' },
+        { id: 'm4', role: 'agent', content: 'Üç net bulgu var: ana chat içinde çalışma özeti tekrar ediyor, onay kartları fazla katmanlı, mobilde composer ve sheet davranışı aynı alanı paylaşmaya çalışıyor. En güvenli düzeltme: tek chat akışı, tek satır tool aktivitesi, detayları isteğe bağlı açılır yapmak.' },
+        { id: 'a1', type: 'approval', risk: 'low', status: 'pending', question: 'Dosyayı açıp ilgili kısmı gösterebilirim — okumama izin verir misin?', target: 'apps/web/src/components/chat/ApprovalBlock.tsx', detail: 'İstek: okuma izni\nAmaç: onay kartı sadeleştirme önerisi\nTool: file.read\ncall_id: mock_approval_1042' }
+      ],
+      devices: [
+        { id: 'this', icon: '📱', name: 'Bu cihaz', kind: 'iPhone 15', status: 'online', current: true, last: 'Şimdi', os: 'iOS 18', capabilities: ['Sohbet', 'Bildirim', 'Dosya paylaşımı'] },
+        { id: 'macbook', icon: '▭', name: 'MacBook Pro', kind: 'macOS', status: 'online', current: false, last: 'Şimdi', os: 'macOS 15', capabilities: ['Terminal', 'Dosya', 'Tarayıcı', 'Görsel'] },
+        { id: 'ubuntu', icon: '⌷', name: 'Ubuntu Server', kind: 'Linux', status: 'online', current: false, last: '3 dk önce', os: 'Ubuntu 24.04', capabilities: ['Terminal', 'Git', 'Servis'] },
+        { id: 'windows', icon: '▣', name: 'Windows PC', kind: 'Windows', status: 'offline', current: false, last: '2 saat önce', os: 'Windows 11', capabilities: ['Dosya', 'Office'] }
+      ],
+      files: [
+        { id: 'f1', name: 'CHAT-FRONTEND-RESTRUCTURING-PLAN.md', type: 'Plan', size: '11 KB', modified: 'Bugün', selected: false },
+        { id: 'f2', name: 'RUNA-DESIGN-BRIEF.md', type: 'Brief', size: '18 KB', modified: 'Bugün', selected: false },
+        { id: 'f3', name: 'launch-copy.md', type: 'Metin', size: '4 KB', modified: 'Dün', selected: false },
+        { id: 'f4', name: 'provider-health.ts', type: 'Kod', size: '6 KB', modified: '2 gün önce', selected: false }
+      ],
+      notifications: [
+        { id: 'n1', type: 'approval', unread: true, title: 'Onay bekliyor', body: 'Runa provider-health.ts dosyasını okumak istiyor.', time: 'Şimdi' },
+        { id: 'n2', type: 'reminder', unread: true, title: 'Launch notu', body: 'Saat 16:00’da kalan kararları gözden geçir.', time: '12 dk' },
+        { id: 'n3', type: 'system', unread: false, title: 'Ubuntu Server bağlandı', body: 'Cihaz çevrimiçi ve terminal erişimi hazır.', time: '1 sa' },
+        { id: 'n4', type: 'device', unread: false, title: 'Windows PC çevrimdışı', body: 'Son bağlantı 2 saat önce görüldü.', time: '2 sa' }
+      ],
+      generatedImages: [],
+      reminders: [],
+      timeline: [
+        'Chat yüzeyi sadeleştirildi',
+        'Onay kartı düşük risk moduna alındı',
+        'Cihaz hedefi MacBook Pro olarak seçildi'
+      ]
+    });
+
+    let state = loadState();
+    let typingTimer = null;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultState();
+        const parsed = JSON.parse(raw);
+        return mergeDeep(defaultState(), parsed);
+      } catch (error) {
+        return defaultState();
+      }
+    }
+    function mergeDeep(target, source) {
+      const out = Array.isArray(target) ? [...target] : { ...target };
+      Object.keys(source || {}).forEach(key => {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && target[key]) out[key] = mergeDeep(target[key], source[key]);
+        else out[key] = source[key];
+      });
+      return out;
+    }
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#039;', '"':'&quot;' }[c]));
+    const fmt = value => esc(value).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    const uid = prefix => `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+    const activeDevice = () => state.devices.find(d => d.id === state.activeDeviceId) || state.devices[0];
+    const unreadCount = () => state.notifications.filter(n => n.unread).length;
+
+    function applyTheme() {
+      document.body.classList.remove('th-ember', 'th-light', 'th-rose');
+      document.body.classList.add(state.settings.theme || 'th-ember');
+    }
+
+    function render() {
+      applyTheme();
+      saveState();
+      $('#authScreen').classList.toggle('hidden', state.auth || state.onboarding);
+      $('#onboardingScreen').classList.toggle('hidden', !state.onboarding);
+      $('#appShell').classList.toggle('hidden', !state.auth || state.onboarding);
+      if (!state.auth && !state.onboarding) renderAuth();
+      if (state.onboarding) renderOnboarding();
+      if (state.auth && !state.onboarding) renderApp();
+    }
+
+    function renderAuth() {
+      $('#authScreen').innerHTML = `
+        <div class="auth-wrap">
+          <section class="auth-copy">
+            <div>
+              ${markSvg('auth-logo', 'bold', 'brand')}
+              <div class="auth-eyebrow">Runa · Çok cihazlı AI iş ortağı</div>
+              <h1 class="auth-title">Projeni bilen sakin çalışma ortağın.</h1>
+              <p class="auth-lead">Telefon, masaüstü ve sunucu üzerinde aynı hesapla çalışır. Sohbet aynı kalır; işlemler seçtiğin cihazda yürür.</p>
+            </div>
+            <div class="auth-proof">
+              <div class="proof-card"><strong>3 cihaz</strong><span>Telefon, MacBook, Ubuntu hazır</span></div>
+              <div class="proof-card"><strong>Tek akış</strong><span>Debug değil, sakin chat yüzeyi</span></div>
+              <div class="proof-card"><strong>Onaylı</strong><span>Riskli işlemde karar senden</span></div>
+            </div>
+          </section>
+          <section class="auth-card" aria-label="Giriş formu">
+            <div class="auth-tabs">
+              <button class="auth-tab ${state.authMode === 'signin' ? 'active' : ''}" data-action="auth-tab" data-mode="signin">Giriş</button>
+              <button class="auth-tab ${state.authMode === 'signup' ? 'active' : ''}" data-action="auth-tab" data-mode="signup">Kayıt</button>
+            </div>
+            <p id="authError" class="auth-error"></p>
+            <form id="authForm">
+              ${state.authMode === 'signup' ? `<div class="field"><label for="authName">Ad soyad</label><input class="input" id="authName" autocomplete="name" placeholder="Deniz Arslan" value="${esc(state.profile.name)}" /></div>` : ''}
+              <div class="field"><label for="authEmail">E-posta</label><input class="input" id="authEmail" type="email" autocomplete="email" placeholder="deniz@runa.local" value="${esc(state.profile.email)}" /></div>
+              <div class="field"><div class="label-row"><label for="authPassword">Şifre</label><button type="button" class="mini-btn" data-action="fill-demo-auth">demo doldur</button></div><input class="input" id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••" value="runa-demo" /></div>
+              <button class="primary-btn" style="width:100%" type="submit">${state.authMode === 'signup' ? 'Hesap oluştur' : 'Giriş yap'}</button>
+            </form>
+            <div class="auth-divider"><span>veya</span></div>
+            <div class="auth-oauth">
+              <button class="ghost-btn" data-action="oauth" data-provider="Google">Google</button>
+              <button class="ghost-btn" data-action="oauth" data-provider="Apple">Apple</button>
+            </div>
+            <button class="ghost-btn" style="width:100%; margin-top:8px" data-action="demo-login">Mock'u direkt aç</button>
+            <details class="dev-login">
+              <summary>Geliştirme kısayolları</summary>
+              <div class="chip-row">
+                <button class="mini-btn" data-action="demo-login" data-advanced="true">Gelişmiş açık gir</button>
+                <button class="mini-btn" data-action="reset-mock">Mock state sıfırla</button>
+              </div>
+            </details>
+            <p class="auth-note">Bu dosya backend’e bağlanmayan tam ürün mock’udur. Tüm alanlar yerel olarak çalışır ve seçimler tarayıcıda saklanır.</p>
+          </section>
+        </div>`;
+    }
+
+    function renderOnboarding() {
+      const step = state.onboardingStep;
+      const steps = [
+        { kicker: '1 / 3', title: 'Runa nasıl çalışır?', body: `
+          <p class="muted">Runa her şeyi tek bir sohbet akışında tutar. İşlem gerekiyorsa önce sakin bir özet gösterir, riskliyse onay ister.</p>
+          <div class="onboarding-grid">
+            <div class="choice-card selected"><div class="choice-icon">💬</div><div class="choice-title">Chat-first</div><div class="choice-desc">Birincil yüzey her zaman sohbet.</div></div>
+            <div class="choice-card selected"><div class="choice-icon">▭</div><div class="choice-title">Çok cihaz</div><div class="choice-desc">Masaüstü işi seçtiğin hedefte çalışır.</div></div>
+            <div class="choice-card selected"><div class="choice-icon">✓</div><div class="choice-title">Onaylı</div><div class="choice-desc">Okuma, yazma ve silme akışları net karar ister.</div></div>
+          </div>` },
+        { kicker: '2 / 3', title: 'Bu cihaz hazır.', body: `
+          <p class="muted">Başka cihaz eklemek için kod okutman gerekmez. O cihazda Runa’yı açıp aynı hesapla giriş yapman yeterli.</p>
+          <div class="grid-2" style="margin-top:18px">
+            ${renderDeviceMiniCard(state.devices[0])}
+            ${renderDeviceMiniCard(state.devices[1])}
+          </div>
+          <div class="chip-row"><button class="pill-btn" data-action="onboarding-pref" data-key="device" data-value="desktop">Masaüstü işleri önemli</button><button class="pill-btn" data-action="onboarding-pref" data-key="device" data-value="server">Sunucu da kullanacağım</button></div>` },
+        { kicker: '3 / 3', title: 'Yanıt ritmini seç.', body: `
+          <p class="muted">Sonradan Ayarlar’dan değiştirebilirsin. Varsayılan, kullanıcının tonunu aynalayan dengeli mod.</p>
+          <div class="onboarding-grid">
+            ${choice('Mirror', 'mirror', 'tone', 'Tonunu aynalar')}
+            ${choice('Resmi', 'formal', 'tone', 'Daha kurumsal')}
+            ${choice('Samimi', 'friendly', 'tone', 'Daha sıcak')}
+          </div>
+          <div class="chip-row" style="margin-top:18px"><button class="pill-btn ${state.settings.length === 'short' ? 'active' : ''}" data-action="set-length" data-value="short">Kısa</button><button class="pill-btn ${state.settings.length === 'balanced' ? 'active' : ''}" data-action="set-length" data-value="balanced">Dengeli</button><button class="pill-btn ${state.settings.length === 'detailed' ? 'active' : ''}" data-action="set-length" data-value="detailed">Ayrıntılı</button></div>` }
+      ];
+      $('#onboardingScreen').innerHTML = `
+        <section class="onboarding-card">
+          <div class="onboarding-head">
+            <div><div class="step-kicker">${steps[step].kicker}</div><h1 class="onboarding-title">${steps[step].title}</h1></div>
+            <div class="step-dots">${[0,1,2].map(i => `<span class="${i === step ? 'active' : i < step ? 'done' : ''}"></span>`).join('')}</div>
+          </div>
+          <div class="onboarding-body"><div class="onboarding-step active">${steps[step].body}</div></div>
+          <div class="onboarding-foot">
+            <button class="ghost-btn" data-action="onboarding-back">${step === 0 ? 'Atla' : 'Geri'}</button>
+            <button class="primary-btn" data-action="onboarding-next">${step === 2 ? 'Runa’yı aç' : 'İleri'}</button>
+          </div>
+        </section>`;
+    }
+
+    function choice(label, value, key, desc) {
+      const selected = state.settings[key] === value || state.onboardingPrefs[key] === value;
+      return `<button class="choice-card ${selected ? 'selected' : ''}" data-action="onboarding-pref" data-key="${key}" data-value="${value}"><div class="choice-icon">${value === 'mirror' ? '↔' : value === 'formal' ? '▦' : '☕'}</div><div class="choice-title">${label}</div><div class="choice-desc">${desc}</div></button>`;
+    }
+
+    function renderApp() {
+      const device = activeDevice();
+      $('#appShell').innerHTML = `
+        <aside class="sidebar">
+          <div class="sidebar-head"><div class="brand">${markSvg('runa-mark', 'regular', 'brand')}<span>Runa</span></div><button class="icon-btn" data-action="open-command" title="Komut paleti">⌘</button></div>
+          <button class="primary-btn new-chat-btn" data-action="new-chat">+ Yeni sohbet</button>
+          <nav class="nav-block" aria-label="Ana menü">${navItems().map(renderNavItem).join('')}</nav>
+          <div class="sidebar-section-title">Sohbetler</div>
+          <div class="convo-list">${state.conversations.map(c => `<button class="convo-item ${c.id === state.activeConversationId ? 'active' : ''}" data-action="open-conversation" data-id="${c.id}"><span class="convo-title">${esc(c.title)}</span><span class="convo-meta">${esc(c.meta)}</span></button>`).join('')}</div>
+          <div class="sidebar-foot">
+            <div class="device-mini" data-action="nav" data-view="devices"><span class="device-icon" style="width:34px;height:34px;font-size:16px">${device.icon}</span><div><div class="device-mini-title">Cihazlar · ${esc(device.name)}</div><div class="device-mini-sub"><span class="pulse-dot" style="width:6px;height:6px"></span> ${device.status === 'online' ? 'çevrimiçi' : 'çevrimdışı'} · ${esc(device.kind)}</div></div></div>
+            <button class="nav-item" data-action="nav" data-view="settings"><span class="nav-icon">⚙</span><span>Ayarlar</span></button>
+            <button class="nav-item" data-action="nav" data-view="account"><span class="nav-icon">◌</span><span>Hesap</span></button>
+          </div>
+        </aside>
+        <main class="main">
+          <header class="topbar">
+            <div class="topbar-left">
+              <button class="icon-btn mobile-only" data-action="open-sheet" data-sheet="history" aria-label="Geçmiş">‹</button>
+              ${markSvg('runa-mark mobile-only', 'micro', 'brand')}
+              <div style="min-width:0"><div class="topbar-title">${viewTitle()}</div><div class="topbar-sub"><span class="pulse-dot"></span><span id="topbarSubtitle">${device.status === 'online' ? 'çevrimiçi' : 'çevrimdışı'} · ${esc(device.name)} üzerinde</span></div></div>
+            </div>
+            <div class="topbar-actions">
+              <button class="pill-btn desktop-only" data-action="open-command"><span class="kbd">⌘K</span> Ara</button>
+              <button class="icon-btn" data-action="nav" data-view="notifications" title="Bildirimler">🔔${unreadCount() ? `<span class="nav-badge" style="position:absolute; transform:translate(12px,-12px)">${unreadCount()}</span>` : ''}</button>
+              <button class="icon-btn desktop-only" data-action="toggle-advanced" title="Gelişmiş görünüm">${state.settings.advanced ? '◆' : '◇'}</button>
+              <button class="icon-btn mobile-only" data-action="open-sheet" data-sheet="menu" aria-label="Menü">⋯</button>
+            </div>
+          </header>
+          <div id="viewHost" class="view-host">${renderView()}</div>
+        </main>`;
+      requestAnimationFrame(() => {
+        const scroll = $('#chatScroll');
+        if (scroll) scroll.scrollTop = scroll.scrollHeight;
+      });
+    }
+
+    function navItems() {
+      return [
+        ['chat', '💬', 'Sohbet'],
+        ['images', '✦', 'Görsel üret'],
+        ['files', '▤', 'Dosyalar'],
+        ['devices', '▭', 'Cihazlar'],
+        ['notifications', '🔔', 'Bildirimler', unreadCount()],
+        ['settings', '⚙', 'Ayarlar']
+      ];
+    }
+    function renderNavItem(item) {
+      const [view, icon, label, badge] = item;
+      return `<button class="nav-item ${state.currentView === view ? 'active' : ''}" data-action="nav" data-view="${view}"><span class="nav-icon">${icon}</span><span>${label}</span>${badge ? `<span class="nav-badge">${badge}</span>` : ''}</button>`;
+    }
+    function viewTitle() {
+      const map = { chat: 'Runa', images: 'Görsel üret', files: 'Dosyalar', devices: 'Cihazlar', notifications: 'Bildirimler', settings: 'Ayarlar', account: 'Hesap' };
+      return map[state.currentView] || 'Runa';
+    }
+    function renderView() {
+      const map = { chat: renderChat, images: renderImages, files: renderFiles, devices: renderDevices, notifications: renderNotifications, settings: renderSettings, account: renderAccount };
+      return (map[state.currentView] || renderChat)();
+    }
+
+    function renderChat() {
+      return `<section class="chat-stage">
+        <div id="chatScroll" class="chat-scroll">
+          <div class="day-divider">Bugün</div>
+          ${state.messages.map(renderMessage).join('')}
+          ${state.settings.advanced ? renderAdvancedTimeline() : ''}
+        </div>
+        <div class="composer-wrap">
+          <form id="chatForm" class="composer">
+            <button class="icon-btn" type="button" data-action="open-sheet" data-sheet="attach" title="Ekle">+</button>
+            <textarea id="chatInput" rows="1" placeholder="Mesaj yaz…"></textarea>
+            <button id="chatSend" class="send-btn" type="submit">↑</button>
+          </form>
+          <div class="suggestions">
+            ${['Kalan işleri özetle', 'Bu dosyayı oku', 'Logo için görsel üret', 'Ubuntu Server’a geç', 'Riskli silme dene'].map(text => `<button class="pill-btn" data-action="suggest" data-text="${esc(text)}">${esc(text)}</button>`).join('')}
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function renderMessage(message) {
+      if (message.role === 'user') return `<div class="msg-user">${fmt(message.content)}</div>`;
+      if (message.role === 'agent') return `<div class="msg-agent">${markSvg('runa-mark', 'regular', 'brand')}<div><div class="agent-content">${fmt(message.content)}${message.streaming ? '<span class="stream-cursor"></span>' : ''}</div></div></div>`;
+      if (message.type === 'tool') return `<div class="msg-agent">${markSvg('runa-mark', 'regular', 'brand')}<div><button class="tool-line ${message.open ? 'open' : ''}" data-action="toggle-message" data-id="${message.id}"><span class="tool-dot"></span><span>${esc(message.summary)}${message.target ? ` · ${esc(message.target)}` : ''}</span><span class="chev">›</span></button><pre class="tool-detail ${message.open ? 'open' : ''}">${esc(message.detail || '')}</pre></div></div>`;
+      if (message.type === 'approval') return renderApproval(message);
+      if (message.type === 'error') return renderErrorMessage(message);
+      if (message.type === 'image') return renderImageMessage(message);
+      return '';
+    }
+
+    function renderApproval(message) {
+      if (message.status && message.status !== 'pending') {
+        return `<div class="approval-resolved"><span class="tool-dot" style="background:${message.status === 'approved' ? 'var(--status)' : 'var(--ink-3)'}"></span>${message.status === 'approved' ? 'İzin verildi' : 'Vazgeçildi'} · <button class="mini-btn" data-action="undo-approval" data-id="${message.id}">Geri al</button></div>`;
+      }
+      const approveLabel = message.risk === 'high' ? 'Yine de yap' : (message.approveLabel || 'Aç');
+      return `<div class="approval ${message.risk === 'high' ? 'warn' : ''}">
+        <div class="approval-top">${markSvg('runa-mark', 'regular', 'brand')}<div style="min-width:0;flex:1"><div class="approval-q">${fmt(message.question)}</div>${message.target ? `<div class="approval-target">${esc(message.target)}</div>` : ''}
+        ${message.risk === 'high' ? `<div class="chip-row" style="margin:0 0 12px"><span class="chip warn">Kalıcı işlem</span><span class="chip warn">Geri alınamaz</span></div>` : ''}
+        <div class="approval-actions"><button class="ghost-btn" data-action="approval-reject" data-id="${message.id}">Vazgeç</button><button class="${message.risk === 'high' ? 'danger-btn' : 'primary-btn'}" data-action="approval-approve" data-id="${message.id}">${approveLabel}</button>${state.settings.advanced ? `<button class="mini-btn" data-action="toggle-message" data-id="${message.id}">Detay ›</button>` : ''}</div>
+        ${state.settings.advanced ? `<pre class="tool-detail ${message.open ? 'open' : ''}">${esc(message.detail || 'Detay yok')}</pre>` : ''}</div></div>
+      </div>`;
+    }
+
+    function renderErrorMessage(message) {
+      return `<div class="error-card"><div style="display:flex;align-items:center;gap:7px;color:var(--accent);margin-bottom:5px">${markSvg('runa-mark', 'regular', 'brand')}</div><div>${fmt(message.content)}</div><div class="approval-actions" style="margin-top:10px"><button class="ghost-btn" data-action="toggle-message" data-id="${message.id}">Detay ›</button><button class="primary-btn" data-action="retry-last">Yeniden dene</button></div><pre class="tool-detail ${message.open ? 'open' : ''}">${esc(message.detail || '')}</pre></div>`;
+    }
+
+    function renderImageMessage(message) {
+      return `<div class="msg-agent">${markSvg('runa-mark', 'regular', 'brand')}<div><div class="agent-content">${fmt(message.content || 'Bir taslak oluşturdum.')}</div><div class="image-preview"><div class="image-art" style="${message.style || ''}"></div><div class="image-meta"><div>Prompt: ${esc(message.prompt)}</div><div>Stil: ${esc(message.kind || 'Warm Paper · Line')}</div><div>Boyut: ${esc(message.size || '1024×1024')}</div></div></div><div class="chip-row"><button class="mini-btn" data-action="save-generated" data-id="${message.id}">Kaydet</button><button class="mini-btn" data-action="variation" data-id="${message.id}">Varyasyon</button><button class="mini-btn" data-action="download-mock">İndir</button></div></div></div>`;
+    }
+
+    function renderAdvancedTimeline() {
+      return `<div class="panel" style="margin-top:8px"><div class="panel-title"><span>Gelişmiş görünüm</span><span class="chip accent">mock_run_42</span></div><div class="timeline">${state.timeline.map((t, i) => `<div class="timeline-item"><strong class="small">phase_${i + 1}</strong><div class="muted small mono">${esc(t)} · target=${esc(activeDevice().id)} · call_id=mock_${1000+i}</div></div>`).join('')}</div></div>`;
+    }
+
+    function renderImages() {
+      return `<section class="stage">
+        ${viewHead('Görsel üret', 'Prompt, stil, oran ve kalite alanları çalışan mock üretim paneli. Üretilen görseller sohbet akışına da gönderilebilir.')}
+        <div class="image-generator">
+          <form id="imageForm" class="panel">
+            <div class="field"><label for="imgPrompt">Prompt</label><textarea id="imgPrompt" class="input" placeholder="Warm paper üstünde sakin hafıza mark…">minimal memory mark, warm paper, calm product illustration</textarea></div>
+            <div class="field"><label for="imgStyle">Stil</label><select id="imgStyle" class="select"><option>Warm Paper · Line</option><option>Rose · Soft Glow</option><option>Ember Dark · Editorial</option><option>Sage · Professional</option></select></div>
+            <div class="field"><span class="label">Oran</span><div class="segmented" data-group="ratio"><button type="button" class="active" data-action="segment" data-name="ratio" data-value="1:1">1:1</button><button type="button" data-action="segment" data-name="ratio" data-value="4:3">4:3</button><button type="button" data-action="segment" data-name="ratio" data-value="16:9">16:9</button></div></div>
+            <div class="field"><label for="imgQuality">Kalite <span id="qualityLabel" class="muted">72</span></label><input id="imgQuality" type="range" min="1" max="100" value="72" style="width:100%"></div>
+            <div class="field"><label for="imgSeed">Seed</label><input id="imgSeed" class="input" placeholder="otomatik" /></div>
+            <button class="primary-btn" style="width:100%" type="submit">Görsel üret</button>
+          </form>
+          <div class="panel">
+            <div class="panel-title"><span>Çıktılar</span><button class="mini-btn" data-action="clear-images">Temizle</button></div>
+            <div class="image-grid" id="imageGrid">${renderGeneratedImages()}</div>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function renderGeneratedImages() {
+      if (!state.generatedImages.length) return `<div class="muted" style="grid-column:1/-1;padding:20px">Henüz görsel yok. Prompt yazıp “Görsel üret”e bas.</div>`;
+      return state.generatedImages.map(img => `<div class="image-card"><div class="image-art" style="${img.style}"></div><div class="image-card-body"><div class="small mono muted">${esc(img.prompt.slice(0, 68))}${img.prompt.length > 68 ? '…' : ''}</div><div class="chip-row"><button class="mini-btn" data-action="image-to-chat" data-id="${img.id}">Sohbete gönder</button><button class="mini-btn" data-action="save-generated" data-id="${img.id}">Kaydet</button><button class="mini-btn" data-action="download-mock">İndir</button></div></div></div>`).join('');
+    }
+
+    function renderFiles() {
+      const selected = state.files.filter(f => f.selected);
+      return `<section class="stage">
+        ${viewHead('Dosyalar', 'Çoklu dosya seçimi, okuma onayı, diff önizleme ve mock upload akışları.')}
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title"><span>Çalışma dosyaları</span><button class="mini-btn" data-action="open-file-picker">Yükle</button></div>
+            <div class="field"><input class="input" id="fileSearch" placeholder="Dosya ara…" data-action-input="file-search"></div>
+            <div class="file-list">${state.files.map(file => renderFile(file)).join('')}</div>
+            <div class="chip-row"><button class="primary-btn" data-action="summarize-selected" ${selected.length ? '' : 'disabled'}>${selected.length || 0} dosyayı özetle</button><button class="ghost-btn" data-action="select-all-files">Tümünü seç</button></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title"><span>Önizleme ve diff</span><span class="chip accent">kısa açık, uzun kapalı</span></div>
+            <p class="muted small">Seçtiğin dosyaları okumak için Runa önce izin ister. Yazma/silme gibi işlemler ayrıca yüksek risk onayı gösterir.</p>
+            <div class="diff-box" style="margin-top:14px">
+              <div class="diff-ctx">@@ apps/web/src/components/chat/ApprovalBlock.tsx @@</div>
+              <div class="diff-del">- &lt;div className="approvalDecision"&gt;</div>
+              <div class="diff-del">-   &lt;StatusChip /&gt;</div>
+              <div class="diff-add">+ &lt;RunaInlineApproval target={targetLabel} /&gt;</div>
+              <div class="diff-add">+ &lt;Disclosure hidden={!advanced} /&gt;</div>
+              <div class="diff-ctx">  // sakin, tek karar satırı</div>
+            </div>
+            <div class="approval-actions" style="margin-top:14px"><button class="ghost-btn" data-action="request-read-approval">Okuma onayı iste</button><button class="danger-btn" data-action="request-danger-approval">Silme akışı dene</button></div>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function renderFile(file) {
+      return `<div class="file-card clickable" data-file-row="${file.id}"><div style="display:flex;align-items:center;gap:10px;min-width:0"><label class="toggle" title="Seç"><input type="checkbox" data-action-change="toggle-file" data-id="${file.id}" ${file.selected ? 'checked' : ''}><span></span></label><div class="file-main"><div class="file-name">${esc(file.name)}</div><div class="file-meta">${esc(file.type)} · ${esc(file.size)} · ${esc(file.modified)}</div></div></div><div class="approval-actions"><button class="mini-btn" data-action="read-file" data-id="${file.id}">Oku</button><button class="mini-btn" data-action="summarize-file" data-id="${file.id}">Özetle</button></div></div>`;
+    }
+
+    function renderDevices() {
+      const groups = [
+        ['Bu cihaz', state.devices.filter(d => d.current)],
+        ['Çevrimiçi', state.devices.filter(d => !d.current && d.status === 'online')],
+        ['Çevrimdışı', state.devices.filter(d => d.status !== 'online')]
+      ];
+      return `<section class="stage">
+        ${viewHead('Cihazlar', 'Sohbet aynı kalır; masaüstü işlemleri seçtiğin cihazda çalışır. Cihaz eklemek için aynı hesapla giriş yapman yeterli.')}
+        <div class="view-head"><div class="chip-row"><button class="primary-btn" data-action="show-add-device">Cihaz ekle</button><button class="ghost-btn" data-action="simulate-device-online">Windows PC’yi çevrimiçi yap</button></div></div>
+        <div class="grid-3">${groups.map(([title, devices]) => `<div class="panel"><div class="panel-title"><span>${title}</span><span class="chip">${devices.length}</span></div><div style="display:grid;gap:10px">${devices.map(renderDeviceCard).join('') || '<p class="muted small">Yok</p>'}</div></div>`).join('')}</div>
+      </section>`;
+    }
+
+    function renderDeviceCard(device) {
+      const isActive = state.activeDeviceId === device.id;
+      return `<div class="device-card clickable ${isActive ? 'active' : ''}"><span class="device-icon">${device.icon}</span><div style="min-width:0;flex:1"><div class="device-title">${esc(device.name)} ${isActive ? '<span class="chip accent">aktif</span>' : ''}</div><div class="device-meta"><span class="pulse-dot" style="width:6px;height:6px;${device.status !== 'online' ? 'background:var(--ink-3);color:var(--ink-3);animation:none' : ''}"></span><span>${device.status === 'online' ? 'Çevrimiçi' : 'Çevrimdışı'} · ${esc(device.last)}</span><span>${esc(device.os)}</span></div><div class="chip-row">${device.capabilities.map(c => `<span class="chip">${esc(c)}</span>`).join('')}</div><div class="device-actions">${device.status === 'online' ? `<button class="mini-btn" data-action="select-device" data-id="${device.id}">Hedef yap</button>` : `<button class="mini-btn" data-action="retry-device" data-id="${device.id}">Bağlanmayı dene</button>`}<button class="mini-btn" data-action="device-details" data-id="${device.id}">Detay</button></div></div></div>`;
+    }
+
+    function renderDeviceMiniCard(device) {
+      return `<div class="device-card ${device.current ? 'active' : ''}"><span class="device-icon">${device.icon}</span><div><div class="device-title">${esc(device.name)}</div><div class="device-meta"><span class="pulse-dot" style="width:6px;height:6px"></span>${esc(device.last)} · ${esc(device.os)}</div></div></div>`;
+    }
+
+    function renderNotifications() {
+      const filter = state.notificationFilter;
+      const list = state.notifications.filter(n => filter === 'all' || n.type === filter);
+      return `<section class="stage">
+        ${viewHead('Bildirimler', 'Onaylar, hatırlatmalar ve cihaz olayları tek listede. Bildirimler okunabilir, ertelenebilir veya sohbete taşınabilir.')}
+        <div class="panel">
+          <div class="notif-tabs">${[['all','Tümü'],['approval','Onaylar'],['reminder','Hatırlatmalar'],['system','Sistem'],['device','Cihaz']].map(([id, label]) => `<button class="pill-btn ${filter === id ? 'active' : ''}" data-action="notif-filter" data-filter="${id}">${label}</button>`).join('')}<button class="pill-btn" data-action="mark-all-read">Tümünü okundu yap</button><button class="pill-btn" data-action="new-reminder">Hatırlatma ekle</button></div>
+          ${list.map(n => `<div class="notif-item ${n.unread ? 'unread' : ''}"><span class="notif-dot"></span><div><div class="notif-title">${esc(n.title)}</div><div class="notif-body">${esc(n.body)}</div><div class="muted small" style="margin-top:4px">${esc(n.time)}</div></div><div class="approval-actions"><button class="mini-btn" data-action="open-notif" data-id="${n.id}">Aç</button><button class="mini-btn" data-action="snooze-notif" data-id="${n.id}">Ertele</button></div></div>`).join('') || '<p class="muted">Bu filtrede bildirim yok.</p>'}
+        </div>
+      </section>`;
+    }
+
+    function renderSettings() {
+      const tabs = [
+        ['appearance', '✦', 'Görünüm'], ['conversation', '💬', 'Konuşma'], ['notifications', '🔔', 'Bildirim'], ['privacy', '◌', 'Gizlilik'], ['advanced', '◆', 'Gelişmiş']
+      ];
+      return `<section class="stage">
+        ${viewHead('Ayarlar', 'Tema, ton, bildirim, gizlilik ve gelişmiş görünüm ayarları yerel olarak çalışır.')}
+        <div class="settings-layout">
+          <nav class="settings-nav">${tabs.map(([id, icon, label]) => `<button class="nav-item ${state.settingsTab === id ? 'active' : ''}" data-action="settings-tab" data-tab="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`).join('')}</nav>
+          <div class="settings-panel">${renderSettingsPanel()}</div>
+        </div>
+      </section>`;
+    }
+
+    function renderSettingsPanel() {
+      if (state.settingsTab === 'appearance') return `<div class="panel"><div class="panel-title"><span>Görünüm</span></div>
+        ${settingsRow('Tema', 'MVP: Ember Dark, Ember Light ve Rose Dark.', `<div class="segmented"><button class="${state.settings.theme === 'th-ember' ? 'active' : ''}" data-action="set-theme" data-theme="th-ember">Ember</button><button class="${state.settings.theme === 'th-light' ? 'active' : ''}" data-action="set-theme" data-theme="th-light">Light</button><button class="${state.settings.theme === 'th-rose' ? 'active' : ''}" data-action="set-theme" data-theme="th-rose">Rose</button></div>`)}
+        ${settingsRow('Sistem temasını takip et', 'Mock içinde tercih saklanır.', toggle('autoTheme', state.settings.autoTheme))}
+        ${settingsRow('Motion', 'Shimmer, pulse ve fade animasyonları.', toggle('motion', state.settings.motion))}
+        ${settingsRow('Kompakt yoğunluk', 'Daha sıkı liste ve kart aralıkları.', toggle('compact', state.settings.compact))}
+      </div>`;
+      if (state.settingsTab === 'conversation') return `<div class="panel"><div class="panel-title"><span>Konuşma</span></div>
+        ${settingsRow('Ses tonu', 'Varsayılan Mirror; kullanıcı tonunu aynalar.', `<select class="select" data-action-change="setting" data-key="tone"><option value="mirror" ${state.settings.tone === 'mirror' ? 'selected' : ''}>Mirror</option><option value="formal" ${state.settings.tone === 'formal' ? 'selected' : ''}>Resmi</option><option value="friendly" ${state.settings.tone === 'friendly' ? 'selected' : ''}>Samimi</option></select>`)}
+        ${settingsRow('Yanıt uzunluğu', 'Kısa, Dengeli veya Ayrıntılı.', `<select class="select" data-action-change="setting" data-key="length"><option value="short" ${state.settings.length === 'short' ? 'selected' : ''}>Kısa</option><option value="balanced" ${state.settings.length === 'balanced' ? 'selected' : ''}>Dengeli</option><option value="detailed" ${state.settings.length === 'detailed' ? 'selected' : ''}>Ayrıntılı</option></select>`)}
+        ${settingsRow('Dil', 'Arayüz ve cevap dili.', `<select class="select" data-action-change="setting" data-key="language"><option value="tr" ${state.settings.language === 'tr' ? 'selected' : ''}>Türkçe</option><option value="en" ${state.settings.language === 'en' ? 'selected' : ''}>English</option></select>`)}
+      </div>`;
+      if (state.settingsTab === 'notifications') return `<div class="panel"><div class="panel-title"><span>Bildirimler</span></div>
+        ${settingsRow('Push bildirimleri', 'Onay ve görev bitişleri için.', toggle('pushNotifications', state.settings.pushNotifications))}
+        ${settingsRow('E-posta özetleri', 'Gün sonu kısa çalışma özeti.', toggle('emailNotifications', state.settings.emailNotifications))}
+        ${settingsRow('Sessiz saatler', '22:00–08:00 arasında sadece kritik uyarı.', toggle('quietHours', state.settings.quietHours))}
+      </div>`;
+      if (state.settingsTab === 'privacy') return `<div class="panel"><div class="panel-title"><span>Gizlilik</span></div>
+        ${settingsRow('Öğrenme modu', 'Kişisel tercihleri yerel mock state içinde hatırlar.', toggle('learning', state.settings.learning))}
+        ${settingsRow('Veri saklama', 'Mock konuşma geçmişi süresi.', `<select class="select" data-action-change="setting" data-key="dataRetention"><option value="30" ${state.settings.dataRetention === '30' ? 'selected' : ''}>30 gün</option><option value="90" ${state.settings.dataRetention === '90' ? 'selected' : ''}>90 gün</option><option value="forever" ${state.settings.dataRetention === 'forever' ? 'selected' : ''}>Süresiz</option></select>`)}
+        <div class="approval-actions"><button class="ghost-btn" data-action="export-data">Veriyi dışa aktar</button><button class="danger-btn" data-action="reset-mock">Yerel mock’u sıfırla</button></div>
+      </div>`;
+      return `<div class="panel"><div class="panel-title"><span>Gelişmiş görünüm</span><span class="kbd">Ctrl Shift D</span></div>
+        ${settingsRow('Gelişmiş görünüm', 'Raw tool adı, call_id ve timeline sadece bu modda görünür.', toggle('advanced', state.settings.advanced))}
+        <div class="detail-panel open">run_id: mock_run_42\nactive_device: ${esc(activeDevice().id)}\nmessages: ${state.messages.length}\nnotifications_unread: ${unreadCount()}</div>
+      </div>`;
+    }
+
+    function settingsRow(title, desc, control) {
+      return `<div class="settings-row"><div class="settings-row-text"><strong>${title}</strong><span>${desc}</span></div><div>${control}</div></div>`;
+    }
+    function toggle(key, checked) {
+      return `<label class="toggle"><input type="checkbox" data-action-change="setting" data-key="${key}" ${checked ? 'checked' : ''}><span></span></label>`;
+    }
+
+    function renderAccount() {
+      return `<section class="stage">
+        ${viewHead('Hesap', 'Profil, plan ve oturum işlemleri. Form alanları çalışır ve yerel olarak saklanır.')}
+        <div class="grid-2">
+          <form id="profileForm" class="panel"><div class="panel-title"><span>Profil</span></div>
+            <div class="field"><label for="profileName">Ad soyad</label><input id="profileName" class="input" value="${esc(state.profile.name)}"></div>
+            <div class="field"><label for="profileEmail">E-posta</label><input id="profileEmail" class="input" type="email" value="${esc(state.profile.email)}"></div>
+            <div class="field"><label for="profileCompany">Şirket</label><input id="profileCompany" class="input" value="${esc(state.profile.company)}"></div>
+            <div class="field"><label for="profileRole">Rol</label><input id="profileRole" class="input" value="${esc(state.profile.role)}"></div>
+            <button class="primary-btn" type="submit">Kaydet</button>
+          </form>
+          <div class="panel"><div class="panel-title"><span>Plan ve oturum</span><span class="chip accent">Mock Pro</span></div>
+            <p class="muted small">Aktif oturum: bu tarayıcı. Hesap işlemleri gerçek servis çağrısı yapmadan ürün davranışını gösterir.</p>
+            <div class="chip-row"><button class="ghost-btn" data-action="logout">Çıkış yap</button><button class="danger-btn" data-action="delete-account-mock">Hesabı mock’tan sil</button></div>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function viewHead(title, lead) {
+      return `<div class="view-head"><div><div class="view-kicker">Runa Product Mock</div><h1 class="view-title">${title}</h1><p class="view-lead">${lead}</p></div><div class="chip-row"><span class="chip accent">${esc(activeDevice().name)}</span>${state.settings.advanced ? '<span class="chip warn">Gelişmiş açık</span>' : ''}</div></div>`;
+    }
+
+    function addMessage(message) {
+      state.messages.push({ id: uid('msg'), ...message });
+      state.conversations[0].meta = 'Şimdi · ' + state.messages.length + ' mesaj';
+      state.timeline.push(message.type ? `${message.type} eklendi` : `${message.role || 'agent'} mesajı eklendi`);
+      saveState();
+    }
+
+    function sendChat(text) {
+      const value = (text || $('#chatInput')?.value || '').trim();
+      if (!value) return;
+      if ($('#chatInput')) $('#chatInput').value = '';
+      addMessage({ role: 'user', content: value });
+      addMessage({ role: 'agent', content: 'Düşünüyor', streaming: true });
+      state.currentView = 'chat';
+      render();
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => finishChatResponse(value), 820);
+    }
+
+    function finishChatResponse(value) {
+      const last = state.messages[state.messages.length - 1];
+      if (last && last.streaming) state.messages.pop();
+      const lower = value.toLocaleLowerCase('tr-TR');
+      if (lower.includes('ubuntu')) {
+        state.activeDeviceId = 'ubuntu';
+        addMessage({ type: 'tool', summary: 'Hedef değişti', target: 'Ubuntu Server', detail: 'target: Ubuntu Server\nstatus: online\nBu sohbetin sonraki komutları Ubuntu Server üzerinde çalışır.' });
+        addMessage({ role: 'agent', content: 'Hedefi **Ubuntu Server** olarak değiştirdim. Sohbet aynı kaldı; bundan sonraki terminal işleri orada çalışacak.' });
+      } else if (lower.includes('sil') || lower.includes('rm ') || lower.includes('risk')) {
+        addMessage({ type: 'approval', risk: 'high', status: 'pending', question: 'Kalıcı silme işlemi yapmak istiyorum. Bu geri alınamaz — devam edeyim mi?', target: 'rm ./logs/*.log', approveLabel: 'Yine de sil', detail: 'risk: high\nestimated_size: 193 MB\nbackup: none\ntool: shell.exec\ncall_id: mock_delete_771' });
+      } else if (lower.includes('görsel') || lower.includes('logo') || lower.includes('image')) {
+        const style = randomImageStyle();
+        addMessage({ type: 'tool', summary: 'görsel üretimi hazırlandı', target: activeDevice().name, detail: 'prompt hazırlandı\nstyle: Warm Paper\npreview: generated locally in mock' });
+        addMessage({ type: 'image', content: 'Tamam, sakin bir warm-paper taslak oluşturdum.', prompt: value, style, kind: 'Warm Paper · Line', size: '1024×1024' });
+      } else if (lower.includes('dosya') || lower.includes('oku') || lower.includes('aç')) {
+        addMessage({ type: 'approval', risk: 'low', status: 'pending', question: 'Dosyayı açıp ilgili kısmı gösterebilirim — okumama izin verir misin?', target: 'RUNA-DESIGN-BRIEF.md', detail: 'İstek: dosya okuma\nTool: file.read\ncall_id: mock_read_552' });
+      } else if (activeDevice().status !== 'online') {
+        addMessage({ type: 'error', content: `${activeDevice().name} şu an çevrimdışı. İstersen cihaz çevrimiçi olduğunda otomatik denerim ya da hedefi MacBook Pro’ya alabilirim.`, detail: 'device_status: offline\nlast_seen: 2 saat önce\nrecovery: switch target or retry later' });
+      } else {
+        addMessage({ type: 'tool', summary: '2 komut çalıştırıldı', target: activeDevice().name, detail: '$ git status --short\n M apps/web/src/components/chat/ApprovalBlock.tsx\n M apps/web/src/styles/components.css\n\n$ pnpm test DesignLanguageLock\nPASS 6 checks' });
+        addMessage({ role: 'agent', content: responseFor(value) });
+      }
+      render();
+    }
+
+    function responseFor(value) {
+      const prefix = state.settings.tone === 'formal' ? 'Kontrol ettim.' : state.settings.tone === 'friendly' ? 'Baktım, güzel bir sadeleştirme yolu var.' : 'Baktım.';
+      if (state.settings.length === 'short') return `${prefix} En güvenli yol: tekrar eden çalışma özetini kaldır, approval’ı tek karar satırına indir, detayları sadece kullanıcı açarsa göster.`;
+      if (state.settings.length === 'detailed') return `${prefix} Üç parçalı bir plan öneriyorum:\n\n1. Ana chat’te sadece kullanıcı mesajı, Runa yanıtı, tek satır tool aktivitesi ve düşük profilli approval kalsın.\n2. Cihaz bilgisi header subtitle’ında dursun; ayrı right rail tekrarına gerek yok.\n3. Gelişmiş görünüm açık değilse raw tool adı, call_id ve runtime chip’leri gizlensin.\n\nBu mock’ta aynı kararları uyguladım.`;
+      return `${prefix} Ana önerim: chat akışını birincil yüzey yapalım; tool detayları açılır, onaylar tek karar satırı, cihaz hedefi header’da görünsün. Böylece ürün sakin kalır ama işlem yapılabilir olur.`;
+    }
+
+    function randomImageStyle() {
+      const gradients = [
+        'background: radial-gradient(circle at 28% 20%, var(--accent-2), transparent 23%), radial-gradient(circle at 68% 70%, var(--accent), transparent 24%), linear-gradient(135deg, var(--surface-3), var(--accent-bg));',
+        'background: radial-gradient(circle at 50% 35%, var(--status), transparent 25%), linear-gradient(145deg, var(--accent-bg), var(--surface-1));',
+        'background: conic-gradient(from 220deg at 50% 50%, var(--surface-3), var(--accent), var(--accent-2), var(--surface-2), var(--surface-3));',
+        'background: linear-gradient(135deg, var(--surface-1), var(--surface-3) 45%, var(--accent-bg));'
+      ];
+      return gradients[Math.floor(Math.random() * gradients.length)];
+    }
+
+    function generateImageFromForm() {
+      const prompt = $('#imgPrompt').value.trim() || 'warm paper memory mark';
+      const style = randomImageStyle();
+      const img = { id: uid('img'), prompt, style, created: 'Şimdi' };
+      state.generatedImages.unshift(img);
+      addNotification('system', 'Görsel üretildi', 'Yeni taslak çıktı olarak kaydedildi.', true);
+      toast('Görsel hazır', 'Önizleme çıktılar bölümüne eklendi.');
+      render();
+    }
+
+    function addNotification(type, title, body, unread = true) {
+      state.notifications.unshift({ id: uid('n'), type, title, body, unread, time: 'Şimdi' });
+    }
+
+    function approveMessage(id) {
+      const msg = state.messages.find(m => m.id === id);
+      if (!msg) return;
+      msg.status = 'approved';
+      if (msg.risk === 'high') {
+        addMessage({ type: 'tool', summary: 'silme simülasyonu tamamlandı', target: activeDevice().name, detail: '$ rm ./logs/*.log\nremoved 17 mock log files\nfreed 193 MB' });
+        addMessage({ role: 'agent', content: 'İşlemi mock ortamında tamamladım. Gerçek üründe bu adım geri alınamaz olduğu için işlem öncesi son bir özet daha gösterilir.' });
+      } else {
+        addMessage({ type: 'tool', summary: 'dosya okundu', target: activeDevice().name, open: true, detail: 'RUNA-DESIGN-BRIEF.md\n- Runa çok cihazlı AI iş ortağıdır.\n- Ana chat varsayılan yüzeydir.\n- Tool aktivitesi tek satırdır.\n- Gelişmiş detaylar isteğe bağlıdır.' });
+        addMessage({ role: 'agent', content: 'İlgili kısım şu: Runa’nın ana yüzeyi sohbet olmalı; cihaz ve çalışma detayları sohbeti boğmadan, kısa satırlar ve gerektiğinde açılan detaylar olarak kalmalı.' });
+      }
+      toast('Onaylandı', 'Akış devam etti.');
+      render();
+    }
+
+    function rejectMessage(id) {
+      const msg = state.messages.find(m => m.id === id);
+      if (!msg) return;
+      msg.status = 'rejected';
+      addMessage({ role: 'agent', content: 'Tamam, bu işlemi yapmıyorum. İstersen aynı hedef için sadece özet çıkarabilirim.' });
+      toast('Vazgeçildi', 'İşlem çalıştırılmadı.');
+      render();
+    }
+
+    function toast(title, body = '') {
+      const stack = $('#toastStack');
+      const node = document.createElement('div');
+      node.className = 'toast';
+      node.innerHTML = `${markSvg('runa-mark', 'micro', 'brand')}<div><strong>${esc(title)}</strong>${body ? `<span>${esc(body)}</span>` : ''}</div>`;
+      stack.appendChild(node);
+      setTimeout(() => node.remove(), 3600);
+    }
+
+    function showModal(title, body, foot = '') {
+      $('#modalRoot').innerHTML = `<div class="modal-head"><div class="modal-title" id="modalTitle">${title}</div><button class="icon-btn" data-action="close-modal">×</button></div><div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ''}`;
+      $('#modalBackdrop').classList.add('open');
+      $('#modalRoot').classList.add('open');
+    }
+    function closeModal() { $('#modalBackdrop').classList.remove('open'); $('#modalRoot').classList.remove('open'); }
+
+    function openSheet(name) {
+      let title = 'Menü', body = '';
+      if (name === 'menu') {
+        body = `<div class="sheet-list">${navItems().map(([view, icon, label, badge]) => `<button class="sheet-item" data-action="nav" data-view="${view}"><span>${icon} ${label}</span>${badge ? `<span class="nav-badge">${badge}</span>` : '<span>›</span>'}</button>`).join('')}<button class="sheet-item" data-action="nav" data-view="account"><span>◌ Hesap</span><span>›</span></button><button class="sheet-item" data-action="toggle-advanced"><span>◆ Gelişmiş görünüm</span><span>${state.settings.advanced ? 'Açık' : 'Kapalı'}</span></button></div>`;
+      }
+      if (name === 'history') {
+        title = 'Geçmiş';
+        body = `<div class="sheet-list"><button class="sheet-item" data-action="new-chat"><span>+ Yeni sohbet</span><span>›</span></button>${state.conversations.map(c => `<button class="sheet-item" data-action="open-conversation" data-id="${c.id}"><span>${esc(c.title)}<br><small class="muted">${esc(c.meta)}</small></span><span>›</span></button>`).join('')}</div>`;
+      }
+      if (name === 'devices') {
+        title = 'Cihazlar';
+        body = `<div class="sheet-list">${state.devices.map(d => `<button class="sheet-item" data-action="select-device" data-id="${d.id}"><span>${d.icon} ${esc(d.name)}<br><small class="muted">${d.status === 'online' ? 'çevrimiçi' : 'çevrimdışı'} · ${esc(d.kind)}</small></span><span>${state.activeDeviceId === d.id ? 'aktif' : '›'}</span></button>`).join('')}</div>`;
+      }
+      if (name === 'attach') {
+        title = 'Ekle';
+        body = `<div class="sheet-list"><button class="sheet-item" data-action="open-file-picker"><span>▤ Dosya yükle</span><span>›</span></button><button class="sheet-item" data-action="nav" data-view="images"><span>✦ Görsel üret</span><span>›</span></button><button class="sheet-item" data-action="open-sheet" data-sheet="devices"><span>▭ Hedef cihaz seç</span><span>${esc(activeDevice().name)}</span></button><button class="sheet-item" data-action="request-read-approval"><span>✓ Okuma onayı dene</span><span>›</span></button></div>`;
+      }
+      $('#sheetRoot').innerHTML = `<div class="sheet-head"><div class="sheet-title">${title}</div><button class="icon-btn" data-action="close-sheet">×</button></div><div class="sheet-body">${body}</div>`;
+      $('#sheetBackdrop').classList.add('open');
+      $('#sheetRoot').classList.add('open');
+    }
+    function closeSheet() { $('#sheetBackdrop').classList.remove('open'); $('#sheetRoot').classList.remove('open'); }
+
+    const commands = [
+      ['chat', '💬 Sohbete git', 'Ana chat yüzeyi'], ['images', '✦ Görsel üret', 'Görsel üretim paneli'], ['files', '▤ Dosyalar', 'Dosya ve diff akışı'], ['devices', '▭ Cihazlar', 'Hedef cihaz seç'], ['settings', '⚙ Ayarlar', 'Tema ve gelişmiş görünüm'], ['notifications', '🔔 Bildirimler', 'Onay ve hatırlatmalar'], ['new-chat', '+ Yeni sohbet', 'Boş sohbet aç'], ['advanced', '◆ Gelişmiş görünüm', 'Aç / kapat']
+    ];
+    function openCommandPalette() {
+      $('#paletteBackdrop').classList.add('open'); $('#commandPalette').classList.add('open'); $('#commandInput').value = ''; renderCommandList(''); setTimeout(() => $('#commandInput').focus(), 20);
+    }
+    function closeCommandPalette() { $('#paletteBackdrop').classList.remove('open'); $('#commandPalette').classList.remove('open'); }
+    function renderCommandList(q) {
+      const query = q.toLocaleLowerCase('tr-TR');
+      const list = commands.filter(c => c.join(' ').toLocaleLowerCase('tr-TR').includes(query));
+      $('#commandList').innerHTML = list.map(c => `<button class="palette-item" data-action="command" data-command="${c[0]}"><span>${c[1].split(' ')[0]}</span><span>${esc(c[1].replace(/^. /,''))}<br><small>${esc(c[2])}</small></span><span>↵</span></button>`).join('') || '<div class="muted" style="padding:16px">Sonuç yok</div>';
+    }
+
+    function handleCommand(cmd) {
+      if (cmd === 'new-chat') newChat();
+      else if (cmd === 'advanced') { state.settings.advanced = !state.settings.advanced; toast('Gelişmiş görünüm', state.settings.advanced ? 'Açıldı' : 'Kapandı'); render(); }
+      else { state.currentView = cmd; render(); }
+      closeCommandPalette(); closeSheet();
+    }
+
+    function newChat() {
+      const id = uid('conv');
+      state.conversations.unshift({ id, title: 'Yeni sohbet', meta: 'Şimdi · 1 mesaj' });
+      state.activeConversationId = id;
+      state.messages = [{ id: uid('m'), role: 'agent', content: 'Yeni sohbet hazır. Hangi cihazda ne yapmamı istersin?' }];
+      state.currentView = 'chat';
+      toast('Yeni sohbet', 'Boş sohbet açıldı.');
+      render();
+    }
+
+    function selectDevice(id) {
+      const device = state.devices.find(d => d.id === id);
+      if (!device) return;
+      if (device.status !== 'online') { toast('Cihaz çevrimdışı', `${device.name} son görüldü: ${device.last}`); return; }
+      state.activeDeviceId = id;
+      addMessage({ type: 'tool', summary: 'Hedef değişti', target: device.name, detail: `target: ${device.name}\nstatus: online\ncapabilities: ${device.capabilities.join(', ')}` });
+      toast('Hedef değişti', `${device.name} üzerinde çalışılacak.`);
+      closeSheet(); render();
+    }
+
+    function showAddDevice() {
+      showModal('Cihaz ekle', `<p class="muted">QR kod veya pairing code yok. Yeni cihazda Runa’yı açıp aynı hesapla giriş yapman yeterli; cihaz otomatik görünür.</p><div class="grid-3" style="margin-top:14px"><div class="choice-card selected"><div class="choice-icon">▭</div><div class="choice-title">Mac / Windows</div><div class="choice-desc">Masaüstü uygulamasını indir ve giriş yap.</div></div><div class="choice-card selected"><div class="choice-icon">⌷</div><div class="choice-title">Linux / Server</div><div class="choice-desc">CLI ajanı kur, aynı hesapla başlat.</div></div><div class="choice-card selected"><div class="choice-icon">📱</div><div class="choice-title">Telefon</div><div class="choice-desc">Mobil uygulamada aynı hesap yeterli.</div></div></div>`, `<button class="ghost-btn" data-action="close-modal">Kapat</button><button class="primary-btn" data-action="simulate-add-device">Demo cihaz ekle</button>`);
+    }
+
+    function addDemoDevice() {
+      const id = uid('device');
+      state.devices.push({ id, icon: '▭', name: 'Studio Mac mini', kind: 'macOS', status: 'online', current: false, last: 'Şimdi', os: 'macOS 15', capabilities: ['Terminal', 'Dosya', 'Görsel'] });
+      closeModal(); toast('Cihaz eklendi', 'Studio Mac mini çevrimiçi görünüyor.'); render();
+    }
+
+    function requestReadApproval() {
+      state.currentView = 'chat';
+      addMessage({ type: 'approval', risk: 'low', status: 'pending', question: 'Seçili dosyaları okuyup kısa özet çıkarabilirim — izin verir misin?', target: state.files.filter(f => f.selected).map(f => f.name).join(', ') || 'RUNA-DESIGN-BRIEF.md', detail: 'tool: file.read\ncall_id: mock_batch_read_91' });
+      closeSheet(); render();
+    }
+    function requestDangerApproval() {
+      state.currentView = 'chat';
+      addMessage({ type: 'approval', risk: 'high', status: 'pending', question: 'Seçili geçici dosyaları kalıcı olarak silmek istiyorum. Devam edeyim mi?', target: 'rm ./tmp/runa-preview-*', approveLabel: 'Yine de sil', detail: 'tool: shell.exec\nrisk: destructive\ncall_id: mock_high_662' });
+      render();
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'runa-mock-state.json'; a.click(); URL.revokeObjectURL(url);
+      toast('Dışa aktarıldı', 'Mock state JSON olarak indirildi.');
+    }
+
+    document.addEventListener('click', event => {
+      const el = event.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+      if (action === 'auth-tab') { state.authMode = el.dataset.mode; render(); }
+      if (action === 'fill-demo-auth') { $('#authEmail').value = 'deniz@runa.local'; $('#authPassword').value = 'runa-demo'; toast('Demo bilgiler dolduruldu'); }
+      if (action === 'demo-login' || action === 'oauth') { state.auth = true; state.onboarding = true; state.onboardingStep = 0; if (el.dataset.advanced) state.settings.advanced = true; toast(action === 'oauth' ? `${el.dataset.provider} ile giriş simüle edildi` : 'Demo açılıyor'); render(); }
+      if (action === 'reset-mock') { localStorage.removeItem(STORAGE_KEY); state = defaultState(); toast('Sıfırlandı', 'Mock başlangıç haline döndü.'); render(); }
+      if (action === 'onboarding-next') { if (state.onboardingStep < 2) state.onboardingStep += 1; else { state.onboarding = false; state.auth = true; state.settings.tone = state.onboardingPrefs.tone || state.settings.tone; toast('Runa hazır', 'Tüm mock akışları açıldı.'); } render(); }
+      if (action === 'onboarding-back') { if (state.onboardingStep === 0) { state.onboarding = false; state.auth = true; } else state.onboardingStep -= 1; render(); }
+      if (action === 'onboarding-pref') { const key = el.dataset.key; state.onboardingPrefs[key] = el.dataset.value; if (key === 'tone') state.settings.tone = el.dataset.value; render(); }
+      if (action === 'set-length') { state.settings.length = el.dataset.value; render(); }
+      if (action === 'nav') { state.currentView = el.dataset.view; closeSheet(); render(); }
+      if (action === 'open-command') openCommandPalette();
+      if (action === 'close-command') closeCommandPalette();
+      if (action === 'command') handleCommand(el.dataset.command);
+      if (action === 'new-chat') { closeSheet(); newChat(); }
+      if (action === 'open-conversation') { state.activeConversationId = el.dataset.id; state.currentView = 'chat'; closeSheet(); toast('Sohbet açıldı'); render(); }
+      if (action === 'toggle-advanced') { state.settings.advanced = !state.settings.advanced; toast('Gelişmiş görünüm', state.settings.advanced ? 'Açıldı' : 'Kapandı'); closeSheet(); render(); }
+      if (action === 'open-sheet') openSheet(el.dataset.sheet);
+      if (action === 'close-sheet') closeSheet();
+      if (action === 'close-modal') closeModal();
+      if (action === 'suggest') sendChat(el.dataset.text);
+      if (action === 'toggle-message') { const msg = state.messages.find(m => m.id === el.dataset.id); if (msg) msg.open = !msg.open; render(); }
+      if (action === 'approval-approve') approveMessage(el.dataset.id);
+      if (action === 'approval-reject') rejectMessage(el.dataset.id);
+      if (action === 'undo-approval') { const msg = state.messages.find(m => m.id === el.dataset.id); if (msg) msg.status = 'pending'; render(); }
+      if (action === 'retry-last') { toast('Yeniden denendi', 'Mock cihaz/komut yeniden tetiklendi.'); addMessage({ role: 'agent', content: 'Yeniden denedim; MacBook Pro hedefinde sorun görünmüyor.' }); render(); }
+      if (action === 'set-theme') { state.settings.theme = el.dataset.theme; toast('Tema değişti'); render(); }
+      if (action === 'settings-tab') { state.settingsTab = el.dataset.tab; render(); }
+      if (action === 'show-add-device') showAddDevice();
+      if (action === 'simulate-add-device') addDemoDevice();
+      if (action === 'select-device') selectDevice(el.dataset.id);
+      if (action === 'retry-device') { toast('Bağlantı denendi', 'Cihaz çevrimiçi olduğunda haber verilecek.'); addNotification('device', 'Cihaz izleniyor', 'Windows PC çevrimiçi olunca tekrar denenecek.', true); render(); }
+      if (action === 'device-details') { const d = state.devices.find(x => x.id === el.dataset.id); showModal(d.name, `<div class="device-card active"><span class="device-icon">${d.icon}</span><div><div class="device-title">${esc(d.name)}</div><div class="device-meta">${esc(d.status)} · ${esc(d.os)} · ${esc(d.last)}</div><div class="chip-row">${d.capabilities.map(c => `<span class="chip">${esc(c)}</span>`).join('')}</div></div></div>`, '<button class="primary-btn" data-action="close-modal">Tamam</button>'); }
+      if (action === 'simulate-device-online') { const d = state.devices.find(x => x.id === 'windows'); d.status = 'online'; d.last = 'Şimdi'; toast('Windows PC çevrimiçi', 'Artık hedef seçilebilir.'); render(); }
+      if (action === 'open-file-picker') $('#fileInput').click();
+      if (action === 'select-all-files') { const all = state.files.some(f => !f.selected); state.files.forEach(f => f.selected = all); render(); }
+      if (action === 'read-file') { const file = state.files.find(f => f.id === el.dataset.id); state.currentView = 'chat'; addMessage({ type: 'approval', risk: 'low', status: 'pending', question: `${file.name} dosyasını okuyabilirim — izin verir misin?`, target: file.name, detail: 'tool: file.read\ncall_id: mock_file_read' }); render(); }
+      if (action === 'summarize-file') { const file = state.files.find(f => f.id === el.dataset.id); state.currentView = 'chat'; addMessage({ role: 'user', content: `${file.name} dosyasını özetle` }); addMessage({ role: 'agent', content: `${file.name} için kısa özet: ana kararlar chat-first yüzey, sakin approval ve cihaz hedefinin header’da gösterilmesi etrafında toplanıyor.` }); render(); }
+      if (action === 'summarize-selected') { const count = state.files.filter(f => f.selected).length; state.currentView = 'chat'; addMessage({ role: 'agent', content: `${count} dosya için ortak özet: tasarım dili Warm Paper/Ember, ürün modeli çok cihazlı chat companion, ana disiplin ise debug detaylarını varsayılanda gizlemek.` }); render(); }
+      if (action === 'request-read-approval') requestReadApproval();
+      if (action === 'request-danger-approval') requestDangerApproval();
+      if (action === 'segment') { const parent = el.closest('.segmented'); parent.querySelectorAll('button').forEach(b => b.classList.remove('active')); el.classList.add('active'); }
+      if (action === 'clear-images') { state.generatedImages = []; toast('Çıktılar temizlendi'); render(); }
+      if (action === 'image-to-chat') { const img = state.generatedImages.find(i => i.id === el.dataset.id); state.currentView = 'chat'; addMessage({ type: 'image', content: 'Bu görseli sohbet akışına ekledim.', prompt: img.prompt, style: img.style, kind: 'Generated Mock', size: '1024×1024' }); render(); }
+      if (action === 'save-generated') { addMessage({ type: 'approval', risk: 'low', status: 'pending', question: 'Bu çıktıyı proje dosyalarına kaydedebilirim — izin verir misin?', target: 'assets/runa-generated-preview.png', detail: 'tool: file.write\ncall_id: mock_save_image' }); state.currentView = 'chat'; toast('Kaydetme onayı istendi'); render(); }
+      if (action === 'variation') { const msg = state.messages.find(m => m.id === el.dataset.id); if (msg) { msg.style = randomImageStyle(); toast('Varyasyon üretildi'); render(); } }
+      if (action === 'download-mock') toast('İndirme hazır', 'Mock ortamında indirme simüle edildi.');
+      if (action === 'notif-filter') { state.notificationFilter = el.dataset.filter; render(); }
+      if (action === 'mark-all-read') { state.notifications.forEach(n => n.unread = false); toast('Bildirimler okundu'); render(); }
+      if (action === 'open-notif') { const n = state.notifications.find(x => x.id === el.dataset.id); n.unread = false; if (n.type === 'approval') state.currentView = 'chat'; toast(n.title, n.body); render(); }
+      if (action === 'snooze-notif') { const n = state.notifications.find(x => x.id === el.dataset.id); n.unread = false; state.reminders.push({ title: n.title, at: '1 saat sonra' }); toast('Ertelendi', '1 saat sonra hatırlatılacak.'); render(); }
+      if (action === 'new-reminder') showModal('Hatırlatma ekle', `<form id="reminderForm"><div class="field"><label>Başlık</label><input class="input" id="reminderTitle" value="Launch kontrolü"></div><div class="field"><label>Zaman</label><input class="input" id="reminderTime" value="Bugün 16:00"></div><button class="primary-btn" type="submit">Ekle</button></form>`);
+      if (action === 'export-data') exportData();
+      if (action === 'logout') { state.auth = false; state.onboarding = false; toast('Çıkış yapıldı'); render(); }
+      if (action === 'delete-account-mock') { localStorage.removeItem(STORAGE_KEY); state = defaultState(); toast('Mock hesap silindi'); render(); }
+    });
+
+    document.addEventListener('submit', event => {
+      if (event.target.id === 'authForm') {
+        event.preventDefault();
+        const email = $('#authEmail').value.trim(); const password = $('#authPassword').value.trim();
+        if (!email.includes('@') || password.length < 4) { const e = $('#authError'); e.textContent = 'E-posta ve şifre alanlarını kontrol et.'; e.classList.add('show'); return; }
+        state.profile.email = email; if ($('#authName')) state.profile.name = $('#authName').value.trim() || state.profile.name;
+        state.auth = true; state.onboarding = state.authMode === 'signup'; state.onboardingStep = 0;
+        toast(state.authMode === 'signup' ? 'Hesap oluşturuldu' : 'Giriş yapıldı', state.onboarding ? 'Kısa kurulum başlıyor.' : 'Runa hazır.'); render();
+      }
+      if (event.target.id === 'chatForm') { event.preventDefault(); sendChat(); }
+      if (event.target.id === 'imageForm') { event.preventDefault(); generateImageFromForm(); }
+      if (event.target.id === 'profileForm') { event.preventDefault(); state.profile.name = $('#profileName').value; state.profile.email = $('#profileEmail').value; state.profile.company = $('#profileCompany').value; state.profile.role = $('#profileRole').value; toast('Profil kaydedildi'); render(); }
+      if (event.target.id === 'reminderForm') { event.preventDefault(); const title = $('#reminderTitle').value; const at = $('#reminderTime').value; state.notifications.unshift({ id: uid('n'), type: 'reminder', unread: true, title, body: `${at} için hatırlatma`, time: 'Şimdi' }); closeModal(); toast('Hatırlatma eklendi'); render(); }
+    });
+
+    document.addEventListener('change', event => {
+      const el = event.target;
+      if (el.dataset.actionChange === 'setting') { const key = el.dataset.key; state.settings[key] = el.type === 'checkbox' ? el.checked : el.value; if (key === 'advanced') toast('Gelişmiş görünüm', el.checked ? 'Açıldı' : 'Kapandı'); render(); }
+      if (el.dataset.actionChange === 'toggle-file') { const f = state.files.find(file => file.id === el.dataset.id); if (f) f.selected = el.checked; render(); }
+    });
+
+    document.addEventListener('input', event => {
+      if (event.target.id === 'commandInput') renderCommandList(event.target.value);
+      if (event.target.id === 'imgQuality') $('#qualityLabel').textContent = event.target.value;
+      if (event.target.id === 'fileSearch') {
+        const q = event.target.value.toLocaleLowerCase('tr-TR');
+        $$('[data-file-row]').forEach(row => { const file = state.files.find(f => f.id === row.dataset.fileRow); row.style.display = file.name.toLocaleLowerCase('tr-TR').includes(q) ? '' : 'none'; });
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openCommandPalette(); }
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); state.settings.advanced = !state.settings.advanced; toast('Gelişmiş görünüm', state.settings.advanced ? 'Açıldı' : 'Kapandı'); render(); }
+      if (event.key === 'Escape') { closeCommandPalette(); closeModal(); closeSheet(); }
+      if (event.key === 'Enter' && $('#commandPalette').classList.contains('open') && document.activeElement === $('#commandInput')) { const first = $('#commandList [data-command]'); if (first) first.click(); }
+    });
+
+    $('#fileInput').addEventListener('change', event => {
+      const files = Array.from(event.target.files || []);
+      files.forEach(file => state.files.unshift({ id: uid('f'), name: file.name, type: file.type || 'Dosya', size: Math.ceil(file.size / 1024) + ' KB', modified: 'Şimdi', selected: true }));
+      if (files.length) { toast('Dosya yüklendi', `${files.length} dosya listeye eklendi.`); state.currentView = 'files'; render(); }
+      event.target.value = '';
+    });
+
+    render();
+  </script>
+</body>
+</html>

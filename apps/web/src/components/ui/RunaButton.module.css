@@ -1,6 +1,6 @@
-.button {
+﻿.button {
 	align-items: center;
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	cursor: pointer;
 	display: inline-flex;
 	font-weight: 600;
@@ -23,14 +23,14 @@
 }
 
 .primary {
-	background: hsl(var(--color-primary));
+	background: var(--accent);
 	border: 0;
 	box-shadow: none;
 	color: var(--text-on-primary);
 }
 
 .secondary {
-	background: var(--gradient-secondary-button);
+	background: var(--surface-2);
 	border: 1px solid var(--border-default);
 	box-shadow: none;
 	color: var(--text-primary);

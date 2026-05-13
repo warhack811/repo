@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runa — Çalışan Mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ============ THEME TOKENS ============ */
+  :root {
+    /* Default: Ember Dark */
+    --surface-1: #14110D;
+    --surface-2: #1E1A14;
+    --surface-3: #2A241C;
+    --surface-overlay: rgba(20, 17, 13, 0.85);
+    --ink-1: #E8DFCD;
+    --ink-2: #B9AE99;
+    --ink-3: #847866;
+    --accent: #E0805C;
+    --accent-2: #F4A876;
+    --accent-bg: #2A1E15;
+    --status: #8FA277;
+    --status-warm: #C7916B;
+    --error: #C97064;
+    --error-bg: #2A1A18;
+    --warn: #D4A055;
+    --warn-bg: #2A2118;
+    --user-bg: #E8DFCD;
+    --user-fg: #14110D;
+    --hairline: rgba(232, 223, 205, 0.08);
+  }
+
+  .theme-ember-dark {
+    --surface-1: #14110D; --surface-2: #1E1A14; --surface-3: #2A241C;
+    --surface-overlay: rgba(20, 17, 13, 0.85);
+    --ink-1: #E8DFCD; --ink-2: #B9AE99; --ink-3: #847866;
+    --accent: #E0805C; --accent-2: #F4A876; --accent-bg: #2A1E15;
+    --status: #8FA277; --status-warm: #C7916B;
+    --error: #C97064; --error-bg: #2A1A18;
+    --warn: #D4A055; --warn-bg: #2A2118;
+    --user-bg: #E8DFCD; --user-fg: #14110D;
+    --hairline: rgba(232, 223, 205, 0.08);
+  }
+  .theme-ember-light {
+    --surface-1: #F6F1E8; --surface-2: #EDE6D6; --surface-3: #DFD5BE;
+    --surface-overlay: rgba(246, 241, 232, 0.85);
+    --ink-1: #1F1B16; --ink-2: #3A332A; --ink-3: #6E6356;
+    --accent: #B85A3C; --accent-2: #D97757; --accent-bg: #F0E0D2;
+    --status: #6B7A5C; --status-warm: #B85A3C;
+    --error: #A14638; --error-bg: #F2E0DC;
+    --warn: #9E6F2A; --warn-bg: #F2EAD7;
+    --user-bg: #1F1B16; --user-fg: #F6F1E8;
+    --hairline: rgba(31, 27, 22, 0.1);
+  }
+  .theme-sage-dark {
+    --surface-1: #0F1410; --surface-2: #161D18; --surface-3: #1F2823;
+    --surface-overlay: rgba(15, 20, 16, 0.85);
+    --ink-1: #DEE3D7; --ink-2: #A8AFA0; --ink-3: #7A8074;
+    --accent: #7A9B6F; --accent-2: #9FBC93; --accent-bg: #1B2620;
+    --status: #C7916B; --status-warm: #9FBC93;
+    --error: #C97064; --error-bg: #2A1A18;
+    --warn: #D4A055; --warn-bg: #2A2118;
+    --user-bg: #DEE3D7; --user-fg: #0F1410;
+    --hairline: rgba(222, 227, 215, 0.08);
+  }
+  .theme-slate-dark {
+    --surface-1: #0E1116; --surface-2: #161A21; --surface-3: #1F242D;
+    --surface-overlay: rgba(14, 17, 22, 0.85);
+    --ink-1: #D8DEE9; --ink-2: #A0A8B5; --ink-3: #707684;
+    --accent: #7A95B8; --accent-2: #9FB5D2; --accent-bg: #1A2330;
+    --status: #8FA8A0; --status-warm: #9FB5D2;
+    --error: #C97064; --error-bg: #2A1A18;
+    --warn: #D4A055; --warn-bg: #2A2118;
+    --user-bg: #D8DEE9; --user-fg: #0E1116;
+    --hairline: rgba(216, 222, 233, 0.08);
+  }
+  .theme-plum-dark {
+    --surface-1: #14101A; --surface-2: #1D1825; --surface-3: #2A2333;
+    --surface-overlay: rgba(20, 16, 26, 0.85);
+    --ink-1: #E3DCEA; --ink-2: #ADA4B8; --ink-3: #7E7689;
+    --accent: #A287B5; --accent-2: #C0A8D0; --accent-bg: #271F33;
+    --status: #8FA277; --status-warm: #C0A8D0;
+    --error: #C97064; --error-bg: #2A1A18;
+    --warn: #D4A055; --warn-bg: #2A2118;
+    --user-bg: #E3DCEA; --user-fg: #14101A;
+    --hairline: rgba(227, 220, 234, 0.08);
+  }
+  .theme-sand-dark {
+    --surface-1: #15120D; --surface-2: #1F1B15; --surface-3: #2B261D;
+    --surface-overlay: rgba(21, 18, 13, 0.85);
+    --ink-1: #E8E0CC; --ink-2: #B5AC97; --ink-3: #7F7765;
+    --accent: #C9A878; --accent-2: #DEBE92; --accent-bg: #2A2218;
+    --status: #8FA277; --status-warm: #DEBE92;
+    --error: #C97064; --error-bg: #2A1A18;
+    --warn: #D4A055; --warn-bg: #2A2118;
+    --user-bg: #E8E0CC; --user-fg: #15120D;
+    --hairline: rgba(232, 224, 204, 0.08);
+  }
+  .theme-rose-dark {
+    --surface-1: #18110F; --surface-2: #211719; --surface-3: #2E2122;
+    --surface-overlay: rgba(24, 17, 15, 0.85);
+    --ink-1: #EFDCD8; --ink-2: #C2A8A5; --ink-3: #8A7370;
+    --accent: #D88C8C; --accent-2: #ECAAA8; --accent-bg: #2D1D1F;
+    --status: #B5A87A; --status-warm: #ECAAA8;
+    --error: #C97064; --error-bg: #2A1A18;
+    --warn: #D4A055; --warn-bg: #2A2118;
+    --user-bg: #EFDCD8; --user-fg: #18110F;
+    --hairline: rgba(239, 220, 216, 0.08);
+  }
+
+  html, body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ PAGE LAYOUT ============ */
+  .page-header {
+    padding: 56px 24px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .page-header .eyebrow {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .page-header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 52px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    line-height: 1.05;
+  }
+  .page-header p {
+    color: #aaa;
+    font-size: 16px;
+    max-width: 760px;
+    line-height: 1.6;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1f1f1f;
+    padding: 12px 24px;
+    z-index: 100;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .nav button {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #aaa;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .nav button:hover { color: #fff; border-color: #3a3a3a; }
+  .nav button.active { background: #fff; color: #000; border-color: #fff; }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px 120px;
+  }
+
+  section.block { margin-bottom: 80px; scroll-margin-top: 72px; }
+  h2.section-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .section-meta {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 18px;
+  }
+  .section-lead {
+    color: #c8c8c8;
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 760px;
+    margin-bottom: 28px;
+  }
+  .section-lead strong { color: #fff; font-weight: 500; }
+
+  /* ============ THEME PICKER (above mocks) ============ */
+  .theme-picker {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .theme-picker .label {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 8px;
+  }
+  .theme-btn {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #aaa;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .theme-btn .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .theme-btn.active { background: #fff; color: #000; border-color: #fff; }
+  .theme-btn:hover:not(.active) { color: #fff; border-color: #3a3a3a; }
+
+  /* ============ ANIMATIONS ============ */
+  @keyframes shimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+  .shimmer-text {
+    background: linear-gradient(90deg, var(--ink-3) 0%, var(--ink-1) 50%, var(--ink-3) 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 2.5s linear infinite;
+    font-weight: 500;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    70% { box-shadow: 0 0 0 6px transparent; opacity: 0.7; }
+    100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(100%); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+    to { opacity: 1; transform: translateY(0); max-height: 500px; }
+  }
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* ============ MOCK FRAMES ============ */
+  .mocks-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (min-width: 1100px) {
+    .mocks-row { grid-template-columns: 390px 1fr; }
+  }
+
+  /* Mobile Frame */
+  .mobile-frame {
+    width: 390px;
+    height: 820px;
+    border: 1px solid #2a2a2a;
+    border-radius: 36px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: var(--surface-1);
+    color: var(--ink-1);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    margin: 0 auto;
+  }
+  .mobile-notch {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 26px;
+    background: #000;
+    border-radius: 999px;
+    z-index: 50;
+  }
+  .mobile-status-bar {
+    padding: 14px 22px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ink-1);
+    flex-shrink: 0;
+  }
+  .mobile-status-bar .icons {
+    display: flex;
+    gap: 5px;
+    font-size: 11px;
+    align-items: center;
+  }
+
+  /* Desktop Frame */
+  .desktop-frame {
+    background: var(--surface-1);
+    color: var(--ink-1);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+    height: 820px;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  }
+  .desktop-titlebar {
+    grid-column: 1 / -1;
+    padding: 10px 16px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .desktop-titlebar .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .desktop-titlebar .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .desktop-titlebar .dot.red { background: #ff5f57; }
+  .desktop-titlebar .dot.yellow { background: #febc2e; }
+  .desktop-titlebar .dot.green { background: #28c840; }
+  .desktop-titlebar .title {
+    color: #888;
+    font-size: 12px;
+    margin-left: 8px;
+  }
+
+  /* ============ SIGNATURE MARK ============ */
+  .sig {
+    display: inline-block;
+    vertical-align: -2px;
+  }
+  .sig svg { width: 100%; height: 100%; }
+
+  /* ============ MOBILE COMPONENTS ============ */
+  .m-header {
+    padding: 14px 18px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--surface-3);
+    flex-shrink: 0;
+  }
+  .m-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .m-back, .m-menu {
+    color: var(--ink-2);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .m-title-block { display: flex; flex-direction: column; }
+  .m-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 19px;
+    line-height: 1.1;
+    color: var(--ink-1);
+  }
+  .m-subtitle {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .m-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 18px 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
+  }
+  .m-body::-webkit-scrollbar { width: 4px; }
+  .m-body::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
+
+  .time-divider {
+    align-self: center;
+    font-size: 10px;
+    color: var(--ink-3);
+    padding: 4px 10px;
+    letter-spacing: 0.05em;
+  }
+  .m-user {
+    align-self: flex-end;
+    max-width: 80%;
+    padding: 9px 14px;
+    background: var(--user-bg);
+    color: var(--user-fg);
+    border-radius: 18px 18px 4px 18px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    animation: fadeInUp 0.3s ease-out;
+  }
+  .m-agent {
+    align-self: flex-start;
+    max-width: 100%;
+    color: var(--ink-1);
+    font-size: 14.5px;
+    line-height: 1.6;
+    animation: fadeInUp 0.4s ease-out;
+  }
+  .m-agent-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 3px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .m-agent-header .sig {
+    width: 13px;
+    height: 13px;
+    color: var(--accent);
+  }
+  .m-agent-content strong { color: var(--accent); font-weight: 500; }
+
+  .tool-line {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-3);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    margin: -8px 0 0 0;
+    cursor: pointer;
+    padding: 4px 0;
+    user-select: none;
+  }
+  .tool-line:hover { color: var(--ink-2); }
+  .tool-line-dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .tool-line-chevron {
+    opacity: 0.4;
+    font-size: 9px;
+    transition: transform 0.2s;
+  }
+  .tool-line.open .tool-line-chevron { transform: rotate(90deg); }
+  .tool-detail {
+    margin: 4px 0 0;
+    padding: 14px;
+    background: var(--surface-2);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    line-height: 1.6;
+    overflow-x: auto;
+    animation: slideDown 0.25s ease-out;
+  }
+  .tool-detail.terminal { color: var(--ink-1); }
+  .tool-detail .prompt { color: var(--accent); }
+  .tool-detail .comment { color: var(--ink-3); }
+  .tool-detail .diff-add { color: var(--status); display: block; }
+  .tool-detail .diff-del { color: var(--error); display: block; }
+  .tool-detail .diff-ctx { color: var(--ink-3); display: block; }
+
+  /* Approval inline */
+  .approval {
+    align-self: flex-start;
+    max-width: 100%;
+    animation: fadeInUp 0.4s ease-out;
+  }
+  .approval-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 3px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .approval-header .sig {
+    width: 13px;
+    height: 13px;
+    color: var(--accent);
+  }
+  .approval-text { font-size: 14.5px; line-height: 1.5; color: var(--ink-1); }
+  .approval-target {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 3px 8px;
+    border-radius: 5px;
+    margin: 8px 0 0;
+    word-break: break-all;
+  }
+  .approval-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .btn {
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    flex: 1;
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-ghost { background: transparent; color: var(--ink-2); border-color: var(--surface-3); }
+  .btn-primary { background: var(--accent); color: var(--surface-1); }
+  .btn-danger { background: var(--error); color: #fff; }
+
+  /* High-risk approval variant */
+  .approval-high-risk {
+    border: 1px solid var(--warn);
+    background: var(--warn-bg);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .approval-high-risk .warn-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--warn);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--warn);
+    border-bottom-color: rgba(212, 160, 85, 0.2);
+  }
+  .approval-high-risk .warn-icon {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--warn);
+    color: var(--surface-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .approval-high-risk .reasoning {
+    color: var(--ink-2);
+    font-size: 12.5px;
+    margin: 10px 0;
+    line-height: 1.5;
+  }
+  .approval-high-risk .reasoning-item {
+    padding: 3px 0;
+    display: flex;
+    gap: 8px;
+  }
+  .approval-high-risk .reasoning-item::before {
+    content: '•';
+    color: var(--warn);
+  }
+
+  /* Composer */
+  .m-composer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 14px 24px;
+    background: linear-gradient(180deg, transparent, var(--surface-1) 25%);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    z-index: 10;
+  }
+  .composer-pill {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 22px;
+    padding: 10px 16px;
+    color: var(--ink-1);
+    font-size: 14.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: text;
+  }
+  .composer-pill .placeholder { color: var(--ink-3); }
+  .composer-pill input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--ink-1);
+    font-family: inherit;
+    font-size: 14.5px;
+    flex: 1;
+    padding: 0;
+  }
+  .composer-attach {
+    color: var(--ink-3);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .composer-send {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--surface-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+    border: none;
+  }
+  .composer-send:hover { opacity: 0.9; }
+  .composer-send:active { transform: scale(0.95); }
+
+  /* ============ BOTTOM SHEET ============ */
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 60;
+    display: none;
+    animation: fadeInUp 0.2s ease-out;
+  }
+  .sheet-backdrop.open { display: block; }
+  .sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface-2);
+    border-radius: 24px 24px 0 0;
+    padding: 16px 0 28px;
+    z-index: 70;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 80%;
+    overflow-y: auto;
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--surface-3);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .sheet-header {
+    padding: 0 20px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--surface-3);
+  }
+  .sheet-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: var(--ink-1);
+  }
+  .sheet-close {
+    color: var(--ink-3);
+    font-size: 22px;
+    cursor: pointer;
+  }
+  .sheet-body { padding: 16px 20px; }
+  .sheet-item {
+    padding: 14px 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .sheet-item:last-child { border-bottom: none; }
+  .sheet-item:hover { color: var(--accent); }
+  .sheet-item-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--surface-3);
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .sheet-item-text { flex: 1; }
+  .sheet-item-title { font-size: 14px; color: var(--ink-1); font-weight: 500; }
+  .sheet-item-sub { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+  .sheet-item-arrow { color: var(--ink-3); font-size: 14px; }
+
+  /* Device cards in sheet */
+  .device-card {
+    padding: 16px;
+    background: var(--surface-1);
+    border: 1px solid var(--surface-3);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+  }
+  .device-card.active {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .device-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--surface-3);
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .device-card.active .device-icon {
+    background: var(--accent);
+    color: var(--surface-1);
+  }
+  .device-info { flex: 1; }
+  .device-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-1);
+  }
+  .device-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .device-pulse {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--status);
+    color: var(--status);
+    animation: pulse 2s infinite;
+  }
+  .device-pulse.offline {
+    background: var(--ink-3);
+    color: var(--ink-3);
+    animation: none;
+  }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    gap: 24px;
+  }
+  .empty-mark {
+    width: 52px; height: 52px;
+    color: var(--accent);
+  }
+  .empty-greeting {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    line-height: 1.15;
+    text-align: center;
+    color: var(--ink-1);
+  }
+  .empty-sub {
+    color: var(--ink-3);
+    font-size: 13px;
+    text-align: center;
+    margin-top: -12px;
+    line-height: 1.5;
+  }
+  .empty-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 300px;
+    margin-top: 4px;
+  }
+  .suggestion-chip {
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    color: var(--ink-2);
+    font-size: 13.5px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.15s;
+  }
+  .suggestion-chip:hover {
+    background: var(--surface-3);
+    color: var(--ink-1);
+    border-color: var(--accent);
+  }
+  .suggestion-chip .arrow {
+    color: var(--ink-3);
+    font-size: 11px;
+  }
+
+  /* ============ DESKTOP COMPONENTS ============ */
+  .dt-sidebar {
+    background: var(--surface-1);
+    border-right: 1px solid var(--surface-3);
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+  }
+  .dt-brand {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    margin-bottom: 18px;
+    padding: 0 10px;
+    color: var(--ink-1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dt-brand .sig {
+    width: 18px; height: 18px;
+    color: var(--accent);
+  }
+  .dt-new {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px dashed var(--accent);
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .dt-section {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin: 14px 12px 4px;
+  }
+  .dt-item {
+    padding: 7px 10px;
+    border-radius: 7px;
+    color: var(--ink-2);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s;
+  }
+  .dt-item:hover { background: var(--surface-2); color: var(--ink-1); }
+  .dt-item.active {
+    background: var(--surface-2);
+    color: var(--ink-1);
+  }
+  .dt-item.muted { color: var(--ink-3); font-size: 12.5px; }
+  .dt-item-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--ink-3);
+  }
+  .dt-item.active .dt-item-dot { background: var(--accent); }
+  .dt-spacer { flex: 1; }
+
+  .dt-main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface-1);
+  }
+  .dt-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--surface-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .dt-header-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 17px;
+    color: var(--ink-1);
+  }
+  .dt-header-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dt-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: center;
+  }
+  .dt-body-inner {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  /* In desktop, agent message has signature on left */
+  .dt-agent {
+    display: flex;
+    gap: 10px;
+    color: var(--ink-1);
+    font-size: 14.5px;
+    line-height: 1.6;
+    animation: fadeInUp 0.4s ease-out;
+  }
+  .dt-agent .sig-mark {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    margin-top: 4px;
+    color: var(--accent);
+  }
+  .dt-agent-content { flex: 1; }
+  .dt-agent-content strong { color: var(--accent); font-weight: 500; }
+  .dt-user {
+    align-self: flex-end;
+    max-width: 80%;
+    padding: 10px 16px;
+    background: var(--user-bg);
+    color: var(--user-fg);
+    border-radius: 18px 18px 4px 18px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    animation: fadeInUp 0.3s ease-out;
+  }
+
+  .dt-composer-wrap {
+    padding: 14px 24px 20px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .dt-composer {
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--ink-1);
+  }
+  .dt-composer input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--ink-1);
+    font-family: inherit;
+    font-size: 14px;
+    flex: 1;
+  }
+  .dt-composer input::placeholder { color: var(--ink-3); }
+  .dt-composer-send {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--surface-1);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+  }
+
+  /* Tool details for desktop (use same .tool-line and .tool-detail) */
+  .dt-tool {
+    margin-left: 28px;
+  }
+
+  /* Diff renderer */
+  .diff-block {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+  .diff-block .line {
+    padding: 0 8px;
+  }
+  .diff-block .line.add { background: rgba(143, 162, 119, 0.1); color: var(--status); }
+  .diff-block .line.del { background: rgba(201, 112, 100, 0.1); color: var(--error); }
+  .diff-block .line.ctx { color: var(--ink-3); }
+
+  /* Image preview block */
+  .image-preview {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 14px;
+    margin: 4px 0 0;
+    border-left: 2px solid var(--accent);
+  }
+  .image-preview-img {
+    width: 100%;
+    height: 140px;
+    background: linear-gradient(135deg, var(--accent-bg), var(--surface-3));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    font-size: 12px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .image-preview-img::before {
+    content: '';
+    position: absolute;
+    width: 60%; height: 60%;
+    background: radial-gradient(circle at 30% 30%, var(--accent) 0%, transparent 60%);
+    opacity: 0.4;
+  }
+  .image-preview-img::after {
+    content: '';
+    position: absolute;
+    width: 40%; height: 40%;
+    background: radial-gradient(circle at 70% 70%, var(--accent-2) 0%, transparent 60%);
+    opacity: 0.5;
+  }
+  .image-preview-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    line-height: 1.6;
+  }
+  .image-preview-meta .label { color: var(--ink-2); }
+
+  /* Detail card */
+  .detail-card {
+    margin-top: 24px;
+    padding: 24px;
+    border: 1px solid #1f1f1f;
+    border-radius: 14px;
+    background: #0f0f0f;
+  }
+  .detail-card h4 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .detail-card p, .detail-card li {
+    color: #c8c8c8;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .detail-card p + p { margin-top: 12px; }
+  .detail-card strong { color: #fff; font-weight: 500; }
+  .detail-card ul { list-style: none; margin-top: 8px; }
+  .detail-card li { padding: 4px 0; padding-left: 16px; position: relative; }
+  .detail-card li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: #555;
+  }
+
+  .footnote {
+    margin-top: 64px;
+    padding: 32px;
+    background: linear-gradient(180deg, #1a1612 0%, #0a0a0a 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 18px;
+    color: #c8c8c8;
+    font-size: 14.5px;
+    line-height: 1.7;
+  }
+  .footnote strong { color: #fff; }
+  .footnote p + p { margin-top: 12px; }
+
+  /* Hint chip */
+  .hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #1a1a1a;
+    color: #888;
+    font-size: 11px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  .hint::before {
+    content: '✦';
+    color: var(--accent);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow">Adım 05 · Çalışan Mock</div>
+  <h1>Runa, çalışan haliyle</h1>
+  <p>Şu ana kadar konuştuğumuz her şey burada birleşiyor. Hem mobil hem masaüstü, hem açık hem koyu, hem teknik hem günlük senaryolar. <strong>Bu artifact gerçekten çalışıyor</strong> — tema değiştir, tool aktivitelerini aç/kapa, approval'lara bas, bottom sheet'leri çağır, sohbete yaz. Statik mockup değil, etkileşimli prototip.</p>
+</div>
+
+<nav class="nav">
+  <button class="active" data-target="main-mock">Ana Mock</button>
+  <button data-target="devices">Cihaz Seçimi</button>
+  <button data-target="high-risk">Yüksek Risk Approval</button>
+  <button data-target="details">Detay Görünümleri</button>
+  <button data-target="navigation">Mobil Navigation</button>
+  <button data-target="closing">Kapanış</button>
+</nav>
+
+<div class="container">
+
+  <!-- ============ MAIN MOCK ============ -->
+  <section class="block" id="main-mock">
+    <div class="section-meta">Bölüm 01</div>
+    <h2 class="section-title">Çalışan ana mock</h2>
+    <p class="section-lead">
+      Aşağıdaki iki ekran <strong>aynı anda canlı</strong> — aynı temayı paylaşıyorlar. Yukarıdaki düğmelerle tema/aydınlık değiştir, sonra ekranlarda gez. Mobilde bottom-sheet'leri açabilir, masaüstünde sidebar'dan sohbet seçebilirsin.
+    </p>
+
+    <div class="theme-picker">
+      <span class="label">Ton</span>
+      <button class="theme-btn active" data-tone="ember"><span class="swatch" style="background:#E0805C"></span>Ember</button>
+      <button class="theme-btn" data-tone="rose"><span class="swatch" style="background:#D88C8C"></span>Rose</button>
+      <button class="theme-btn" data-tone="sage"><span class="swatch" style="background:#7A9B6F"></span>Sage</button>
+      <button class="theme-btn" data-tone="slate"><span class="swatch" style="background:#7A95B8"></span>Slate</button>
+      <button class="theme-btn" data-tone="plum"><span class="swatch" style="background:#A287B5"></span>Plum</button>
+      <button class="theme-btn" data-tone="sand"><span class="swatch" style="background:#C9A878"></span>Sand</button>
+    </div>
+    <div class="theme-picker">
+      <span class="label">Aydınlık</span>
+      <button class="theme-btn active" data-mode="dark">Koyu</button>
+      <button class="theme-btn" data-mode="light">Açık</button>
+    </div>
+
+    <div class="hint">Mobilde sağ üstteki menüye, masaüstünde sidebar'a tıklayabilirsin</div>
+
+    <div class="mocks-row">
+
+      <!-- ===== MOBILE ===== -->
+      <div class="mobile-frame" id="mobile-mock">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status-bar">
+          <span>14:22</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>74%</span></div>
+        </div>
+
+        <div class="m-header">
+          <div class="m-header-left">
+            <div class="m-back" onclick="openSheet('history')">‹</div>
+            <div class="m-title-block">
+              <div class="m-title">Runa</div>
+              <div class="m-subtitle">
+                <span class="pulse-dot" style="background:var(--status); color:var(--status)"></span>
+                <span id="mobile-subtitle">çevrimiçi · MacBook Pro</span>
+              </div>
+            </div>
+          </div>
+          <div class="m-menu" onclick="openSheet('menu')">⋯</div>
+        </div>
+
+        <div class="m-body" id="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">apps/server klasöründeki son değişiklikleri özetler misin</div>
+
+          <div class="m-agent">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">Tabii, son commit'lere bakıp özetleyeyim.</div>
+          </div>
+
+          <div class="tool-line" onclick="toggleTool(this)">
+            <span class="tool-line-dot"></span>
+            <span>git log --oneline -10</span>
+            <span class="tool-line-chevron">›</span>
+          </div>
+          <div class="tool-detail terminal" style="display:none">
+<span class="comment"># Son 10 commit</span>
+<span class="prompt">$</span> git log --oneline -10
+a3f8e2c <span class="prompt">(HEAD → main)</span> feat: provider-health monitoring
+b1c2d3e fix: tool-call retry race condition
+c4d5e6f refactor: simplify chat-runtime types
+d7e8f9a docs: update PROGRESS.md
+e1f2a3b test: add approval-modes coverage
+f4a5b6c chore: bump pnpm to 9.15.4
+...
+          </div>
+
+          <div class="m-agent">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">
+              Son ana değişiklik <strong>provider-health monitoring</strong> — 3 saat önce eklenmiş. Bir de tool-call retry'da bir race condition düzeltilmiş. Detayını görmek ister misin?
+            </div>
+          </div>
+
+          <div class="approval">
+            <div class="approval-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="approval-text">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+            <div class="approval-target">apps/server/src/runtime/provider-health.ts</div>
+            <div class="approval-actions">
+              <button class="btn btn-ghost" onclick="this.parentElement.parentElement.outerHTML='<div class=&quot;tool-line&quot; style=&quot;color:var(--ink-3)&quot;><span class=&quot;tool-line-dot&quot; style=&quot;background:var(--ink-3)&quot;></span><span>okuma reddedildi</span></div>'">Vazgeç</button>
+              <button class="btn btn-primary" onclick="approveReadFile(this)">Aç</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="m-composer">
+          <div class="composer-pill">
+            <span class="composer-attach">+</span>
+            <input type="text" id="mobile-input" placeholder="Mesaj yaz…" onkeypress="if(event.key==='Enter') sendMobileMessage()">
+          </div>
+          <button class="composer-send" onclick="sendMobileMessage()">↑</button>
+        </div>
+
+        <!-- Bottom sheets -->
+        <div class="sheet-backdrop" id="sheet-backdrop" onclick="closeSheet()"></div>
+
+        <!-- Menu sheet -->
+        <div class="sheet" id="sheet-menu">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <span class="sheet-title">Menü</span>
+            <span class="sheet-close" onclick="closeSheet()">×</span>
+          </div>
+          <div class="sheet-body">
+            <div class="sheet-item" onclick="switchSheet('devices')">
+              <span class="sheet-item-icon">⌘</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">Cihazlar</div>
+                <div class="sheet-item-sub">3 cihaz · MacBook aktif</div>
+              </div>
+              <span class="sheet-item-arrow">›</span>
+            </div>
+            <div class="sheet-item" onclick="switchSheet('history')">
+              <span class="sheet-item-icon">⌃</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">Geçmiş</div>
+                <div class="sheet-item-sub">12 sohbet</div>
+              </div>
+              <span class="sheet-item-arrow">›</span>
+            </div>
+            <div class="sheet-item" onclick="switchSheet('settings')">
+              <span class="sheet-item-icon">⚙</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">Ayarlar</div>
+                <div class="sheet-item-sub">Tema, hesap, gizlilik</div>
+              </div>
+              <span class="sheet-item-arrow">›</span>
+            </div>
+            <div class="sheet-item" onclick="switchSheet('account')">
+              <span class="sheet-item-icon">◐</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">Hesap</div>
+                <div class="sheet-item-sub">demo@runa.app</div>
+              </div>
+              <span class="sheet-item-arrow">›</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Devices sheet -->
+        <div class="sheet" id="sheet-devices">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <span class="sheet-title">Cihazlar</span>
+            <span class="sheet-close" onclick="closeSheet()">×</span>
+          </div>
+          <div class="sheet-body">
+            <p style="color:var(--ink-3); font-size:13px; margin-bottom:14px">Runa hangi cihazda iş yapsın? Aktif cihazı buradan değiştirebilirsin.</p>
+
+            <div class="device-card active" onclick="selectDevice(this, 'MacBook Pro', 'macOS · Apple M3')">
+              <div class="device-icon">▢</div>
+              <div class="device-info">
+                <div class="device-name">MacBook Pro</div>
+                <div class="device-meta">
+                  <span class="device-pulse"></span>
+                  <span>çevrimiçi · macOS · Apple M3</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="device-card" onclick="selectDevice(this, 'Ubuntu Server', 'Linux · 192.168.1.42')">
+              <div class="device-icon">⌷</div>
+              <div class="device-info">
+                <div class="device-name">Ubuntu Server</div>
+                <div class="device-meta">
+                  <span class="device-pulse"></span>
+                  <span>çevrimiçi · Linux · 192.168.1.42</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="device-card" onclick="selectDevice(this, 'Windows PC', 'Windows 11 · son görülen 2 saat önce')">
+              <div class="device-icon">▤</div>
+              <div class="device-info">
+                <div class="device-name">Windows PC</div>
+                <div class="device-meta">
+                  <span class="device-pulse offline"></span>
+                  <span>çevrimdışı · son görülen 2 saat önce</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="device-card" style="border-style:dashed; cursor:pointer">
+              <div class="device-icon">+</div>
+              <div class="device-info">
+                <div class="device-name">Yeni cihaz ekle</div>
+                <div class="device-meta"><span>QR kod ya da kurulum komutu</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History sheet -->
+        <div class="sheet" id="sheet-history">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <span class="sheet-title">Sohbetler</span>
+            <span class="sheet-close" onclick="closeSheet()">×</span>
+          </div>
+          <div class="sheet-body">
+            <div class="sheet-item">
+              <span class="sheet-item-icon" style="background:var(--accent-bg); color:var(--accent)">·</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">apps/server değişiklikleri</div>
+                <div class="sheet-item-sub">bugün · MacBook Pro</div>
+              </div>
+            </div>
+            <div class="sheet-item">
+              <span class="sheet-item-icon">·</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">README özeti</div>
+                <div class="sheet-item-sub">bugün · MacBook Pro</div>
+              </div>
+            </div>
+            <div class="sheet-item">
+              <span class="sheet-item-icon">·</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">Approval testleri kontrolü</div>
+                <div class="sheet-item-sub">dün · Ubuntu Server</div>
+              </div>
+            </div>
+            <div class="sheet-item">
+              <span class="sheet-item-icon">·</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">Mobil layout refactor</div>
+                <div class="sheet-item-sub">dün · MacBook Pro</div>
+              </div>
+            </div>
+            <div class="sheet-item">
+              <span class="sheet-item-icon">·</span>
+              <div class="sheet-item-text">
+                <div class="sheet-item-title">Production deploy</div>
+                <div class="sheet-item-sub">11 Mayıs · Ubuntu Server</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings sheet -->
+        <div class="sheet" id="sheet-settings">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <span class="sheet-title">Ayarlar</span>
+            <span class="sheet-close" onclick="closeSheet()">×</span>
+          </div>
+          <div class="sheet-body">
+            <div style="padding:8px 0">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-3); margin-bottom:10px">Görünüm</div>
+              <div class="sheet-item">
+                <span class="sheet-item-icon">◐</span>
+                <div class="sheet-item-text">
+                  <div class="sheet-item-title">Ton</div>
+                  <div class="sheet-item-sub" id="settings-tone">Ember</div>
+                </div>
+                <span class="sheet-item-arrow">›</span>
+              </div>
+              <div class="sheet-item">
+                <span class="sheet-item-icon">☼</span>
+                <div class="sheet-item-text">
+                  <div class="sheet-item-title">Aydınlık</div>
+                  <div class="sheet-item-sub" id="settings-mode">Koyu</div>
+                </div>
+                <span class="sheet-item-arrow">›</span>
+              </div>
+              <div class="sheet-item">
+                <span class="sheet-item-icon">Aa</span>
+                <div class="sheet-item-text">
+                  <div class="sheet-item-title">Yazı boyutu</div>
+                  <div class="sheet-item-sub">Normal</div>
+                </div>
+                <span class="sheet-item-arrow">›</span>
+              </div>
+            </div>
+            <div style="padding:14px 0 8px; border-top:1px solid var(--surface-3); margin-top:12px">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-3); margin-bottom:10px">Tercihler</div>
+              <div class="sheet-item">
+                <span class="sheet-item-icon">✦</span>
+                <div class="sheet-item-text">
+                  <div class="sheet-item-title">Runa'nın ses tonu</div>
+                  <div class="sheet-item-sub">Otomatik (kullanıcıya uyum)</div>
+                </div>
+                <span class="sheet-item-arrow">›</span>
+              </div>
+              <div class="sheet-item">
+                <span class="sheet-item-icon">⊕</span>
+                <div class="sheet-item-text">
+                  <div class="sheet-item-title">Onay alışkanlığı</div>
+                  <div class="sheet-item-sub">Her komut için sor</div>
+                </div>
+                <span class="sheet-item-arrow">›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account sheet -->
+        <div class="sheet" id="sheet-account">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <span class="sheet-title">Hesap</span>
+            <span class="sheet-close" onclick="closeSheet()">×</span>
+          </div>
+          <div class="sheet-body">
+            <div style="padding:16px; background:var(--surface-1); border:1px solid var(--surface-3); border-radius:12px; margin-bottom:14px">
+              <div style="font-family:'Instrument Serif',serif; font-size:18px; color:var(--ink-1)">demo@runa.app</div>
+              <div style="font-size:12px; color:var(--ink-3); margin-top:4px">Pro plan · yıllık</div>
+            </div>
+            <div class="sheet-item">
+              <span class="sheet-item-icon">⌖</span>
+              <div class="sheet-item-text"><div class="sheet-item-title">Plan & Faturalama</div></div>
+              <span class="sheet-item-arrow">›</span>
+            </div>
+            <div class="sheet-item">
+              <span class="sheet-item-icon">⌫</span>
+              <div class="sheet-item-text"><div class="sheet-item-title">Çıkış yap</div></div>
+              <span class="sheet-item-arrow">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DESKTOP ===== -->
+      <div class="desktop-frame" id="desktop-mock">
+        <div class="desktop-titlebar">
+          <div class="dots">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+          <span class="title">Runa — MacBook Pro</span>
+        </div>
+
+        <div class="dt-sidebar">
+          <div class="dt-brand">
+            <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+            Runa
+          </div>
+
+          <div class="dt-new" onclick="newChat()">
+            <span>+</span> Yeni sohbet
+          </div>
+
+          <div class="dt-section">Bugün</div>
+          <div class="dt-item active"><span class="dt-item-dot"></span>apps/server değişiklikleri</div>
+          <div class="dt-item"><span class="dt-item-dot"></span>README özeti</div>
+
+          <div class="dt-section">Dün</div>
+          <div class="dt-item muted"><span class="dt-item-dot"></span>Approval testleri</div>
+          <div class="dt-item muted"><span class="dt-item-dot"></span>Mobil layout refactor</div>
+
+          <div class="dt-section">Bu hafta</div>
+          <div class="dt-item muted"><span class="dt-item-dot"></span>Production deploy</div>
+          <div class="dt-item muted"><span class="dt-item-dot"></span>Theme system planı</div>
+
+          <div class="dt-spacer"></div>
+
+          <div class="dt-item muted">⌘ Cihazlar · MacBook</div>
+          <div class="dt-item muted">⚙ Ayarlar</div>
+          <div class="dt-item muted">◐ demo@runa.app</div>
+        </div>
+
+        <div class="dt-main">
+          <div class="dt-header">
+            <div class="dt-header-title">apps/server değişiklikleri</div>
+            <div class="dt-header-meta">
+              <span class="pulse-dot" style="background:var(--status); color:var(--status)"></span>
+              <span>MacBook Pro · D:\ai\Runa</span>
+            </div>
+          </div>
+
+          <div class="dt-body" id="desktop-body">
+            <div class="dt-body-inner">
+              <div class="time-divider">bugün</div>
+
+              <div class="dt-user">apps/server klasöründeki son değişiklikleri özetler misin</div>
+
+              <div class="dt-agent">
+                <span class="sig-mark sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+                <div class="dt-agent-content">Tabii, son commit'lere bakıp özetleyeyim.</div>
+              </div>
+
+              <div class="dt-tool">
+                <div class="tool-line" onclick="toggleTool(this)">
+                  <span class="tool-line-dot"></span>
+                  <span>git log --oneline -10</span>
+                  <span class="tool-line-chevron">›</span>
+                </div>
+                <div class="tool-detail terminal" style="display:none">
+<span class="comment"># Son 10 commit</span>
+<span class="prompt">$</span> git log --oneline -10
+a3f8e2c <span class="prompt">(HEAD → main)</span> feat: provider-health monitoring
+b1c2d3e fix: tool-call retry race condition
+c4d5e6f refactor: simplify chat-runtime types
+d7e8f9a docs: update PROGRESS.md
+e1f2a3b test: add approval-modes coverage
+f4a5b6c chore: bump pnpm to 9.15.4
+6a7b8c9 feat: mobile composer overlap fix
+9d0e1f2 fix: streaming cursor flicker
+3a4b5c6 docs: add brand guidelines
+7d8e9f0 refactor: extract approval block
+                </div>
+              </div>
+
+              <div class="dt-agent">
+                <span class="sig-mark sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+                <div class="dt-agent-content">
+                  Son ana değişiklik <strong>provider-health monitoring</strong> — 3 saat önce eklenmiş. Bir de tool-call retry'da bir race condition düzeltilmiş. Detayını görmek ister misin?
+                </div>
+              </div>
+
+              <div class="dt-agent">
+                <span class="sig-mark sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+                <div class="dt-agent-content">
+                  Dosyayı açıp gösterebilirim — okumama izin verir misin?
+                  <div class="approval-target">apps/server/src/runtime/provider-health.ts</div>
+                  <div class="approval-actions" style="max-width:280px">
+                    <button class="btn btn-ghost">Vazgeç</button>
+                    <button class="btn btn-primary" onclick="approveDesktopRead(this)">Aç</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dt-composer-wrap">
+            <div class="dt-composer">
+              <span style="color:var(--ink-3); font-size:18px; cursor:pointer">+</span>
+              <input type="text" id="desktop-input" placeholder="Mesaj yaz…" onkeypress="if(event.key==='Enter') sendDesktopMessage()">
+              <button class="dt-composer-send" onclick="sendDesktopMessage()">↑</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Neyi nasıl deneyebilirsin?</h4>
+      <ul>
+        <li><strong>Tema değiştir.</strong> Yukarıdaki tema/aydınlık düğmeleriyle 12 farklı kombinasyona bak. Her kombinasyonun karakteri farklı ama sistem aynı.</li>
+        <li><strong>Tool aktivitelerini aç/kapa.</strong> "git log --oneline -10" satırına tıkla — terminal çıktısı açılır. Tekrar tıkla, kapanır.</li>
+        <li><strong>Approval'a bas.</strong> "Aç" butonu yeni mesajlar tetikler. "Vazgeç" başka bir akış.</li>
+        <li><strong>Mobilde menüye gir.</strong> Sağ üstteki ⋯'a basınca menü sheet'i açılır. Cihazlar, Geçmiş, Ayarlar, Hesap — hepsi gezilebilir.</li>
+        <li><strong>Cihaz değiştir.</strong> Menü → Cihazlar. Ubuntu Server'ı seç, header'daki cihaz adı değişsin.</li>
+        <li><strong>Mesaj yaz.</strong> Composer'a yazıp Enter'a bas — Runa sahte ama gerçekçi bir cevap verir.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ DEVICES ============ -->
+  <section class="block" id="devices">
+    <div class="section-meta">Bölüm 02</div>
+    <h2 class="section-title">Çoklu cihaz · Runa'nın ayrıştırıcı yönü</h2>
+    <p class="section-lead">
+      Runa'nın diğer AI'lardan farkı: aynı sohbet, farklı cihazlar. Telefonda başlatırsın, MacBook'tan devam edersin, server'a komut yollarsın — hepsi tek konuşma. Mobilde menü → Cihazlar. Masaüstünde sidebar altında bir satır.
+    </p>
+
+    <div class="detail-card" style="margin-top:0">
+      <h4>Cihaz UX kararları</h4>
+      <p><strong>Cihaz nerede yaşıyor:</strong> Mobilde menü içinde bir sheet, masaüstünde sidebar'ın altında küçük bir satır. <em>Birincil değil, her zaman görünür de değil</em> — ama her zaman bir tık uzakta.</p>
+      <p><strong>"Aktif cihaz" header'da:</strong> Hem mobil hem masaüstünde Runa'nın subtitle'ında aktif cihazın adı yazıyor. Kullanıcı hangi cihazda iş yaptırdığını her zaman görüyor.</p>
+      <p><strong>Cihaz kartı yapısı:</strong> İkon (cihaz türü) + isim + meta (OS, durum, son görüldü). Pulse dot çevrimiçi/çevrimdışı gösterir — sage yeşil yaşıyor, gri kaybolmuş.</p>
+      <p><strong>"Yeni cihaz ekle" dashed border'lı:</strong> Bilinçli farklılık. "Bu boş bir alan, doldurabilirsin" demek için. Tıklanınca QR kod + kurulum komutu modal'ı açılır (henüz tasarlamadık, bir sonraki adım).</p>
+      <p><strong>Server cihazı:</strong> "Ubuntu Server" örneğinde IP adresi görünür. Bu sysadmin'in beklediği şey. Anneanne için "Ubuntu Server" ismi yeter, IP rahatsız etmez ama kullanılmaz da.</p>
+    </div>
+  </section>
+
+  <!-- ============ HIGH RISK APPROVAL ============ -->
+  <section class="block" id="high-risk">
+    <div class="section-meta">Bölüm 03</div>
+    <h2 class="section-title">Yüksek risk approval</h2>
+    <p class="section-lead">
+      İnline approval düşük-orta risk için doğru. Ama dosya silme, kalıcı veri değişimi, sistem ayarı gibi durumlar için Runa <strong>biraz daha duraksıyor</strong>. Aynı inline yapı, ama warning rengi, açıklama satırları, butonların yeri farklı.
+    </p>
+
+    <div class="hint">Aşağıdaki ekranda Runa kalıcı bir dosya silmek istiyor</div>
+
+    <div style="display:flex; justify-content:center; margin-top:24px">
+      <div class="mobile-frame theme-ember-dark">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status-bar">
+          <span>16:08</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>61%</span></div>
+        </div>
+        <div class="m-header">
+          <div class="m-header-left">
+            <div class="m-back">‹</div>
+            <div class="m-title-block">
+              <div class="m-title">Runa</div>
+              <div class="m-subtitle">
+                <span class="pulse-dot" style="background:var(--warn); color:var(--warn)"></span>
+                <span>dikkat istiyor · MacBook Pro</span>
+              </div>
+            </div>
+          </div>
+          <div class="m-menu">⋯</div>
+        </div>
+        <div class="m-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">eski log dosyalarını temizle, üç aydan eski olanları sil</div>
+
+          <div class="m-agent">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">Tamam, önce kontrol edeyim — üç aydan eski hangi log'lar var?</div>
+          </div>
+
+          <div class="tool-line" onclick="toggleTool(this)">
+            <span class="tool-line-dot"></span>
+            <span>find ./logs -mtime +90</span>
+            <span class="tool-line-chevron">›</span>
+          </div>
+          <div class="tool-detail terminal" style="display:none">
+<span class="prompt">$</span> find ./logs -mtime +90 -name "*.log"
+./logs/2026-01-15-runtime.log    (47 MB)
+./logs/2026-01-22-runtime.log    (52 MB)
+./logs/2026-02-03-runtime.log    (38 MB)
+./logs/2026-02-08-error.log       (12 MB)
+./logs/2026-02-14-runtime.log    (44 MB)
+<span class="comment"># 5 dosya · toplam 193 MB</span>
+          </div>
+
+          <div class="m-agent">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">
+              <strong>5 dosya</strong> buldum, toplam 193 MB. Silme işlemi geri alınamaz — onayla, sileyim:
+            </div>
+          </div>
+
+          <div class="approval">
+            <div class="approval-high-risk">
+              <div class="warn-banner">
+                <span class="warn-icon">!</span>
+                <span>Kalıcı silme — geri alınamaz</span>
+              </div>
+              <div style="color:var(--ink-1); font-size:14px; margin-bottom:6px">Bu işlem 5 log dosyasını silecek.</div>
+              <div class="reasoning">
+                <div class="reasoning-item">
+                  <span>193 MB veri kalıcı olarak silinecek</span>
+                </div>
+                <div class="reasoning-item">
+                  <span>Hata ayıklama için bu log'lar gerekebilir</span>
+                </div>
+                <div class="reasoning-item">
+                  <span>Geri alma için yedek yok</span>
+                </div>
+              </div>
+              <div class="approval-target">rm ./logs/*.log (5 dosya)</div>
+              <div class="approval-actions">
+                <button class="btn btn-ghost">Vazgeç</button>
+                <button class="btn btn-danger">Yine de sil</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="m-composer">
+          <div class="composer-pill">
+            <span class="composer-attach">+</span>
+            <span class="placeholder">Mesaj yaz…</span>
+          </div>
+          <button class="composer-send">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Yüksek risk approval'ın farkları</h4>
+      <ul>
+        <li><strong>Çerçevelenmiş kart.</strong> Düşük risk'te çerçeve yok — burada var, warn rengiyle. "Bu bir karar, dikkat et" demek için görsel ağırlık.</li>
+        <li><strong>"Kalıcı silme — geri alınamaz" banner.</strong> Üstte küçük bir uyarı şeridi, warn renkte. Net, kısa, korkutmayan.</li>
+        <li><strong>3 açıklama satırı.</strong> Neden bu yüksek risk? "193 MB veri" + "log'lar gerekebilir" + "yedek yok". Sebepler şeffaf, kullanıcı bilinçli karar veriyor.</li>
+        <li><strong>"Sil" butonu kırmızı, ama "yine de" deyişiyle.</strong> "Sil" tek başına agresif. "Yine de sil" — Runa kullanıcının kararını kabul ediyor, ama "ben yine de uyardım" diyor.</li>
+        <li><strong>Header subtitle değişti.</strong> Sage pulse → warn pulse, "çevrimiçi" → "dikkat istiyor". Subtitle bile durumu yansıtıyor.</li>
+        <li><strong>Onaylandıktan sonra ne olur:</strong> Kart sönükleşir, sage'e döner, küçülerek "5 dosya silindi · 193 MB" özeti olur. Geri al butonu YOK çünkü gerçekten geri alınamaz — bunu kabul ettirdik.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ DETAIL VIEWS ============ -->
+  <section class="block" id="details">
+    <div class="section-meta">Bölüm 04</div>
+    <h2 class="section-title">Detay görünümleri — içerik tipine göre</h2>
+    <p class="section-lead">
+      Tool aktivitesinin "›" basıldığında açılan şey içerik tipine göre değişir. Aşağıda dört farklı tipten örnek görüyorsun: terminal, dosya içeriği, diff, üretilen görsel. Hepsi <strong>aç/kapa tıklanabilir</strong>.
+    </p>
+
+    <div style="display:flex; justify-content:center">
+      <div class="mobile-frame theme-ember-dark">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status-bar">
+          <span>10:42</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>88%</span></div>
+        </div>
+        <div class="m-header">
+          <div class="m-header-left">
+            <div class="m-back">‹</div>
+            <div class="m-title-block">
+              <div class="m-title">Runa</div>
+              <div class="m-subtitle"><span class="pulse-dot" style="background:var(--status); color:var(--status)"></span><span>çevrimiçi</span></div>
+            </div>
+          </div>
+          <div class="m-menu">⋯</div>
+        </div>
+        <div class="m-body">
+          <div class="time-divider">bugün</div>
+
+          <!-- Terminal -->
+          <div class="m-user">son commit'e bakar mısın</div>
+          <div class="m-agent">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">Tabii, son commit'e bakıyorum.</div>
+          </div>
+          <div class="tool-line open" onclick="toggleTool(this)">
+            <span class="tool-line-dot"></span>
+            <span>git show HEAD</span>
+            <span class="tool-line-chevron">›</span>
+          </div>
+          <div class="tool-detail terminal" style="display:block">
+<span class="comment">commit a3f8e2c (HEAD → main)</span>
+<span class="prompt">Author:</span> demo &lt;demo@runa.app&gt;
+<span class="prompt">Date:</span>   Mon May 11 14:22 2026
+
+    feat: provider-health monitoring
+
+    Adds health check endpoint that runs
+    every 30s. Failures trigger circuit
+    breaker after 3 consecutive errors.
+          </div>
+
+          <!-- Diff -->
+          <div class="m-agent" style="margin-top:8px">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">Değişen satırları da göstereyim:</div>
+          </div>
+          <div class="tool-line open" onclick="toggleTool(this)">
+            <span class="tool-line-dot"></span>
+            <span>git diff HEAD~1</span>
+            <span class="tool-line-chevron">›</span>
+          </div>
+          <div class="tool-detail" style="display:block">
+            <div class="diff-block">
+              <span class="line ctx">  export class ProviderClient {</span>
+              <span class="line ctx">    private retries = 0;</span>
+              <span class="line add">+   private healthCheck: HealthMonitor;</span>
+              <span class="line ctx">  </span>
+              <span class="line del">-   async call(payload: Payload) {</span>
+              <span class="line add">+   async call(payload: Payload, opts?: CallOptions) {</span>
+              <span class="line add">+     await this.healthCheck.assertHealthy();</span>
+              <span class="line ctx">      return this.transport.send(payload);</span>
+              <span class="line ctx">    }</span>
+            </div>
+          </div>
+
+          <!-- File preview -->
+          <div class="m-agent" style="margin-top:8px">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">İstersen dosyanın tam içeriğine bakabilirim:</div>
+          </div>
+          <div class="tool-line" onclick="toggleTool(this)">
+            <span class="tool-line-dot"></span>
+            <span>cat provider-health.ts</span>
+            <span class="tool-line-chevron">›</span>
+          </div>
+          <div class="tool-detail" style="display:none">
+<span class="comment">// apps/server/src/runtime/provider-health.ts</span>
+
+<span class="prompt">import</span> { HealthMonitor } <span class="prompt">from</span> './health-monitor';
+
+<span class="prompt">export class</span> ProviderClient {
+  <span class="prompt">private</span> retries = 0;
+  <span class="prompt">private</span> healthCheck: HealthMonitor;
+
+  <span class="prompt">constructor</span>(opts: Opts) {
+    <span class="prompt">this</span>.healthCheck = new HealthMonitor();
+  }
+
+  <span class="prompt">async</span> call(payload, opts?) {
+    <span class="prompt">await this</span>.healthCheck.assertHealthy();
+    <span class="prompt">return this</span>.transport.send(payload);
+  }
+}
+          </div>
+
+          <!-- Image generation -->
+          <div class="m-user" style="margin-top:8px">runa için bir signature mark çiz</div>
+          <div class="m-agent">
+            <div class="m-agent-header">
+              <span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>
+              <span>Runa</span>
+            </div>
+            <div class="m-agent-content">Tamam, bir taslak çiziyorum.</div>
+          </div>
+          <div class="tool-line open" onclick="toggleTool(this)">
+            <span class="tool-line-dot"></span>
+            <span>image · generate</span>
+            <span class="tool-line-chevron">›</span>
+          </div>
+          <div class="image-preview" style="display:block">
+            <div class="image-preview-img"></div>
+            <div class="image-preview-meta">
+              <div><span class="label">Prompt:</span> "minimal compass mark, warm amber, line art"</div>
+              <div><span class="label">Style:</span> Line · 2px stroke</div>
+              <div><span class="label">Size:</span> 512×512</div>
+            </div>
+          </div>
+
+        </div>
+        <div class="m-composer">
+          <div class="composer-pill">
+            <span class="composer-attach">+</span>
+            <span class="placeholder">Mesaj yaz…</span>
+          </div>
+          <button class="composer-send">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Detay görünümleri sistemi</h4>
+      <p><strong>Aynı çerçeve, farklı içerik.</strong> Her detay açılır panel, accent renkli sol kenar çizgisi, JetBrains Mono font (çoğunda). Bu görsel tutarlılık önemli — kullanıcı "bir detaya bakıyorum" hissini her seferinde aynı şekilde alıyor.</p>
+      <p><strong>Dört temel tip:</strong></p>
+      <ul>
+        <li><strong>Terminal:</strong> Komut + çıktı, monospace, accent prompt vurgusu, gri yorumlar. Renkli ANSI escape kodları desteklenir.</li>
+        <li><strong>Diff:</strong> Eklenen satırlar sage yeşil (status renk), silinen satırlar coral (error renk), bağlam gri. Diff başlığı yok — direkt satırlar.</li>
+        <li><strong>Dosya içeriği:</strong> Syntax highlighted, ama agresif değil. Sadece keyword'ler accent, comment'ler gri. Code editor değil, "okunabilir kod".</li>
+        <li><strong>Görsel/üretim:</strong> Önizleme görseli + prompt + ayarlar. İleride video, audio, 3D modeli için de aynı şablon — preview alanı + meta.</li>
+      </ul>
+      <p><strong>Açık varsayılan vs kapalı varsayılan:</strong> Genel kural — <em>kısa içerik açık doğar, uzun içerik kapalı doğar</em>. 3 satırlık bir diff direkt açık, 100 satırlık bir dosya kapalı. Kullanıcı odaklanmak istediğinde aç. Bilişsel yük dengesi.</p>
+      <p><strong>Mobil scroll:</strong> Detay paneli kendi içinde yatay kaydırılabilir — kod uzun olduğunda taşmaz, ama ekrana sığmayan parçalar gizli kalmaz. Kullanıcı yatay scroll yapar.</p>
+    </div>
+  </section>
+
+  <!-- ============ NAVIGATION ============ -->
+  <section class="block" id="navigation">
+    <div class="section-meta">Bölüm 05</div>
+    <h2 class="section-title">Mobil navigation kararı</h2>
+    <p class="section-lead">
+      Bottom tab bar yerine <strong>header'da ⋯ + bottom sheet</strong>. Çünkü Runa'nın birincil modu sohbet — her şey ona göre. Tab bar 60px daimi alan kaplar, sohbet ekranını sıkıştırır. Sheet ihtiyaç olduğunda gelir, kullanılmadığında yok.
+    </p>
+
+    <div class="detail-card" style="margin-top:0">
+      <h4>Mobil navigation pattern'i</h4>
+      <p><strong>Ana ekran: tek mod, tek görev.</strong> Telefonda her şey "şu anki sohbet". Composer her zaman görünür, ekran kapasitesinin çoğu konuşmaya gidiyor.</p>
+      <p><strong>Header'daki iki düğme:</strong></p>
+      <ul>
+        <li><strong>‹ (sol):</strong> Geçmiş sohbetlere kısayol. Tıklayınca history sheet açılır.</li>
+        <li><strong>⋯ (sağ):</strong> Menü. Cihazlar, Geçmiş, Ayarlar, Hesap.</li>
+      </ul>
+      <p><strong>Bottom sheet pattern'i:</strong></p>
+      <ul>
+        <li>Sheet altdan kayarak gelir (slideUp, 300ms cubic-bezier).</li>
+        <li>Üstte 36×4px handle var — kullanıcı parmağıyla aşağı kaydırarak kapatabilir.</li>
+        <li>Backdrop blur + karartı, ana ekran arkada görünür ama kaybolmaz.</li>
+        <li>Sheet'ler arası geçiş: bir sheet'ten diğerine "switchSheet" ile — backdrop kapanmaz, sheet içeriği değişir.</li>
+        <li>Maks yükseklik %80 — kullanıcı ekran kontrolünü tamamen kaybetmesin.</li>
+      </ul>
+      <p><strong>Neden bottom tab bar değil:</strong></p>
+      <ul>
+        <li>Cihazlar / Geçmiş / Hesap günde kaç kere kullanılır? Sohbet kaç kere? Oran 1:50 belki. Tab bar 4 eşit ağırlık verir, gerçeklikle uyumsuz.</li>
+        <li>Sohbet ekranında composer'la çakışma riski (eski tasarımdaki problemin tam kaynağı).</li>
+        <li>iOS/Android paradigma farkı: iOS tab bar standart, Android navigation drawer standart. Sheet ikisinde de doğal.</li>
+        <li>"Sade ve kaliteli arayüz" hedefiyle uyumlu — kontrol kullanıcıda, gürültü yok.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ CLOSING ============ -->
+  <section class="block" id="closing">
+    <div class="section-meta">Bölüm 06</div>
+    <h2 class="section-title">Bu aşamanın sonu</h2>
+
+    <div class="detail-card" style="margin-top:0">
+      <h4>Karar verilenlerin tam listesi</h4>
+      <ul>
+        <li><strong>Renk sistemi:</strong> 6 ton (Ember default, Rose, Sage, Slate, Plum, Sand) × 2 aydınlık (açık/koyu) = 12 kombinasyon</li>
+        <li><strong>Tipografi:</strong> Inter (body) + Instrument Serif (kişilik/isim) + JetBrains Mono (kod)</li>
+        <li><strong>Karakter:</strong> Signature mark (compass/sun), mobilde isim yanında, masaüstünde mesajın solunda</li>
+        <li><strong>Tone of voice:</strong> Kullanıcıya uyum sağlar (mirror), tercih panelinden değiştirilebilir</li>
+        <li><strong>Tema kontrolü:</strong> Sistem temasını otomatik takip, manuel override</li>
+        <li><strong>Mobil layout:</strong> Header (⋯ menü) + sohbet + composer. Bottom tab bar YOK.</li>
+        <li><strong>Masaüstü layout:</strong> Sidebar (240px) + sohbet (680px max). Sağ panel YOK.</li>
+        <li><strong>Tool aktivitesi:</strong> İndent'li satır, "›" ile aç/kapa, içeriğe göre 4 tip detay (terminal, diff, dosya, görsel)</li>
+        <li><strong>Approval - düşük risk:</strong> Inline cümle + hedef + 2 buton</li>
+        <li><strong>Approval - yüksek risk:</strong> Çerçeveli kart + warn banner + 3 açıklama + "yine de sil" copy</li>
+        <li><strong>Empty state:</strong> Saate uyumlu selamlama + 3 bağlam-farkında öneri</li>
+        <li><strong>Hata mesajları:</strong> Runa söyler, çözüm önerili, raw detay küçük şeritte</li>
+        <li><strong>Streaming:</strong> Kelime kelime, accent renkli cursor, fadeIn</li>
+        <li><strong>Motion sözlüğü:</strong> shimmer, pulse, fadeInUp, slideUp, blink — hepsi ease-out</li>
+        <li><strong>Çoklu cihaz:</strong> Aktif cihaz header'da, listeye menüden ulaşılır, "yeni cihaz" dashed border</li>
+        <li><strong>İletişim ikonografisi:</strong> Lucide base + Runa-özel özel ikonlar (signature, cihaz tipleri)</li>
+      </ul>
+    </div>
+
+    <div class="detail-card">
+      <h4>Henüz tasarlanmamış olanlar — sonraki adımlar için</h4>
+      <ul>
+        <li><strong>Yeni cihaz ekleme akışı:</strong> QR kod tarama, kurulum komutu, eşleştirme süreci</li>
+        <li><strong>Onboarding:</strong> İlk açılış, hesap oluşturma, ilk cihaz bağlama</li>
+        <li><strong>Settings derinliği:</strong> Tüm ayarların hiyerarşisi</li>
+        <li><strong>Görsel oluşturma akışı:</strong> Detaylı görsel düzenleme/üretim UI</li>
+        <li><strong>Çoklu dosya yönetimi:</strong> Birden fazla dosyada arama, toplu işlem</li>
+        <li><strong>Notification & background tasks:</strong> Runa arka planda çalışırken bildirim</li>
+        <li><strong>Brand brief:</strong> Tüm bu kararları toparlayan kararname (artık yazılabilir)</li>
+      </ul>
+    </div>
+
+    <div class="footnote">
+      <p><strong>Bu noktada karar veriyoruz:</strong> Brand brief yazma vakti mi geldi, yoksa yukarıdaki henüz-tasarlanmamış konulardan birini daha mı detaylandırmak istersin?</p>
+      <p>Bence şu an brief için yeterli malzememiz var. Yazılırsa Claude Code'a verebileceğin, geliştirici ekibinin referans alabileceği, ileride kararları kilitleyen bir doküman olur. <strong>"Tüm bu artifact'ları tek bir 4-5 sayfalık dokümanda özetle" zamanı.</strong></p>
+      <p>Brief'i yazarken yapacağım: (1) Karakter/ses tonu, (2) Renk sistemi (token'larla birlikte), (3) Tipografi sistemi, (4) Layout grameri (mobil + masaüstü), (5) Motion sözlüğü, (6) Component'ler için yazılı kurallar (approval, tool, empty, error), (7) Yapılmayacaklar listesi (anti-patterns), (8) Karar verilmemiş olanlar listesi. <strong>Bu Claude Code'a teslim edilebilecek bir doküman olur.</strong></p>
+      <p>Devam edelim mi?</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ============ NAVIGATION ============
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  const sections = document.querySelectorAll('section.block');
+  const buttons = document.querySelectorAll('.nav button');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      const rect = s.getBoundingClientRect();
+      if (rect.top <= 100 && rect.bottom >= 100) current = s.id;
+    });
+    if (current) buttons.forEach(b => b.classList.toggle('active', b.dataset.target === current));
+  });
+
+  // ============ THEME SWITCHING ============
+  let currentTone = 'ember';
+  let currentMode = 'dark';
+
+  function applyTheme() {
+    const themeClass = `theme-${currentTone}-${currentMode}`;
+    const mobile = document.getElementById('mobile-mock');
+    const desktop = document.getElementById('desktop-mock');
+    // Remove all theme classes
+    [mobile, desktop].forEach(el => {
+      el.className = el.className.split(' ').filter(c => !c.startsWith('theme-')).join(' ');
+      el.classList.add(themeClass);
+    });
+
+    // Update settings labels if open
+    const toneEl = document.getElementById('settings-tone');
+    const modeEl = document.getElementById('settings-mode');
+    if (toneEl) toneEl.textContent = currentTone.charAt(0).toUpperCase() + currentTone.slice(1);
+    if (modeEl) modeEl.textContent = currentMode === 'dark' ? 'Koyu' : 'Açık';
+  }
+
+  document.querySelectorAll('.theme-btn[data-tone]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.theme-btn[data-tone]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTone = btn.dataset.tone;
+      applyTheme();
+    });
+  });
+
+  document.querySelectorAll('.theme-btn[data-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Light mode only available for ember in this mock
+      if (btn.dataset.mode === 'light' && currentTone !== 'ember') {
+        alert('Bu mock\'ta sadece Ember teması için açık mod hazır. Üretimde tüm temalarda açık mod olacak.');
+        return;
+      }
+      document.querySelectorAll('.theme-btn[data-mode]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      applyTheme();
+    });
+  });
+
+  // Initial theme
+  applyTheme();
+
+  // ============ TOOL TOGGLES ============
+  function toggleTool(el) {
+    el.classList.toggle('open');
+    const detail = el.nextElementSibling;
+    if (detail && (detail.classList.contains('tool-detail') || detail.classList.contains('image-preview') || detail.classList.contains('diff-block'))) {
+      const isOpen = detail.style.display !== 'none';
+      detail.style.display = isOpen ? 'none' : 'block';
+    }
+  }
+
+  // ============ SHEETS ============
+  let currentSheet = null;
+  function openSheet(name) {
+    closeSheet();
+    const backdrop = document.getElementById('sheet-backdrop');
+    const sheet = document.getElementById('sheet-' + name);
+    if (sheet) {
+      backdrop.classList.add('open');
+      setTimeout(() => sheet.classList.add('open'), 10);
+      currentSheet = sheet;
+    }
+  }
+  function switchSheet(name) {
+    if (currentSheet) {
+      currentSheet.classList.remove('open');
+    }
+    const sheet = document.getElementById('sheet-' + name);
+    if (sheet) {
+      setTimeout(() => {
+        sheet.classList.add('open');
+        currentSheet = sheet;
+      }, 200);
+    }
+  }
+  function closeSheet() {
+    if (currentSheet) {
+      currentSheet.classList.remove('open');
+      currentSheet = null;
+    }
+    document.getElementById('sheet-backdrop').classList.remove('open');
+  }
+
+  // ============ DEVICE SELECT ============
+  function selectDevice(card, name, meta) {
+    document.querySelectorAll('#sheet-devices .device-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    document.getElementById('mobile-subtitle').textContent = `çevrimiçi · ${name}`;
+    setTimeout(() => closeSheet(), 600);
+  }
+
+  // ============ MESSAGING ============
+  const sigSvg = '<span class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>';
+  const sigSvgDt = '<span class="sig-mark sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg></span>';
+
+  const sampleResponses = [
+    "Tabii, bakıyorum. Bir saniye ver...",
+    "Anladım, bunu hemen çözeyim.",
+    "Tamam, bakayım — bir saniye.",
+    "Hmm, ilginç. Düşünüyorum.",
+    "Anladım. Önce bir kontrol edeyim, sonra ilerleyelim."
+  ];
+
+  function sendMobileMessage() {
+    const input = document.getElementById('mobile-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    const body = document.getElementById('mobile-body');
+    const userMsg = document.createElement('div');
+    userMsg.className = 'm-user';
+    userMsg.textContent = text;
+    body.appendChild(userMsg);
+
+    // Thinking
+    const thinking = document.createElement('div');
+    thinking.className = 'm-agent';
+    thinking.innerHTML = `
+      <div class="m-agent-header">
+        ${sigSvg}
+        <span class="shimmer-text">Düşünüyor</span>
+      </div>
+    `;
+    body.appendChild(thinking);
+    body.scrollTop = body.scrollHeight;
+
+    setTimeout(() => {
+      thinking.remove();
+      const reply = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
+      const agentMsg = document.createElement('div');
+      agentMsg.className = 'm-agent';
+      agentMsg.innerHTML = `
+        <div class="m-agent-header">${sigSvg}<span>Runa</span></div>
+        <div class="m-agent-content">${reply}</div>
+      `;
+      body.appendChild(agentMsg);
+      body.scrollTop = body.scrollHeight;
+    }, 1800);
+  }
+
+  function sendDesktopMessage() {
+    const input = document.getElementById('desktop-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    const body = document.querySelector('#desktop-body .dt-body-inner');
+    const userMsg = document.createElement('div');
+    userMsg.className = 'dt-user';
+    userMsg.textContent = text;
+    body.appendChild(userMsg);
+
+    const thinking = document.createElement('div');
+    thinking.className = 'dt-agent';
+    thinking.innerHTML = `
+      ${sigSvgDt}
+      <div class="dt-agent-content"><span class="shimmer-text">Düşünüyor</span></div>
+    `;
+    body.appendChild(thinking);
+    const scrollEl = document.getElementById('desktop-body');
+    scrollEl.scrollTop = scrollEl.scrollHeight;
+
+    setTimeout(() => {
+      thinking.remove();
+      const reply = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
+      const agentMsg = document.createElement('div');
+      agentMsg.className = 'dt-agent';
+      agentMsg.innerHTML = `
+        ${sigSvgDt}
+        <div class="dt-agent-content">${reply}</div>
+      `;
+      body.appendChild(agentMsg);
+      scrollEl.scrollTop = scrollEl.scrollHeight;
+    }, 1800);
+  }
+
+  function approveReadFile(btn) {
+    const approval = btn.closest('.approval');
+    approval.outerHTML = `
+      <div class="tool-line" onclick="toggleTool(this)">
+        <span class="tool-line-dot"></span>
+        <span>cat provider-health.ts</span>
+        <span class="tool-line-chevron">›</span>
+      </div>
+      <div class="m-agent">
+        <div class="m-agent-header">${sigSvg}<span>Runa</span></div>
+        <div class="m-agent-content">Dosya 47 satır. Özetlersek: <strong>HealthMonitor</strong> sınıfı her 30 saniyede provider'ı kontrol ediyor, ardışık 3 hata sonrası circuit breaker tetikliyor. Tam içeriğini görmek istersen söyle.</div>
+      </div>
+    `;
+    document.getElementById('mobile-body').scrollTop = document.getElementById('mobile-body').scrollHeight;
+  }
+
+  function approveDesktopRead(btn) {
+    const agentMsg = btn.closest('.dt-agent');
+    agentMsg.innerHTML = `
+      ${sigSvgDt}
+      <div class="dt-agent-content">Dosya 47 satır. Özetlersek: <strong>HealthMonitor</strong> sınıfı her 30 saniyede provider'ı kontrol ediyor, ardışık 3 hata sonrası circuit breaker tetikliyor. Tam içeriğini görmek istersen söyle.</div>
+    `;
+  }
+
+  function newChat() {
+    const body = document.querySelector('#desktop-body .dt-body-inner');
+    body.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:20px">
+        <span style="width:48px; height:48px; color:var(--accent)" class="sig">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+        </span>
+        <div style="font-family:'Instrument Serif',serif; font-size:28px; text-align:center; color:var(--ink-1); line-height:1.15">Selam.<br/>Bugün ne yapalım?</div>
+        <div style="display:flex; flex-direction:column; gap:8px; max-width:320px; width:100%; margin-top:8px">
+          <div class="suggestion-chip" style="background:var(--surface-2); border:1px solid var(--surface-3); border-radius:10px; padding:10px 14px; color:var(--ink-2); font-size:13px; display:flex; justify-content:space-between; cursor:pointer">
+            <span>Bugünkü programımı özetle</span>
+            <span style="color:var(--ink-3)">›</span>
+          </div>
+          <div class="suggestion-chip" style="background:var(--surface-2); border:1px solid var(--surface-3); border-radius:10px; padding:10px 14px; color:var(--ink-2); font-size:13px; display:flex; justify-content:space-between; cursor:pointer">
+            <span>Projende en son ne değiştiyse anlat</span>
+            <span style="color:var(--ink-3)">›</span>
+          </div>
+          <div class="suggestion-chip" style="background:var(--surface-2); border:1px solid var(--surface-3); border-radius:10px; padding:10px 14px; color:var(--ink-2); font-size:13px; display:flex; justify-content:space-between; cursor:pointer">
+            <span>Dünden kalan işleri hatırlat</span>
+            <span style="color:var(--ink-3)">›</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+</script>
+
+</body>
+</html>

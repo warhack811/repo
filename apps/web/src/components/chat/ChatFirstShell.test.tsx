@@ -10,18 +10,14 @@ describe('chat-first shell pieces', () => {
 	it('renders a compact product header without developer language', () => {
 		const markup = renderToStaticMarkup(
 			<MemoryRouter>
-				<ChatHeader
-					connectionStatus="open"
-					desktopDevices={[]}
-					onToggleSidebar={() => undefined}
-					statusLabel="Canlı"
-				/>
+				<ChatHeader onToggleSidebar={() => undefined} />
 			</MemoryRouter>,
 		);
 
-		expect(markup).toContain('Runa');
 		expect(markup).toContain('Yeni sohbet');
-		expect(markup).toContain('Hesap ve ayarlar');
+		expect(markup).toContain('Komut ara');
+		expect(markup).toContain('Bildirimler');
+		expect(markup).toContain('Hesap');
 		expect(markup).not.toContain('Developer');
 		expect(markup).not.toContain('runtime');
 	});
@@ -46,7 +42,6 @@ describe('chat-first shell pieces', () => {
 				isSidebarOpen={false}
 				messages={<div data-testid="work">Work</div>}
 				onCloseSidebar={() => undefined}
-				onToggleSidebar={() => undefined}
 				sidebar={<div data-testid="history">History</div>}
 			/>,
 		);

@@ -1,6 +1,7 @@
 import { Code2, FileText, MonitorSmartphone, Search, Sparkles, Wand2 } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
+import { HafizaMark } from '../ui/HafizaMark.js';
 
 const onboardingStorageKey = 'runa.onboarding.completed';
 
@@ -86,7 +87,12 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 
 				{step === 0 ? (
 					<div className="runa-onboarding__page">
-						<div className="runa-eyebrow">RUNA</div>
+						<HafizaMark
+							weight="bold"
+							variant="brand"
+							className="runa-onboarding__mark"
+							aria-label="Runa"
+						/>
 						<h2>Çalışma ortağın hazır.</h2>
 						<p>
 							Runa sohbetten başlar, onay isteyen işlerde seni karar noktasına getirir ve kalabalığı

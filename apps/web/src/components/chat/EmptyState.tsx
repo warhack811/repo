@@ -1,5 +1,6 @@
 ﻿import { Code2, FileText, Search } from 'lucide-react';
 import type { ReactElement } from 'react';
+import { HafizaMark } from '../ui/HafizaMark.js';
 
 type EmptyStateProps = Readonly<{
 	onSubmitSuggestion: (prompt: string) => void;
@@ -28,9 +29,37 @@ const suggestions = [
 	},
 ] as const;
 
+function getGreeting(date: Date = new Date()): string {
+	const hour = date.getHours();
+
+	if (hour >= 5 && hour <= 11) {
+		return 'Günaydın';
+	}
+
+	if (hour >= 12 && hour <= 17) {
+		return 'İyi günler';
+	}
+
+	if (hour >= 18 && hour <= 22) {
+		return 'İyi akşamlar';
+	}
+
+	return 'Geç oldu';
+}
+
 export function EmptyState({ onSubmitSuggestion }: EmptyStateProps): ReactElement {
 	return (
 		<aside className="runa-chat-empty-state" aria-label="Başlangıç önerileri">
+			<section className="runa-chat-empty-hero">
+				<HafizaMark
+					weight="bold"
+					variant="brand"
+					aria-hidden
+					className="runa-chat-empty-hero__mark"
+				/>
+				<h1 className="runa-chat-empty-hero__title">{getGreeting()}</h1>
+				<p className="runa-chat-empty-hero__lead">Bugün neyi halledelim?</p>
+			</section>
 			<div className="runa-chat-suggestion-grid">
 				{suggestions.map((suggestion) => {
 					const Icon = suggestion.icon;

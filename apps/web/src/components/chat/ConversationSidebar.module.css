@@ -1,11 +1,11 @@
-.root {
+﻿.root {
 	display: grid;
 	gap: 14px;
 	min-width: 0;
 }
 
 .loading {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 14px;
 }
 
@@ -27,7 +27,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .title {
@@ -52,7 +52,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .searchResults {
@@ -115,7 +115,7 @@
 }
 
 .conversationTitle {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 14px;
 	font-weight: 600;
 	line-height: 1.35;
@@ -125,7 +125,7 @@
 }
 
 .conversationMeta {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	line-height: 1.4;
 	overflow: hidden;
@@ -144,7 +144,7 @@
 }
 
 .conversationTime {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	font-size: 12px;
 	white-space: nowrap;
 }

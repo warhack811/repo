@@ -1,4 +1,4 @@
-.narration {
+﻿.narration {
 	display: grid;
 	grid-template-columns: 14px minmax(0, 1fr);
 	gap: 8px;
@@ -7,28 +7,28 @@
 	margin: 2px 0;
 	padding: 4px 0 4px 10px;
 	border-left: 1px solid var(--border-default);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 14px;
 	line-height: 1.55;
 	overflow-wrap: anywhere;
 }
 
 .streaming {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 }
 
 .completed {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 }
 
 .replay {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 	opacity: 0.72;
 }
 
 .toolFailed {
 	border-left-color: var(--border-warning);
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .toolFailed .text {

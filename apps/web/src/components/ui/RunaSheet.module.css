@@ -1,5 +1,5 @@
-.backdrop {
-	background: hsl(var(--color-surface-overlay) / 0.62);
+﻿.backdrop {
+	background: var(--surface-3);
 	inset: 0;
 	position: fixed;
 	z-index: 190;
@@ -9,7 +9,7 @@
 	background: var(--surface-panel-strong);
 	border: 1px solid var(--border-default);
 	box-shadow: none;
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	display: grid;
 	gap: var(--space-4);
 	max-height: calc(100dvh - var(--safe-area-top) - 16px);

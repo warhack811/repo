@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { lazy, useMemo, useState } from 'react';
 
+import { AppSidebar } from '../components/app/AppSidebar.js';
 import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
 import { ChatHeader } from '../components/chat/ChatHeader.js';
 import { ChatLayout } from '../components/chat/ChatLayout.js';
@@ -12,7 +13,6 @@ import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
-import { WorkInsightPanel } from '../components/chat/WorkInsightPanel.js';
 import { TransportErrorBanner } from '../lib/transport/errors.js';
 
 const RunTimelinePanel = lazy(() =>
@@ -251,10 +251,7 @@ export function ChatPage({
 		<ChatShell embedded={embedded}>
 			<ChatHeader
 				activeConversationTitle={conversations.activeConversationSummary?.title}
-				connectionStatus={connectionStatus}
-				desktopDevices={desktopDevices}
 				onToggleSidebar={() => setIsConversationSidebarOpen(true)}
-				statusLabel={statusLabel}
 			/>
 
 			<ChatLayout
@@ -302,17 +299,6 @@ export function ChatPage({
 						/>
 					</>
 				}
-				insights={
-					<WorkInsightPanel
-						activeConversationTitle={conversations.activeConversationSummary?.title}
-						attachmentCount={attachments.length}
-						currentRunProgress={currentRunProgress}
-						desktopDevices={desktopDevices}
-						isDesktopDevicesLoading={isDesktopDevicesLoading}
-						presentationRunSurfaceCount={presentationRunSurfaces.length}
-						selectedDesktopTargetConnectionId={runtimeDesktopTargetConnectionId}
-					/>
-				}
 				isSidebarOpen={isConversationSidebarOpen}
 				messages={
 					<CurrentRunSurface
@@ -327,23 +313,27 @@ export function ChatPage({
 					/>
 				}
 				onCloseSidebar={() => setIsConversationSidebarOpen(false)}
-				onToggleSidebar={() => setIsConversationSidebarOpen(true)}
 				sidebar={
-					<ConversationSidebar
-						activeConversationId={activeConversationId}
-						activeConversationMembers={conversations.activeConversationMembers}
-						activeConversationSummary={conversations.activeConversationSummary}
-						conversationError={conversationError}
-						conversations={conversationList}
-						isLoading={isConversationLoading}
-						isMemberLoading={conversations.isMemberLoading}
-						isOpen={isConversationSidebarOpen}
-						memberError={conversations.memberError}
-						onClose={() => setIsConversationSidebarOpen(false)}
-						onRemoveMember={conversations.removeConversationMember}
-						onSelectConversation={selectConversation}
-						onShareMember={conversations.shareConversationMember}
-						onStartNewConversation={beginDraftConversation}
+					<AppSidebar
+						activePage="chat"
+						conversationSidebar={
+							<ConversationSidebar
+								activeConversationId={activeConversationId}
+								activeConversationMembers={conversations.activeConversationMembers}
+								activeConversationSummary={conversations.activeConversationSummary}
+								conversationError={conversationError}
+								conversations={conversationList}
+								isLoading={isConversationLoading}
+								isMemberLoading={conversations.isMemberLoading}
+								isOpen={isConversationSidebarOpen}
+								memberError={conversations.memberError}
+								onClose={() => setIsConversationSidebarOpen(false)}
+								onRemoveMember={conversations.removeConversationMember}
+								onSelectConversation={selectConversation}
+								onShareMember={conversations.shareConversationMember}
+								onStartNewConversation={beginDraftConversation}
+							/>
+						}
 					/>
 				}
 			/>

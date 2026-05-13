@@ -1,14 +1,14 @@
-.wrap {
+﻿.wrap {
 	display: inline-flex;
 	position: relative;
 }
 
 .tooltip {
-	background: hsl(var(--color-surface-overlay));
+	background: var(--surface-3);
 	border: 1px solid var(--border-default);
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	box-shadow: none;
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 12px;
 	inset: auto auto calc(100% + 8px) 50%;
 	line-height: 1.35;

@@ -1,0 +1,41 @@
+{
+  "result": "PASS",
+  "acceptance": {
+    "performanceAtLeast85": true,
+    "firstContentfulPaintAtMost1500ms": true,
+    "cumulativeLayoutShiftAtMost01": true
+  },
+  "run": {
+    "lighthouseVersion": "13.1.0",
+    "fetchTime": "2026-05-13T16:57:51.063Z",
+    "requestedUrl": "http://127.0.0.1:4175/login",
+    "finalUrl": "http://127.0.0.1:4175/login",
+    "formFactor": "mobile",
+    "throttlingMethod": "simulate",
+    "screenEmulation": {
+      "mobile": true,
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 3,
+      "disabled": false
+    },
+    "throttling": {
+      "rttMs": 40,
+      "throughputKbps": 10240,
+      "requestLatencyMs": 562.5,
+      "downloadThroughputKbps": 1474.5600000000002,
+      "uploadThroughputKbps": 675,
+      "cpuSlowdownMultiplier": 1
+    }
+  },
+  "metrics": {
+    "performance": 99,
+    "firstContentfulPaintMs": 367,
+    "firstContentfulPaintDisplay": "0.4 s",
+    "cumulativeLayoutShift": 0.081,
+    "cumulativeLayoutShiftDisplay": "0.081",
+    "largestContentfulPaintMs": 491,
+    "totalBlockingTimeMs": 0,
+    "speedIndexMs": 367
+  }
+}

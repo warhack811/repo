@@ -1,4 +1,4 @@
-.root {
+﻿.root {
 	display: grid;
 	gap: 10px;
 }
@@ -16,7 +16,7 @@
 	justify-content: center;
 	gap: 8px;
 	padding: 10px 14px;
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	border: 1px solid var(--border-default);
 	background: var(--surface-chip);
 	color: var(--text-primary);
@@ -31,7 +31,7 @@
 	justify-content: center;
 	gap: 8px;
 	padding: 10px 14px;
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	border: 1px solid var(--border-default);
 	background: var(--surface-chip);
 	color: var(--text-primary);

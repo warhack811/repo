@@ -1,4 +1,4 @@
-.root {
+﻿.root {
 	display: grid;
 	gap: 8px;
 	min-width: 0;
@@ -23,7 +23,7 @@
 
 .caption {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	line-height: 1.45;
 }
@@ -33,8 +33,8 @@
 	padding: 16px;
 	border: 1px solid var(--border-default);
 	border-radius: 8px;
-	background: hsl(var(--color-surface-overlay));
-	color: hsl(var(--color-text));
+	background: var(--surface-3);
+	color: var(--ink-1);
 }
 
 .modalImage {

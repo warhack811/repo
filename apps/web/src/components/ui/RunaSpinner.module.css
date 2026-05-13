@@ -1,8 +1,8 @@
-.spinner {
+﻿.spinner {
 	animation: runa-spin 800ms linear infinite;
 	border: 2px solid var(--border-default);
 	border-radius: 50%;
-	border-top-color: hsl(var(--color-primary));
+	border-top-color: var(--accent);
 	display: inline-block;
 }
 

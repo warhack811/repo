@@ -1,8 +1,7 @@
-/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
-
-.runa-migrated-pages-historypage-1 {
-	background: hsl(var(--color-surface) / 0.72);
-	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+﻿/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+	.runa-migrated-pages-historypage-1 {
+	background: var(--surface-2);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	padding: var(--space-panel);
@@ -20,7 +19,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .runa-migrated-pages-historypage-4 {
@@ -30,7 +29,7 @@
 
 .runa-migrated-pages-historypage-5 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
@@ -48,9 +47,9 @@
 	gap: 8px;
 	padding: 7px 10px;
 	border-radius: 999px;
-	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	border: 1px solid var(--hairline);
 	background: var(--surface-panel-muted);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 }
@@ -58,17 +57,17 @@
 .runa-migrated-pages-historypage-8 {
 	padding: 10px 14px;
 	border-radius: var(--radius-pill);
-	border: 1px solid hsl(var(--color-border-soft) / 0.8);
-	background: hsl(var(--color-surface) / 0.58);
-	color: hsl(var(--color-text));
+	border: 1px solid var(--hairline);
+	background: var(--surface-2);
+	color: var(--ink-1);
 	font-weight: 600;
 	cursor: pointer;
 	box-shadow: none;
 }
 
 .runa-migrated-pages-historypage-9 {
-	background: hsl(var(--color-surface) / 0.72);
-	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	background: var(--surface-2);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	padding: var(--space-panel);
@@ -94,7 +93,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .runa-migrated-pages-historypage-13 {
@@ -103,9 +102,9 @@
 	gap: 8px;
 	padding: 7px 10px;
 	border-radius: 999px;
-	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	border: 1px solid var(--hairline);
 	background: var(--surface-panel-muted);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 	width: fit-content;
@@ -134,7 +133,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .runa-migrated-pages-historypage-19 {

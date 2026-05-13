@@ -1,11 +1,11 @@
-.overlay {
+﻿.overlay {
 	position: fixed;
 	inset: 0;
 	z-index: 50;
 	display: grid;
 	place-items: center;
 	padding: 20px;
-	background: hsl(var(--color-bg) / 0.76);
+	background: var(--overlay);
 }
 
 .dialog {
@@ -14,8 +14,8 @@
 	padding: 20px;
 	border: 1px solid var(--border-default);
 	border-radius: 8px;
-	background: hsl(var(--color-surface-overlay));
-	color: hsl(var(--color-text));
+	background: var(--surface-3);
+	color: var(--ink-1);
 	overflow: auto;
 }
 
@@ -34,7 +34,7 @@
 
 .title {
 	margin: 0;
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 20px;
 	font-weight: 600;
 	line-height: 1.25;
@@ -43,7 +43,7 @@
 
 .subtitle {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 14px;
 	line-height: 1.45;
 }
@@ -68,7 +68,7 @@
 	border: 1px solid var(--border-subtle);
 	border-radius: 8px;
 	background: var(--surface-panel-muted);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 14px;
 	text-align: center;
 }

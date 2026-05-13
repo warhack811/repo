@@ -1,4 +1,4 @@
-.input {
+﻿.input {
 	display: none;
 }
 
@@ -10,7 +10,7 @@
 	height: 44px;
 	min-width: 44px;
 	padding: 0;
-	border-radius: var(--radius-soft);
+	border-radius: var(--radius-input);
 	border: 1px solid var(--border-default);
 	background: var(--surface-chip);
 	color: var(--text-primary);

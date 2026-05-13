@@ -47,13 +47,14 @@ const appNavItems: readonly AppNavItem[] = [
 
 type AppNavProps = Readonly<{
 	activePage: AuthenticatedPageId;
+	variant?: 'sidebar' | 'tiles';
 }>;
 
-export function AppNav({ activePage }: AppNavProps): ReactElement {
+export function AppNav({ activePage, variant = 'tiles' }: AppNavProps): ReactElement {
 	return (
 		<nav
 			aria-label={uiCopy.appNav.navLabel}
-			className="runa-app-nav runa-migrated-components-app-appnav-1"
+			className={`runa-app-nav runa-app-nav--${variant} runa-migrated-components-app-appnav-1`}
 		>
 			<div className="runa-app-nav__items runa-migrated-components-app-appnav-2">
 				{appNavItems.map((item) => {

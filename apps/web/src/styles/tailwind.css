@@ -7,30 +7,30 @@
 
 /* Map spike theme to Tailwind v4 theme */
 @theme {
-	--font-heading: var(--font-sans);
+	--font-heading: var(--font-serif);
 	--font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
 
-	--color-background: hsl(var(--color-bg));
-	--color-foreground: hsl(var(--color-text));
-	--color-card: hsl(var(--color-surface));
-	--color-card-foreground: hsl(var(--color-text));
-	--color-popover: hsl(var(--color-surface-overlay));
-	--color-popover-foreground: hsl(var(--color-text));
-	--color-primary: hsl(var(--color-accent));
-	--color-primary-foreground: hsl(var(--color-accent-foreground));
-	--color-secondary: hsl(var(--color-surface));
-	--color-secondary-foreground: hsl(var(--color-text));
-	--color-muted: hsl(var(--color-bg-soft));
-	--color-muted-foreground: hsl(var(--color-text-muted));
-	--color-accent: hsl(var(--color-accent));
-	--color-accent-foreground: hsl(var(--color-accent-foreground));
-	--color-destructive: hsl(var(--color-danger));
-	--color-border: hsl(var(--color-border-soft));
-	--color-input: hsl(var(--color-border-soft));
-	--color-ring: hsl(var(--color-accent));
+	--color-background: var(--surface-1);
+	--color-foreground: var(--ink-1);
+	--color-card: var(--surface-2);
+	--color-card-foreground: var(--ink-1);
+	--color-popover: var(--surface-3);
+	--color-popover-foreground: var(--ink-1);
+	--color-primary: var(--accent);
+	--color-primary-foreground: var(--accent-fg);
+	--color-secondary: var(--surface-2);
+	--color-secondary-foreground: var(--ink-1);
+	--color-muted: var(--surface-3);
+	--color-muted-foreground: var(--ink-2);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-fg);
+	--color-destructive: var(--error);
+	--color-border: var(--hairline);
+	--color-input: var(--hairline);
+	--color-ring: var(--accent);
 
-	--radius-sm: var(--radius-soft);
-	--radius-md: var(--radius-soft);
+	--radius-sm: var(--radius-input);
+	--radius-md: var(--radius-input);
 	--radius-lg: var(--radius-panel);
 	--radius-xl: var(--radius-panel);
 }
