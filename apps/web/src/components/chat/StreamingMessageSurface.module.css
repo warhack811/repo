@@ -1,5 +1,5 @@
-.root {
-	background: hsl(var(--color-surface) / 0.72);
+﻿.root {
+	background: var(--surface-2);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	display: grid;

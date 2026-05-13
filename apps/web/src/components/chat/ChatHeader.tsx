@@ -4,6 +4,7 @@ import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { ConnectionStatus } from '../../ws-types.js';
+import { HafizaMark } from '../ui/HafizaMark.js';
 
 type ChatHeaderProps = Readonly<{
 	activeConversationTitle?: string;
@@ -48,6 +49,7 @@ export function ChatHeader({
 					<Menu aria-hidden="true" size={20} />
 				</button>
 				<div className="runa-chat-header__brand">
+					<HafizaMark weight="regular" variant="brand" className="runa-chat-header__mark" />
 					<strong>Runa</strong>
 					<span>{conversationLabel}</span>
 				</div>

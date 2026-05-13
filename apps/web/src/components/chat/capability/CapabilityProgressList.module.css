@@ -1,4 +1,4 @@
-.list {
+﻿.list {
 	display: grid;
 	gap: 10px;
 	margin: 0;
@@ -13,14 +13,14 @@
 }
 
 .label {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 14px;
 	font-weight: 600;
 	line-height: 1.35;
 }
 
 .description {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	line-height: 1.45;
 }

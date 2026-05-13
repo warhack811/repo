@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runa — Tema Ailesi + Mobil + Karakter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ THEME FAMILIES ============ */
+  /* Hepsi aynı yapıda, aynı doygunluk seviyesinde, sadece ton farkı */
+  .theme-ember {
+    --surface-1: #14110D;
+    --surface-2: #1E1A14;
+    --surface-3: #2A241C;
+    --ink-1: #E8DFCD;
+    --ink-2: #B9AE99;
+    --ink-3: #847866;
+    --accent-1: #E0805C;
+    --accent-2: #F4A876;
+    --accent-bg: #2A1E15;
+    --status: #8FA277;
+    --user-bg: #E8DFCD;
+    --user-fg: #14110D;
+  }
+  .theme-sage {
+    --surface-1: #0F1410;
+    --surface-2: #161D18;
+    --surface-3: #1F2823;
+    --ink-1: #DEE3D7;
+    --ink-2: #A8AFA0;
+    --ink-3: #7A8074;
+    --accent-1: #7A9B6F;
+    --accent-2: #9FBC93;
+    --accent-bg: #1B2620;
+    --status: #C7916B;
+    --user-bg: #DEE3D7;
+    --user-fg: #0F1410;
+  }
+  .theme-slate {
+    --surface-1: #0E1116;
+    --surface-2: #161A21;
+    --surface-3: #1F242D;
+    --ink-1: #D8DEE9;
+    --ink-2: #A0A8B5;
+    --ink-3: #707684;
+    --accent-1: #7A95B8;
+    --accent-2: #9FB5D2;
+    --accent-bg: #1A2330;
+    --status: #8FA8A0;
+    --user-bg: #D8DEE9;
+    --user-fg: #0E1116;
+  }
+  .theme-plum {
+    --surface-1: #14101A;
+    --surface-2: #1D1825;
+    --surface-3: #2A2333;
+    --ink-1: #E3DCEA;
+    --ink-2: #ADA4B8;
+    --ink-3: #7E7689;
+    --accent-1: #A287B5;
+    --accent-2: #C0A8D0;
+    --accent-bg: #271F33;
+    --status: #8FA277;
+    --user-bg: #E3DCEA;
+    --user-fg: #14101A;
+  }
+  .theme-sand {
+    --surface-1: #15120D;
+    --surface-2: #1F1B15;
+    --surface-3: #2B261D;
+    --ink-1: #E8E0CC;
+    --ink-2: #B5AC97;
+    --ink-3: #7F7765;
+    --accent-1: #C9A878;
+    --accent-2: #DEBE92;
+    --accent-bg: #2A2218;
+    --status: #8FA277;
+    --user-bg: #E8E0CC;
+    --user-fg: #15120D;
+  }
+
+  /* ============ LIGHT THEME VARIANTS ============ */
+  .light-ember {
+    --surface-1: #F6F1E8;
+    --surface-2: #EDE6D6;
+    --surface-3: #DFD5BE;
+    --ink-1: #1F1B16;
+    --ink-2: #3A332A;
+    --ink-3: #6E6356;
+    --accent-1: #B85A3C;
+    --accent-2: #D97757;
+    --accent-bg: #F0E0D2;
+    --status: #6B7A5C;
+    --user-bg: #1F1B16;
+    --user-fg: #F6F1E8;
+  }
+
+  /* ============ PAGE HEADER ============ */
+  .page-header {
+    padding: 56px 24px 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .page-header .eyebrow {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .page-header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 52px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    line-height: 1.05;
+  }
+  .page-header p {
+    color: #aaa;
+    font-size: 16px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1f1f1f;
+    padding: 12px 24px;
+    z-index: 50;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav button {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #aaa;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .nav button:hover { color: #fff; border-color: #3a3a3a; }
+  .nav button.active { background: #fff; color: #000; border-color: #fff; }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 24px 120px;
+  }
+
+  section.block { margin-bottom: 96px; scroll-margin-top: 72px; }
+  section.block:last-child { margin-bottom: 0; }
+
+  h2.section-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .section-meta {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+  }
+  .section-lead {
+    color: #c8c8c8;
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 760px;
+    margin-bottom: 40px;
+  }
+  .section-lead strong { color: #fff; font-weight: 500; }
+
+  /* ============ THEME FAMILY ============ */
+  .family-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .family-card {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-3);
+    border-radius: 16px;
+    padding: 0;
+    overflow: hidden;
+    color: var(--ink-1);
+  }
+  .family-header {
+    padding: 16px 18px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .family-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+  }
+  .family-tag {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+  }
+  .family-preview {
+    padding: 0 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .family-msg {
+    background: transparent;
+    color: var(--ink-1);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .family-signature {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+    vertical-align: -2px;
+  }
+  .family-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 11px 5px 9px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-2);
+    border: 1px solid var(--surface-3);
+    align-self: flex-start;
+  }
+  .family-tool::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent-1);
+  }
+  .family-swatches {
+    display: flex;
+    height: 36px;
+    border-top: 1px solid var(--surface-3);
+  }
+  .family-swatches > div {
+    flex: 1;
+  }
+  .family-bottom {
+    padding: 12px 18px;
+    border-top: 1px solid var(--surface-3);
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.5;
+  }
+
+  /* ============ MOBILE FRAME ============ */
+  .mobile-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    justify-items: center;
+  }
+  @media (min-width: 768px) {
+    .mobile-row { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+  }
+  .mobile-frame {
+    width: 100%;
+    max-width: 390px;
+    height: 780px;
+    border: 1px solid #2a2a2a;
+    border-radius: 36px;
+    overflow: hidden;
+    background: var(--surface-1);
+    color: var(--ink-1);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .mobile-notch {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 26px;
+    background: #000;
+    border-radius: 999px;
+    z-index: 10;
+  }
+  .mobile-status {
+    padding: 14px 22px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ink-1);
+  }
+  .mobile-status .icons {
+    display: flex;
+    gap: 5px;
+    font-size: 12px;
+    align-items: center;
+  }
+
+  .mobile-header {
+    padding: 16px 20px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--surface-3);
+  }
+  .mobile-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mobile-back {
+    color: var(--ink-2);
+    font-size: 22px;
+    line-height: 1;
+  }
+  .mobile-title-block {
+    display: flex;
+    flex-direction: column;
+  }
+  .mobile-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    line-height: 1.1;
+    color: var(--ink-1);
+    letter-spacing: 0.01em;
+  }
+  .mobile-subtitle {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--status);
+    box-shadow: 0 0 0 0 var(--status);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(143, 162, 119, 0.5); }
+    70% { box-shadow: 0 0 0 6px rgba(143, 162, 119, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(143, 162, 119, 0); }
+  }
+  .mobile-header-right {
+    color: var(--ink-2);
+    font-size: 22px;
+  }
+
+  .mobile-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 20px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  /* Time divider */
+  .time-divider {
+    align-self: center;
+    font-size: 11px;
+    color: var(--ink-3);
+    padding: 4px 12px;
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* User message */
+  .m-user {
+    align-self: flex-end;
+    max-width: 80%;
+    padding: 10px 15px;
+    background: var(--user-bg);
+    color: var(--user-fg);
+    border-radius: 18px 18px 4px 18px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* Agent message */
+  .m-agent {
+    align-self: flex-start;
+    max-width: 92%;
+    color: var(--ink-1);
+    font-size: 15px;
+    line-height: 1.6;
+    display: flex;
+    gap: 10px;
+  }
+  .signature-mark {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 4px;
+    color: var(--accent-1);
+  }
+  .m-agent-content { flex: 1; }
+  .m-agent-content strong { color: var(--accent-1); font-weight: 500; }
+
+  /* Tool activity — inline conversational */
+  .tool-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 13px;
+    margin: 4px 0 4px 28px;
+    cursor: pointer;
+  }
+  .tool-inline-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-1);
+    flex-shrink: 0;
+  }
+  .tool-inline-text { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .tool-inline-chevron { color: var(--ink-3); opacity: 0.5; font-size: 10px; }
+
+  /* Approval as conversation */
+  .approval-inline {
+    align-self: flex-start;
+    max-width: 92%;
+    display: flex;
+    gap: 10px;
+  }
+  .approval-content {
+    flex: 1;
+    color: var(--ink-1);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .approval-target-inline {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--accent-bg);
+    color: var(--accent-1);
+    padding: 3px 8px;
+    border-radius: 5px;
+    margin: 8px 0;
+    word-break: break-all;
+  }
+  .approval-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .btn {
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    flex: 1;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-2);
+    border-color: var(--surface-3);
+  }
+  .btn-primary {
+    background: var(--accent-1);
+    color: var(--surface-1);
+  }
+
+  /* Composer */
+  .mobile-composer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 16px 28px;
+    background: linear-gradient(180deg, transparent, var(--surface-1) 30%);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .composer-pill {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 22px;
+    padding: 12px 18px;
+    color: var(--ink-3);
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .composer-attach {
+    color: var(--ink-3);
+    font-size: 20px;
+  }
+  .composer-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--accent-1);
+    color: var(--surface-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ============ DESKTOP FRAME ============ */
+  .desktop-frame {
+    background: var(--surface-1);
+    color: var(--ink-1);
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--surface-3);
+    height: 700px;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+  }
+  .dt-sidebar {
+    border-right: 1px solid var(--surface-3);
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dt-sidebar-brand {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    margin-bottom: 24px;
+    padding: 0 10px;
+    color: var(--ink-1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dt-sidebar-section {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin: 16px 10px 6px;
+  }
+  .dt-sidebar-item {
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--ink-2);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .dt-sidebar-item.active {
+    background: var(--surface-2);
+    color: var(--ink-1);
+  }
+  .dt-sidebar-item.muted { color: var(--ink-3); font-size: 13px; }
+  .dt-new-task {
+    background: var(--accent-bg);
+    color: var(--accent-1);
+    border: 1px dashed var(--accent-1);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .dt-main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .dt-header {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--surface-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dt-header-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px;
+    color: var(--ink-1);
+  }
+  .dt-header-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dt-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    align-items: center;
+  }
+  .dt-body-inner {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .dt-composer-wrap {
+    padding: 18px 28px 24px;
+    display: flex;
+    justify-content: center;
+  }
+  .dt-composer {
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+  .dt-composer-input { flex: 1; padding: 4px 0; }
+  .dt-composer-send {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent-1); color: var(--surface-1);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ============ DETAIL CARDS ============ */
+  .detail-card {
+    margin-top: 32px;
+    padding: 28px;
+    border: 1px solid #1f1f1f;
+    border-radius: 14px;
+    background: #0f0f0f;
+  }
+  .detail-card h4 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .detail-card p, .detail-card li {
+    color: #c8c8c8;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .detail-card p + p { margin-top: 12px; }
+  .detail-card strong { color: #fff; font-weight: 500; }
+  .detail-card ul { list-style: none; margin-top: 8px; }
+  .detail-card li { padding: 4px 0; padding-left: 16px; position: relative; }
+  .detail-card li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: #555;
+  }
+
+  .micro-detail-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  @media (min-width: 768px) { .micro-detail-row { grid-template-columns: 1fr 1fr; } }
+  .micro-card {
+    padding: 20px;
+    border: 1px solid #1f1f1f;
+    border-radius: 10px;
+    background: #0f0f0f;
+  }
+  .micro-card h6 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 12px;
+  }
+  .micro-card .label {
+    color: #888;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .micro-card .sample {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 16px;
+    color: #e0e0e0;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+
+  .footnote {
+    margin-top: 64px;
+    padding: 32px;
+    background: linear-gradient(180deg, #1a1612 0%, #0a0a0a 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 18px;
+    color: #c8c8c8;
+    font-size: 14.5px;
+    line-height: 1.7;
+  }
+  .footnote strong { color: #fff; }
+  .footnote p + p { margin-top: 14px; }
+
+  /* Signature SVG mark */
+  .signature-mark svg { width: 100%; height: 100%; }
+
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow">Adım 03 · Genişleme</div>
+  <h1>Aile, Mobil, Karakter</h1>
+  <p>Üç şey bir arada: aynı yapıda beş tema (kullanıcı kendi tonunu seçer), mobil-öncelikli düzen (telefon birincil, masaüstü ondan büyür), ve Runa'ya özel mikro karakter detayları (rakiplerden ayrışmamız buradan geçer).</p>
+</div>
+
+<nav class="nav">
+  <button class="active" data-target="family">Tema Ailesi</button>
+  <button data-target="mobile">Mobil-Öncelikli</button>
+  <button data-target="character">Karakter Detayları</button>
+  <button data-target="desktop">Masaüstü Genişlemesi</button>
+  <button data-target="next">Sıradaki</button>
+</nav>
+
+<div class="container">
+
+  <!-- ============ THEME FAMILY ============ -->
+  <section class="block" id="family">
+    <div class="section-meta">Bölüm 01</div>
+    <h2 class="section-title">Aynı yapıda beş tema</h2>
+    <p class="section-lead">
+      Tek karar değil, beş ses tonu. <strong>Aile olarak akrabalar</strong> — hepsi aynı doygunluk seviyesinde, aynı soft karakterli, aynı yüzey hiyerarşisinde. Sadece <em>tonu</em> farklı. Kullanıcı yeni bir uygulama öğrenmiyor; sadece kendi rengini seçiyor.
+      Varsayılan <strong>Ember</strong>. Diğerleri ayarlardan tek tıkla.
+    </p>
+
+    <div class="family-grid">
+
+      <!-- EMBER -->
+      <div class="family-card theme-ember">
+        <div class="family-header">
+          <div class="family-name">Ember</div>
+          <div class="family-tag">varsayılan</div>
+        </div>
+        <div class="family-preview">
+          <div class="family-msg">
+            <span class="family-signature" style="color: var(--accent-1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            Bakıyorum, son commit <strong>3 saat önce</strong>.
+          </div>
+          <div class="family-tool">
+            <span></span>git log
+          </div>
+        </div>
+        <div class="family-swatches">
+          <div style="background:#14110D"></div>
+          <div style="background:#2A241C"></div>
+          <div style="background:#E0805C"></div>
+          <div style="background:#F4A876"></div>
+          <div style="background:#E8DFCD"></div>
+        </div>
+        <div class="family-bottom">Sıcak, ahşap, kor ateş. Anadolu toprak tonu.</div>
+      </div>
+
+      <!-- SAGE -->
+      <div class="family-card theme-sage">
+        <div class="family-header">
+          <div class="family-name">Sage</div>
+          <div class="family-tag">orman</div>
+        </div>
+        <div class="family-preview">
+          <div class="family-msg">
+            <span class="family-signature" style="color: var(--accent-1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            Bakıyorum, son commit <strong>3 saat önce</strong>.
+          </div>
+          <div class="family-tool">
+            <span></span>git log
+          </div>
+        </div>
+        <div class="family-swatches">
+          <div style="background:#0F1410"></div>
+          <div style="background:#1F2823"></div>
+          <div style="background:#7A9B6F"></div>
+          <div style="background:#9FBC93"></div>
+          <div style="background:#DEE3D7"></div>
+        </div>
+        <div class="family-bottom">Sakin, yetişkin, yosun. Doğal kapasite hissi.</div>
+      </div>
+
+      <!-- SLATE -->
+      <div class="family-card theme-slate">
+        <div class="family-header">
+          <div class="family-name">Slate</div>
+          <div class="family-tag">gece masası</div>
+        </div>
+        <div class="family-preview">
+          <div class="family-msg">
+            <span class="family-signature" style="color: var(--accent-1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            Bakıyorum, son commit <strong>3 saat önce</strong>.
+          </div>
+          <div class="family-tool">
+            <span></span>git log
+          </div>
+        </div>
+        <div class="family-swatches">
+          <div style="background:#0E1116"></div>
+          <div style="background:#1F242D"></div>
+          <div style="background:#7A95B8"></div>
+          <div style="background:#9FB5D2"></div>
+          <div style="background:#D8DEE9"></div>
+        </div>
+        <div class="family-bottom">Soğuk-mavi, sakin profesyonel. Sysadmin tarafı.</div>
+      </div>
+
+      <!-- PLUM -->
+      <div class="family-card theme-plum">
+        <div class="family-header">
+          <div class="family-name">Plum</div>
+          <div class="family-tag">alacakaranlık</div>
+        </div>
+        <div class="family-preview">
+          <div class="family-msg">
+            <span class="family-signature" style="color: var(--accent-1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            Bakıyorum, son commit <strong>3 saat önce</strong>.
+          </div>
+          <div class="family-tool">
+            <span></span>git log
+          </div>
+        </div>
+        <div class="family-swatches">
+          <div style="background:#14101A"></div>
+          <div style="background:#2A2333"></div>
+          <div style="background:#A287B5"></div>
+          <div style="background:#C0A8D0"></div>
+          <div style="background:#E3DCEA"></div>
+        </div>
+        <div class="family-bottom">Yumuşak mor, gece. AI hissi ama klişe değil.</div>
+      </div>
+
+      <!-- SAND -->
+      <div class="family-card theme-sand">
+        <div class="family-header">
+          <div class="family-name">Sand</div>
+          <div class="family-tag">çöl</div>
+        </div>
+        <div class="family-preview">
+          <div class="family-msg">
+            <span class="family-signature" style="color: var(--accent-1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            Bakıyorum, son commit <strong>3 saat önce</strong>.
+          </div>
+          <div class="family-tool">
+            <span></span>git log
+          </div>
+        </div>
+        <div class="family-swatches">
+          <div style="background:#15120D"></div>
+          <div style="background:#2B261D"></div>
+          <div style="background:#C9A878"></div>
+          <div style="background:#DEBE92"></div>
+          <div style="background:#E8E0CC"></div>
+        </div>
+        <div class="family-bottom">Bal, kum tepesi. Daha sarı, daha yumuşak.</div>
+      </div>
+
+      <!-- LIGHT EMBER -->
+      <div class="family-card light-ember">
+        <div class="family-header">
+          <div class="family-name">Ember · açık</div>
+          <div class="family-tag">gün ışığı</div>
+        </div>
+        <div class="family-preview">
+          <div class="family-msg">
+            <span class="family-signature" style="color: var(--accent-1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            Bakıyorum, son commit <strong>3 saat önce</strong>.
+          </div>
+          <div class="family-tool">
+            <span></span>git log
+          </div>
+        </div>
+        <div class="family-swatches">
+          <div style="background:#F6F1E8"></div>
+          <div style="background:#DFD5BE"></div>
+          <div style="background:#B85A3C"></div>
+          <div style="background:#D97757"></div>
+          <div style="background:#1F1B16"></div>
+        </div>
+        <div class="family-bottom">Her tonun açık temada karşılığı var. Sistem temasını otomatik takip.</div>
+      </div>
+
+    </div>
+
+    <div class="detail-card">
+      <h4>Aile mantığı — Runa'ya özel</h4>
+      <p>Çoğu uygulama "Açık / Koyu / Sistem" der, biter. Runa farklı bir şey öneriyor: kullanıcı sadece <em>aydınlık seviyesini</em> değil, <em>ses tonunu</em> da seçer. <strong>"Tema değiştir" yerine "ruh halini seç" gibi hissedilen bir karar.</strong></p>
+      <p>Bu pratikte şöyle çalışır: Ayarlarda iki ayrı kontrol var. (1) Aydınlık — açık / koyu / sistem otomatik. (2) Ton — Ember, Sage, Slate, Plum, Sand. İkisi bağımsız, kullanıcı istediği kombinasyonu seçer. Toplamda 10 farklı kombinasyon, ama hepsi aynı tasarım dilinde — kullanıcı yeni bir şey öğrenmiyor.</p>
+      <p>Ayırt edici nokta: ton seçimi sadece accent rengini değil, <em>tüm yüzeylerin sıcaklığını</em> hafifçe etkiler. Ember'de yüzeyler kahverengi taban; Slate'te gri taban; Plum'da mor taban. Aynı tasarım, beş farklı atmosfer. <strong>Rakiplerden hiçbiri bunu yapmıyor.</strong></p>
+    </div>
+  </section>
+
+  <!-- ============ MOBILE ============ -->
+  <section class="block" id="mobile">
+    <div class="section-meta">Bölüm 02</div>
+    <h2 class="section-title">Mobil-öncelikli düzen</h2>
+    <p class="section-lead">
+      Kullanıcıların çoğu telefonda. O yüzden mobil <em>küçültülmüş masaüstü</em> değil — <strong>birincil ekran</strong>. Masaüstü bunun genişlemiş hali. Aşağıdaki frame'ler 390px telefon (iPhone) ölçüsünde, gerçek dokunma alanlarıyla. İki tema yan yana, aynı sohbet.
+    </p>
+
+    <div class="mobile-row">
+
+      <!-- MOBILE EMBER DARK -->
+      <div class="mobile-frame theme-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>23:41</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>76%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span>düşünüyor</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">projenin server klasöründe en son ne değişmiş bakar mısın</div>
+
+          <div class="m-agent">
+            <span class="signature-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            <div class="m-agent-content">Tabii, son commit'lere bakıyorum.</div>
+          </div>
+
+          <div class="tool-inline">
+            <span class="tool-inline-dot"></span>
+            <span class="tool-inline-text">git log</span>
+            <span class="tool-inline-chevron">›</span>
+          </div>
+
+          <div class="m-agent">
+            <span class="signature-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            <div class="m-agent-content">
+              Son dokunulan dosya <strong>provider-health.ts</strong> — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+            </div>
+          </div>
+
+          <div class="approval-inline">
+            <span class="signature-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            <div class="approval-content">
+              Dosyayı açıp gösterebilirim — okumama izin verir misin?
+              <div class="approval-target-inline">apps/server/.../provider-health.ts</div>
+              <div class="approval-actions">
+                <button class="btn btn-ghost">Vazgeç</button>
+                <button class="btn btn-primary">Aç</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span class="composer-attach">+</span>
+            <span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+
+      <!-- MOBILE EMBER LIGHT -->
+      <div class="mobile-frame light-ember">
+        <div class="mobile-notch"></div>
+        <div class="mobile-status">
+          <span>09:14</span>
+          <div class="icons"><span>5G</span><span>•••</span><span>92%</span></div>
+        </div>
+        <div class="mobile-header">
+          <div class="mobile-header-left">
+            <div class="mobile-back">‹</div>
+            <div class="mobile-title-block">
+              <div class="mobile-title">Runa</div>
+              <div class="mobile-subtitle"><span class="pulse"></span><span>çevrimiçi</span></div>
+            </div>
+          </div>
+          <div class="mobile-header-right">⋯</div>
+        </div>
+        <div class="mobile-body">
+          <div class="time-divider">bugün</div>
+
+          <div class="m-user">projenin server klasöründe en son ne değişmiş bakar mısın</div>
+
+          <div class="m-agent">
+            <span class="signature-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            <div class="m-agent-content">Tabii, son commit'lere bakıyorum.</div>
+          </div>
+
+          <div class="tool-inline">
+            <span class="tool-inline-dot"></span>
+            <span class="tool-inline-text">git log</span>
+            <span class="tool-inline-chevron">›</span>
+          </div>
+
+          <div class="m-agent">
+            <span class="signature-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            <div class="m-agent-content">
+              Son dokunulan dosya <strong>provider-health.ts</strong> — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+            </div>
+          </div>
+
+          <div class="approval-inline">
+            <span class="signature-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            <div class="approval-content">
+              Dosyayı açıp gösterebilirim — okumama izin verir misin?
+              <div class="approval-target-inline">apps/server/.../provider-health.ts</div>
+              <div class="approval-actions">
+                <button class="btn btn-ghost">Vazgeç</button>
+                <button class="btn btn-primary">Aç</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-composer">
+          <div class="composer-pill">
+            <span class="composer-attach">+</span>
+            <span>Mesaj yaz…</span>
+          </div>
+          <div class="composer-send-btn">↑</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="detail-card">
+      <h4>Mobil için kritik kararlar</h4>
+      <p><strong>Composer sticky, opak.</strong> Eski tasarımda yarı saydam composer'ın arkasından metinler geçiyordu — burada solid surface üzerine gradient mask, hiçbir şey altından geçmiyor.</p>
+      <p><strong>Bottom nav YOK.</strong> Çoğu rakip alt sekme bar koyuyor (Sohbet/Geçmiş/Cihazlar) — bu hem ekran yer kapıyor hem composer'la çakışıyor. Runa'da geçmiş ve diğer ekranlar header'daki ⋯ menüsünden açılan bottom sheet'le geliyor. Birincil mod: sohbet. Her şey ona göre.</p>
+      <p><strong>Approval inline.</strong> Yukarıda gördüğün approval bir "kart" değil — agent'ın bir cümlesi, devamında hedef + butonlar. Sohbetin akışını kırmıyor; sohbetin parçası. Bu Claude Cowork dahil hiçbir rakipte böyle değil.</p>
+      <p><strong>Tool aktivitesi indent'li, küçük.</strong> Agent'ın mesajından sonra hafif sağa kaymış, tipografi küçülmüş — yan akış olduğu görsel olarak belli. "Şu an şuna bakıyor" gibi okunuyor, kart gibi değil.</p>
+      <p><strong>Time divider.</strong> Her mesajda tarih damgası yerine "bugün / dün / 11 mayıs" gibi grup ayırıcıları. Hem temiz hem konuşmaya saygı.</p>
+    </div>
+  </section>
+
+  <!-- ============ CHARACTER ============ -->
+  <section class="block" id="character">
+    <div class="section-meta">Bölüm 03</div>
+    <h2 class="section-title">Runa'yı Runa yapan detaylar</h2>
+    <p class="section-lead">
+      Tipografi + renk + yapı standardize olunca, karakter ufak detaylarda kalır. Bu detaylar Runa'yı rakiplerden ayrıştırır. Hiçbiri devrim değil — küçük, dikkatli kararlar.
+    </p>
+
+    <div class="micro-detail-row">
+
+      <div class="micro-card">
+        <h6>01 · Signature mark</h6>
+        <div class="label">Agent mesajı önünde, avatar yerine</div>
+        <div class="sample" style="display:flex; align-items:center; gap:12px; padding:24px">
+          <span style="color:#E0805C; width:24px; height:24px; display:inline-block">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:100%; height:100%"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+          </span>
+          <span>İşte Runa konuşuyor.</span>
+        </div>
+        <p style="color:#aaa; font-size:13px; margin-top:12px; line-height:1.5">
+          Yuvarlak harf avatar'ı (R) yerine ince çizgili sun/compass işareti. Anthropic'in starburst'üne benziyor ama farklı: <em>ışıyan değil, yön bulan</em>. "Burada bir rehber var" hissi. Tekrarlanması Runa'nın görsel imzası olur.
+        </p>
+      </div>
+
+      <div class="micro-card">
+        <h6>02 · Tool aktivitesi: pill değil, satır</h6>
+        <div class="label">İndent'li, hafif, sohbete dahil</div>
+        <div class="sample" style="padding:20px 24px">
+          <div style="color:#999; font-size:13px; margin-bottom:8px">Tabii, son commit'lere bakıyorum.</div>
+          <div style="margin-left:28px; display:flex; align-items:center; gap:8px; color:#888; font-size:12px; font-family:'JetBrains Mono',monospace">
+            <span style="width:5px; height:5px; border-radius:50%; background:#E0805C"></span>
+            git log
+            <span style="opacity:0.5">›</span>
+          </div>
+        </div>
+        <p style="color:#aaa; font-size:13px; margin-top:12px; line-height:1.5">
+          Çoğu AI ürününde tool aktivitesi büyük bir kart ya da renkli pill. Runa'da agent'ın mesajından sonra hafif sağa indent'li, küçük tipografide — "bir yan iş" gibi okunuyor. Sohbeti bölmüyor.
+        </p>
+      </div>
+
+      <div class="micro-card">
+        <h6>03 · Approval bir cümle, bir kart değil</h6>
+        <div class="label">Agent'ın doğrudan sorusu</div>
+        <div class="sample" style="padding:20px 24px">
+          <div style="display:flex; gap:10px; align-items:flex-start">
+            <span style="color:#E0805C; width:18px; height:18px; margin-top:4px; flex-shrink:0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:100%; height:100%"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+            </span>
+            <div style="font-size:14px; color:#e0e0e0">
+              Dosyayı açabilirim, izin verir misin?
+              <div style="margin-top:8px; display:flex; gap:8px">
+                <span style="font-size:11px; color:#666; padding:4px 10px; border:1px solid #333; border-radius:6px">Hayır</span>
+                <span style="font-size:11px; color:#0a0a0a; background:#E0805C; padding:4px 10px; border-radius:6px">Aç</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p style="color:#aaa; font-size:13px; margin-top:12px; line-height:1.5">
+          "GÜVEN KARARI" başlığı yok, eyebrow yok, kart border'ı yok. Sadece bir soru ve iki buton. Sohbet ritminden kopmuyor.
+        </p>
+      </div>
+
+      <div class="micro-card">
+        <h6>04 · Status sinyali pulse</h6>
+        <div class="label">"Çevrimiçi" / "düşünüyor" / "yazıyor"</div>
+        <div class="sample" style="padding:24px; display:flex; align-items:center; gap:10px">
+          <span style="width:8px; height:8px; border-radius:50%; background:#8FA277; box-shadow:0 0 0 0 #8FA277; animation:pulse 2s infinite"></span>
+          <span style="color:#aaa; font-size:14px">düşünüyor</span>
+        </div>
+        <p style="color:#aaa; font-size:13px; margin-top:12px; line-height:1.5">
+          Statik nokta değil, hafif pulsing animasyon. Sage yeşili — accent ile çakışmıyor. "Burada bir kalp atıyor" hissi.
+        </p>
+      </div>
+
+      <div class="micro-card">
+        <h6>05 · Tipografi karışımı</h6>
+        <div class="label">Inter (body) + Instrument Serif (kişilik)</div>
+        <div class="sample" style="padding:22px">
+          <div style="font-family:'Instrument Serif',serif; font-size:24px; color:#fff; margin-bottom:6px">Runa</div>
+          <div style="font-size:13px; color:#aaa; line-height:1.5">Bu metin Inter'de yazıldı. Bilgi taşıyor.</div>
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid #333">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#888">apps/server/runtime/...</span>
+          </div>
+        </div>
+        <p style="color:#aaa; font-size:13px; margin-top:12px; line-height:1.5">
+          Üç ses: Serif Runa'nın ismi ve önemli vurgular için (kişilik), Inter bilgi taşıyan body için (okunabilirlik), Mono kod/yol için (teknik gerçek). Bu üçlü Runa'nın "ses tonu" gibi çalışıyor.
+        </p>
+      </div>
+
+      <div class="micro-card">
+        <h6>06 · "Bugün / dün" ayırıcısı</h6>
+        <div class="label">Tarih damgası yerine grup başlığı</div>
+        <div class="sample" style="padding:24px; display:flex; flex-direction:column; align-items:center; gap:8px">
+          <div style="background:#1a1a1a; padding:8px 16px; border-radius:18px 18px 4px 18px; font-size:13px; color:#e0e0e0">Önceki mesaj</div>
+          <div style="color:#666; font-size:11px; padding:6px 0; letter-spacing:0.05em">bugün</div>
+          <div style="background:#1a1a1a; padding:8px 16px; border-radius:18px 18px 4px 18px; font-size:13px; color:#e0e0e0">Yeni mesaj</div>
+        </div>
+        <p style="color:#aaa; font-size:13px; margin-top:12px; line-height:1.5">
+          Her mesajın altında "11.05.2026 02:57:31" yok. Sadece grup ayırıcıları: bugün, dün, 11 mayıs. Konuşma okunabilir, gürültü yok.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="detail-card">
+      <h4>Bunlar neden Runa'yı Runa yapıyor?</h4>
+      <p>Tek bir devrim yok burada — sadece <strong>küçük dikkatli kararların toplamı</strong>. Signature mark, pulse animasyon, indent'li tool aktivitesi, inline approval, üçlü tipografi — bunlar tek tek görüldüğünde sıradan, ama bir arada görüldüğünde Runa karakterini yaratıyor.</p>
+      <p>Rakiplerden ayrışma noktası şu: <em>Claude Cowork işlevsel olarak çok güçlü ama görsel olarak hâlâ "AI ürünü"</em>. Cursor "developer aracı". ChatGPT "chatbot". Runa, ne sırf chatbot ne dashboard — <strong>"akıllı bir muhatap"</strong> gibi hissetmeli. Bu detaylar o hissi inşa ediyor.</p>
+      <p><em>Bu detayların hepsini şimdi onaylamak zorunda değiliz</em>. Beğendiklerini seç, beğenmediklerini at, yenilerini öner. Hangi mikro detay sana "evet bu Runa" hissi verdi?</p>
+    </div>
+  </section>
+
+  <!-- ============ DESKTOP ============ -->
+  <section class="block" id="desktop">
+    <div class="section-meta">Bölüm 04</div>
+    <h2 class="section-title">Masaüstüne nasıl büyür?</h2>
+    <p class="section-lead">
+      Mobil tasarım sabit, masaüstü onun <em>genişlemiş</em> hali. Aynı bileşenler, aynı boşluklar, aynı karakter — sadece daha fazla yer. Üç kolon yok; <strong>iki kolon</strong>: solda sidebar, ortada sohbet. Sağ panel kaldırıldı — bilgi tekrarı yapmıyor.
+    </p>
+
+    <div class="desktop-frame theme-ember">
+      <div class="dt-sidebar">
+        <div class="dt-sidebar-brand">
+          <span style="color: var(--accent-1); width:20px; height:20px; display:inline-block">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:100%; height:100%"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+          </span>
+          Runa
+        </div>
+
+        <div class="dt-new-task">
+          <span>+</span> Yeni sohbet
+        </div>
+
+        <div class="dt-sidebar-section">Bugün</div>
+        <div class="dt-sidebar-item active">
+          <span>·</span> Server klasörü kontrolü
+        </div>
+        <div class="dt-sidebar-item">
+          <span>·</span> README özeti
+        </div>
+
+        <div class="dt-sidebar-section">Dün</div>
+        <div class="dt-sidebar-item muted">
+          <span>·</span> Approval testleri
+        </div>
+        <div class="dt-sidebar-item muted">
+          <span>·</span> Mobil layout refactor
+        </div>
+
+        <div style="flex:1"></div>
+
+        <div class="dt-sidebar-item muted">⚙ Ayarlar</div>
+        <div class="dt-sidebar-item muted">⌘ Cihazlar</div>
+      </div>
+
+      <div class="dt-main">
+        <div class="dt-header">
+          <div class="dt-header-title">Server klasörü kontrolü</div>
+          <div class="dt-header-meta">
+            <span class="pulse"></span>
+            <span>çevrimiçi · D:\ai\Runa</span>
+          </div>
+        </div>
+
+        <div class="dt-body">
+          <div class="dt-body-inner">
+            <div class="time-divider">bugün</div>
+
+            <div class="m-user">projenin server klasöründe en son ne değişmiş bakar mısın</div>
+
+            <div class="m-agent">
+              <span class="signature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <div class="m-agent-content">Tabii, son commit'lere bakıyorum.</div>
+            </div>
+
+            <div class="tool-inline">
+              <span class="tool-inline-dot"></span>
+              <span class="tool-inline-text">git log · son 10 commit</span>
+              <span class="tool-inline-chevron">›</span>
+            </div>
+
+            <div class="m-agent">
+              <span class="signature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <div class="m-agent-content">
+                Son dokunulan dosya <strong>provider-health.ts</strong> — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+              </div>
+            </div>
+
+            <div class="approval-inline">
+              <span class="signature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2M19 5l-2.8 2.8M7.8 16.2L5 19M19 19l-2.8-2.8M7.8 7.8L5 5"/></svg>
+              </span>
+              <div class="approval-content">
+                Dosyayı açıp gösterebilirim — okumama izin verir misin?
+                <div class="approval-target-inline">apps/server/src/runtime/provider-health.ts</div>
+                <div class="approval-actions" style="max-width:280px">
+                  <button class="btn btn-ghost">Vazgeç</button>
+                  <button class="btn btn-primary">Aç</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dt-composer-wrap">
+          <div class="dt-composer">
+            <span style="color: var(--ink-3); font-size:18px">+</span>
+            <div class="dt-composer-input">Mesaj yaz…</div>
+            <div class="dt-composer-send">↑</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h4>Masaüstünde ne değişti?</h4>
+      <p><strong>Sağ panel kaldırıldı.</strong> Eski tasarımda "İlerleme + Masaüstü + Bağlam" sağda yığılıyordu. Aynı bilgi sohbet akışında zaten var (tool aktivitesi orada). Sağ panel duplicate'ı.</p>
+      <p><strong>İki kolon, ortada sohbet 680px.</strong> Sohbet ne kadar geniş olursa olsun, okuma alanı 680px'i geçmez — gözün satır takibi için ergonomik max. Sidebar 260px sabit. Geri kalan boşluk nefes alanı.</p>
+      <p><strong>Header tek satır.</strong> Eski tasarımda hamburger + brand + presence + ayarlar dağılmıştı. Burada: sohbet başlığı + status + meta. Sade.</p>
+      <p><strong>Cihaz/Geçmiş sidebar altında.</strong> Birincil değil — küçük puntoda, ayarlarla birlikte. Çünkü kullanıcının çoğu zamanını chat'te geçirecek.</p>
+    </div>
+  </section>
+
+  <!-- ============ NEXT ============ -->
+  <section class="block" id="next">
+    <div class="section-meta">Bölüm 05</div>
+    <h2 class="section-title">Buradan sonra</h2>
+
+    <div class="detail-card" style="margin-top:0">
+      <h4>Önümüzdeki konular</h4>
+      <p>Şu ana kadar karar verilenler: <strong>renk yönü (Warm Paper ailesi), tema sistemi (5 ton × 2 aydınlık), mobil-öncelikli düzen, Runa karakteri (signature, pulse, inline approval, üçlü tipografi)</strong>.</p>
+      <p>Eksik kalan ve bir sonraki adımlarda ele alınacaklar:</p>
+      <ul>
+        <li><strong>Empty state.</strong> Boş bir sohbet ekranı ne diyor? "Bugün neyi halledelim?" gibi bir karşılama mı, yoksa daha sessiz bir başlangıç mı?</li>
+        <li><strong>Hata durumları.</strong> Bir tool çalışmazsa, internet giderse, agent takılırsa — bu anlar Runa'nın karakterini en çok gösterdiği yerlerdir. Bunu özel tasarlamak lazım.</li>
+        <li><strong>Streaming davranışı.</strong> Mesaj yazılırken nasıl beliriyor? Tek karakter mi, kelime kelime mi, paragraf paragraf mı? Bu da karakter taşır.</li>
+        <li><strong>Motion vocabulary.</strong> Hangi animasyon ne için. Süreler, easing eğrileri. Şu an pulse var, ama daha kapsamlı bir motion dili lazım.</li>
+        <li><strong>İkon seti.</strong> Lucide aynen mi devam, yoksa Runa'ya özel modifikasyonlar mı? Signature mark zaten kendine özgü; ikon dili onunla uyumlu olmalı.</li>
+        <li><strong>Detay görünümleri.</strong> Bir tool aktivitesinin "›" ile açılması ne gösteriyor? Terminal çıktısı, dosya içeriği, hata detayı — bu derinlik katmanı henüz tasarlanmadı.</li>
+        <li><strong>Çoklu cihaz/server senaryosu.</strong> "Hangi cihaza bağlanayım?" seçimi, server bağlantısı, masaüstü agent senkronizasyonu — bunların UI nasıl olacak?</li>
+      </ul>
+    </div>
+
+    <div class="footnote">
+      <p><strong>Karar zamanı.</strong> Bu artifact'ta üç şey gösterdim. Hepsinden mutlu musun, yoksa belirli detaylarda ince ayar mı lazım? Birkaç olası yön:</p>
+      <p>1. <strong>Signature mark</strong> sana farklı bir şey hissettiriyor mu? Compass/sun çok mu basit, daha karakterli bir şey mi olmalı? Bunun üzerinde durabilirim — Runa için özel bir mark çizebilirim.</p>
+      <p>2. <strong>Tema ailesi</strong> beşli olarak doğru mu? Bir tane daha ekleyelim mi (örneğin "Rose" — pembe-bal, daha kadın izleyici dostu)? Veya az mı (4 yeterli)?</p>
+      <p>3. <strong>Mobil approval inline</strong> yaklaşımı sana "evet bu doğru" mu dedi, yoksa eski kart yaklaşımı daha güvenli hissediyor mu?</p>
+      <p>4. <strong>Bir sonraki adım</strong> hangisi olsun? Empty state + hata durumları (deneyimsel tasarım), motion vocabulary (animasyon), yoksa direk brief'i mi yazmaya başlayalım?</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  const sections = document.querySelectorAll('section.block');
+  const buttons = document.querySelectorAll('.nav button');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      const rect = s.getBoundingClientRect();
+      if (rect.top <= 100 && rect.bottom >= 100) current = s.id;
+    });
+    if (current) buttons.forEach(b => b.classList.toggle('active', b.dataset.target === current));
+  });
+</script>
+
+</body>
+</html>

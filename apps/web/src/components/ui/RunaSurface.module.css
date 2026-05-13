@@ -1,4 +1,4 @@
-.surface {
+﻿.surface {
 	display: grid;
 	min-width: 0;
 }
@@ -17,7 +17,7 @@
 
 .page {
 	background: var(--page-background);
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-family: var(--font-body);
 	min-height: 100dvh;
 	padding: var(--space-page-y) var(--space-page-x);

@@ -1,4 +1,4 @@
-.root {
+﻿.root {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -21,7 +21,7 @@
 
 .title {
 	margin: 0;
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 20px;
 	font-weight: 600;
 	line-height: 1.2;
@@ -30,7 +30,7 @@
 
 .description {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 14px;
 	line-height: 1.45;
 	overflow-wrap: anywhere;

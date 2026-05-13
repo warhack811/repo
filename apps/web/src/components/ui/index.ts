@@ -8,6 +8,8 @@ export { RunaDisclosure } from './RunaDisclosure.js';
 export type { RunaDisclosureProps } from './RunaDisclosure.js';
 export { RunaIcon } from './RunaIcon.js';
 export type { RunaIconProps } from './RunaIcon.js';
+export { HafizaMark } from './HafizaMark.js';
+export type { HafizaMarkVariant, HafizaMarkWeight } from './HafizaMark.js';
 export { RunaInput } from './RunaInput.js';
 export type { RunaInputProps, RunaInputSize } from './RunaInput.js';
 export { RunaModal } from './RunaModal.js';

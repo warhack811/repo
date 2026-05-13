@@ -1,8 +1,7 @@
-/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
-
-.runa-migrated-pages-devicespage-1 {
-	background: hsl(var(--color-surface) / 0.72);
-	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+﻿/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+	.runa-migrated-pages-devicespage-1 {
+	background: var(--surface-2);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	padding: var(--space-panel);
@@ -20,7 +19,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .runa-migrated-pages-devicespage-4 {
@@ -30,7 +29,7 @@
 
 .runa-migrated-pages-devicespage-5 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
@@ -47,9 +46,9 @@
 	gap: 8px;
 	padding: 7px 10px;
 	border-radius: 999px;
-	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	border: 1px solid var(--hairline);
 	background: var(--surface-panel-muted);
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
 }
@@ -60,7 +59,7 @@
 	gap: 8px;
 	padding: 7px 10px;
 	border-radius: 999px;
-	border: 1px solid hsl(var(--color-border-soft) / 0.75);
+	border: 1px solid var(--hairline);
 	background: var(--surface-panel-muted);
 	font-size: 12px;
 	font-weight: 600;
@@ -76,9 +75,9 @@
 
 .runa-migrated-pages-devicespage-10 {
 	padding: 14px 16px;
-	border-radius: var(--radius-soft);
-	background: hsl(var(--color-surface) / 0.72);
-	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-input);
+	background: var(--surface-2);
+	border: 1px solid var(--hairline);
 	display: grid;
 	gap: 8px;
 	min-width: 0;
@@ -89,7 +88,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .runa-migrated-pages-devicespage-12 {
@@ -100,15 +99,15 @@
 
 .runa-migrated-pages-devicespage-13 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
 .runa-migrated-pages-devicespage-14 {
 	padding: 14px 16px;
-	border-radius: var(--radius-soft);
-	background: hsl(var(--color-surface) / 0.72);
-	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	border-radius: var(--radius-input);
+	background: var(--surface-2);
+	border: 1px solid var(--hairline);
 	display: grid;
 	gap: 8px;
 	min-width: 0;
@@ -119,7 +118,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .runa-migrated-pages-devicespage-16 {
@@ -130,13 +129,13 @@
 
 .runa-migrated-pages-devicespage-17 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
 .runa-migrated-pages-devicespage-18 {
-	background: hsl(var(--color-surface) / 0.72);
-	border: 1px solid hsl(var(--color-border-soft) / 0.55);
+	background: var(--surface-2);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	padding: var(--space-panel);

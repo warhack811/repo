@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { cn } from '@/lib/utils';
 import type { MotionProps } from 'motion/react';
@@ -47,8 +47,8 @@ const ShimmerComponent = ({
 			animate={{ backgroundPosition: '0% center' }}
 			className={cn(
 				'relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent',
-				'[--bg:linear-gradient(90deg,transparent_calc(50%-var(--spread)),var(--color-background),transparent_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]',
-				'[background-image:var(--bg),linear-gradient(var(--color-muted-foreground),var(--color-muted-foreground))]',
+				'[--bg:linear-gradient(90deg,transparent_calc(50%-var(--spread)),var(--surface-2),transparent_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]',
+				'[background-image:var(--bg),linear-gradient(var(--ink-2),var(--ink-2))]',
 				className,
 			)}
 			initial={{ '--spread': `${dynamicSpread}px`, backgroundPosition: '100% center' }}

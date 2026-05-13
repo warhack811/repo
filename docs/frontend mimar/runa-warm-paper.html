@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runa — Warm Paper Yönü + Araştırma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --paper-cream: #F6F1E8;
+    --paper-cream-2: #EDE6D6;
+    --paper-cream-3: #DFD5BE;
+    --ink-deep: #1F1B16;
+    --ink-mid: #3A332A;
+    --ink-soft: #6E6356;
+    --ember-soft: #B85A3C;
+    --ember-mute: #C7916B;
+    --ember-glow: #E0B58C;
+    --sage: #6B7A5C;
+
+    --night-deep: #14110D;
+    --night-mid: #1E1A14;
+    --night-soft: #2A241C;
+    --night-paper: #E8DFCD;
+    --night-paper-mute: #B9AE99;
+    --night-paper-soft: #847866;
+    --night-ember: #E0805C;
+    --night-ember-glow: #F4A876;
+    --night-sage: #8FA277;
+  }
+  html, body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-header {
+    padding: 64px 32px 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .page-header .eyebrow {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .page-header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 56px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    line-height: 1.05;
+  }
+  .page-header p {
+    color: #aaa;
+    font-size: 16px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1f1f1f;
+    padding: 14px 32px;
+    z-index: 10;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav button {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #aaa;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .nav button:hover { color: #fff; border-color: #3a3a3a; }
+  .nav button.active { background: #fff; color: #000; border-color: #fff; }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 32px 120px;
+  }
+
+  section.block {
+    margin-bottom: 96px;
+    scroll-margin-top: 80px;
+  }
+  section.block:last-child { margin-bottom: 0; }
+
+  h2.section-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 38px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .section-meta {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+  }
+  .section-lead {
+    color: #c8c8c8;
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 760px;
+    margin-bottom: 40px;
+  }
+  .section-lead strong { color: #fff; font-weight: 500; }
+  .section-lead p + p { margin-top: 14px; }
+
+  .research-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 768px) { .research-grid { grid-template-columns: 1fr 1fr; } }
+  .research-card {
+    border: 1px solid #1f1f1f;
+    border-radius: 12px;
+    padding: 24px;
+    background: #0f0f0f;
+  }
+  .research-card .stat {
+    font-family: 'Instrument Serif', serif;
+    font-size: 40px;
+    line-height: 1;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .research-card .stat-label {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+  }
+  .research-card .stat-explain {
+    color: #c8c8c8;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .research-card .stat-explain strong { color: #fff; font-weight: 500; }
+  .research-card .source {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #666;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .palette-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  @media (min-width: 768px) { .palette-row { grid-template-columns: 1fr 1fr; } }
+  .palette-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 12px;
+  }
+  .palette-swatches {
+    display: flex;
+    gap: 4px;
+    height: 80px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #1f1f1f;
+  }
+  .palette-swatches .sw {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    padding: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+  .palette-swatches .sw.dark-text { color: rgba(0,0,0,0.55); }
+  .palette-swatches .sw.light-text { color: rgba(255,255,255,0.7); }
+
+  .demo-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  @media (min-width: 1024px) { .demo-grid { grid-template-columns: 1fr 1fr; } }
+  .demo-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #888;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .demo-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #1f1f1f;
+  }
+  .chat-demo {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-light {
+    background: var(--paper-cream);
+    border-color: var(--paper-cream-3);
+    color: var(--ink-deep);
+  }
+  .chat-dark {
+    background: var(--night-deep);
+    border-color: var(--night-soft);
+    color: var(--night-paper);
+  }
+
+  .chat-header {
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid;
+    font-size: 13px;
+  }
+  .chat-light .chat-header { border-color: var(--paper-cream-2); }
+  .chat-dark .chat-header { border-color: var(--night-soft); }
+
+  .chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+  }
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Instrument Serif', serif;
+  }
+  .chat-light .avatar { background: var(--ink-deep); color: var(--paper-cream); }
+  .chat-dark .avatar { background: var(--night-paper); color: var(--night-deep); }
+  .chat-light .subtitle { color: var(--ink-soft); font-size: 11px; font-weight: 400; margin-top: 1px; }
+  .chat-dark .subtitle { color: var(--night-paper-soft); font-size: 11px; font-weight: 400; margin-top: 1px; }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .chat-light .status-dot { background: var(--sage); }
+  .chat-dark .status-dot { background: var(--night-sage); }
+
+  .chat-body {
+    padding: 28px 22px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .msg {
+    max-width: 80%;
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .msg-user {
+    align-self: flex-end;
+    padding: 10px 16px;
+    border-radius: 18px 18px 4px 18px;
+  }
+  .chat-light .msg-user { background: var(--ink-deep); color: var(--paper-cream); }
+  .chat-dark .msg-user { background: var(--night-paper); color: var(--night-deep); }
+
+  .msg-agent {
+    align-self: flex-start;
+    padding: 0;
+    background: transparent;
+    max-width: 92%;
+  }
+  .msg-agent .agent-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 15px;
+    font-weight: 400;
+    margin-bottom: 2px;
+    letter-spacing: 0.01em;
+  }
+  .chat-light .msg-agent .agent-name { color: var(--ember-soft); }
+  .chat-dark .msg-agent .agent-name { color: var(--night-ember-glow); }
+  .chat-light .msg-agent { color: var(--ink-deep); }
+  .chat-dark .msg-agent { color: var(--night-paper); }
+  .chat-light .msg-agent strong { color: var(--ember-soft); font-weight: 500; }
+  .chat-dark .msg-agent strong { color: var(--night-ember-glow); font-weight: 500; }
+
+  .tool-activity {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px 7px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    align-self: flex-start;
+    cursor: pointer;
+    border: 1px solid;
+  }
+  .tool-activity::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+  .chat-light .tool-activity { color: var(--ink-soft); border-color: var(--paper-cream-3); background: transparent; }
+  .chat-light .tool-activity::before { background: var(--ember-soft); }
+  .chat-dark .tool-activity { color: var(--night-paper-mute); border-color: var(--night-soft); background: transparent; }
+  .chat-dark .tool-activity::before { background: var(--night-ember-glow); }
+  .chevron {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .approval {
+    align-self: flex-start;
+    max-width: 92%;
+    padding: 16px 18px;
+    border-radius: 14px;
+    font-size: 14px;
+    border: 1px solid;
+  }
+  .chat-light .approval { background: transparent; border-color: var(--paper-cream-3); color: var(--ink-deep); }
+  .chat-dark .approval { background: transparent; border-color: var(--night-soft); color: var(--night-paper); }
+
+  .approval-q {
+    font-weight: 500;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .approval-target {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 14px;
+  }
+  .chat-light .approval-target { background: var(--paper-cream-2); color: var(--ember-soft); }
+  .chat-dark .approval-target { background: var(--night-mid); color: var(--night-ember-glow); }
+
+  .approval-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .chat-light .btn-ghost { background: transparent; color: var(--ink-mid); border-color: var(--paper-cream-3); }
+  .chat-light .btn-primary { background: var(--ember-soft); color: var(--paper-cream); }
+  .chat-dark .btn-ghost { background: transparent; color: var(--night-paper-mute); border-color: var(--night-soft); }
+  .chat-dark .btn-primary { background: var(--night-ember); color: var(--night-deep); }
+
+  .composer {
+    border-top: 1px solid;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14.5px;
+  }
+  .chat-light .composer { border-color: var(--paper-cream-2); color: var(--ink-soft); }
+  .chat-dark .composer { border-color: var(--night-soft); color: var(--night-paper-soft); }
+  .composer-input { flex: 1; }
+  .composer-send {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .chat-light .composer-send { background: var(--ember-soft); color: var(--paper-cream); }
+  .chat-dark .composer-send { background: var(--night-ember); color: var(--night-deep); }
+
+  .notes {
+    margin-top: 48px;
+    padding: 28px;
+    border: 1px solid #1f1f1f;
+    border-radius: 14px;
+    background: #0f0f0f;
+  }
+  .notes h4 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  @media (min-width: 768px) { .notes-grid { grid-template-columns: 1fr 1fr; } }
+  .notes-col h5 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #888;
+    margin-bottom: 10px;
+  }
+  .notes-col p, .notes-col li {
+    color: #c8c8c8;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .notes-col ul { list-style: none; }
+  .notes-col li { padding: 4px 0; padding-left: 16px; position: relative; }
+  .notes-col li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: #555;
+  }
+
+  .synthesis {
+    padding: 40px;
+    border: 1px solid #2a2a2a;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #1a1612 0%, #0a0a0a 100%);
+  }
+  .synthesis h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: #fff;
+  }
+  .synthesis p {
+    color: #c8c8c8;
+    font-size: 15px;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .synthesis p:last-child { margin-bottom: 0; }
+  .synthesis strong { color: #fff; font-weight: 500; }
+
+  .footnote {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid #1f1f1f;
+    color: #888;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .footnote strong { color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow">Adım 02 · Sentez</div>
+  <h1>Warm Paper</h1>
+  <p>Ember'ın sıcak karakteri + Paper'ın yazı odaklı sakinliği. Daha düşük doygunluk, daha yumuşak geçişler. Hem açık hem koyu tam çalışıyor — araştırma destekli kararlarla.</p>
+</div>
+
+<nav class="nav">
+  <button class="active" data-target="research">Araştırma</button>
+  <button data-target="palette">Palet</button>
+  <button data-target="demo">Açık & Koyu Tema</button>
+  <button data-target="rationale">Karar Notları</button>
+  <button data-target="next">Sıradaki</button>
+</nav>
+
+<div class="container">
+
+  <section class="block" id="research">
+    <div class="section-meta">Bölüm 01</div>
+    <h2 class="section-title">Sezgilerini destekleyen veriler</h2>
+    <p class="section-lead">
+      "Daha soft" ve "açık + koyu olmalı" hisslerinin arkasında ne var? Birkaç saatlik araştırma sonrası — sezgilerin doğru çıktı; ama bazı yerlerinde nüans var. Kararı bu bulgular üzerine kuruyorum.
+    </p>
+
+    <div class="research-grid">
+      <div class="research-card">
+        <div class="stat">82%</div>
+        <div class="stat-label">Telefon kullanıcısı koyu tema tercih ediyor</div>
+        <p class="stat-explain">
+          2024 verilerine göre <strong>akıllı telefon kullanıcılarının yaklaşık %82'si koyu tema kullanıyor</strong>. Masaüstünde de oran çok yakın (%82.7). Yani Runa'nın <em>varsayılan koyu</em> olması demografik olarak doğru bir karar.
+        </p>
+        <div class="source">Earthweb · LinkedIn 2024</div>
+      </div>
+
+      <div class="research-card">
+        <div class="stat">70%</div>
+        <div class="stat-label">Geliştiriciler koyu temayı kodlama için tercih ediyor</div>
+        <p class="stat-explain">
+          Yazılım geliştirici kitlesinde <strong>%70 koyu tema</strong> kullanıyor (IDE'lerde bu oran %92'ye çıkıyor). Sysadmin/server kitlesine ulaşmak istiyorsan koyu tema güçlü olmalı — opsiyonel değil, birinci sınıf.
+        </p>
+        <div class="source">The Small Business Blog · Zipdo 2020</div>
+      </div>
+
+      <div class="research-card">
+        <div class="stat">90 sn</div>
+        <div class="stat-label">Renkten kurulan ilk yargı süresi</div>
+        <p class="stat-explain">
+          Tüketicilerin bir markaya dair ilk yargısının <strong>%90'ı yalnız renge dayalı</strong> ve 90 saniye içinde kuruluyor. Sıcak palet "insan, yakınlık"; soğuk palet "güven, profesyonellik" sinyali veriyor. <em>İkisini de istiyorsan</em> palet sıcak + tipografi/yapı disiplinli olmalı.
+        </p>
+        <div class="source">madegooddesigns.com · 2026</div>
+      </div>
+
+      <div class="research-card">
+        <div class="stat">#D97757</div>
+        <div class="stat-label">Anthropic Claude'un seçtiği rust-turuncu</div>
+        <p class="stat-explain">
+          Claude bilinçli olarak <strong>derin maviye karşı durmuş</strong>, "soğuk teknoloji" klişesinden ayrışmak için sıcak ton seçmiş. Resmi palette mavi yok. Bu kararın gerekçesi: "yapay zekayı insan-merkezli hissettirmek". Senin yön bu kararla aynı kümede — ama Anthropic'in turuncusu çok doygun; Runa daha sofistike olabilir.
+        </p>
+        <div class="source">Anthropic Brand Guidelines · 2025</div>
+      </div>
+
+      <div class="research-card">
+        <div class="stat">1/3</div>
+        <div class="stat-label">Kullanıcıların yalnız 1/3'ü sabit koyu tema kullanıyor</div>
+        <p class="stat-explain">
+          Nielsen Norman Group: kullanıcıların <strong>1/3'ü sabit koyu, 1/3'ü sabit açık, 1/3'ü bağlama göre değiştiriyor</strong>. Yani "varsayılan + toggle" yeterli değil; <em>sistem temasını otomatik takip eden</em> bir uygulama en yüksek memnuniyeti veriyor.
+        </p>
+        <div class="source">Nielsen Norman Group · 2024</div>
+      </div>
+
+      <div class="research-card">
+        <div class="stat">Bağlam</div>
+        <div class="stat-label">Tema tercihinde tek belirleyici faktör değil</div>
+        <p class="stat-explain">
+          Aynı kullanıcı: gündüz açık, gece koyu; uzun okumada açık, kod yazarken koyu; mobilde koyu, masaüstünde açık. <strong>"Tek doğru tema" yoktur.</strong> Runa için doğru yapı: her temayı tam ciddiyetle tasarlamak, sistem temasını otomatik takip, manuel override.
+        </p>
+        <div class="source">NN/g · OOZOU 2025</div>
+      </div>
+    </div>
+
+    <div class="synthesis" style="margin-top:32px">
+      <h3>Bulgulardan çıkan dört karar</h3>
+      <p><strong>Birinci karar.</strong> Varsayılan tema sistemin temasını takip eder (prefers-color-scheme). Kullanıcı override eder. Bu yaklaşım NN/g'nin "1/3 + 1/3 + 1/3" bulgusuna en uygun çözüm.</p>
+      <p><strong>İkinci karar.</strong> Hem açık hem koyu, tam ciddiyetle tasarlanır — birisi "ikinci sınıf vatandaş" olmaz. Sysadmin kitlesini istiyorsan koyu birincil derecede iyi olmalı; anneanne için açık eşit derecede çekici olmalı.</p>
+      <p><strong>Üçüncü karar.</strong> Sıcak palet seçimi doğru, çünkü Runa'nın iddiası "AI ortağı, soğuk teknoloji değil". Anthropic'in aynı yolu seçmesi tesadüf değil — yön doğru. Ama Anthropic'in rust-turuncusu (#D97757) çok doygun; bizimki daha soft olmalı.</p>
+      <p><strong>Dördüncü karar.</strong> Tema sistemi <em>iki katmanlı</em> olmalı: (1) Aydınlık/karanlık otomatik, (2) İleride accent renk varyantları (kullanıcı isterse mavi/yeşil/mor sapma). Şimdilik birinci katmanı kuruyoruz; ikinci aşama olarak bırakıyoruz.</p>
+    </div>
+  </section>
+
+  <section class="block" id="palette">
+    <div class="section-meta">Bölüm 02</div>
+    <h2 class="section-title">Warm Paper paleti</h2>
+    <p class="section-lead">
+      Ember'ın yangın turuncusunu söndürdüm, bakır/kerpiç tarafına çektim. Paper'ın saf beyazını kremleştirdim, hafif sarımtırak. Koyu tema neredeyse-siyah değil, koyu kahve — gece gözü yormayan, ama yine de operatör kitleye yetecek kadar koyu.
+    </p>
+
+    <div class="palette-row">
+      <div>
+        <div class="palette-label">Açık Tema · Yüzeyler</div>
+        <div class="palette-swatches">
+          <div class="sw dark-text" style="background:#F6F1E8">#F6F1E8</div>
+          <div class="sw dark-text" style="background:#EDE6D6">#EDE6D6</div>
+          <div class="sw dark-text" style="background:#DFD5BE">#DFD5BE</div>
+        </div>
+      </div>
+      <div>
+        <div class="palette-label">Açık Tema · Mürekkep</div>
+        <div class="palette-swatches">
+          <div class="sw light-text" style="background:#1F1B16">#1F1B16</div>
+          <div class="sw light-text" style="background:#3A332A">#3A332A</div>
+          <div class="sw light-text" style="background:#6E6356">#6E6356</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="palette-row">
+      <div>
+        <div class="palette-label">Koyu Tema · Yüzeyler</div>
+        <div class="palette-swatches">
+          <div class="sw light-text" style="background:#14110D">#14110D</div>
+          <div class="sw light-text" style="background:#1E1A14">#1E1A14</div>
+          <div class="sw light-text" style="background:#2A241C">#2A241C</div>
+        </div>
+      </div>
+      <div>
+        <div class="palette-label">Koyu Tema · Mürekkep</div>
+        <div class="palette-swatches">
+          <div class="sw dark-text" style="background:#E8DFCD">#E8DFCD</div>
+          <div class="sw dark-text" style="background:#B9AE99">#B9AE99</div>
+          <div class="sw light-text" style="background:#847866">#847866</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="palette-row">
+      <div>
+        <div class="palette-label">Accent · Ember (sıcak vurgu)</div>
+        <div class="palette-swatches">
+          <div class="sw light-text" style="background:#B85A3C">#B85A3C</div>
+          <div class="sw dark-text" style="background:#C7916B">#C7916B</div>
+          <div class="sw dark-text" style="background:#E0B58C">#E0B58C</div>
+          <div class="sw dark-text" style="background:#E0805C">#E0805C</div>
+          <div class="sw dark-text" style="background:#F4A876">#F4A876</div>
+        </div>
+      </div>
+      <div>
+        <div class="palette-label">Yardımcı · Sage (status, success)</div>
+        <div class="palette-swatches">
+          <div class="sw light-text" style="background:#6B7A5C">#6B7A5C</div>
+          <div class="sw dark-text" style="background:#8FA277">#8FA277</div>
+          <div class="sw dark-text" style="background:#B0BFA0">#B0BFA0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h4>Anthropic Claude paletiyle karşılaştırma</h4>
+      <div class="notes-grid">
+        <div class="notes-col">
+          <h5>Anthropic (referans)</h5>
+          <ul>
+            <li>Accent: #D97757 — doygun rust-turuncu</li>
+            <li>Light: #FAF9F5 — neredeyse beyaz krem</li>
+            <li>Dark: #141413 — saf yakın siyah</li>
+          </ul>
+        </div>
+        <div class="notes-col">
+          <h5>Runa Warm Paper (öneri)</h5>
+          <ul>
+            <li>Accent: #B85A3C — daha sönük, kerpiç, "yaşlı bakır"</li>
+            <li>Light: #F6F1E8 — daha sarımsı, "el yapımı kâğıt"</li>
+            <li>Dark: #14110D — kahverengi tabanlı koyu, sıcak siyah</li>
+          </ul>
+        </div>
+      </div>
+      <p style="color:#aaa; font-size:14px; line-height:1.65; margin-top:20px; padding-top:20px; border-top:1px solid #1f1f1f">
+        Aynı aile, daha düşük doygunluk. Anthropic enerjik; Runa daha dingin/yetişkin. Yan yana görüldüğünde "akrabası ama kendi" hissi verir — bu önemli, çünkü kullanıcılar AI ürünleri arasında geçiş yapıyor, "klon" izlenimi vermemeli.
+      </p>
+    </div>
+  </section>
+
+  <section class="block" id="demo">
+    <div class="section-meta">Bölüm 03</div>
+    <h2 class="section-title">Aynı sohbet · iki tema</h2>
+    <p class="section-lead">
+      Aynı senaryoyu hem açık hem koyu temada görüyorsun. Dikkat etmeni istediğim şey: <strong>karakter aynı, sıcaklık aynı, sadece zaman değişiyor</strong> — biri sabah kahvesi, biri gece masası. İkisi de Runa.
+    </p>
+
+    <div class="demo-grid">
+
+      <div>
+        <div class="demo-label">Açık tema · "El yapımı kâğıt"</div>
+        <div class="chat-demo chat-light">
+          <div class="chat-header">
+            <div class="chat-header-left">
+              <div class="avatar">R</div>
+              <div>
+                <div>Runa</div>
+                <div class="subtitle">çevrimiçi</div>
+              </div>
+            </div>
+            <div class="status-dot"></div>
+          </div>
+          <div class="chat-body">
+            <div class="msg msg-user">
+              projenin server klasöründe en son ne değişmiş bakar mısın
+            </div>
+            <div class="msg msg-agent">
+              <div class="agent-name">Runa</div>
+              Tabii, bakıyorum. Son commit'leri tarayıp özetleyeyim.
+            </div>
+            <div class="tool-activity">
+              git log · son 10 commit
+              <span class="chevron">›</span>
+            </div>
+            <div class="msg msg-agent">
+              <div class="agent-name">Runa</div>
+              En son <strong>runtime/provider-health.ts</strong> dosyasına dokunulmuş — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+            </div>
+            <div class="approval">
+              <div class="approval-q">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+              <div class="approval-target">apps/server/src/runtime/provider-health.ts</div>
+              <div class="approval-buttons">
+                <button class="btn btn-ghost">Vazgeç</button>
+                <button class="btn btn-primary">Aç</button>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <div class="composer-input">Bir şey yaz…</div>
+            <div class="composer-send">↑</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="demo-label">Koyu tema · "Gece masası"</div>
+        <div class="chat-demo chat-dark">
+          <div class="chat-header">
+            <div class="chat-header-left">
+              <div class="avatar">R</div>
+              <div>
+                <div>Runa</div>
+                <div class="subtitle">çevrimiçi</div>
+              </div>
+            </div>
+            <div class="status-dot"></div>
+          </div>
+          <div class="chat-body">
+            <div class="msg msg-user">
+              projenin server klasöründe en son ne değişmiş bakar mısın
+            </div>
+            <div class="msg msg-agent">
+              <div class="agent-name">Runa</div>
+              Tabii, bakıyorum. Son commit'leri tarayıp özetleyeyim.
+            </div>
+            <div class="tool-activity">
+              git log · son 10 commit
+              <span class="chevron">›</span>
+            </div>
+            <div class="msg msg-agent">
+              <div class="agent-name">Runa</div>
+              En son <strong>runtime/provider-health.ts</strong> dosyasına dokunulmuş — 3 saat önce. Bir de tool-call-repair-metrics eklenmiş. Detayını ister misin?
+            </div>
+            <div class="approval">
+              <div class="approval-q">Dosyayı açıp gösterebilirim — okumama izin verir misin?</div>
+              <div class="approval-target">apps/server/src/runtime/provider-health.ts</div>
+              <div class="approval-buttons">
+                <button class="btn btn-ghost">Vazgeç</button>
+                <button class="btn btn-primary">Aç</button>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <div class="composer-input">Bir şey yaz…</div>
+            <div class="composer-send">↑</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="block" id="rationale">
+    <div class="section-meta">Bölüm 04</div>
+    <h2 class="section-title">Bu kararların arkasındaki neden</h2>
+
+    <div class="notes" style="margin-top:0">
+      <h4>Neden daha soft?</h4>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7">
+        İlk Ember'da accent #D97757 — Anthropic'in tam tonu. Çok doygun, çok "AI ürünü turuncusu". Yeni accent #B85A3C — bakır/kerpiç ailesi, doygunluğu 25% düşük. Aynı sıcak hissi verir ama "İşte Claude turuncusu" demez. Anthropic'ten ayrışmak <em>akrabalıktan kaçmak</em> değil, kendi sesini bulmak.
+      </p>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7; margin-top:12px">
+        Açık tema artık saf beyaz değil, hafif sarımtırak krem (#F6F1E8). Bu küçük fark çok şey değiştiriyor: ekran "bilgisayar" değil "defter" hissediyor. iA Writer'ın yıllardır savunduğu bir karar — beyaz ekran zihinsel olarak agresif, krem dingin.
+      </p>
+    </div>
+
+    <div class="notes">
+      <h4>Neden koyu kahve, saf siyah değil?</h4>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7">
+        Saf siyah (#000) OLED ekranda enerji tasarrufu sağlar evet, ama göz için kontrastı çok keskin. <em>Halation</em> denen bir etki var — koyu zeminde açık metin "akıyor" gibi görünür, uzun süre okumayı yorucu yapar. Çoğu modern ürün (Linear, GitHub, Things) saf siyahtan kaçınıp koyu griye çekiliyor.
+      </p>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7; margin-top:12px">
+        Runa'nın koyu teması #14110D — gri değil, hafif kahverengi tabanlı. Bu sıcak karakteri koyu temada da koruyor. Açık temada kâğıt, koyu temada gece masasının ahşabı.
+      </p>
+    </div>
+
+    <div class="notes">
+      <h4>Neden Sage (yeşil) yardımcı renk?</h4>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7">
+        Status sinyalleri için (online, success, "tamamlandı") bir renk lazım, ama ember accent ile çakışmamalı. Sage yeşili (#6B7A5C) bakır/kerpiç ile aynı doğal aile — kayalık doğa renkleri. Pop atan parlak yeşil değil; bilinçli, sessiz. Mevcut Runa'daki canlı yeşilin (#10b981 tarzı) yumuşak versiyonu.
+      </p>
+    </div>
+
+    <div class="notes">
+      <h4>Tipografide ne değişti?</h4>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7">
+        Demo'da gördüğün gibi, "Runa" ismi ve önemli vurgular için <strong style="font-family:'Instrument Serif',serif; font-size:17px">Instrument Serif</strong> kullandım — agent ismiyle sistem metni arasında karakter farkı yaratıyor. Body için Inter aynen kalıyor. Bu detay küçük ama "kişilik" hissini büyütüyor; sayısal kontrol panelinden uzaklaştırıyor.
+      </p>
+    </div>
+
+    <div class="notes">
+      <h4>İleride accent varyantları nasıl çalışır?</h4>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7">
+        Şu an Ember tek accent. İlerde "kullanıcı kendi rengini seçebilir" diyeceksek, sistemin nasıl genişleyeceğini şimdiden tanımlamak iyi. Önerim: <em>aile</em> sabit (sıcak, doğal, düşük doygunluk), <em>ton</em> kullanıcıya açık. Örnek aile üyeleri: Ember (varsayılan, kerpiç), Sage (orman), Slate (gece mavisi), Plum (üzüm), Sand (kum). Hepsi aynı doygunluk seviyesinde — kullanıcı bir tane seçer, Runa onunla konuşur. Bu, "tema sistemi" değil "ses tonu seçimi" gibi hissedilir.
+      </p>
+    </div>
+  </section>
+
+  <section class="block" id="next">
+    <div class="section-meta">Bölüm 05</div>
+    <h2 class="section-title">Buradan sonra</h2>
+    <p class="section-lead">
+      Bu palet sana doğru hissediyor mu? Beğenirsen sıradakini şöyle planladım:
+    </p>
+
+    <div class="notes" style="margin-top:0">
+      <h4>Sıradaki adımlar</h4>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7">
+        <strong>03. Tipografi.</strong> Hangi font ailesi Runa'nın karakterini taşıyacak? Inter aynen mi devam, yoksa daha karakterli bir tercih mi? Body + display + monospace üçlüsünü kararlaştırırız.
+      </p>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7; margin-top:10px">
+        <strong>04. Yüzey karakteri.</strong> Köşe yuvarlama miktarları, border'lar (hairline mı kalın mı), gölge kullanımı (yok mu var mı), boşluk ritmi. "Linear gibi keskin" mi yoksa "Things gibi yumuşak" mı, ya da aradan bir yer mi?
+      </p>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7; margin-top:10px">
+        <strong>05. Motion sözlüğü.</strong> Süreler, easing eğrileri, ne için ne kullanılır. Karakterin çoğu burada — sakin bir ürün ile fıkır fıkır bir ürün motion ile ayrışır.
+      </p>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7; margin-top:10px">
+        <strong>06. İkonografi yönü.</strong> Stroke mu fill mi, yuvarlak mı keskin, lucide gibi standart bir set mi yoksa Runa'ya özel bir set mi?
+      </p>
+      <p style="color:#c8c8c8; font-size:14.5px; line-height:1.7; margin-top:10px">
+        <strong>07. Brand brief.</strong> Tüm bu kararları yarım sayfalık bir kararnameye sıkıştırırız. Bu son adım, çapamız.
+      </p>
+    </div>
+
+    <div class="footnote">
+      <p><strong>Soru:</strong> Bu palet sana ne hissettiriyor? "Daha da soft" mu yoksa "yeterince soft, bir sonrakine geçelim" mi? Belirli renklerle (accent çok mu sönük, krem fazla mı sarı, koyu yeterince koyu mu) sorunun varsa ince ayar yaparım — değiştirmek 5 dakikalık iş.</p>
+      <p style="margin-top:14px"><strong>Yanlış git'sek:</strong> Hâlâ Paper veya Ember'a geri dönebiliriz, ya da bambaşka bir yöne — Forest, Dusk, Ink. Hiçbir şey kilitli değil, sadece duruyoruz ve bakıyoruz.</p>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  const sections = document.querySelectorAll('section.block');
+  const buttons = document.querySelectorAll('.nav button');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      const rect = s.getBoundingClientRect();
+      if (rect.top <= 120 && rect.bottom >= 120) current = s.id;
+    });
+    if (current) buttons.forEach(b => b.classList.toggle('active', b.dataset.target === current));
+  });
+</script>
+
+</body>
+</html>

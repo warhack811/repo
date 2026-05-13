@@ -1,6 +1,5 @@
-/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
-
-.runa-migrated-components-desktop-devicepresencepanel-1 {
+﻿/* Split from UI-OVERHAUL-03 inline migration. Keep route-owned CSS out of the critical global bundle. */
+	.runa-migrated-components-desktop-devicepresencepanel-1 {
 	display: grid;
 	gap: 14px;
 }
@@ -14,7 +13,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-2);
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-4 {
@@ -24,7 +23,7 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-5 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
@@ -45,7 +44,7 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-8 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
@@ -66,7 +65,7 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-11 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
@@ -94,7 +93,7 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-15 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
@@ -111,13 +110,13 @@
 
 .runa-migrated-components-desktop-devicepresencepanel-17 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
 .runa-migrated-components-desktop-devicepresencepanel-18 {
 	margin: 0;
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	line-height: 1.6;
 	margin-top: 8px;
 	overflow-wrap: anywhere;

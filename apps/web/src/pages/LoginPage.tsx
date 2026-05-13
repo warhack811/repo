@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 
 import type { AuthContext, OAuthProvider } from '@runa/types';
 
-import runaLogo from '../assets/runa-logo.svg';
 import { OAuthButtons } from '../components/auth/OAuthButtons.js';
+import { HafizaMark } from '../components/ui/HafizaMark.js';
 import { RunaSpinner } from '../components/ui/RunaSpinner.js';
 import { uiCopy } from '../localization/copy.js';
 import '../styles/routes/login-migration.css';
@@ -78,7 +78,7 @@ export function LoginPage({
 		<div className="runa-page runa-login-page">
 			<main className="runa-login-shell" aria-busy={isAuthPending}>
 				<section className="runa-login-hero" aria-labelledby="login-heading">
-					<img className="runa-login-logo" src={runaLogo} alt="Runa" width="180" height="48" />
+					<HafizaMark weight="bold" variant="brand" className="runa-login-logo" aria-label="Runa" />
 					<div className="runa-login-copy">
 						<h1 id="login-heading">{uiCopy.auth.title}</h1>
 						<p>{uiCopy.auth.subtitle}</p>
