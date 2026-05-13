@@ -1,4 +1,4 @@
-import type { DesktopDevicePresenceSnapshot } from '@runa/types';
+﻿import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import { ChevronRight, Paperclip, SendHorizontal, SlidersHorizontal } from 'lucide-react';
 import type { FormEvent, KeyboardEvent, ReactElement, ReactNode } from 'react';
 import { useId, useRef } from 'react';
@@ -28,6 +28,7 @@ type ChatComposerSurfaceProps = Readonly<{
 	isSpeaking: boolean;
 	isSpeechPlaybackSupported: boolean;
 	isSubmitting: boolean;
+	isContextSheetOpen: boolean;
 	isUploadingAttachment: boolean;
 	isVoiceSupported: boolean;
 	lastError: string | null;
@@ -38,6 +39,7 @@ type ChatComposerSurfaceProps = Readonly<{
 	onAttachmentsChange: (attachments: readonly ModelAttachment[]) => void;
 	onClearDesktopTarget: () => void;
 	onPromptChange: (prompt: string) => void;
+	onOpenContextSheet: () => void;
 	onReadLatestResponse: () => void;
 	onRetryDesktopDevices: () => void;
 	onSelectDesktopTarget: (connectionId: string) => void;
@@ -98,6 +100,7 @@ export function ChatComposerSurface({
 	isSpeaking,
 	isSpeechPlaybackSupported,
 	isSubmitting,
+	isContextSheetOpen,
 	isUploadingAttachment,
 	isVoiceSupported,
 	lastError,
@@ -105,6 +108,7 @@ export function ChatComposerSurface({
 	onAttachmentsChange,
 	onClearDesktopTarget,
 	onPromptChange,
+	onOpenContextSheet,
 	onReadLatestResponse,
 	onRetryDesktopDevices,
 	onSelectDesktopTarget,
@@ -225,7 +229,9 @@ export function ChatComposerSurface({
 							<button
 								type="button"
 								className="runa-composer-context-chip"
-								onClick={() => console.warn('Context sheet PR-6 kapsaminda acilacak.')}
+								onClick={onOpenContextSheet}
+								aria-controls="context-sheet"
+								aria-expanded={isContextSheetOpen}
 								aria-label={`${contextCount} calisma ogesi. Baglami ac`}
 							>
 								<Paperclip size={14} aria-hidden="true" />
@@ -246,7 +252,7 @@ export function ChatComposerSurface({
 								title="Diğer sohbet araçları"
 							>
 								<SlidersHorizontal aria-hidden="true" size={18} />
-								<span className="runa-chat-visually-hidden">DiÄŸer sohbet araÃ§larÄ±</span>
+								<span className="runa-chat-visually-hidden">Diğer sohbet araçları</span>
 							</summary>
 							<div className={`runa-chat-composer-more__content ${styles['moreContent']}`}>
 								<DesktopTargetSelector

@@ -1,0 +1,27 @@
+﻿.sheet {
+	padding: 0;
+}
+
+.content {
+	display: grid;
+	gap: 10px;
+	min-height: min(72dvh, 700px);
+}
+
+.header {
+	align-items: center;
+	display: flex;
+	justify-content: space-between;
+	padding: 14px 14px 0;
+}
+
+.title {
+	font-size: 16px;
+	margin: 0;
+}
+
+.body {
+	min-height: 0;
+	overflow: auto;
+	padding: 0 12px 14px;
+}

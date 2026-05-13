@@ -54,12 +54,14 @@ function renderNormalComposer(): string {
 				isSpeaking={false}
 				isSpeechPlaybackSupported={false}
 				isSubmitting={false}
+				isContextSheetOpen={false}
 				isUploadingAttachment={false}
 				isVoiceSupported={false}
 				lastError={null}
 				onAttachmentUploadStateChange={() => undefined}
 				onAttachmentsChange={() => undefined}
 				onClearDesktopTarget={() => undefined}
+				onOpenContextSheet={() => undefined}
 				onPromptChange={() => undefined}
 				onReadLatestResponse={() => undefined}
 				onRetryDesktopDevices={() => undefined}

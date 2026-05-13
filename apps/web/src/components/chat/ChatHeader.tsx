@@ -1,4 +1,4 @@
-import { Bell, ChevronLeft, MoreHorizontal, Search, Settings } from 'lucide-react';
+﻿import { Bell, ChevronLeft, MoreHorizontal, Search, Settings } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -6,12 +6,15 @@ import { useCommandPaletteTrigger } from '../command/CommandPaletteContext.js';
 
 type ChatHeaderProps = Readonly<{
 	activeConversationTitle?: string;
-	onToggleSidebar: () => void;
+	isHistorySheetOpen: boolean;
+	isMenuSheetOpen: boolean;
+	onOpenHistorySheet: () => void;
+	onOpenMenuSheet: () => void;
 }>;
 
 function getCommandShortcutLabel(): string {
 	if (typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/u.test(navigator.platform)) {
-		return '⌘K';
+		return 'Cmd K';
 	}
 
 	return 'Ctrl K';
@@ -19,7 +22,10 @@ function getCommandShortcutLabel(): string {
 
 export function ChatHeader({
 	activeConversationTitle,
-	onToggleSidebar,
+	isHistorySheetOpen,
+	isMenuSheetOpen,
+	onOpenHistorySheet,
+	onOpenMenuSheet,
 }: ChatHeaderProps): ReactElement {
 	const openCommandPalette = useCommandPaletteTrigger();
 	const title = activeConversationTitle?.trim() || 'Yeni sohbet';
@@ -30,9 +36,11 @@ export function ChatHeader({
 			<div className="runa-chat-header__left">
 				<button
 					type="button"
-					className="runa-chat-icon-button runa-chat-header__mobile-action"
+					className="runa-chat-icon-button runa-chat-header__mobile-action runa-chat-header__back"
+					aria-controls="history-sheet"
+					aria-expanded={isHistorySheetOpen}
 					aria-label="Sohbet gecmisini ac"
-					onClick={onToggleSidebar}
+					onClick={onOpenHistorySheet}
 				>
 					<ChevronLeft aria-hidden="true" size={21} />
 				</button>
@@ -59,9 +67,11 @@ export function ChatHeader({
 				</Link>
 				<button
 					type="button"
-					className="runa-chat-icon-button runa-chat-header__mobile-action"
+					className="runa-chat-icon-button runa-chat-header__mobile-action runa-chat-header__menu"
+					aria-controls="menu-sheet"
+					aria-expanded={isMenuSheetOpen}
 					aria-label="Menuyu ac"
-					onClick={() => console.warn('Menu sheet PR-6 kapsaminda acilacak.')}
+					onClick={onOpenMenuSheet}
 				>
 					<MoreHorizontal aria-hidden="true" size={21} />
 				</button>

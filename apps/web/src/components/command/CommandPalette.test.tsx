@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+﻿import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createAppCommands } from '../app/AppShell.js';
 import { CommandPalette } from './CommandPalette.js';
@@ -28,24 +28,29 @@ describe('command palette', () => {
 		);
 	});
 
-	it('shows core actions when query is empty and filters with Turkish product labels', () => {
+	it('shows expanded command actions and filters with Turkish product labels', () => {
 		const commands = createTestCommands();
 		const emptyResults = filterCommandPaletteCommands(commands, '');
-		const filteredResults = filterCommandPaletteCommands(commands, 'cihaz');
+		const filteredResults = filterCommandPaletteCommands(commands, 'tema');
 
-		expect(emptyResults.map((command) => command.label)).toEqual([
-			'Sohbet’e git',
-			'Yeni sohbet başlat',
-			'Geçmiş’e git',
-			'Sohbet geçmişini aç',
-			'Cihazlar’a git',
-			'Cihaz bağlantılarını görüntüle',
-			'Hesap’a git',
-			'Tercihleri aç',
+		expect(emptyResults.map((command) => command.id)).toEqual([
+			'go-chat',
+			'start-new-chat',
+			'open-history-sheet',
+			'open-context-sheet',
+			'theme-ember-dark',
+			'theme-light',
+			'theme-rose',
+			'theme-system',
+			'toggle-advanced-view',
+			'show-notifications',
+			'go-history-route',
 		]);
 		expect(filteredResults.map((command) => command.id)).toEqual([
-			'go-devices',
-			'view-device-connections',
+			'theme-ember-dark',
+			'theme-light',
+			'theme-rose',
+			'theme-system',
 		]);
 	});
 
@@ -62,7 +67,7 @@ describe('command palette', () => {
 
 		commands[selectedIndex]?.run();
 
-		expect(visitedPaths).toEqual(['/account?tab=preferences']);
+		expect(visitedPaths).toEqual(['/history']);
 	});
 
 	it('keeps normal palette copy free of internal language', () => {
@@ -93,7 +98,37 @@ describe('command palette', () => {
 
 		expect(screen.getByRole('searchbox', { name: 'Komut ara' })).toBeTruthy();
 		expect(screen.getByLabelText('Komutlar')).toBeTruthy();
-		expect(markup).toContain('Sohbet’e git');
+		expect(markup).toContain('Sohbete git');
+		expect(markup).toContain('Ctrl+N');
 		expect(document.body.textContent).not.toContain('Developer');
+	});
+
+	it('runs selected command with keyboard enter', () => {
+		const run = vi.fn();
+		const commands: readonly CommandPaletteCommand[] = [
+			{
+				description: 'Test command',
+				id: 'test-command',
+				keywords: [],
+				label: 'Test',
+				run,
+			},
+		];
+
+		render(
+			<MemoryRouter>
+				<CommandPalette commands={commands} isOpen onClose={() => undefined} />
+			</MemoryRouter>,
+		);
+		const inputs = screen.getAllByRole('searchbox', { name: 'Komut ara' });
+		const input = inputs.at(-1);
+
+		expect(input).toBeTruthy();
+		if (!input) {
+			return;
+		}
+		fireEvent.keyDown(input, { key: 'Enter' });
+
+		expect(run).toHaveBeenCalledTimes(1);
 	});
 });

@@ -1,0 +1,58 @@
+﻿.sheet {
+	max-width: min(420px, 100%);
+}
+
+.content {
+	display: grid;
+	gap: 14px;
+}
+
+.header {
+	align-items: center;
+	display: flex;
+	justify-content: space-between;
+}
+
+.title {
+	font-size: 16px;
+	margin: 0;
+}
+
+.section {
+	display: grid;
+	gap: 8px;
+}
+
+.sectionTitle {
+	font-size: 14px;
+	margin: 0;
+}
+
+.mono {
+	background: var(--surface-panel-muted);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-input);
+	font-family: Consolas, "SFMono-Regular", monospace;
+	font-size: 12px;
+	margin: 0;
+	overflow: hidden;
+	padding: 10px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.list {
+	display: grid;
+	gap: 6px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.list li {
+	background: var(--surface-panel-muted);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-input);
+	font-size: 14px;
+	padding: 8px 10px;
+}

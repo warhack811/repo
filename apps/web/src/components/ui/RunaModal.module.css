@@ -68,3 +68,10 @@
 		touch-action: pan-y;
 	}
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.backdrop,
+	.panel {
+		animation: none;
+	}
+}

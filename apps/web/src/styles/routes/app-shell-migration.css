@@ -310,6 +310,13 @@
 	font-weight: 600;
 }
 
+.runa-command-palette__item-shortcut {
+	color: var(--ink-2);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-weight: 600;
+}
+
 .runa-command-palette__item-description,
 .runa-command-palette__empty {
 	color: var(--ink-2);

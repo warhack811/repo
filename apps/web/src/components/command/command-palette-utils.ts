@@ -1,9 +1,10 @@
-export type CommandPaletteCommand = Readonly<{
+﻿export type CommandPaletteCommand = Readonly<{
 	description: string;
 	id: string;
 	keywords: readonly string[];
 	label: string;
 	run: () => void;
+	shortcut?: string;
 }>;
 
 function normalizeSearchValue(value: string): string {

@@ -1,7 +1,15 @@
-import type { ReactElement, ReactNode } from 'react';
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import type { ReactElement, ReactNode } from 'react';
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import type { BrandTheme, Theme } from '../../lib/theme.js';
+
+import { applyBrandTheme, applyTheme, storeBrandTheme, storeTheme } from '../../lib/theme.js';
 import { uiCopy } from '../../localization/copy.js';
+import {
+	CHAT_SURFACE_EVENT_OPEN_CONTEXT_SHEET,
+	CHAT_SURFACE_EVENT_OPEN_HISTORY_SHEET,
+	dispatchChatSurfaceEvent,
+} from '../chat/chat-surface-events.js';
 import { CommandPalette } from '../command/CommandPalette.js';
 import { CommandPaletteProvider } from '../command/CommandPaletteContext.js';
 import type { CommandPaletteCommand } from '../command/command-palette-utils.js';
@@ -39,87 +47,206 @@ const pageCopyById: Record<
 	},
 };
 
+const ADVANCED_MODE_STORAGE_KEY = 'runa_dev_mode';
+
 type AppShellProps = Readonly<{
 	activePage: AuthenticatedPageId;
 	children: ReactNode;
 }>;
 
+type CreateAppCommandOptions = Readonly<{
+	activePage?: AuthenticatedPageId;
+	isAdvancedMode?: boolean;
+	navigateToChat: () => void;
+	navigateToHistoryRoute: () => void;
+	onOpenContextSheet: () => void;
+	onOpenHistorySheet: () => void;
+	onSetAdvancedMode: (nextValue: boolean) => void;
+	onSetThemePreset: (preset: 'ember-dark' | 'light' | 'rose' | 'system') => void;
+	onShowNotifications: () => void;
+}>;
+
 export function createAppCommands(
 	navigate: (to: string) => void,
+	options?: CreateAppCommandOptions,
 ): readonly CommandPaletteCommand[] {
+	const activePage = options?.activePage ?? 'chat';
+	const isAdvancedMode = options?.isAdvancedMode ?? false;
+	const openHistory = options?.onOpenHistorySheet ?? (() => navigate('/history'));
+	const openContext = options?.onOpenContextSheet ?? (() => navigate('/chat'));
+	const showNotifications = options?.onShowNotifications ?? (() => undefined);
+	const setAdvancedMode = options?.onSetAdvancedMode ?? (() => undefined);
+	const setThemePreset = options?.onSetThemePreset ?? (() => undefined);
+	const navigateToChat = options?.navigateToChat ?? (() => navigate('/chat'));
+	const navigateToHistoryRoute = options?.navigateToHistoryRoute ?? (() => navigate('/history'));
+
+	function runChatSurfaceAction(action: () => void): void {
+		if (activePage !== 'chat') {
+			navigateToChat();
+			return;
+		}
+
+		action();
+	}
+
 	return [
 		{
-			description: 'Ana sohbet alanına dön.',
+			description: 'Ana sohbet alanina don.',
 			id: 'go-chat',
-			keywords: ['ana ekran', 'mesaj', 'çalışma alanı'],
-			label: 'Sohbet’e git',
+			keywords: ['ana ekran', 'mesaj', 'calisma alani'],
+			label: 'Sohbete git',
 			run: () => navigate('/chat'),
+			shortcut: 'Ctrl+K',
 		},
 		{
-			description: 'Yeni bir sohbet taslağı aç.',
+			description: 'Yeni bir sohbet taslagi ac.',
 			id: 'start-new-chat',
-			keywords: ['başlat', 'yeni mesaj', 'temiz sohbet'],
-			label: 'Yeni sohbet başlat',
+			keywords: ['baslat', 'yeni mesaj', 'temiz sohbet'],
+			label: 'Yeni sohbet baslat',
 			run: () => navigate('/chat?new=1'),
+			shortcut: 'Ctrl+N',
 		},
 		{
-			description: 'Kaydedilmiş sohbetleri ara ve aç.',
-			id: 'go-history',
-			keywords: ['kayıtlı sohbet', 'arama', 'önceki işler'],
-			label: 'Geçmiş’e git',
-			run: () => navigate('/history'),
+			description: 'Sohbet gecmisi sheetini ac.',
+			id: 'open-history-sheet',
+			keywords: ['sohbet gecmisi', 'kaldigim is', 'arsiv'],
+			label: 'Gecmisi ac',
+			run: () => runChatSurfaceAction(openHistory),
 		},
 		{
-			description: 'Sohbet geçmişi yüzeyini aç.',
-			id: 'open-history',
-			keywords: ['sohbet geçmişi', 'kaldığım iş', 'arşiv'],
-			label: 'Sohbet geçmişini aç',
-			run: () => navigate('/history'),
+			description: 'Baglam panelini ac.',
+			id: 'open-context-sheet',
+			keywords: ['baglam', 'ekler', 'working files'],
+			label: 'Baglami ac',
+			run: () => runChatSurfaceAction(openContext),
 		},
 		{
-			description: 'Bağlı bilgisayarlarını görüntüle.',
-			id: 'go-devices',
-			keywords: ['bilgisayar', 'masaüstü', 'bağlantı'],
-			label: 'Cihazlar’a git',
-			run: () => navigate('/devices'),
+			description: 'Tema presetini Ember Dark olarak ayarla.',
+			id: 'theme-ember-dark',
+			keywords: ['tema', 'koyu', 'ember'],
+			label: 'Tema: Ember Dark',
+			run: () => setThemePreset('ember-dark'),
 		},
 		{
-			description: 'Cihaz bağlantılarını kontrol et.',
-			id: 'view-device-connections',
-			keywords: ['masaüstü bağlantısı', 'açık bilgisayar', 'izinler'],
-			label: 'Cihaz bağlantılarını görüntüle',
-			run: () => navigate('/devices'),
+			description: 'Tema presetini Light olarak ayarla.',
+			id: 'theme-light',
+			keywords: ['tema', 'acik', 'light'],
+			label: 'Tema: Light',
+			run: () => setThemePreset('light'),
 		},
 		{
-			description: 'Profil ve oturum bilgilerini gör.',
-			id: 'go-account',
-			keywords: ['profil', 'oturum', 'çıkış'],
-			label: 'Hesap’a git',
-			run: () => navigate('/account'),
+			description: 'Tema presetini Rose olarak ayarla.',
+			id: 'theme-rose',
+			keywords: ['tema', 'rose', 'vurgu'],
+			label: 'Tema: Rose',
+			run: () => setThemePreset('rose'),
 		},
 		{
-			description: 'Tema ve ses tercihlerini düzenle.',
-			id: 'open-preferences',
-			keywords: ['ayarlar', 'tema', 'ses'],
-			label: 'Tercihleri aç',
-			run: () => navigate('/account?tab=preferences'),
+			description: 'Tema secimini Sistem moduna geri getir.',
+			id: 'theme-system',
+			keywords: ['tema', 'sistem', 'default'],
+			label: 'Tema: Sistem',
+			run: () => setThemePreset('system'),
+		},
+		{
+			description: 'Gelismis gorunumu ac veya kapat.',
+			id: 'toggle-advanced-view',
+			keywords: ['gelismis', 'gelistirici', 'gorunum'],
+			label: isAdvancedMode ? 'Gelismis gorunumu kapat' : 'Gelismis gorunumu ac',
+			run: () => setAdvancedMode(!isAdvancedMode),
+		},
+		{
+			description: 'Bildirim panelini ac.',
+			id: 'show-notifications',
+			keywords: ['bildirim', 'uyari', 'hatirlatma'],
+			label: 'Bildirimleri goster',
+			run: showNotifications,
+		},
+		{
+			description: 'Kayitli sohbetleri sayfa gorunumunde ac.',
+			id: 'go-history-route',
+			keywords: ['history sayfasi', 'kayitli sohbetler'],
+			label: 'Gecmis sayfasina git',
+			run: navigateToHistoryRoute,
 		},
 	] as const;
 }
 
 function getCommandShortcutLabel(): string {
 	if (typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/u.test(navigator.platform)) {
-		return '⌘K';
+		return 'Cmd K';
 	}
 
 	return 'Ctrl K';
 }
 
+function applyThemePreset(preset: 'ember-dark' | 'light' | 'rose' | 'system'): void {
+	const themeByPreset: Record<'ember-dark' | 'light' | 'rose' | 'system', Theme> = {
+		'ember-dark': 'dark',
+		light: 'light',
+		rose: 'dark',
+		system: 'system',
+	};
+	const brandByPreset: Partial<Record<'ember-dark' | 'light' | 'rose' | 'system', BrandTheme>> = {
+		'ember-dark': 'amber',
+		rose: 'plum',
+	};
+	const nextTheme = themeByPreset[preset];
+	const nextBrandTheme = brandByPreset[preset];
+
+	storeTheme(nextTheme);
+	applyTheme(nextTheme);
+
+	if (nextBrandTheme) {
+		storeBrandTheme(nextBrandTheme);
+		applyBrandTheme(nextBrandTheme);
+	}
+}
+
+function readAdvancedMode(): boolean {
+	if (typeof window === 'undefined') {
+		return false;
+	}
+
+	return window.localStorage.getItem(ADVANCED_MODE_STORAGE_KEY) === 'true';
+}
+
+function writeAdvancedMode(nextValue: boolean): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
+
+	window.localStorage.setItem(ADVANCED_MODE_STORAGE_KEY, nextValue ? 'true' : 'false');
+}
+
 export function AppShell({ activePage, children }: AppShellProps): ReactElement {
+	const location = useLocation();
 	const navigate = useNavigate();
 	const { closePalette, isOpen, openPalette } = useCommandPalette();
+	const [isAdvancedMode, setIsAdvancedMode] = useState<boolean>(() => readAdvancedMode());
 	const pageCopy = pageCopyById[activePage];
-	const commands = useMemo(() => createAppCommands(navigate), [navigate]);
+	const commands = useMemo(
+		() =>
+			createAppCommands(navigate, {
+				activePage,
+				isAdvancedMode,
+				navigateToChat: () => navigate('/chat'),
+				navigateToHistoryRoute: () => navigate('/history'),
+				onOpenContextSheet: () => dispatchChatSurfaceEvent(CHAT_SURFACE_EVENT_OPEN_CONTEXT_SHEET),
+				onOpenHistorySheet: () => dispatchChatSurfaceEvent(CHAT_SURFACE_EVENT_OPEN_HISTORY_SHEET),
+				onSetAdvancedMode: (nextValue) => {
+					writeAdvancedMode(nextValue);
+					setIsAdvancedMode(nextValue);
+				},
+				onSetThemePreset: applyThemePreset,
+				onShowNotifications: () => {
+					if (location.pathname !== '/chat') {
+						navigate('/chat');
+					}
+				},
+			}),
+		[activePage, isAdvancedMode, location.pathname, navigate],
+	);
 	const commandShortcutLabel = getCommandShortcutLabel();
 
 	const commandPalette = (
@@ -156,7 +283,7 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 							type="button"
 							className="runa-command-palette-trigger"
 							onClick={openPalette}
-							aria-label="Komut paletini aç"
+							aria-label="Komut paletini ac"
 						>
 							<span>Komut ara</span>
 							<kbd>{commandShortcutLabel}</kbd>

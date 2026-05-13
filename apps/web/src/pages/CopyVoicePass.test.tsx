@@ -92,7 +92,12 @@ function renderNormalSurfaces(): string {
 	return renderToStaticMarkup(
 		<MemoryRouter>
 			<AppNav activePage="chat" />
-			<ChatHeader onToggleSidebar={() => undefined} />
+			<ChatHeader
+				isHistorySheetOpen={false}
+				isMenuSheetOpen={false}
+				onOpenHistorySheet={() => undefined}
+				onOpenMenuSheet={() => undefined}
+			/>
 			<EmptyState onSubmitSuggestion={() => undefined} />
 			<ChatComposerSurface
 				accessToken="token"
@@ -109,12 +114,14 @@ function renderNormalSurfaces(): string {
 				isSpeaking={false}
 				isSpeechPlaybackSupported={false}
 				isSubmitting={false}
+				isContextSheetOpen={false}
 				isUploadingAttachment={false}
 				isVoiceSupported
 				lastError={null}
 				onAttachmentUploadStateChange={() => undefined}
 				onAttachmentsChange={() => undefined}
 				onClearDesktopTarget={() => undefined}
+				onOpenContextSheet={() => undefined}
 				onPromptChange={() => undefined}
 				onReadLatestResponse={() => undefined}
 				onRetryDesktopDevices={() => undefined}
