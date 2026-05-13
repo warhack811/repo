@@ -1,4 +1,4 @@
-import { readdir, stat } from 'node:fs/promises';
+﻿import { readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import type {
@@ -184,6 +184,8 @@ export function createFileListTool(
 			tags: ['directory', 'file', 'list', 'workspace'],
 		},
 		name: 'file.list',
+		user_label_tr: 'Dizin listeleme',
+		user_summary_tr: 'Bir klasordeki dosyalar listelenir.',
 	};
 }
 

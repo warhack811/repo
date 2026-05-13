@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+﻿import { execFile } from 'node:child_process';
 
 import type {
 	ToolArguments,
@@ -538,6 +538,8 @@ export function createDesktopKeypressTool(
 			tags: ['desktop', 'host', 'input', 'keyboard', 'keypress'],
 		},
 		name: 'desktop.keypress',
+		user_label_tr: 'Klavye kisayolu',
+		user_summary_tr: 'Bagli masaustunde klavye kisayolu calistirilir.',
 	};
 }
 

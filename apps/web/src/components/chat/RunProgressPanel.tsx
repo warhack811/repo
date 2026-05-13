@@ -54,7 +54,7 @@ function getThinkingStepStatus(
 
 function createThinkingSteps(progress: CurrentRunProgressSurface): readonly ThinkingStep[] {
 	return progress.step_items.map((item, index) => ({
-		detail: formatWorkDetail(item.detail),
+		detail: formatWorkDetail(item.detail) ?? undefined,
 		id: `${item.kind}:${item.call_id ?? item.label}:${index}`,
 		label: formatWorkTimelineLabel(item.label),
 		status: getThinkingStepStatus(item),
@@ -71,11 +71,13 @@ function createToolActivityItems(progress: CurrentRunProgressSurface): readonly 
 				item.kind === 'tool_failed',
 		)
 		.map((item, index) => ({
-			detail: formatWorkDetail(item.detail),
+			detail: formatWorkDetail(item.detail) ?? undefined,
 			id: `${item.kind}:${item.call_id ?? item.label}:${index}`,
-			label: item.tool_name
-				? formatWorkToolLabel(item.tool_name)
-				: formatWorkTimelineLabel(item.label),
+			label:
+				item.user_label_tr ??
+				(item.tool_name
+					? formatWorkToolLabel(item.tool_name)
+					: formatWorkTimelineLabel(item.label)),
 			status:
 				item.kind === 'tool_failed'
 					? 'failed'
@@ -92,7 +94,7 @@ export function RunProgressPanel({
 }: RunProgressPanelProps): ReactElement {
 	const shouldShowDiagnostics = isDeveloperMode;
 	const toolActivityItems = createToolActivityItems(progress);
-	const formattedDetail = formatWorkDetail(progress.detail) ?? progress.detail;
+	const formattedDetail = formatWorkDetail(progress.detail);
 
 	if (!isDeveloperMode) {
 		const thinkingSteps = createThinkingSteps(progress);
@@ -103,7 +105,7 @@ export function RunProgressPanel({
 					<h3 id="current-run-progress-heading" className={styles['activityHeadline']}>
 						{progress.headline}
 					</h3>
-					<p className={styles['activityDetail']}>{formattedDetail}</p>
+					{formattedDetail ? <p className={styles['activityDetail']}>{formattedDetail}</p> : null}
 					{thinkingSteps.length > 0 ? (
 						<ThinkingBlock
 							isActive={progress.status_tone === 'info' || progress.status_tone === 'warning'}
@@ -126,7 +128,7 @@ export function RunProgressPanel({
 						<h3 id="current-run-progress-heading" className={styles['headline']}>
 							{progress.headline}
 						</h3>
-						<div className={styles['detail']}>{formattedDetail}</div>
+						{formattedDetail ? <div className={styles['detail']}>{formattedDetail}</div> : null}
 					</div>
 				</div>
 			</div>

@@ -1,4 +1,4 @@
-import { type ChildProcessByStdio, spawn as nodeSpawn } from 'node:child_process';
+﻿import { type ChildProcessByStdio, spawn as nodeSpawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -1131,6 +1131,8 @@ function createShellSessionStartTool(
 		execute: (input, context) => manager.startSession(input, context),
 		metadata: createToolMetadata(),
 		name: 'shell.session.start',
+		user_label_tr: 'Terminal oturumu',
+		user_summary_tr: 'Etkilesimli komut oturumu acilir, ciktilar parca parca sohbete akar.',
 	};
 }
 
@@ -1160,6 +1162,8 @@ function createShellSessionReadTool(
 		execute: (input, context) => manager.readSession(input, context),
 		metadata: createToolMetadata(),
 		name: 'shell.session.read',
+		user_label_tr: 'Terminal oturumu',
+		user_summary_tr: 'Etkilesimli komut oturumu acilir, ciktilar parca parca sohbete akar.',
 	};
 }
 
@@ -1184,6 +1188,8 @@ function createShellSessionStopTool(
 		execute: (input, context) => manager.stopSession(input, context),
 		metadata: createToolMetadata(),
 		name: 'shell.session.stop',
+		user_label_tr: 'Terminal oturumu',
+		user_summary_tr: 'Etkilesimli komut oturumu acilir, ciktilar parca parca sohbete akar.',
 	};
 }
 

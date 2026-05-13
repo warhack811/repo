@@ -1,4 +1,4 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
@@ -24,7 +24,7 @@ const userSurfaceTsxFiles = [
 ] as const;
 
 const allowedFontSizes = new Set(['12px', '14px', '16px', '20px', '28px']);
-const allowedTokenFontSizes = new Set(['var(--text-xs)', 'var(--text-sm)', 'var(--text-base)']);
+const allowedTokenFontSizes = new Set(['var(--text-xs)', 'var(--text-sm)', 'var(--text-md)']);
 const allowedRemFontSizes = new Set(['0.75rem', '0.875rem', '1rem', '1.25rem', '1.75rem']);
 
 function walkFiles(root: string, predicate: (path: string) => boolean): string[] {

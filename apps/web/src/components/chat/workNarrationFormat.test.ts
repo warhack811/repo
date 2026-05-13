@@ -40,6 +40,10 @@ describe('work narration formatting', () => {
 		).toBe('Bağlı masaüstü panosuna metin yazılır.');
 	});
 
+	it('returns null for unknown implementation detail copy', () => {
+		expect(formatWorkDetail('Internal runtime detail not translated yet.')).toBe(null);
+	});
+
 	it('formats tool and state chips consistently', () => {
 		expect(formatWorkToolLabel('desktop.screenshot')).toBe('Ekran görüntüsü');
 		expect(formatWorkToolLabel('desktop.clipboard.write')).toBe('Pano yazma');

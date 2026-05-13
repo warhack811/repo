@@ -1,6 +1,6 @@
 ﻿.spinner {
 	animation: runa-spin 800ms linear infinite;
-	border: 2px solid var(--border-default);
+	border: 2px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: 50%;
 	border-top-color: var(--accent);
 	display: inline-block;

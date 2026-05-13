@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	AgentDelegateRole,
 	AgentDelegationRequest,
 	AgentDelegationResult,
@@ -237,6 +237,8 @@ export const agentDelegateTool: ToolDefinition<AgentDelegateCallInput> = {
 		tags: ['delegation', 'sequential', 'sub-agent'],
 	},
 	name: 'agent.delegate',
+	user_label_tr: 'Alt gorev',
+	user_summary_tr: 'Karmasik is icin alt agent calistirilir.',
 	async execute(input, context: ToolExecutionContext) {
 		const validatedArguments = validateAgentDelegateArguments(input);
 

@@ -17,9 +17,9 @@
 	gap: 8px;
 	padding: 10px 14px;
 	border-radius: var(--radius-input);
-	border: 1px solid var(--border-default);
-	background: var(--surface-chip);
-	color: var(--text-primary);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
+	background: var(--surface-3);
+	color: var(--ink-1);
 	font-weight: 600;
 	cursor: pointer;
 	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
@@ -32,9 +32,9 @@
 	gap: 8px;
 	padding: 10px 14px;
 	border-radius: var(--radius-input);
-	border: 1px solid var(--border-default);
-	background: var(--surface-chip);
-	color: var(--text-primary);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
+	background: var(--surface-3);
+	color: var(--ink-1);
 	font-weight: 600;
 	cursor: pointer;
 	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
@@ -43,5 +43,5 @@
 .status {
 	font-size: 14px;
 	line-height: 1.5;
-	color: var(--text-soft);
+	color: var(--ink-4);
 }

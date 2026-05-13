@@ -1,5 +1,5 @@
 ﻿.disclosure {
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: var(--radius-input);
 	display: grid;
 	overflow: hidden;
@@ -7,7 +7,7 @@
 
 .trigger {
 	align-items: center;
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 	border: 0;
 	color: var(--ink-1);
 	cursor: pointer;
@@ -22,7 +22,7 @@
 }
 
 .content {
-	border-top: 1px solid var(--border-hairline);
+	border-top: 1px solid var(--hairline);
 	color: var(--ink-2);
 	display: grid;
 	gap: var(--space-3);

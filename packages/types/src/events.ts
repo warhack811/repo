@@ -49,12 +49,16 @@ export interface RunFailedEventPayload {
 export interface ToolCallStartedEventPayload {
 	readonly call_id: string;
 	readonly tool_name: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export interface ToolCallCompletedEventPayload {
 	readonly call_id: string;
 	readonly result_status: 'error' | 'success';
 	readonly tool_name: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export interface ToolCallFailedEventPayload {
@@ -63,6 +67,8 @@ export interface ToolCallFailedEventPayload {
 	readonly error_message: string;
 	readonly retryable?: boolean;
 	readonly tool_name: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export interface ApprovalRequestedEventPayload {
@@ -72,6 +78,8 @@ export interface ApprovalRequestedEventPayload {
 	readonly summary: string;
 	readonly title: string;
 	readonly tool_name?: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export interface ApprovalResolvedEventPayload {

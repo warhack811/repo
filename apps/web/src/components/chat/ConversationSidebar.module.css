@@ -152,3 +152,15 @@
 .loadMore {
 	width: 100%;
 }
+
+.embeddedNav {
+	left: auto;
+	max-height: none;
+	opacity: 1;
+	pointer-events: auto;
+	position: static;
+	right: auto;
+	top: auto;
+	transform: none;
+	width: 100%;
+}

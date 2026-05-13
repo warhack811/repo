@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+﻿import type { ReactElement } from 'react';
 
 import type { RunFeedbackState } from '../../lib/chat-runtime/types.js';
 import type { ConnectionStatus } from '../../ws-types.js';
@@ -15,13 +15,13 @@ export type RunFeedbackTone = RunFeedbackState['tone'];
 export function getStatusAccent(status: ConnectionStatus): string {
 	switch (status) {
 		case 'open':
-			return 'var(--status-success-text)';
+			return 'color-mix(in srgb, var(--status) 85%, white)';
 		case 'error':
-			return 'var(--status-danger-text)';
+			return 'color-mix(in srgb, var(--error) 84%, white)';
 		case 'closed':
-			return 'var(--text-muted)';
+			return 'var(--ink-2)';
 		default:
-			return 'var(--status-warning-text)';
+			return 'color-mix(in srgb, var(--warn) 84%, white)';
 	}
 }
 
@@ -40,13 +40,13 @@ export function createInspectionCountLabel(
 export function getCodeBlockAccent(diffKind: 'after' | 'before' | 'unified' | undefined): string {
 	switch (diffKind) {
 		case 'before':
-			return 'var(--status-warning-text)';
+			return 'color-mix(in srgb, var(--warn) 84%, white)';
 		case 'unified':
-			return 'var(--status-info-text)';
+			return 'var(--accent-2)';
 		case 'after':
-			return 'var(--status-success-text)';
+			return 'color-mix(in srgb, var(--status) 85%, white)';
 		default:
-			return 'var(--text-muted)';
+			return 'var(--ink-2)';
 	}
 }
 

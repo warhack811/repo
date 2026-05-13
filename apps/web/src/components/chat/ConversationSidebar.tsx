@@ -1,4 +1,4 @@
-import type { ChangeEvent, ReactElement } from 'react';
+﻿import type { ChangeEvent, ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -28,6 +28,7 @@ type ConversationSidebarProps = Readonly<{
 		role: Exclude<ConversationAccessRole, 'owner'>,
 	) => Promise<void>;
 	onStartNewConversation: () => void;
+	presentation?: 'drawer' | 'embedded';
 }>;
 
 type ConversationGroup = Readonly<{
@@ -168,6 +169,7 @@ export function ConversationSidebar({
 	onSelectConversation,
 	onShareMember,
 	onStartNewConversation,
+	presentation = 'drawer',
 }: ConversationSidebarProps): ReactElement {
 	const [memberUserId, setMemberUserId] = useState('');
 	const [memberRole, setMemberRole] = useState<Exclude<ConversationAccessRole, 'owner'>>('viewer');
@@ -183,9 +185,20 @@ export function ConversationSidebar({
 		() => groupConversations(filteredConversations),
 		[filteredConversations],
 	);
+	const isEmbedded = presentation === 'embedded';
+	const shouldShowBackdrop = !isEmbedded && isOpen;
+	const navClassName = [
+		'runa-card',
+		'runa-card--subtle',
+		'runa-conversation-sidebar',
+		isOpen || isEmbedded ? 'runa-conversation-sidebar--open' : null,
+		isEmbedded ? styles['embeddedNav'] : null,
+	]
+		.filter(Boolean)
+		.join(' ');
 
 	useEffect(() => {
-		if (!isOpen || !onClose) {
+		if (!isOpen || !onClose || isEmbedded) {
 			return;
 		}
 
@@ -200,7 +213,7 @@ export function ConversationSidebar({
 		return () => {
 			window.removeEventListener('keydown', handleKeyDown);
 		};
-	}, [isOpen, onClose]);
+	}, [isEmbedded, isOpen, onClose]);
 
 	async function handleShareSubmit(): Promise<void> {
 		const normalizedMemberUserId = memberUserId.trim();
@@ -248,7 +261,7 @@ export function ConversationSidebar({
 
 	return (
 		<>
-			{isOpen ? (
+			{shouldShowBackdrop ? (
 				<button
 					type="button"
 					className="runa-sidebar-backdrop"
@@ -256,12 +269,7 @@ export function ConversationSidebar({
 					onClick={onClose}
 				/>
 			) : null}
-			<nav
-				className={`runa-card runa-card--subtle runa-conversation-sidebar${
-					isOpen ? ' runa-conversation-sidebar--open' : ''
-				}`}
-				aria-label="Sohbet geçmişi"
-			>
+			<nav className={navClassName} aria-label="Sohbet geçmişi">
 				<div className="runa-conversation-sidebar__header">
 					<div className={styles['headerGroup']}>
 						<div className={styles['logo']}>Runa</div>
@@ -270,7 +278,9 @@ export function ConversationSidebar({
 					<button
 						type="button"
 						onClick={startNewConversation}
-						className={`runa-button runa-button--secondary ${styles['newButton']}`}
+						className={`runa-button ${
+							isEmbedded ? 'runa-button--primary' : 'runa-button--secondary'
+						} ${styles['newButton']}`}
 					>
 						Yeni sohbet
 					</button>

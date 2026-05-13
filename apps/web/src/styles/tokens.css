@@ -1,4 +1,4 @@
-:root,
+﻿:root,
 [data-theme="ember-dark"],
 [data-theme="dark"] {
 	/* Surfaces */
@@ -46,13 +46,10 @@
 	/* Type scale */
 	--text-xs: 11px;
 	--text-sm: 13px;
-	--text-base: 14px;
 	--text-md: 14.5px;
 	--text-lg: 18px;
 	--text-xl: 22px;
 	--text-2xl: 32px;
-	--text-3xl: 36px;
-	--text-4xl: 44px;
 	--leading-tight: 1.12;
 	--leading-snug: 1.35;
 	--leading-normal: 1.6;
@@ -65,56 +62,8 @@
 	--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 	--ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 
-	/* Semantic surfaces */
-	--page-background: var(--surface-1);
-	--surface-page: var(--surface-1);
-	--surface-canvas: var(--surface-2);
-	--surface-panel: var(--surface-2);
-	--surface-panel-strong: var(--surface-4);
-	--surface-panel-muted: var(--surface-3);
-	--surface-subtle: var(--surface-3);
-	--surface-input: var(--surface-2);
-	--surface-hover: var(--surface-4);
-	--surface-selected: var(--accent-bg);
-	--surface-chip: var(--surface-3);
+	/* Derived semantic surfaces */
 	--surface-transcript-user: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
-
-	/* Semantic borders */
-	--border-hairline: var(--hairline);
-	--border-subtle: color-mix(in srgb, var(--ink-1) 8%, transparent);
-	--border-default: color-mix(in srgb, var(--ink-1) 14%, transparent);
-	--border-strong: color-mix(in srgb, var(--ink-1) 22%, transparent);
-	--border-primary: color-mix(in srgb, var(--accent) 45%, transparent);
-	--border-focus: color-mix(in srgb, var(--accent-2) 60%, transparent);
-	--border-info: color-mix(in srgb, var(--accent-2) 40%, transparent);
-	--border-success: color-mix(in srgb, var(--status) 40%, transparent);
-	--border-warning: color-mix(in srgb, var(--warn) 46%, transparent);
-	--border-danger: color-mix(in srgb, var(--error) 46%, transparent);
-
-	/* Semantic text */
-	--text-primary: var(--ink-1);
-	--text-strong: var(--ink-1);
-	--text-muted: var(--ink-2);
-	--text-soft: var(--ink-3);
-	--text-on-primary: var(--accent-fg);
-	--text-link: var(--accent-2);
-
-	/* Semantic status */
-	--status-info-bg: color-mix(in srgb, var(--accent-2) 24%, transparent);
-	--status-info-text: var(--accent-2);
-	--status-success-bg: color-mix(in srgb, var(--status) 24%, transparent);
-	--status-success-text: color-mix(in srgb, var(--status) 85%, white);
-	--status-warning-bg: color-mix(in srgb, var(--warn) 24%, transparent);
-	--status-warning-text: color-mix(in srgb, var(--warn) 84%, white);
-	--status-danger-bg: color-mix(in srgb, var(--error) 24%, transparent);
-	--status-danger-text: color-mix(in srgb, var(--error) 84%, white);
-
-	/* Shadows */
-	--shadow-panel: var(--shadow);
-	--shadow-panel-soft: 0 14px 32px rgba(0, 0, 0, 0.22);
-	--shadow-glow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
-	--shadow-inset: inset 0 1px 0 color-mix(in srgb, var(--ink-1) 8%, transparent);
-	--shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.2);
 
 	/* Spacing scale */
 	--space-1: 4px;
@@ -125,10 +74,6 @@
 	--space-6: 24px;
 	--space-8: 32px;
 	--space-10: 40px;
-	--space-page-y: clamp(18px, 4vw, 32px);
-	--space-page-x: clamp(12px, 3vw, 16px);
-	--space-panel: clamp(18px, 3vw, 24px);
-	--space-subcard: 16px;
 
 	/* Safe area */
 	--safe-area-top: env(safe-area-inset-top, 0px);

@@ -1,4 +1,4 @@
-﻿import { ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronRight } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import {
@@ -11,53 +11,12 @@ import {
 import type { RenderBlock } from '../../../ws-types.js';
 import { formatWorkDetail, formatWorkToolLabel } from '../workNarrationFormat.js';
 import styles from './BlockRenderer.module.css';
+import { getFriendlyErrorMessage } from './errorCopy.js';
 
 type ToolResultBlockProps = Readonly<{
 	block: Extract<RenderBlock, { type: 'tool_result' }>;
 	isDeveloperMode?: boolean;
 }>;
-
-function getFriendlyToolTitle(toolName: string | undefined): string {
-	if (!toolName) return 'Islem tamamlandi';
-	const map: Record<string, string> = {
-		'file.read': 'Dosya okundu',
-		'file.write': 'Dosya guncellendi',
-		'file.list': 'Dizin listelendi',
-		'file.delete': 'Dosya silindi',
-		'web.search': 'Web aramasi yapildi',
-		'web.fetch': 'Sayfa getirildi',
-		'shell.exec': 'Komut calisti',
-		'search.codebase': 'Kod tarandi',
-		'desktop.click': 'Masaustunde tiklandi',
-		'desktop.clipboard.read': 'Pano okundu',
-		'desktop.clipboard.write': 'Pano guncellendi',
-		'desktop.keypress': 'Klavye kisayolu calisti',
-		'desktop.launch': 'Uygulama baslatildi',
-		'desktop.scroll': 'Masaustu kaydirildi',
-		'desktop.screenshot': 'Ekran goruntusu alindi',
-		'desktop.type': 'Masaustune yazildi',
-		'memory.write': 'Bilgi kaydedildi',
-		'memory.read': 'Bellek okundu',
-	};
-	return map[toolName] ?? `${formatWorkToolLabel(toolName)} tamamlandi`;
-}
-
-function getFriendlyResultCopy(block: ToolResultBlockProps['block']): Readonly<{
-	readonly summary: string;
-	readonly title: string;
-}> {
-	if (block.payload.status === 'success') {
-		return {
-			summary: 'Sonuc sohbet akisina eklendi.',
-			title: getFriendlyToolTitle(block.payload.tool_name),
-		};
-	}
-
-	return {
-		summary: 'Bu adim tamamlanamadi. Gerekirse yeniden deneyebilirsin.',
-		title: 'Islem tamamlanamadi',
-	};
-}
 
 function normalizeText(value: string | undefined): string | null {
 	const normalized = value?.trim();
@@ -73,12 +32,41 @@ function isTechnicalPreview(value: string): boolean {
 	);
 }
 
-function getFriendlyOutputSummary(block: ToolResultBlockProps['block'], fallback: string): string {
+function resolveToolLabel(block: ToolResultBlockProps['block']): string {
+	return (
+		block.payload.user_label_tr ??
+		formatWorkToolLabel(block.payload.tool_name) ??
+		block.payload.tool_name ??
+		'İşlem'
+	);
+}
+
+function getFriendlyOutputSummary(block: ToolResultBlockProps['block']): string {
 	const preview = normalizeText(block.payload.result_preview?.summary_text);
 	const summary = normalizeText(block.payload.summary);
 	const selected =
-		preview && !isTechnicalPreview(preview) ? preview : (summary ?? preview ?? fallback);
-	return formatWorkDetail(selected) ?? selected;
+		preview && !isTechnicalPreview(preview)
+			? preview
+			: (summary ?? preview ?? 'Sonuç sohbet akışına eklendi.');
+	const formatted = formatWorkDetail(selected);
+
+	return formatted ?? 'Sonuç sohbet akışına eklendi.';
+}
+
+function getDeveloperErrorText(block: ToolResultBlockProps['block']): string | undefined {
+	if (block.payload.status !== 'error') {
+		return undefined;
+	}
+
+	if (block.payload.error_code && block.payload.error_message) {
+		return `${block.payload.error_code}: ${block.payload.error_message}`;
+	}
+
+	if (block.payload.error_code) {
+		return block.payload.error_code;
+	}
+
+	return block.payload.error_message;
 }
 
 export function ToolResultBlock({
@@ -86,23 +74,37 @@ export function ToolResultBlock({
 	isDeveloperMode = false,
 }: ToolResultBlockProps): ReactElement {
 	const isSuccess = block.payload.status === 'success';
-	const friendlyCopy = getFriendlyResultCopy(block);
-	const output = block.payload.result_preview ?? friendlyCopy.summary;
-	const friendlySummary = getFriendlyOutputSummary(block, friendlyCopy.summary);
-	const friendlyToolLabel = formatWorkToolLabel(block.payload.tool_name);
+	const friendlyToolLabel = resolveToolLabel(block);
+
+	if (!isDeveloperMode && !isSuccess) {
+		return (
+			<details className={styles['toolLine']}>
+				<summary className={styles['toolLineSummary']}>
+					<span className={styles['toolLineIcon']} aria-hidden>
+						<AlertTriangle size={12} />
+					</span>
+					<span className={styles['toolLineLabel']}>{friendlyToolLabel} tamamlanamadı</span>
+					<ChevronRight aria-hidden size={14} className={styles['toolLineChevron']} />
+				</summary>
+				<div className={styles['toolLineDetail']}>
+					<p>{getFriendlyErrorMessage(block.payload)}</p>
+				</div>
+			</details>
+		);
+	}
 
 	if (!isDeveloperMode) {
 		return (
 			<details className={styles['toolLine']}>
 				<summary className={styles['toolLineSummary']}>
 					<span className={styles['toolLineIcon']} aria-hidden>
-						{isSuccess ? '•' : '!'}
+						•
 					</span>
 					<span className={styles['toolLineLabel']}>{friendlyToolLabel}</span>
 					<ChevronRight aria-hidden size={14} className={styles['toolLineChevron']} />
 				</summary>
 				<div className={styles['toolLineDetail']}>
-					<p>{friendlySummary}</p>
+					<p>{getFriendlyOutputSummary(block)}</p>
 				</div>
 			</details>
 		);
@@ -125,8 +127,8 @@ export function ToolResultBlock({
 					state="input-available"
 				/>
 				<ToolOutput
-					errorText={isSuccess ? undefined : (block.payload.error_code ?? friendlyCopy.summary)}
-					output={output}
+					errorText={getDeveloperErrorText(block)}
+					output={isSuccess ? (block.payload.result_preview ?? block.payload.summary) : undefined}
 				/>
 			</ToolContent>
 		</Tool>

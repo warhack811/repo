@@ -26,30 +26,30 @@
 	background: var(--accent);
 	border: 0;
 	box-shadow: none;
-	color: var(--text-on-primary);
+	color: var(--accent-fg);
 }
 
 .secondary {
 	background: var(--surface-2);
-	border: 1px solid var(--border-default);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	box-shadow: none;
-	color: var(--text-primary);
+	color: var(--ink-1);
 }
 
 .ghost {
 	background: transparent;
-	border: 1px solid var(--border-subtle);
-	color: var(--text-muted);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
+	color: var(--ink-2);
 }
 
 .danger {
-	background: var(--error);
-	border: 1px solid var(--error);
-	color: var(--surface-1);
+	background: color-mix(in srgb, var(--error) 24%, transparent);
+	border: 1px solid color-mix(in srgb, var(--error) 46%, transparent);
+	color: color-mix(in srgb, var(--error) 84%, white);
 }
 
 .danger:hover:not(:disabled) {
-	background: color-mix(in srgb, var(--error) 88%, white);
+	background: color-mix(in srgb, var(--error) 36%, transparent);
 }
 
 .danger:focus-visible {

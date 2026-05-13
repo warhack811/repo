@@ -1,4 +1,6 @@
 ﻿.backdrop {
+	animation: runa-sheet-fade-in 220ms var(--ease-emphasized, ease);
+	backdrop-filter: blur(6px);
 	background: var(--surface-3);
 	inset: 0;
 	position: fixed;
@@ -6,20 +8,24 @@
 }
 
 .sheet {
-	background: var(--surface-panel-strong);
-	border: 1px solid var(--border-default);
+	animation-duration: 220ms;
+	animation-fill-mode: both;
+	animation-timing-function: var(--ease-emphasized, ease);
+	background: var(--surface-4);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	box-shadow: none;
 	color: var(--ink-1);
 	display: grid;
 	gap: var(--space-4);
 	max-height: calc(100dvh - var(--safe-area-top) - 16px);
 	overflow: auto;
-	padding: var(--space-panel);
+	padding: clamp(18px, 3vw, 24px);
 	position: fixed;
 	z-index: 200;
 }
 
 .right {
+	animation-name: runa-sheet-in-right;
 	bottom: 0;
 	right: 0;
 	top: 0;
@@ -27,6 +33,7 @@
 }
 
 .bottom {
+	animation-name: runa-sheet-in-bottom;
 	border-radius: 24px 24px 0 0;
 	bottom: 0;
 	left: 0;
@@ -34,7 +41,7 @@
 }
 
 .handle {
-	background: var(--border-strong);
+	background: color-mix(in srgb, var(--ink-1) 22%, transparent);
 	border-radius: var(--radius-pill);
 	height: 4px;
 	justify-self: center;
@@ -44,11 +51,56 @@
 
 @media (max-width: 767px) {
 	.right {
+		animation-name: runa-sheet-in-bottom;
 		top: auto;
 		left: 0;
 		right: 0;
 		bottom: 0;
 		width: 100%;
 		border-radius: 24px 24px 0 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.backdrop,
+	.sheet,
+	.right,
+	.bottom {
+		animation: none;
+		transition: none;
+	}
+}
+
+@keyframes runa-sheet-fade-in {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes runa-sheet-in-bottom {
+	from {
+		opacity: 0;
+		transform: translateY(100%);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes runa-sheet-in-right {
+	from {
+		opacity: 0;
+		transform: translateX(100%);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateX(0);
 	}
 }

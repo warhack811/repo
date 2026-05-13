@@ -7,8 +7,6 @@ import {
 	DesktopDevicesResponseValidationError,
 	fetchDesktopDevices,
 } from '../lib/desktop-devices.js';
-import '../styles/routes/desktop-device-presence-migration.css';
-import '../styles/routes/devices-migration.css';
 
 type DevicesPageProps = Readonly<{
 	accessToken: string | null;

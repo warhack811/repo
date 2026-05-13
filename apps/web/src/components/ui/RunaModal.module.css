@@ -12,8 +12,8 @@
 
 .panel {
 	animation: runa-scale-in var(--duration-slow) var(--ease-standard);
-	background: var(--surface-panel-strong);
-	border: 1px solid var(--border-default);
+	background: var(--surface-4);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	color: var(--ink-1);
@@ -21,7 +21,7 @@
 	gap: var(--space-4);
 	max-height: calc(100dvh - 32px);
 	overflow: auto;
-	padding: var(--space-panel);
+	padding: clamp(18px, 3vw, 24px);
 	width: min(100%, 560px);
 }
 
@@ -64,7 +64,14 @@
 		height: 5px;
 		justify-self: center;
 		border-radius: var(--radius-pill);
-		background: var(--border-strong);
+		background: color-mix(in srgb, var(--ink-1) 22%, transparent);
 		touch-action: pan-y;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.backdrop,
+	.panel {
+		animation: none;
 	}
 }

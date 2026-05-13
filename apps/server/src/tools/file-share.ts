@@ -1,4 +1,4 @@
-import { basename } from 'node:path';
+﻿import { basename } from 'node:path';
 
 import type {
 	ToolArguments,
@@ -175,6 +175,8 @@ export function createFileShareTool(): ToolDefinition<FileShareInput, FileShareR
 			tags: ['file', 'share', 'download'],
 		},
 		name: 'file.share',
+		user_label_tr: 'Dosya paylasimi',
+		user_summary_tr: 'Uretilen dosya icin kisa sureli indirme linki olusturulur.',
 	};
 }
 

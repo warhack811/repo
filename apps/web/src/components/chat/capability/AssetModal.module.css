@@ -12,7 +12,7 @@
 	width: min(880px, 100%);
 	max-height: min(760px, calc(100vh - 40px));
 	padding: 20px;
-	border: 1px solid var(--border-default);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: 8px;
 	background: var(--surface-3);
 	color: var(--ink-1);
@@ -65,9 +65,9 @@
 	place-items: center;
 	min-height: 240px;
 	padding: 20px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 8px;
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 	color: var(--ink-2);
 	font-size: 14px;
 	text-align: center;

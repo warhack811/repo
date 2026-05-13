@@ -7,8 +7,10 @@ import type {
 } from '@runa/types';
 
 import type { IngestedToolResult } from '../runtime/ingest-tool-result.js';
+import { createBuiltInToolRegistry } from '../tools/registry.js';
 
 const STRING_PREVIEW_LIMIT = 120;
+const builtInToolRegistry = createBuiltInToolRegistry();
 
 interface MapToolResultInput {
 	readonly call_id: string;
@@ -163,6 +165,16 @@ function getErrorCode(
 	return undefined;
 }
 
+function getErrorMessage(
+	result: IngestedToolResult | ToolResult,
+): ToolResultBlock['payload']['error_message'] {
+	if (isToolResultErrorResult(result)) {
+		return result.error_message;
+	}
+
+	return undefined;
+}
+
 function getResultPreview(
 	result: IngestedToolResult | ToolResult,
 ): ToolResultBlock['payload']['result_preview'] {
@@ -174,16 +186,24 @@ function getResultPreview(
 }
 
 export function mapToolResultToBlock(input: MapToolResultInput): ToolResultBlock {
+	const toolDefinition = builtInToolRegistry.get(input.tool_name);
+	const errorMessage = getErrorMessage(input.result);
+	const userLabelTr = toolDefinition?.user_label_tr;
+	const userSummaryTr = toolDefinition?.user_summary_tr;
+
 	return {
 		created_at: input.created_at,
 		id: `tool_result:${input.tool_name}:${input.call_id}`,
 		payload: {
 			call_id: input.call_id,
 			error_code: getErrorCode(input.result),
+			...(errorMessage ? { error_message: errorMessage } : {}),
 			result_preview: getResultPreview(input.result),
 			status: getBlockStatus(input.result),
 			summary: buildSummary(input.tool_name, input.result),
 			tool_name: input.tool_name,
+			...(userLabelTr ? { user_label_tr: userLabelTr } : {}),
+			...(userSummaryTr ? { user_summary_tr: userSummaryTr } : {}),
 		},
 		schema_version: 1,
 		type: 'tool_result',

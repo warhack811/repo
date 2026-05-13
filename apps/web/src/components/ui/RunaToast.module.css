@@ -10,8 +10,8 @@
 
 .toast {
 	align-items: start;
-	background: var(--surface-panel-strong);
-	border: 1px solid var(--border-default);
+	background: var(--surface-4);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-input);
 	box-shadow: none;
 	color: var(--ink-1);
@@ -21,19 +21,19 @@
 }
 
 .info {
-	border-color: var(--border-info);
+	border-color: color-mix(in srgb, var(--accent-2) 40%, transparent);
 }
 
 .success {
-	border-color: var(--border-success);
+	border-color: color-mix(in srgb, var(--status) 40%, transparent);
 }
 
 .warning {
-	border-color: var(--border-warning);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
 }
 
 .danger {
-	border-color: var(--border-danger);
+	border-color: color-mix(in srgb, var(--error) 46%, transparent);
 }
 
 .header {

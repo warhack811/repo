@@ -7,9 +7,9 @@
 .previewArea {
 	aspect-ratio: 16 / 10;
 	overflow: hidden;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 8px;
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 }
 
 .previewImage {

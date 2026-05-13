@@ -342,6 +342,8 @@ function createToolTimelineCandidate(
 		kind: 'tool_completed' | 'tool_failed' | 'tool_requested';
 		state: string;
 		tool_name: ToolName;
+		user_label_tr?: string;
+		user_summary_tr?: string;
 	}>,
 ): TimelineItemCandidate | undefined {
 	const timelineCopy = getToolTimelineCopy(input.tool_name);
@@ -359,6 +361,8 @@ function createToolTimelineCandidate(
 		label,
 		state: input.state,
 		tool_name: input.tool_name,
+		...(input.user_label_tr ? { user_label_tr: input.user_label_tr } : {}),
+		...(input.user_summary_tr ? { user_summary_tr: input.user_summary_tr } : {}),
 	});
 }
 
@@ -571,6 +575,8 @@ function mapRuntimeEventToTimelineCandidate(
 				kind: 'tool_requested',
 				state: 'requested',
 				tool_name: event.payload.tool_name,
+				user_label_tr: event.payload.user_label_tr,
+				user_summary_tr: event.payload.user_summary_tr,
 			});
 		case 'tool.call.completed':
 			return createToolTimelineCandidate({
@@ -579,6 +585,8 @@ function mapRuntimeEventToTimelineCandidate(
 				kind: event.payload.result_status === 'success' ? 'tool_completed' : 'tool_failed',
 				state: event.payload.result_status,
 				tool_name: event.payload.tool_name,
+				user_label_tr: event.payload.user_label_tr,
+				user_summary_tr: event.payload.user_summary_tr,
 			});
 		case 'tool.call.failed':
 			return createToolTimelineCandidate({
@@ -588,6 +596,8 @@ function mapRuntimeEventToTimelineCandidate(
 				kind: 'tool_failed',
 				state: 'error',
 				tool_name: event.payload.tool_name,
+				user_label_tr: event.payload.user_label_tr,
+				user_summary_tr: event.payload.user_summary_tr,
 			});
 		case 'approval.requested':
 			return createCandidate(`approval_requested:${event.payload.approval_id}`, {
@@ -634,6 +644,8 @@ function mapToolResultBlockToTimelineCandidate(
 		kind: block.payload.status === 'success' ? 'tool_completed' : 'tool_failed',
 		state: block.payload.status,
 		tool_name: block.payload.tool_name,
+		user_label_tr: block.payload.user_label_tr,
+		user_summary_tr: block.payload.user_summary_tr,
 	});
 }
 

@@ -1,11 +1,11 @@
 ﻿.root {
 	border-radius: var(--radius-input);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	padding: 16px;
 	min-width: 0;
 	box-shadow: none;
-	background: var(--surface-panel);
-	border-color: var(--border-info);
+	background: var(--surface-2);
+	border-color: color-mix(in srgb, var(--accent-2) 40%, transparent);
 }
 
 .header {
@@ -31,7 +31,7 @@
 }
 
 .title {
-	color: var(--text-strong);
+	color: var(--ink-1);
 	font-size: 16px;
 	overflow-wrap: anywhere;
 }
@@ -62,10 +62,10 @@
 .copyButton {
 	font-size: 12px;
 	color: var(--ink-2);
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	padding: 5px 10px;
 	border-radius: 999px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	max-width: 100%;
 	overflow-wrap: anywhere;
 	word-break: break-word;
@@ -90,7 +90,7 @@
 }
 
 .pathValue {
-	color: var(--text-link);
+	color: var(--accent-2);
 	line-height: 1.6;
 	margin-top: 4px;
 	overflow-wrap: anywhere;
@@ -100,8 +100,8 @@
 	margin-top: 10px;
 	padding: 14px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-subtle);
-	background: var(--surface-panel);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
+	background: var(--surface-2);
 	max-width: 100%;
 	overflow-x: auto;
 	box-shadow: none;
@@ -119,6 +119,6 @@
 }
 
 .lineNumber {
-	color: var(--text-soft);
+	color: var(--ink-3);
 	user-select: none;
 }

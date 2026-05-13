@@ -5,7 +5,7 @@
 	.runa-page {
 	min-height: 100vh;
 	min-height: 100dvh;
-	background: var(--page-background);
+	background: var(--surface-1);
 	color: var(--ink-1);
 	font-family: var(--font-body);
 	padding: calc(var(--space-page-y) + var(--safe-area-top))
@@ -110,7 +110,7 @@
 .runa-card--subtle {
 	padding: var(--space-subcard);
 	border-radius: var(--radius-input);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	background: var(--surface-3);
 	box-shadow: none;
 }
@@ -349,7 +349,7 @@
 	gap: 8px;
 	padding: 14px 16px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	background: var(--surface-2);
 	min-width: 0;
 	overflow-wrap: anywhere;
@@ -407,9 +407,9 @@
 
 .runa-chat-header {
 	align-items: center;
-	background: var(--surface-canvas);
+	background: var(--surface-2);
 	backdrop-filter: blur(16px);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	display: flex;
@@ -486,7 +486,7 @@
 .runa-chat-icon-button {
 	align-items: center;
 	background: var(--surface-chip);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-input);
 	color: var(--ink-1);
 	cursor: pointer;
@@ -516,7 +516,7 @@
 /* ---- Chat presence ---- */
 
 .runa-chat-presence {
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: 999px;
 	color: var(--ink-2);
 	font-size: 12px;
@@ -542,7 +542,7 @@
 /* ---- Chat empty state ---- */
 
 .runa-chat-empty-state {
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	background: var(--surface-subtle);
 	display: grid;
@@ -605,7 +605,7 @@
 
 .runa-chat-suggestion {
 	background: var(--surface-chip);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	color: var(--ink-1);
 	cursor: pointer;
@@ -753,7 +753,7 @@
 	width: 100%;
 	overflow-x: auto;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	background: var(--surface-subtle);
 }
 
@@ -770,7 +770,7 @@
 .runa-markdown__table th,
 .runa-markdown__table td {
 	padding: 10px 12px;
-	border-bottom: 1px solid var(--border-subtle);
+	border-bottom: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	text-align: left;
 	vertical-align: top;
 }
@@ -958,7 +958,7 @@
 
 .runa-conversation-item {
 	background: var(--surface-subtle);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	color: var(--ink-1);
 	cursor: pointer;
@@ -1030,7 +1030,7 @@
 }
 
 .runa-conversation-members {
-	border-top: 1px solid var(--border-subtle);
+	border-top: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	padding-top: 12px;
 }
 
@@ -1070,7 +1070,7 @@
 .runa-settings-row {
 	align-items: center;
 	background: var(--surface-subtle);
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	display: flex;
 	gap: 16px;

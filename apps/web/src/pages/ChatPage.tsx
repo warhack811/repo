@@ -1,18 +1,26 @@
-import type { ReactElement } from 'react';
-import { lazy, useMemo, useState } from 'react';
+﻿import type { ReactElement } from 'react';
+import { lazy, useEffect, useMemo, useState } from 'react';
 
 import { AppSidebar } from '../components/app/AppSidebar.js';
+import { MenuSheet } from '../components/app/MenuSheet.js';
 import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
 import { ChatHeader } from '../components/chat/ChatHeader.js';
 import { ChatLayout } from '../components/chat/ChatLayout.js';
 import { ChatShell } from '../components/chat/ChatShell.js';
+import { ContextSheet } from '../components/chat/ContextSheet.js';
 import { ConversationSidebar } from '../components/chat/ConversationSidebar.js';
 import { CurrentRunSurface } from '../components/chat/CurrentRunSurface.js';
 import { EmptyState } from '../components/chat/EmptyState.js';
+import { HistorySheet } from '../components/chat/HistorySheet.js';
 import { PastRunSurfaces } from '../components/chat/PastRunSurfaces.js';
 import { renderRunFeedbackBanner } from '../components/chat/PresentationBlockRenderer.js';
 import { PresentationRunSurfaceCard } from '../components/chat/PresentationRunSurfaceCard.js';
 import { RunProgressPanel } from '../components/chat/RunProgressPanel.js';
+import {
+	CHAT_SURFACE_EVENT_OPEN_CONTEXT_SHEET,
+	CHAT_SURFACE_EVENT_OPEN_HISTORY_SHEET,
+	CHAT_SURFACE_EVENT_OPEN_MENU_SHEET,
+} from '../components/chat/chat-surface-events.js';
 import { TransportErrorBanner } from '../lib/transport/errors.js';
 
 const RunTimelinePanel = lazy(() =>
@@ -38,7 +46,6 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
-import '../styles/routes/chat-migration.css';
 
 type ChatPageProps = Readonly<{
 	conversations: UseConversationsResult;
@@ -59,7 +66,7 @@ export function ChatPage({
 	embedded = false,
 	runtime,
 }: ChatPageProps): ReactElement {
-	const { isDeveloperMode } = useDeveloperMode();
+	const { isDeveloperMode, setDeveloperMode } = useDeveloperMode();
 	const runtimeConfig = useChatStoreSelector(runtime.store, selectRuntimeConfigState);
 	const connectionState = useChatStoreSelector(runtime.store, selectConnectionState);
 	const presentationState = useChatStoreSelector(runtime.store, selectPresentationState);
@@ -80,6 +87,7 @@ export function ChatPage({
 	const isRuntimeConfigReady = model.trim().length > 0;
 	const {
 		accessToken,
+		abortCurrentRun,
 		attachments,
 		desktopTargetConnectionId: runtimeDesktopTargetConnectionId,
 		inspectionAnchorIdsByDetailId,
@@ -91,6 +99,7 @@ export function ChatPage({
 		setPrompt,
 		setAttachments,
 		submitRunRequest,
+		workingDirectory,
 	} = runtime;
 	const { runTransportSummaries } = transportState;
 	const {
@@ -104,7 +113,9 @@ export function ChatPage({
 	} = conversations;
 	const [showRecentSessionRuns, setShowRecentSessionRuns] = useState(false);
 	const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
-	const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false);
+	const [isHistorySheetOpen, setIsHistorySheetOpen] = useState(false);
+	const [isMenuSheetOpen, setIsMenuSheetOpen] = useState(false);
+	const [isContextSheetOpen, setIsContextSheetOpen] = useState(false);
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 	const visibleCurrentPresentationSurface = useMemo(
 		() => normalizePresentationSurface(currentPresentationSurface, activeConversationMessages),
@@ -212,6 +223,36 @@ export function ChatPage({
 		<EmptyState onSubmitSuggestion={(suggestionPrompt) => setPrompt(suggestionPrompt)} />
 	);
 
+	useEffect(() => {
+		function openHistorySheet(): void {
+			setIsMenuSheetOpen(false);
+			setIsContextSheetOpen(false);
+			setIsHistorySheetOpen(true);
+		}
+
+		function openMenuSheet(): void {
+			setIsHistorySheetOpen(false);
+			setIsContextSheetOpen(false);
+			setIsMenuSheetOpen(true);
+		}
+
+		function openContextSheet(): void {
+			setIsHistorySheetOpen(false);
+			setIsMenuSheetOpen(false);
+			setIsContextSheetOpen(true);
+		}
+
+		window.addEventListener(CHAT_SURFACE_EVENT_OPEN_HISTORY_SHEET, openHistorySheet);
+		window.addEventListener(CHAT_SURFACE_EVENT_OPEN_MENU_SHEET, openMenuSheet);
+		window.addEventListener(CHAT_SURFACE_EVENT_OPEN_CONTEXT_SHEET, openContextSheet);
+
+		return () => {
+			window.removeEventListener(CHAT_SURFACE_EVENT_OPEN_HISTORY_SHEET, openHistorySheet);
+			window.removeEventListener(CHAT_SURFACE_EVENT_OPEN_MENU_SHEET, openMenuSheet);
+			window.removeEventListener(CHAT_SURFACE_EVENT_OPEN_CONTEXT_SHEET, openContextSheet);
+		};
+	}, []);
+
 	const currentPresentationContent = visibleCurrentPresentationSurface ? (
 		<PresentationRunSurfaceCard
 			expanded
@@ -251,7 +292,18 @@ export function ChatPage({
 		<ChatShell embedded={embedded}>
 			<ChatHeader
 				activeConversationTitle={conversations.activeConversationSummary?.title}
-				onToggleSidebar={() => setIsConversationSidebarOpen(true)}
+				isHistorySheetOpen={isHistorySheetOpen}
+				isMenuSheetOpen={isMenuSheetOpen}
+				onOpenHistorySheet={() => {
+					setIsMenuSheetOpen(false);
+					setIsContextSheetOpen(false);
+					setIsHistorySheetOpen(true);
+				}}
+				onOpenMenuSheet={() => {
+					setIsHistorySheetOpen(false);
+					setIsContextSheetOpen(false);
+					setIsMenuSheetOpen(true);
+				}}
 			/>
 
 			<ChatLayout
@@ -265,6 +317,7 @@ export function ChatPage({
 							attachments={attachments}
 							canReadLatestResponse={latestReadableResponse.length > 0}
 							connectionStatus={connectionStatus}
+							currentStreamingRunId={currentStreamingRunId}
 							desktopDeviceError={desktopDeviceError}
 							desktopDevices={desktopDevices}
 							emptySuggestions={shouldShowEmptyComposerSuggestions ? emptyRunTimelineContent : null}
@@ -274,6 +327,7 @@ export function ChatPage({
 							isSpeaking={isSpeaking}
 							isSpeechPlaybackSupported={isTextToSpeechSupported}
 							isSubmitting={isSubmitting}
+							isContextSheetOpen={isContextSheetOpen}
 							isUploadingAttachment={isUploadingAttachment}
 							isVoiceSupported={voiceInput.isSupported}
 							lastError={lastError}
@@ -282,7 +336,13 @@ export function ChatPage({
 								setIsUploadingAttachment(isUploading);
 							}}
 							onAttachmentsChange={setAttachments}
+							onAbortRun={abortCurrentRun}
 							onClearDesktopTarget={() => setDesktopTargetConnectionId(null)}
+							onOpenContextSheet={() => {
+								setIsHistorySheetOpen(false);
+								setIsMenuSheetOpen(false);
+								setIsContextSheetOpen(true);
+							}}
 							onPromptChange={setPrompt}
 							onReadLatestResponse={speakLatestResponse}
 							onRetryDesktopDevices={reloadDesktopDevices}
@@ -299,7 +359,7 @@ export function ChatPage({
 						/>
 					</>
 				}
-				isSidebarOpen={isConversationSidebarOpen}
+				isSidebarOpen={false}
 				messages={
 					<CurrentRunSurface
 						activeConversationId={activeConversationId}
@@ -312,7 +372,7 @@ export function ChatPage({
 						isHistoryLoading={isConversationLoading}
 					/>
 				}
-				onCloseSidebar={() => setIsConversationSidebarOpen(false)}
+				onCloseSidebar={() => undefined}
 				sidebar={
 					<AppSidebar
 						activePage="chat"
@@ -325,9 +385,8 @@ export function ChatPage({
 								conversations={conversationList}
 								isLoading={isConversationLoading}
 								isMemberLoading={conversations.isMemberLoading}
-								isOpen={isConversationSidebarOpen}
+								isOpen={false}
 								memberError={conversations.memberError}
-								onClose={() => setIsConversationSidebarOpen(false)}
 								onRemoveMember={conversations.removeConversationMember}
 								onSelectConversation={selectConversation}
 								onShareMember={conversations.shareConversationMember}
@@ -336,6 +395,37 @@ export function ChatPage({
 						}
 					/>
 				}
+			/>
+			<HistorySheet open={isHistorySheetOpen} onOpenChange={setIsHistorySheetOpen}>
+				<ConversationSidebar
+					activeConversationId={activeConversationId}
+					activeConversationMembers={conversations.activeConversationMembers}
+					activeConversationSummary={conversations.activeConversationSummary}
+					conversationError={conversationError}
+					conversations={conversationList}
+					isLoading={isConversationLoading}
+					isMemberLoading={conversations.isMemberLoading}
+					memberError={conversations.memberError}
+					onClose={() => setIsHistorySheetOpen(false)}
+					onRemoveMember={conversations.removeConversationMember}
+					onSelectConversation={selectConversation}
+					onShareMember={conversations.shareConversationMember}
+					onStartNewConversation={beginDraftConversation}
+					presentation="embedded"
+				/>
+			</HistorySheet>
+			<MenuSheet
+				isDeveloperMode={isDeveloperMode}
+				open={isMenuSheetOpen}
+				onOpenChange={setIsMenuSheetOpen}
+				onOpenHistorySheet={() => setIsHistorySheetOpen(true)}
+				onToggleDeveloperMode={() => setDeveloperMode(!isDeveloperMode)}
+			/>
+			<ContextSheet
+				attachments={attachments}
+				open={isContextSheetOpen}
+				onOpenChange={setIsContextSheetOpen}
+				workingDirectory={workingDirectory}
 			/>
 
 			{isDeveloperMode ? (

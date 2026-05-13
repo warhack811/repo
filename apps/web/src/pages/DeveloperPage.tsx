@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+﻿import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 
 import type { AuthContext } from '@runa/types';
@@ -13,7 +13,6 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
-import '../styles/routes/developer-migration.css';
 
 type DeveloperPageProps = Readonly<{
 	authContext: AuthContext;

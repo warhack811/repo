@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
+﻿import { readFile, readdir, stat } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
 import type {
@@ -352,6 +352,8 @@ export function createSearchGrepTool(
 			tags: ['grep', 'search', 'substring', 'workspace'],
 		},
 		name: 'search.grep',
+		user_label_tr: 'Dosya arama',
+		user_summary_tr: 'Proje dosyalarinda metin aranir.',
 	};
 }
 

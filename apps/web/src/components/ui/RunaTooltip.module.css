@@ -5,7 +5,7 @@
 
 .tooltip {
 	background: var(--surface-3);
-	border: 1px solid var(--border-default);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-input);
 	box-shadow: none;
 	color: var(--ink-1);

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ModelImageAttachment,
 	ModelRequest,
 	ModelResponse,
@@ -414,6 +414,8 @@ export function createDesktopVerifyStateTool(
 			tags: ['desktop', 'vision', 'screenshot', 'verify-after-action'],
 		},
 		name: 'desktop.verify_state',
+		user_label_tr: 'Masaustu dogrulama',
+		user_summary_tr: 'Beklenen ekran durumu dogrulanir.',
 	};
 }
 

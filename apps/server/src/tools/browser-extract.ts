@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -512,6 +512,8 @@ export function createBrowserExtractTool(
 			tags: ['browser', 'extract', 'read-only', 'sanitize', 'truncate'],
 		},
 		name: 'browser.extract',
+		user_label_tr: 'Sayfa okuma',
+		user_summary_tr: 'Sayfadan istenen icerik cikarilir.',
 	};
 }
 

@@ -127,7 +127,7 @@ describe('secondary surfaces reframe', () => {
 		);
 
 		expect(markup).toContain('Hesap');
-		expect(markup).toContain('Tercihler');
+		expect(markup).toContain('Görünüm');
 		expect(markup).toContain('person@example.com');
 		expect(markup).toContain('runa-button--danger');
 		expect(markup).not.toContain('Developer');

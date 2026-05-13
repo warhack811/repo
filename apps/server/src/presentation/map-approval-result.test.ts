@@ -1,4 +1,4 @@
-import type { ApprovalRequest, ApprovalResolution } from '@runa/types';
+﻿import type { ApprovalRequest, ApprovalResolution } from '@runa/types';
 
 import { describe, expect, it } from 'vitest';
 
@@ -40,6 +40,8 @@ describe('map-approval-result', () => {
 				target_label: 'Target Workstation',
 				title: 'Approve file write',
 				tool_name: 'file.write',
+				user_label_tr: 'Dosya yazma',
+				user_summary_tr: 'Belirtilen dosyaya degisiklik yazilir.',
 			},
 			schema_version: 1,
 			type: 'approval_block',
@@ -82,6 +84,8 @@ describe('map-approval-result', () => {
 				target_label: 'Target Workstation',
 				title: 'Approve file write',
 				tool_name: 'file.write',
+				user_label_tr: 'Dosya yazma',
+				user_summary_tr: 'Belirtilen dosyaya degisiklik yazilir.',
 			},
 			schema_version: 1,
 			type: 'approval_block',

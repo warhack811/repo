@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ToolArguments,
 	ToolCallInput,
 	ToolDefinition,
@@ -182,6 +182,8 @@ export function createMemoryDeleteTool(
 			tags: ['memory', 'privacy', 'delete'],
 		},
 		name: 'memory.delete',
+		user_label_tr: 'Bellek silme',
+		user_summary_tr: 'Bir bellek kaydi kalici olarak silinir.',
 	};
 }
 

@@ -10,7 +10,12 @@ describe('chat-first shell pieces', () => {
 	it('renders a compact product header without developer language', () => {
 		const markup = renderToStaticMarkup(
 			<MemoryRouter>
-				<ChatHeader onToggleSidebar={() => undefined} />
+				<ChatHeader
+					isHistorySheetOpen={false}
+					isMenuSheetOpen={false}
+					onOpenHistorySheet={() => undefined}
+					onOpenMenuSheet={() => undefined}
+				/>
 			</MemoryRouter>,
 		);
 

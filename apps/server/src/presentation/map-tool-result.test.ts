@@ -1,4 +1,4 @@
-import type { ToolResult } from '@runa/types';
+﻿import type { ToolResult } from '@runa/types';
 import { describe, expect, it } from 'vitest';
 
 import type { IngestedToolResult } from '../runtime/ingest-tool-result.js';
@@ -215,5 +215,26 @@ describe('map-tool-result', () => {
 		const second = mapToolResultToBlock(input);
 
 		expect(first).toEqual(second);
+	});
+
+	it('includes server-side user-facing tool copy for built-in tools', () => {
+		const result: ToolResult<'shell.exec', string> = {
+			call_id: 'call_user_copy',
+			output: 'ok',
+			status: 'success',
+			tool_name: 'shell.exec',
+		};
+
+		const block = mapToolResultToBlock({
+			call_id: 'call_user_copy',
+			created_at: createdAt,
+			result,
+			tool_name: 'shell.exec',
+		});
+
+		expect(block.payload.user_label_tr).toBe('Terminal komutu');
+		expect(block.payload.user_summary_tr).toBe(
+			'Bagli oturumda komut calistirilir, ciktisi sohbete eklenir.',
+		);
 	});
 });

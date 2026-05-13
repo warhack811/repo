@@ -47,13 +47,16 @@ describe('narration observability', () => {
 
 	it('logs guardrail rejection metadata without raw rejected text', () => {
 		const rejectedText = 'sanirim gizli muhakemeyi burada yaziyorum';
-		const fields = createNarrationGuardrailRejectionLogFields({
-			reason: 'deliberation',
-			sequence_no: 2,
-			text: rejectedText,
-		}, {
-			emission_path: 'synthetic_non_streaming',
-		});
+		const fields = createNarrationGuardrailRejectionLogFields(
+			{
+				reason: 'deliberation',
+				sequence_no: 2,
+				text: rejectedText,
+			},
+			{
+				emission_path: 'synthetic_non_streaming',
+			},
+		);
 
 		const serialized = JSON.stringify(fields);
 

@@ -1,4 +1,4 @@
-import { resolve as resolvePath } from 'node:path';
+﻿import { resolve as resolvePath } from 'node:path';
 import type {
 	AnyRuntimeEvent,
 	ApprovalTarget,
@@ -67,6 +67,10 @@ import { orchestrateMemoryWrite } from '../runtime/orchestrate-memory-write.js';
 import { defaultProviderHealthStore } from '../runtime/provider-health.js';
 import { requestApproval } from '../runtime/request-approval.js';
 import { runAgentLoop } from '../runtime/run-agent-loop.js';
+import {
+	type RunCancellationScope,
+	createRunCancellationScope,
+} from '../runtime/run-cancellation.js';
 import type {
 	RunModelTurnFailureResult,
 	RunModelTurnInput,
@@ -157,6 +161,87 @@ const runExecutionLogger = createLogger({
 		component: 'ws.run_execution',
 	},
 });
+
+const activeRunCancellationScopesBySocket = new WeakMap<
+	WebSocketConnection,
+	Map<string, RunCancellationScope>
+>();
+
+export interface CancelRunPayload {
+	readonly run_id: string;
+}
+
+function getOrCreateActiveRunCancellationScopes(
+	socket: WebSocketConnection,
+): Map<string, RunCancellationScope> {
+	const existing = activeRunCancellationScopesBySocket.get(socket);
+
+	if (existing) {
+		return existing;
+	}
+
+	const next = new Map<string, RunCancellationScope>();
+	activeRunCancellationScopesBySocket.set(socket, next);
+	return next;
+}
+
+function registerActiveRunCancellationScope(
+	socket: WebSocketConnection,
+	runId: string,
+	scope: RunCancellationScope,
+): void {
+	getOrCreateActiveRunCancellationScopes(socket).set(runId, scope);
+}
+
+function consumeActiveRunCancellationScope(
+	socket: WebSocketConnection,
+	runId: string,
+): RunCancellationScope | undefined {
+	const scopes = activeRunCancellationScopesBySocket.get(socket);
+
+	if (!scopes) {
+		return undefined;
+	}
+
+	const scope = scopes.get(runId);
+
+	if (!scope) {
+		return undefined;
+	}
+
+	scopes.delete(runId);
+
+	return scope;
+}
+
+function getActiveRunCancellationScope(
+	socket: WebSocketConnection,
+	runId: string,
+): RunCancellationScope | undefined {
+	return activeRunCancellationScopesBySocket.get(socket)?.get(runId);
+}
+
+export async function handleCancelRunMessage(
+	socket: WebSocketConnection,
+	payload: CancelRunPayload,
+): Promise<void> {
+	const runId = payload.run_id.trim();
+
+	if (runId.length === 0) {
+		throw new Error('cancel_run requires a non-empty run_id.');
+	}
+
+	const scope = getActiveRunCancellationScope(socket, runId);
+
+	if (!scope) {
+		return;
+	}
+
+	await scope.cancel({
+		actor: 'user',
+		reason: 'User requested run cancellation.',
+	});
+}
 
 function isRuntimeEventEnvelope(event: AnyRuntimeEvent): event is RuntimeEvent {
 	return (
@@ -292,6 +377,10 @@ function toLoopRunStatus(snapshot: AgentLoopSnapshot): RunToolWebSocketResult['s
 		return 'approval_required';
 	}
 
+	if (snapshot.current_loop_state === 'CANCELLED') {
+		return 'failed';
+	}
+
 	if (snapshot.current_runtime_state === 'FAILED' || snapshot.current_loop_state === 'FAILED') {
 		return 'failed';
 	}
@@ -300,6 +389,10 @@ function toLoopRunStatus(snapshot: AgentLoopSnapshot): RunToolWebSocketResult['s
 }
 
 function toLoopFinalRuntimeState(snapshot: AgentLoopSnapshot): RuntimeState {
+	if (snapshot.current_loop_state === 'CANCELLED') {
+		return 'FAILED';
+	}
+
 	if (snapshot.current_loop_state === 'FAILED') {
 		return 'FAILED';
 	}
@@ -514,7 +607,7 @@ function formatStopReasonMessage(stopReason: AgentLoopSnapshot['stop_reason']): 
 		case 'failed':
 			return stopReason.error_message ?? 'Run terminated: failed.';
 		case 'cancelled':
-			return `Run terminated: cancelled${stopReason.actor ? ` by ${stopReason.actor}` : ''}.`;
+			return '[•] Çalışma durduruldu';
 		case 'completed':
 			return 'Run terminated: completed.';
 		case 'model_stop':
@@ -578,7 +671,7 @@ function appendTerminalRuntimeEventsIfNeeded(
 	snapshot: AgentLoopSnapshot,
 ): void {
 	if (
-		snapshot.current_loop_state !== 'FAILED' ||
+		(snapshot.current_loop_state !== 'FAILED' && snapshot.current_loop_state !== 'CANCELLED') ||
 		hasRuntimeEventType(runtimeEvents, 'run.failed')
 	) {
 		return;
@@ -592,6 +685,9 @@ function appendTerminalRuntimeEventsIfNeeded(
 				error_code:
 					snapshot.failure?.error_code ??
 					resolveRuntimeTerminationCode(snapshot.stop_reason) ??
+					(snapshot.current_loop_state === 'CANCELLED'
+						? 'RUN_CANCELLED'
+						: undefined) ??
 					(isErrorToolResult(snapshot.tool_result)
 						? snapshot.tool_result.error_code
 						: 'RUN_TERMINATED'),
@@ -653,6 +749,7 @@ interface FinalizeLiveRunResultOptions {
 interface ExecuteLiveRunOptions {
 	readonly approvalStore: ApprovalStore;
 	readonly auth_context?: RuntimeWebSocketHandlerOptions['auth_context'];
+	readonly cancellation_scope?: RunCancellationScope;
 	readonly create_storage_download_url?: RuntimeWebSocketHandlerOptions['create_storage_download_url'];
 	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
 	readonly initial_runtime_state?: RuntimeState;
@@ -2396,6 +2493,7 @@ async function executeLiveRun(
 			max_turns: 200,
 			stop_conditions: {},
 		},
+		cancellation_signal: options.cancellation_scope?.signal,
 		continue_gate: continueGate,
 		execution_context: {
 			...liveExecutionContext,
@@ -2924,12 +3022,17 @@ export async function handleRunRequestMessage(
 
 	const toolRegistry = options.toolRegistry ?? (await getDefaultToolRegistryAsync());
 	const workingDirectory = resolveLiveRunWorkingDirectory(resolvedPayload);
+	const cancellationScope = createRunCancellationScope({
+		run_id: resolvedPayload.run_id,
+	});
+	registerActiveRunCancellationScope(socket, resolvedPayload.run_id, cancellationScope);
 	let result: RunToolWebSocketResult;
 
 	try {
 		result = await executeLiveRun(socket, resolvedPayload, {
 			approvalStore: options.approvalStore,
 			auth_context: options.auth_context,
+			cancellation_scope: cancellationScope,
 			create_storage_download_url: options.create_storage_download_url,
 			desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 			memoryStore: options.memoryStore,
@@ -2939,11 +3042,14 @@ export async function handleRunRequestMessage(
 			workingDirectory,
 		});
 	} catch (error: unknown) {
+		consumeActiveRunCancellationScope(socket, resolvedPayload.run_id);
 		requestLogger.error('run.request.failed_before_finalize', {
 			error: error instanceof Error ? error : String(error),
 		});
 		throw error;
 	}
+
+	consumeActiveRunCancellationScope(socket, resolvedPayload.run_id);
 
 	await finalizeLiveRunResult(socket, resolvedPayload, result, options, {
 		conversation_id: resolvedPayload.conversation_id,
@@ -2951,3 +3057,4 @@ export async function handleRunRequestMessage(
 		working_directory: workingDirectory,
 	});
 }
+

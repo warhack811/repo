@@ -28,7 +28,7 @@ const authContext: AuthContext = {
 
 function renderSettings(props: Partial<ComponentProps<typeof SettingsPage>> = {}): void {
 	render(
-		<MemoryRouter initialEntries={['/account?tab=preferences']}>
+		<MemoryRouter initialEntries={['/account?tab=workspace']}>
 			<SettingsPage
 				accessToken={null}
 				authContext={authContext}
@@ -91,6 +91,7 @@ describe('SettingsPage approval mode preferences', () => {
 		const onBrandThemeChange = vi.fn();
 
 		renderSettings({ onBrandThemeChange });
+		fireEvent.click(screen.getByRole('tab', { name: /Görünüm/i }));
 		fireEvent.click(screen.getByRole('button', { name: /Indigo/i }));
 
 		expect(screen.getByRole('heading', { name: 'Tema' })).toBeTruthy();

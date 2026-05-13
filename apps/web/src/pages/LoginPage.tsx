@@ -7,7 +7,6 @@ import { OAuthButtons } from '../components/auth/OAuthButtons.js';
 import { HafizaMark } from '../components/ui/HafizaMark.js';
 import { RunaSpinner } from '../components/ui/RunaSpinner.js';
 import { uiCopy } from '../localization/copy.js';
-import '../styles/routes/login-migration.css';
 
 type AuthMode = 'login' | 'signup';
 

@@ -217,6 +217,8 @@ export interface RunTimelineBlockItem {
 	readonly detail?: string;
 	readonly state?: string;
 	readonly tool_name?: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export interface RunTimelineBlockPayload {
@@ -246,10 +248,13 @@ export interface ToolResultBlockPreview {
 export interface ToolResultBlockPayload {
 	readonly call_id: string;
 	readonly error_code?: ToolErrorCode;
+	readonly error_message?: string;
 	readonly result_preview?: ToolResultBlockPreview;
 	readonly status: ToolResultBlockStatus;
 	readonly summary: string;
 	readonly tool_name: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export type WorkNarrationBlockStatus = 'completed' | 'streaming' | 'superseded' | 'tool_failed';
@@ -276,6 +281,8 @@ export interface ApprovalBlockPayload {
 	readonly target_kind?: ApprovalTargetKind;
 	readonly target_label?: string;
 	readonly tool_name?: ToolName;
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
 }
 
 export interface RenderBlockMap {

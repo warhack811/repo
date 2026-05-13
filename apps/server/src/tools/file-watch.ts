@@ -1,4 +1,4 @@
-import { type FSWatcher, watch } from 'node:fs';
+﻿import { type FSWatcher, watch } from 'node:fs';
 import { realpath, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 
@@ -418,6 +418,8 @@ export function createFileWatchTool(
 			tags: ['file', 'watch', 'workspace'],
 		},
 		name: 'file.watch',
+		user_label_tr: 'Dosya takibi',
+		user_summary_tr: 'Bir dosyanin degisimi izlenir.',
 	};
 }
 

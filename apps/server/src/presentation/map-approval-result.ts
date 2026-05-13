@@ -1,11 +1,36 @@
 import type { ApprovalBlock, ApprovalRequest, ApprovalResolution } from '@runa/types';
 
+import { createBuiltInToolRegistry } from '../tools/registry.js';
+
 interface MapApprovalResolutionToBlockInput {
 	readonly approval_request: ApprovalRequest;
 	readonly approval_resolution: ApprovalResolution;
 }
 
+const builtInToolRegistry = createBuiltInToolRegistry();
+
+function resolveToolCopy(input: ApprovalRequest): Readonly<{
+	readonly user_label_tr?: string;
+	readonly user_summary_tr?: string;
+}> {
+	if (input.tool_name) {
+		const toolDefinition = builtInToolRegistry.get(input.tool_name);
+
+		return {
+			user_label_tr: input.user_label_tr ?? toolDefinition?.user_label_tr,
+			user_summary_tr: input.user_summary_tr ?? toolDefinition?.user_summary_tr,
+		};
+	}
+
+	return {
+		user_label_tr: input.user_label_tr,
+		user_summary_tr: input.user_summary_tr,
+	};
+}
+
 export function mapApprovalRequestToBlock(approvalRequest: ApprovalRequest): ApprovalBlock {
+	const toolCopy = resolveToolCopy(approvalRequest);
+
 	return {
 		created_at: approvalRequest.requested_at,
 		id: `approval_block:${approvalRequest.approval_id}:pending`,
@@ -19,6 +44,8 @@ export function mapApprovalRequestToBlock(approvalRequest: ApprovalRequest): App
 			target_label: approvalRequest.target?.label,
 			title: approvalRequest.title,
 			tool_name: approvalRequest.tool_name,
+			...(toolCopy.user_label_tr ? { user_label_tr: toolCopy.user_label_tr } : {}),
+			...(toolCopy.user_summary_tr ? { user_summary_tr: toolCopy.user_summary_tr } : {}),
 		},
 		schema_version: 1,
 		type: 'approval_block',
@@ -28,6 +55,8 @@ export function mapApprovalRequestToBlock(approvalRequest: ApprovalRequest): App
 export function mapApprovalResolutionToBlock(
 	input: MapApprovalResolutionToBlockInput,
 ): ApprovalBlock {
+	const toolCopy = resolveToolCopy(input.approval_request);
+
 	return {
 		created_at: input.approval_resolution.decision.resolved_at,
 		id: `approval_block:${input.approval_request.approval_id}:${input.approval_resolution.final_status}`,
@@ -43,6 +72,8 @@ export function mapApprovalResolutionToBlock(
 			target_label: input.approval_request.target?.label,
 			title: input.approval_request.title,
 			tool_name: input.approval_request.tool_name,
+			...(toolCopy.user_label_tr ? { user_label_tr: toolCopy.user_label_tr } : {}),
+			...(toolCopy.user_summary_tr ? { user_summary_tr: toolCopy.user_summary_tr } : {}),
 		},
 		schema_version: 1,
 		type: 'approval_block',
