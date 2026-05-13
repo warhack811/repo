@@ -10,7 +10,7 @@
 html {
 	color-scheme: dark;
 	scroll-behavior: smooth;
-	background: var(--page-background);
+	background: var(--surface-1);
 }
 
 [data-theme="light"] {
@@ -23,7 +23,7 @@ body {
 	min-width: 320px;
 	min-height: 100vh;
 	min-height: 100dvh;
-	background: var(--page-background);
+	background: var(--surface-1);
 	color: var(--ink-1);
 	font-family: var(--font-body);
 	text-rendering: optimizeLegibility;

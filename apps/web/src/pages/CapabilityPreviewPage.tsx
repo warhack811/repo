@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+﻿import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 
 import {
@@ -24,7 +24,6 @@ import { RunaBadge } from '../components/ui/RunaBadge.js';
 import { RunaButton } from '../components/ui/RunaButton.js';
 import { RunaCard } from '../components/ui/RunaCard.js';
 import { useDeveloperMode } from '../hooks/useDeveloperMode.js';
-import '../styles/routes/capability-migration.css';
 import styles from './CapabilityPreviewPage.module.css';
 
 const progressSteps: readonly CapabilityProgressStep[] = [

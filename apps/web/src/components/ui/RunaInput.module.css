@@ -12,8 +12,8 @@
 
 .control {
 	align-items: center;
-	background: var(--surface-input);
-	border: 1px solid var(--border-default);
+	background: var(--surface-2);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-input);
 	box-shadow: none;
 	display: flex;
@@ -24,7 +24,7 @@
 }
 
 .control:focus-within {
-	border-color: var(--border-focus);
+	border-color: color-mix(in srgb, var(--accent-2) 60%, transparent);
 	box-shadow: none;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .error {
-	border-color: var(--border-danger);
+	border-color: color-mix(in srgb, var(--error) 46%, transparent);
 }
 
 .helper {
@@ -64,7 +64,7 @@
 }
 
 .helperError {
-	color: var(--status-danger-text);
+	color: color-mix(in srgb, var(--error) 84%, white);
 }
 
 .icon {

@@ -18,7 +18,7 @@
 
 .dayDivider::before,
 .dayDivider::after {
-	background: var(--border-hairline);
+	background: var(--hairline);
 	content: "";
 	flex: 1;
 	height: 1px;
@@ -48,8 +48,8 @@
 }
 
 .bubble {
-	background: var(--surface-panel-muted);
-	border: 1px solid var(--border-subtle);
+	background: var(--surface-3);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 14px;
 	font-size: 0.875rem;
 	line-height: 1.6;
@@ -59,7 +59,7 @@
 
 .message[data-role="user"] .bubble {
 	background: var(--surface-transcript-user);
-	border-color: var(--border-primary);
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .assistantMark,

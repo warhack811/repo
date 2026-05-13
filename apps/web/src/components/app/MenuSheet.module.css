@@ -30,8 +30,8 @@
 
 .item {
 	align-items: center;
-	background: var(--surface-panel-muted);
-	border: 1px solid var(--border-subtle);
+	background: var(--surface-3);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: var(--radius-input);
 	color: var(--ink-1);
 	cursor: pointer;

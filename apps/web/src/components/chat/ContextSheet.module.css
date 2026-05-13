@@ -29,8 +29,8 @@
 }
 
 .mono {
-	background: var(--surface-panel-muted);
-	border: 1px solid var(--border-hairline);
+	background: var(--surface-3);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-input);
 	font-family: Consolas, "SFMono-Regular", monospace;
 	font-size: 12px;
@@ -50,8 +50,8 @@
 }
 
 .list li {
-	background: var(--surface-panel-muted);
-	border: 1px solid var(--border-hairline);
+	background: var(--surface-3);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-input);
 	font-size: 14px;
 	padding: 8px 10px;

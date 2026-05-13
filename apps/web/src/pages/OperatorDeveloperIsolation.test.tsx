@@ -46,6 +46,7 @@ function renderNormalComposer(): string {
 				attachments={[]}
 				canReadLatestResponse={false}
 				connectionStatus="open"
+				currentStreamingRunId={null}
 				desktopDeviceError={null}
 				desktopDevices={[]}
 				isDesktopDevicesLoading={false}
@@ -60,6 +61,7 @@ function renderNormalComposer(): string {
 				lastError={null}
 				onAttachmentUploadStateChange={() => undefined}
 				onAttachmentsChange={() => undefined}
+				onAbortRun={() => undefined}
 				onClearDesktopTarget={() => undefined}
 				onOpenContextSheet={() => undefined}
 				onPromptChange={() => undefined}
@@ -114,7 +116,7 @@ describe('operator/developer hard isolation', () => {
 		);
 
 		expect(markup).toContain('Hesap');
-		expect(markup).toContain('Tercihler');
+		expect(markup).toContain('Görünüm');
 		expect(markup).not.toContain('Developer Mode');
 		expect(markup).not.toContain('/developer');
 		expect(markup).not.toContain('Project Memory');

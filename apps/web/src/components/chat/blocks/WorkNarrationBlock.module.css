@@ -6,7 +6,7 @@
 	max-width: min(680px, 100%);
 	margin: 2px 0;
 	padding: 4px 0 4px 10px;
-	border-left: 1px solid var(--border-default);
+	border-left: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	color: var(--ink-2);
 	font-size: 14px;
 	line-height: 1.55;
@@ -27,13 +27,13 @@
 }
 
 .toolFailed {
-	border-left-color: var(--border-warning);
+	border-left-color: color-mix(in srgb, var(--warn) 46%, transparent);
 	color: var(--ink-2);
 }
 
 .toolFailed .text {
 	text-decoration: line-through;
-	text-decoration-color: var(--border-warning);
+	text-decoration-color: color-mix(in srgb, var(--warn) 46%, transparent);
 	text-decoration-thickness: 1px;
 }
 

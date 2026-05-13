@@ -46,7 +46,6 @@ import {
 	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
-import '../styles/routes/chat-migration.css';
 
 type ChatPageProps = Readonly<{
 	conversations: UseConversationsResult;
@@ -88,6 +87,7 @@ export function ChatPage({
 	const isRuntimeConfigReady = model.trim().length > 0;
 	const {
 		accessToken,
+		abortCurrentRun,
 		attachments,
 		desktopTargetConnectionId: runtimeDesktopTargetConnectionId,
 		inspectionAnchorIdsByDetailId,
@@ -317,6 +317,7 @@ export function ChatPage({
 							attachments={attachments}
 							canReadLatestResponse={latestReadableResponse.length > 0}
 							connectionStatus={connectionStatus}
+							currentStreamingRunId={currentStreamingRunId}
 							desktopDeviceError={desktopDeviceError}
 							desktopDevices={desktopDevices}
 							emptySuggestions={shouldShowEmptyComposerSuggestions ? emptyRunTimelineContent : null}
@@ -335,6 +336,7 @@ export function ChatPage({
 								setIsUploadingAttachment(isUploading);
 							}}
 							onAttachmentsChange={setAttachments}
+							onAbortRun={abortCurrentRun}
 							onClearDesktopTarget={() => setDesktopTargetConnectionId(null)}
 							onOpenContextSheet={() => {
 								setIsHistorySheetOpen(false);

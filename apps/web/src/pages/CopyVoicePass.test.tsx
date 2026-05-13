@@ -106,6 +106,7 @@ function renderNormalSurfaces(): string {
 				attachments={[]}
 				canReadLatestResponse={false}
 				connectionStatus="open"
+				currentStreamingRunId={null}
 				desktopDeviceError={null}
 				desktopDevices={[]}
 				isDesktopDevicesLoading={false}
@@ -120,6 +121,7 @@ function renderNormalSurfaces(): string {
 				lastError={null}
 				onAttachmentUploadStateChange={() => undefined}
 				onAttachmentsChange={() => undefined}
+				onAbortRun={() => undefined}
 				onClearDesktopTarget={() => undefined}
 				onOpenContextSheet={() => undefined}
 				onPromptChange={() => undefined}

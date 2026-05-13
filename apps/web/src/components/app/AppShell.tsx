@@ -62,7 +62,7 @@ type CreateAppCommandOptions = Readonly<{
 	onOpenContextSheet: () => void;
 	onOpenHistorySheet: () => void;
 	onSetAdvancedMode: (nextValue: boolean) => void;
-	onSetThemePreset: (preset: 'ember-dark' | 'light' | 'rose' | 'system') => void;
+	onSetThemePreset: (preset: 'ember-dark' | 'ember-light' | 'rose-dark' | 'system') => void;
 	onShowNotifications: () => void;
 }>;
 
@@ -132,14 +132,14 @@ export function createAppCommands(
 			id: 'theme-light',
 			keywords: ['tema', 'acik', 'light'],
 			label: 'Tema: Light',
-			run: () => setThemePreset('light'),
+			run: () => setThemePreset('ember-light'),
 		},
 		{
 			description: 'Tema presetini Rose olarak ayarla.',
 			id: 'theme-rose',
 			keywords: ['tema', 'rose', 'vurgu'],
 			label: 'Tema: Rose',
-			run: () => setThemePreset('rose'),
+			run: () => setThemePreset('rose-dark'),
 		},
 		{
 			description: 'Tema secimini Sistem moduna geri getir.',
@@ -180,16 +180,18 @@ function getCommandShortcutLabel(): string {
 	return 'Ctrl K';
 }
 
-function applyThemePreset(preset: 'ember-dark' | 'light' | 'rose' | 'system'): void {
-	const themeByPreset: Record<'ember-dark' | 'light' | 'rose' | 'system', Theme> = {
-		'ember-dark': 'dark',
-		light: 'light',
-		rose: 'dark',
+function applyThemePreset(preset: 'ember-dark' | 'ember-light' | 'rose-dark' | 'system'): void {
+	const themeByPreset: Record<'ember-dark' | 'ember-light' | 'rose-dark' | 'system', Theme> = {
+		'ember-dark': 'ember-dark',
+		'ember-light': 'ember-light',
+		'rose-dark': 'rose-dark',
 		system: 'system',
 	};
-	const brandByPreset: Partial<Record<'ember-dark' | 'light' | 'rose' | 'system', BrandTheme>> = {
+	const brandByPreset: Partial<
+		Record<'ember-dark' | 'ember-light' | 'rose-dark' | 'system', BrandTheme>
+	> = {
 		'ember-dark': 'amber',
-		rose: 'plum',
+		'rose-dark': 'plum',
 	};
 	const nextTheme = themeByPreset[preset];
 	const nextBrandTheme = brandByPreset[preset];

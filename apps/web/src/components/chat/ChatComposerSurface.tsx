@@ -1,5 +1,5 @@
 ﻿import type { DesktopDevicePresenceSnapshot } from '@runa/types';
-import { ChevronRight, Paperclip, SendHorizontal, SlidersHorizontal } from 'lucide-react';
+import { ChevronRight, Paperclip, SendHorizontal, SlidersHorizontal, Square } from 'lucide-react';
 import type { FormEvent, KeyboardEvent, ReactElement, ReactNode } from 'react';
 import { useId, useRef } from 'react';
 import { uiCopy } from '../../localization/copy.js';
@@ -19,6 +19,7 @@ type ChatComposerSurfaceProps = Readonly<{
 	attachments: readonly ModelAttachment[];
 	canReadLatestResponse: boolean;
 	connectionStatus: string;
+	currentStreamingRunId: string | null;
 	desktopDeviceError: string | null;
 	desktopDevices: readonly DesktopDevicePresenceSnapshot[];
 	emptySuggestions?: ReactNode;
@@ -37,6 +38,7 @@ type ChatComposerSurfaceProps = Readonly<{
 		readonly isUploading: boolean;
 	}) => void;
 	onAttachmentsChange: (attachments: readonly ModelAttachment[]) => void;
+	onAbortRun: () => void;
 	onClearDesktopTarget: () => void;
 	onPromptChange: (prompt: string) => void;
 	onOpenContextSheet: () => void;
@@ -57,14 +59,10 @@ type ChatComposerSurfaceProps = Readonly<{
 function shouldDisableSubmit(input: {
 	readonly connectionStatus: string;
 	readonly isRuntimeConfigReady: boolean;
-	readonly isSubmitting: boolean;
 	readonly isUploadingAttachment: boolean;
 }): boolean {
 	return (
-		input.isSubmitting ||
-		input.isUploadingAttachment ||
-		input.connectionStatus !== 'open' ||
-		!input.isRuntimeConfigReady
+		input.isUploadingAttachment || input.connectionStatus !== 'open' || !input.isRuntimeConfigReady
 	);
 }
 
@@ -91,6 +89,7 @@ export function ChatComposerSurface({
 	attachments,
 	canReadLatestResponse,
 	connectionStatus,
+	currentStreamingRunId,
 	desktopDeviceError,
 	desktopDevices,
 	emptySuggestions = null,
@@ -106,6 +105,7 @@ export function ChatComposerSurface({
 	lastError,
 	onAttachmentUploadStateChange,
 	onAttachmentsChange,
+	onAbortRun,
 	onClearDesktopTarget,
 	onPromptChange,
 	onOpenContextSheet,
@@ -125,12 +125,15 @@ export function ChatComposerSurface({
 	const promptTextareaId = useId();
 	const moreDetailsRef = useRef<HTMLDetailsElement | null>(null);
 	const contextCount = attachments.length;
-	const isSubmitDisabled = shouldDisableSubmit({
-		connectionStatus,
-		isRuntimeConfigReady,
-		isSubmitting,
-		isUploadingAttachment,
-	});
+	const isRunning = isSubmitting || currentStreamingRunId !== null;
+	const isSubmitDisabled =
+		isRunning ||
+		shouldDisableSubmit({
+			connectionStatus,
+			isRuntimeConfigReady,
+			isUploadingAttachment,
+		});
+	const canSubmit = prompt.trim().length > 0 || attachments.length > 0;
 	const showEmptyIntro = emptySuggestions !== null;
 
 	function handleMoreToolsKeyDown(event: KeyboardEvent<HTMLDetailsElement>): void {
@@ -278,13 +281,20 @@ export function ChatComposerSurface({
 							</div>
 						</details>
 						<RunaButton
-							aria-label={submitButtonLabel}
-							className={`runa-button runa-button--primary runa-chat-send-button ${styles['sendButton']}`}
-							disabled={isSubmitDisabled}
-							type="submit"
-							variant="primary"
+							aria-label={isRunning ? 'Çalışmayı durdur' : submitButtonLabel}
+							className={`runa-button runa-button--primary runa-chat-send-button ${styles['sendButton']}${
+								isRunning ? ` ${styles['sendButtonStop']}` : ''
+							}`}
+							disabled={!isRunning && (isSubmitDisabled || !canSubmit)}
+							onClick={isRunning ? onAbortRun : undefined}
+							type={isRunning ? 'button' : 'submit'}
+							variant={isRunning ? 'secondary' : 'primary'}
 						>
-							<SendHorizontal aria-hidden="true" size={18} />
+							{isRunning ? (
+								<Square aria-hidden="true" size={18} />
+							) : (
+								<SendHorizontal aria-hidden="true" size={18} />
+							)}
 						</RunaButton>
 					</div>
 				</div>

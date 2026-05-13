@@ -1,4 +1,4 @@
-import { gatewayProviders, defaultGatewayModels as runtimeDefaultGatewayModels } from '@runa/types';
+﻿import { gatewayProviders, defaultGatewayModels as runtimeDefaultGatewayModels } from '@runa/types';
 import type { ModelAttachment, ModelMessage } from '@runa/types';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -110,6 +110,7 @@ export interface UseChatRuntimeResult {
 	setProvider: (value: GatewayProvider) => void;
 	setWorkingDirectory: (value: string) => void;
 	submitRunRequest: (event: FormEvent<HTMLFormElement>) => void;
+	abortCurrentRun: () => void;
 	requestInspection: (runId: string, targetKind: InspectionTargetKind, targetId?: string) => void;
 	resolveApproval: (approvalId: string, decision: ApprovalResolveDecision) => void;
 	resetRunState: () => void;
@@ -1276,6 +1277,38 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		],
 	);
 
+	const abortCurrentRun = useCallback((): void => {
+		try {
+			const activeRunId = chatStore.getState().presentation.currentStreamingRunId;
+
+			if (!activeRunId) {
+				return;
+			}
+
+			if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+				throw new Error(uiCopy.runtime.connectionUnavailable);
+			}
+
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				isSubmitting: false,
+				lastError: null,
+				transportErrorCode: null,
+			}));
+			chatStore.setPresentationState((currentPresentationState) => ({
+				...currentPresentationState,
+				currentStreamingRunId: null,
+				currentStreamingText: '',
+			}));
+			socketRef.current.send(JSON.stringify({ run_id: activeRunId, type: 'cancel_run' }));
+		} catch (error: unknown) {
+			chatStore.setConnectionState((currentConnectionState) => ({
+				...currentConnectionState,
+				lastError: error instanceof Error ? error.message : uiCopy.runtime.unknownSubmit,
+			}));
+		}
+	}, [chatStore]);
+
 	const resolveApproval = useCallback(
 		(approvalId: string, decision: ApprovalResolveDecision): void => {
 			try {
@@ -1531,6 +1564,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			retryTransport,
 			runTransportSummaries,
 			store: chatStore,
+			abortCurrentRun,
 			setApiKey,
 			setApprovalMode,
 			setAttachments,
@@ -1573,6 +1607,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			retryTransport,
 			runTransportSummaries,
 			chatStore,
+			abortCurrentRun,
 			setApiKey,
 			setApprovalMode,
 			setIncludePresentationBlocks,

@@ -3,29 +3,29 @@
 	gap: 12px;
 	min-width: 0;
 	padding: 16px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: var(--radius-input);
-	background: var(--surface-subtle);
+	background: var(--surface-3);
 	animation: runa-message-arrival 220ms var(--ease-emphasized, ease) both;
 }
 
 .blockMuted {
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 }
 
 .blockSuccess {
-	border-color: var(--border-success);
-	background: var(--status-success-bg);
+	border-color: color-mix(in srgb, var(--status) 40%, transparent);
+	background: color-mix(in srgb, var(--status) 24%, transparent);
 }
 
 .blockWarning {
-	border-color: var(--border-warning);
-	background: var(--status-warning-bg);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
+	background: color-mix(in srgb, var(--warn) 24%, transparent);
 }
 
 .blockDanger {
-	border-color: var(--border-danger);
-	background: var(--status-danger-bg);
+	border-color: color-mix(in srgb, var(--error) 46%, transparent);
+	background: color-mix(in srgb, var(--error) 24%, transparent);
 }
 
 .header {
@@ -84,9 +84,9 @@
 	max-width: 100%;
 	min-height: 28px;
 	padding: 5px 9px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 999px;
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
@@ -109,9 +109,9 @@
 	gap: 5px;
 	min-width: 0;
 	padding: 10px 12px;
-	border: 1px solid var(--border-hairline);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-input);
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 }
 
 .metaLabel {
@@ -124,9 +124,9 @@
 
 .codePanel {
 	overflow: hidden;
-	border: 1px solid var(--border-info);
+	border: 1px solid color-mix(in srgb, var(--accent-2) 40%, transparent);
 	border-radius: var(--radius-input);
-	background: var(--surface-canvas);
+	background: var(--surface-2);
 }
 
 .codeToolbar {
@@ -136,8 +136,8 @@
 	justify-content: space-between;
 	gap: 10px;
 	padding: 10px 12px;
-	border-bottom: 1px solid var(--border-hairline);
-	background: var(--surface-panel-muted);
+	border-bottom: 1px solid var(--hairline);
+	background: var(--surface-3);
 }
 
 .codeScroller {
@@ -152,7 +152,7 @@
 .pre {
 	margin: 0;
 	padding: 12px 0;
-	color: var(--text-primary);
+	color: var(--ink-1);
 	font-size: 14px;
 	line-height: 1.6;
 	tab-size: 2;
@@ -175,7 +175,7 @@
 }
 
 .lineNumber {
-	color: var(--text-soft);
+	color: var(--ink-3);
 	text-align: right;
 	user-select: none;
 }
@@ -201,9 +201,9 @@
 	max-height: 360px;
 	margin: 0;
 	padding: 12px;
-	border: 1px solid var(--border-hairline);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-input);
-	background: var(--surface-subtle);
+	background: var(--surface-3);
 	color: var(--ink-2);
 	font-size: 12px;
 	line-height: 1.6;
@@ -213,9 +213,9 @@
 .smallButton {
 	min-height: 36px;
 	padding: 8px 11px;
-	border: 1px solid var(--border-default);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-input);
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	color: var(--ink-1);
 	cursor: pointer;
 	font-weight: 600;
@@ -239,9 +239,9 @@
 	align-items: center;
 	gap: 8px;
 	padding: 10px 12px;
-	border: 1px solid var(--border-hairline);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-input);
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 	color: var(--ink-2);
 }
 
@@ -254,7 +254,7 @@
 
 .tableWrap {
 	overflow-x: auto;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: var(--radius-input);
 }
 
@@ -267,7 +267,7 @@
 .table th,
 .table td {
 	padding: 10px 12px;
-	border-bottom: 1px solid var(--border-hairline);
+	border-bottom: 1px solid var(--hairline);
 	text-align: left;
 	vertical-align: top;
 }
@@ -279,7 +279,7 @@
 }
 
 .approvalPending {
-	border-color: var(--border-warning);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
 	animation: runa-approval-reveal 220ms var(--ease-emphasized, ease) both, approval-pulse 1.8s
 		ease-in-out infinite;
 }
@@ -287,23 +287,23 @@
 .approvalCard {
 	gap: 14px;
 	border-radius: var(--radius-input);
-	border-color: var(--border-warning);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
 	background: var(--surface-2);
 }
 
 .approvalApproved {
-	border-color: var(--border-success);
+	border-color: color-mix(in srgb, var(--status) 40%, transparent);
 	background: var(--surface-2);
 }
 
 .approvalRejected {
-	border-color: var(--border-warning);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
 	background: var(--surface-2);
 }
 
 .approvalClosed {
-	border-color: var(--border-default);
-	background: var(--surface-panel-muted);
+	border-color: color-mix(in srgb, var(--ink-1) 14%, transparent);
+	background: var(--surface-3);
 }
 
 .approvalHeader {
@@ -328,9 +328,9 @@
 	min-width: 112px;
 	min-height: 30px;
 	padding: 5px 10px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 999px;
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	color: var(--ink-1);
 	font-size: 12px;
 	font-weight: 600;
@@ -339,18 +339,18 @@
 }
 
 .approvalPending .approvalStatusChip {
-	border-color: var(--border-warning);
-	color: var(--status-warning-text);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
+	color: color-mix(in srgb, var(--warn) 84%, white);
 }
 
 .approvalApproved .approvalStatusChip {
-	border-color: var(--border-success);
-	color: var(--status-success-text);
+	border-color: color-mix(in srgb, var(--status) 40%, transparent);
+	color: color-mix(in srgb, var(--status) 85%, white);
 }
 
 .approvalRejected .approvalStatusChip {
-	border-color: var(--border-warning);
-	color: var(--status-warning-text);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
+	color: color-mix(in srgb, var(--warn) 84%, white);
 }
 
 .approvalDecision {
@@ -358,9 +358,9 @@
 	gap: 6px;
 	min-width: 0;
 	padding: 14px;
-	border: 1px solid var(--border-hairline);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-input);
-	background: var(--surface-subtle);
+	background: var(--surface-3);
 }
 
 .approvalDecision strong {
@@ -410,21 +410,21 @@
 	display: grid;
 	gap: 4px;
 	padding: 12px 14px;
-	border: 1px solid var(--border-warning);
+	border: 1px solid color-mix(in srgb, var(--warn) 46%, transparent);
 	border-radius: var(--radius-input);
-	background: var(--status-warning-bg);
+	background: color-mix(in srgb, var(--warn) 24%, transparent);
 	color: var(--ink-1);
 	line-height: 1.5;
 }
 
 .approvalApproved .approvalStateFeedback {
-	border-color: var(--border-success);
-	background: var(--status-success-bg);
+	border-color: color-mix(in srgb, var(--status) 40%, transparent);
+	background: color-mix(in srgb, var(--status) 24%, transparent);
 }
 
 .approvalRejected .approvalStateFeedback {
-	border-color: var(--border-warning);
-	background: var(--status-warning-bg);
+	border-color: color-mix(in srgb, var(--warn) 46%, transparent);
+	background: color-mix(in srgb, var(--warn) 24%, transparent);
 }
 
 .approvalActions {
@@ -457,21 +457,21 @@
 	gap: 14px;
 	min-width: 0;
 	padding: 16px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: var(--radius-input);
-	background: var(--surface-panel);
+	background: var(--surface-2);
 	box-shadow: none;
 	animation: runa-message-arrival 220ms var(--ease-emphasized, ease) both;
 }
 
 .toolResultSuccess {
-	border-color: var(--border-success);
-	background: var(--status-success-bg);
+	border-color: color-mix(in srgb, var(--status) 40%, transparent);
+	background: color-mix(in srgb, var(--status) 24%, transparent);
 }
 
 .toolResultError {
-	border-color: var(--border-danger);
-	background: var(--status-danger-bg);
+	border-color: color-mix(in srgb, var(--error) 46%, transparent);
+	background: color-mix(in srgb, var(--error) 24%, transparent);
 }
 
 .toolResultHeader {
@@ -489,9 +489,9 @@
 	gap: 6px;
 	min-height: 30px;
 	padding: 5px 10px;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 999px;
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	color: var(--ink-1);
 	font-size: 12px;
 	font-weight: 600;
@@ -499,13 +499,13 @@
 }
 
 .toolResultSuccess .toolResultStatus {
-	border-color: var(--border-success);
-	color: var(--status-success-text);
+	border-color: color-mix(in srgb, var(--status) 40%, transparent);
+	color: color-mix(in srgb, var(--status) 85%, white);
 }
 
 .toolResultError .toolResultStatus {
-	border-color: var(--border-danger);
-	color: var(--status-danger-text);
+	border-color: color-mix(in srgb, var(--error) 46%, transparent);
+	color: color-mix(in srgb, var(--error) 84%, white);
 }
 
 .toolResultBody {
@@ -515,7 +515,7 @@
 }
 
 .toolLine {
-	border-bottom: 1px solid var(--border-hairline);
+	border-bottom: 1px solid var(--hairline);
 	display: flex;
 	flex-direction: column;
 	gap: 8px;

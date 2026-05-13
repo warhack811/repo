@@ -1,4 +1,4 @@
-import type { AuthContext } from '@runa/types';
+﻿import type { AuthContext } from '@runa/types';
 import { type ReactElement, Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -8,7 +8,6 @@ import { AppShell } from './components/app/AppShell.js';
 import { RunaSkeleton } from './components/ui/RunaSkeleton.js';
 import { useDeveloperMode } from './hooks/useDeveloperMode.js';
 import type { BrandTheme, Theme } from './lib/theme.js';
-import './styles/routes/app-shell-migration.css';
 
 const ChatRuntimePage = lazy(() =>
 	import('./pages/ChatRuntimePage.js').then((module) => ({ default: module.ChatRuntimePage })),

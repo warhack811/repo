@@ -1,4 +1,4 @@
-.container {
+﻿.container {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
@@ -6,10 +6,10 @@
 
 .item {
 	align-items: center;
-	background: var(--surface-chip);
-	border: 1px solid var(--border-subtle);
+	background: var(--surface-3);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 999px;
-	color: var(--text-muted);
+	color: var(--ink-2);
 	display: inline-flex;
 	font-size: 12px;
 	gap: 6px;
@@ -31,14 +31,14 @@
 }
 
 .toolGroup {
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 10px;
 	padding: 6px 10px;
 }
 
 .toolGroupSummary {
 	align-items: center;
-	color: var(--text-muted);
+	color: var(--ink-2);
 	cursor: pointer;
 	display: flex;
 	font-size: 12px;

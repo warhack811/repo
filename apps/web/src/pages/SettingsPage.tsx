@@ -1,20 +1,19 @@
-import type { ReactElement } from 'react';
-import { useEffect } from 'react';
-import { useState } from 'react';
+﻿import type { ReactElement } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import type { ApprovalMode, AuthContext } from '@runa/types';
 import { ProfileCard } from '../components/auth/ProfileCard.js';
+import { ThemePicker } from '../components/settings/ThemePicker.js';
 import { RunaSkeleton } from '../components/ui/RunaSkeleton.js';
+import { useAdvancedViewMode } from '../hooks/useAdvancedViewMode.js';
 import { useTextToSpeech } from '../hooks/useTextToSpeech.js';
 import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { BRAND_THEME_OPTIONS, type BrandTheme, type Theme } from '../lib/theme.js';
 import { fetchWorkspaceDirectories } from '../lib/workspace-directories.js';
 import { uiCopy } from '../localization/copy.js';
-import '../styles/routes/desktop-device-presence-migration.css';
-import '../styles/routes/settings-migration.css';
 
-type SettingsTab = 'account' | 'preferences';
+type SettingsTab = 'account' | 'appearance' | 'workspace';
 
 type SettingsPageProps = Readonly<{
 	accessToken: string | null;
@@ -28,22 +27,8 @@ type SettingsPageProps = Readonly<{
 	theme: Theme;
 }>;
 
-function parseSettingsTab(value: string | null): SettingsTab {
-	return value === 'preferences' ? 'preferences' : 'account';
-}
-
-const tabs: readonly { id: SettingsTab; label: string }[] = [
-	{ id: 'account', label: 'Hesap' },
-	{ id: 'preferences', label: 'Tercihler' },
-];
-
-const themeOptions: readonly { value: Theme; label: string }[] = [
-	{ value: 'system', label: 'Sistem' },
-	{ value: 'dark', label: 'Koyu' },
-	{ value: 'light', label: 'Açık' },
-];
-
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';
+const typographyStorageKey = 'runa.settings.typography';
 const approvalModeValues = ['ask-every-time', 'standard', 'trusted-session'] as const;
 const defaultSettingsApprovalMode: ApprovalMode = 'standard';
 
@@ -69,6 +54,24 @@ const approvalModeOptions: readonly {
 		value: 'trusted-session',
 	},
 ];
+
+const tabs: readonly { id: SettingsTab; label: string }[] = [
+	{ id: 'account', label: 'Hesap' },
+	{ id: 'appearance', label: 'Görünüm' },
+	{ id: 'workspace', label: 'Çalışma' },
+];
+
+function parseSettingsTab(value: string | null): SettingsTab {
+	if (value === 'appearance') {
+		return 'appearance';
+	}
+
+	if (value === 'workspace') {
+		return 'workspace';
+	}
+
+	return 'account';
+}
 
 function isApprovalMode(value: unknown): value is ApprovalMode {
 	return typeof value === 'string' && approvalModeValues.includes(value as ApprovalMode);
@@ -114,6 +117,15 @@ function readStoredWorkingDirectory(): string {
 	} catch {
 		return '';
 	}
+}
+
+function readStoredTypographyPreference(): 'comfortable' | 'compact' {
+	if (typeof window === 'undefined') {
+		return 'comfortable';
+	}
+
+	const rawValue = window.localStorage.getItem(typographyStorageKey);
+	return rawValue === 'compact' ? 'compact' : 'comfortable';
 }
 
 function storeApprovalMode(mode: ApprovalMode): void {
@@ -187,6 +199,11 @@ export function SettingsPage({
 	const [workspaceDirectoriesReloadNonce, setWorkspaceDirectoriesReloadNonce] = useState(0);
 	const [workspaceRootName, setWorkspaceRootName] = useState('Workspace');
 	const [workingDirectory, setWorkingDirectory] = useState(() => readStoredWorkingDirectory());
+	const [typographyPreference, setTypographyPreference] = useState<'comfortable' | 'compact'>(() =>
+		readStoredTypographyPreference(),
+	);
+	const { isEnabled: isAdvancedViewEnabled, setEnabled: setAdvancedViewEnabled } =
+		useAdvancedViewMode();
 	const {
 		autoReadEnabled,
 		cancel: cancelTextToSpeech,
@@ -202,10 +219,7 @@ export function SettingsPage({
 	}, [searchParams]);
 
 	useEffect(() => {
-		void workspaceDirectoriesReloadNonce;
 		const normalizedAccessToken = accessToken?.trim() ?? '';
-		const reloadNonce = workspaceDirectoriesReloadNonce;
-		void reloadNonce;
 
 		if (normalizedAccessToken.length === 0) {
 			setWorkspaceDirectories([]);
@@ -224,6 +238,7 @@ export function SettingsPage({
 			try {
 				const response = await fetchWorkspaceDirectories({
 					bearerToken: normalizedAccessToken,
+					reloadNonce: workspaceDirectoriesReloadNonce,
 					signal: abortController.signal,
 				});
 
@@ -297,7 +312,12 @@ export function SettingsPage({
 
 	function selectTab(nextTab: SettingsTab): void {
 		setActiveTab(nextTab);
-		setSearchParams(nextTab === 'preferences' ? { tab: 'preferences' } : {}, { replace: true });
+		setSearchParams(nextTab === 'account' ? {} : { tab: nextTab }, { replace: true });
+	}
+
+	function selectTypographyPreference(nextValue: 'comfortable' | 'compact'): void {
+		setTypographyPreference(nextValue);
+		window.localStorage.setItem(typographyStorageKey, nextValue);
 	}
 
 	return (
@@ -347,54 +367,77 @@ export function SettingsPage({
 						</div>
 					) : null}
 
-					{activeTab === 'preferences' ? (
+					{activeTab === 'appearance' ? (
 						<div className="runa-settings-panel-grid">
 							<section className="runa-settings-preference-section" aria-labelledby="theme-heading">
 								<h2 id="theme-heading">Tema</h2>
-								<div className="runa-settings-theme-groups">
-									<div className="runa-settings-theme-group">
-										<div className="runa-settings-theme-label">Görünüm</div>
-										<div className="runa-settings-segmented" role="radiogroup" aria-label="Görünüm">
-											{themeOptions.map((option) => (
-												<button
-													key={option.value}
-													type="button"
-													aria-pressed={theme === option.value}
-													className={theme === option.value ? 'is-active' : undefined}
-													onClick={() => onThemeChange(option.value)}
-												>
-													{option.label}
-												</button>
-											))}
-										</div>
-									</div>
-									<div className="runa-settings-theme-group">
-										<div className="runa-settings-theme-label">Renk</div>
-										<div className="runa-settings-brand-themes" role="radiogroup" aria-label="Renk">
-											{BRAND_THEME_OPTIONS.map((option) => (
-												<button
-													key={option.value}
-													type="button"
-													aria-pressed={brandTheme === option.value}
-													className={
-														brandTheme === option.value
-															? 'runa-settings-brand-theme is-active'
-															: 'runa-settings-brand-theme'
-													}
-													onClick={() => onBrandThemeChange(option.value)}
-												>
-													<span
-														className="runa-settings-brand-theme__swatch"
-														data-brand-theme={option.value}
-														aria-hidden="true"
-													/>
-													<span>{option.label}</span>
-												</button>
-											))}
-										</div>
-									</div>
+								<ThemePicker value={theme} onChange={onThemeChange} />
+							</section>
+							<section className="runa-settings-preference-section" aria-labelledby="brand-heading">
+								<h2 id="brand-heading">Renk paleti</h2>
+								<div className="runa-settings-brand-themes" role="radiogroup" aria-label="Renk">
+									{BRAND_THEME_OPTIONS.map((option) => (
+										<button
+											key={option.value}
+											type="button"
+											aria-pressed={brandTheme === option.value}
+											className={
+												brandTheme === option.value
+													? 'runa-settings-brand-theme is-active'
+													: 'runa-settings-brand-theme'
+											}
+											onClick={() => onBrandThemeChange(option.value)}
+										>
+											<span
+												className="runa-settings-brand-theme__swatch"
+												data-brand-theme={option.value}
+												aria-hidden="true"
+											/>
+											<span>{option.label}</span>
+										</button>
+									))}
 								</div>
 							</section>
+							<section
+								className="runa-settings-preference-section"
+								aria-labelledby="typography-heading"
+							>
+								<h2 id="typography-heading">Tipografi</h2>
+								<label className="runa-settings-row">
+									<span>Metin yoğunluğu</span>
+									<select
+										value={typographyPreference}
+										onChange={(event) =>
+											selectTypographyPreference(
+												event.target.value === 'compact' ? 'compact' : 'comfortable',
+											)
+										}
+									>
+										<option value="comfortable">Rahat</option>
+										<option value="compact">Sıkı</option>
+									</select>
+								</label>
+							</section>
+							<section
+								className="runa-settings-preference-section"
+								aria-labelledby="advanced-view-heading"
+							>
+								<h2 id="advanced-view-heading">Gelişmiş görünüm</h2>
+								<label className="runa-settings-row">
+									<span>{uiCopy.advancedView.heading}</span>
+									<input
+										type="checkbox"
+										checked={isAdvancedViewEnabled}
+										onChange={(event) => setAdvancedViewEnabled(event.target.checked)}
+									/>
+								</label>
+								<div className="runa-subtle-copy">{uiCopy.advancedView.description}</div>
+							</section>
+						</div>
+					) : null}
+
+					{activeTab === 'workspace' ? (
+						<div className="runa-settings-panel-grid">
 							<section
 								className="runa-settings-preference-section"
 								aria-labelledby="approval-mode-heading"

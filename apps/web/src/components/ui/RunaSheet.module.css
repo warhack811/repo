@@ -11,15 +11,15 @@
 	animation-duration: 220ms;
 	animation-fill-mode: both;
 	animation-timing-function: var(--ease-emphasized, ease);
-	background: var(--surface-panel-strong);
-	border: 1px solid var(--border-default);
+	background: var(--surface-4);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	box-shadow: none;
 	color: var(--ink-1);
 	display: grid;
 	gap: var(--space-4);
 	max-height: calc(100dvh - var(--safe-area-top) - 16px);
 	overflow: auto;
-	padding: var(--space-panel);
+	padding: clamp(18px, 3vw, 24px);
 	position: fixed;
 	z-index: 200;
 }
@@ -41,7 +41,7 @@
 }
 
 .handle {
-	background: var(--border-strong);
+	background: color-mix(in srgb, var(--ink-1) 22%, transparent);
 	border-radius: var(--radius-pill);
 	height: 4px;
 	justify-self: center;

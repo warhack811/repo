@@ -8,9 +8,9 @@
 	display: block;
 	width: 100%;
 	padding: 0;
-	border: 1px solid var(--border-subtle);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
 	border-radius: 8px;
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 	cursor: pointer;
 	overflow: hidden;
 }
@@ -31,7 +31,7 @@
 .modal {
 	width: min(960px, calc(100vw - 32px));
 	padding: 16px;
-	border: 1px solid var(--border-default);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: 8px;
 	background: var(--surface-3);
 	color: var(--ink-1);

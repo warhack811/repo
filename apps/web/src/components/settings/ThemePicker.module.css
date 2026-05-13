@@ -1,0 +1,48 @@
+.themePicker {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.themeOption {
+	align-items: center;
+	background: var(--surface-2);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
+	border-radius: var(--radius-input);
+	cursor: pointer;
+	display: grid;
+	gap: 10px;
+	grid-template-columns: auto 1fr;
+	padding: 10px;
+	transition: border-color var(--duration-normal) var(--ease-standard), background
+		var(--duration-normal) var(--ease-standard);
+}
+
+.themeOption:hover {
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+	background: var(--surface-3);
+}
+
+.themeOptionChecked {
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+	background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+}
+
+.themeRadio {
+	accent-color: var(--accent);
+	margin: 0;
+}
+
+.themePreview {
+	border-radius: 8px;
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink-1) 12%, transparent);
+	display: block;
+	height: 28px;
+	width: 44px;
+}
+
+.themeLabel {
+	color: var(--ink-1);
+	font-size: 14px;
+	font-weight: 600;
+}

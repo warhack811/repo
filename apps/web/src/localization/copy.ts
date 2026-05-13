@@ -409,6 +409,10 @@ export const uiCopy = {
 		openDeveloper: 'Ayarlar',
 		submitInProgress: 'Çalışma sürüyor...',
 	},
+	advancedView: {
+		heading: 'Gelişmiş görünüm',
+		description: 'Geliştirici sayfasını görünür kılar, normal kullanım akışını değiştirmez.',
+	},
 	run: {
 		...defaultCopy.run,
 		pastRunsCollapsed: 'Geçmiş çalışmalara daha sonra geri dönebilirsin.',

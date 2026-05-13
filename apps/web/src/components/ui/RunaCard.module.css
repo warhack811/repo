@@ -1,35 +1,35 @@
 ﻿.card {
 	backdrop-filter: blur(12px);
-	border: 1px solid var(--border-default);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	box-shadow: none;
 	display: grid;
 	gap: var(--space-4);
 	min-width: 0;
 	overflow: hidden;
-	padding: var(--space-panel);
+	padding: clamp(18px, 3vw, 24px);
 	position: relative;
 	transition: border-color var(--duration-normal) var(--ease-standard), background
 		var(--duration-normal) var(--ease-standard);
 }
 
 .default {
-	background: var(--surface-panel);
+	background: var(--surface-2);
 }
 
 .hero {
-	background: var(--surface-panel);
-	border-color: var(--border-primary);
+	background: var(--surface-2);
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .strong {
-	background: var(--surface-panel-strong);
+	background: var(--surface-4);
 }
 
 .subtle {
-	background: var(--surface-subtle);
-	border-color: var(--border-hairline);
+	background: var(--surface-3);
+	border-color: var(--hairline);
 	border-radius: var(--radius-input);
 	box-shadow: none;
-	padding: var(--space-subcard);
+	padding: 16px;
 }

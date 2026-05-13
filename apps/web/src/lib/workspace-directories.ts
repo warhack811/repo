@@ -66,6 +66,7 @@ async function readErrorMessage(response: Response): Promise<string> {
 
 export async function fetchWorkspaceDirectories(input: {
 	readonly bearerToken?: string | null;
+	readonly reloadNonce?: number;
 	readonly signal?: AbortSignal;
 }): Promise<WorkspaceDirectoryListResponse> {
 	const headers = new Headers({
@@ -77,7 +78,13 @@ export async function fetchWorkspaceDirectories(input: {
 		headers.set('authorization', `Bearer ${token}`);
 	}
 
-	const response = await fetch('/workspace/directories', {
+	const requestUrl = new URL('/workspace/directories', window.location.origin);
+
+	if (typeof input.reloadNonce === 'number') {
+		requestUrl.searchParams.set('reload', input.reloadNonce.toString());
+	}
+
+	const response = await fetch(requestUrl.toString(), {
 		cache: 'no-store',
 		credentials: 'same-origin',
 		headers,
