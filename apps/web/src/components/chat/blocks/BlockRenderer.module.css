@@ -536,7 +536,7 @@
 }
 
 .toolLineIcon {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-3);
 	display: inline-flex;
 	font-size: 14px;
 	font-weight: 600;
@@ -545,7 +545,7 @@
 }
 
 .toolLineLabel {
-	color: hsl(var(--color-text));
+	color: var(--ink-1);
 	font-size: 0.875rem;
 	font-weight: 600;
 	min-width: 0;
@@ -553,7 +553,7 @@
 }
 
 .toolLineChevron {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-3);
 	flex-shrink: 0;
 	margin-left: auto;
 	transition: transform 160ms ease;
@@ -564,7 +564,7 @@
 }
 
 .toolLineDetail {
-	color: hsl(var(--color-text-muted));
+	color: var(--ink-2);
 	font-size: 0.875rem;
 	line-height: 1.6;
 	padding-left: 22px;

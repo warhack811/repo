@@ -13,6 +13,30 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Ã–nemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) baÅŸarÄ±yla tamamlandÄ±; Runa artÄ±k bozuk model Ã§Ä±ktÄ±larÄ±nÄ± kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter iÃ§inde kullanabiliyor ve DeepSeek ana Ã¼retim yolu (primary baseline) olarak onaylandÄ±.
 
+### TASK-UI-RESTRUCTURE-PR-9-TOKEN-CLEANUP - 14 Mayis 2026
+
+- Kapsam: `apps/web/src` icindeki legacy/undefined CSS token referanslari PR-9 brief tablosuna gore yeni token diline tasindi; `--ink-4` tum tema bloklarina eklendi.
+- Uygulama:
+  - `apps/web/src/styles/tokens.css` icine `--ink-4` eklendi (`ember-dark`, `ember-light`, `rose-dark` ve system-light fallback).
+  - Legacy token mapping'i `primitives.css`, `components.css`, `PersistedTranscript.module.css`, `BlockRenderer.module.css`, `RunProgressPanel.module.css` ve `reset.css` uzerinde mekanik olarak uygulandi.
+  - `hsl(var(--color-text*))` wrapper'lari kaldirildi.
+  - Spacing alias'lari (`--space-page-*`, `--space-panel`, `--space-subcard`) inline degerlere acildi ve kalan referanslar temizlendi.
+  - `apps/web/src/test/design-language-lock.test.ts` icine undefined-token lock testi eklendi; `ink-4` kullanimi icin small/light metin guard'i lock kapsaminda dogrulandi.
+  - `scripts/audit-tokens.mjs` eklendi ve `.github/workflows/ci.yml` quality job'ina `Audit token references` adimi baglandi.
+- Dogrulama:
+  - `node scripts/audit-tokens.mjs` PASS (`no undefined token references`)
+  - `pnpm --filter @runa/web lint` PASS
+  - `pnpm --filter @runa/web typecheck` PASS
+  - `pnpm --filter @runa/web exec vitest run src/test/design-language-lock.test.ts --config ./vitest.config.mjs --configLoader runner` PASS
+  - `pnpm --filter @runa/web build` PASS
+  - `pnpm --filter @runa/web test` RED (`5` dosya / `7` test fail) - PR-9 disi mevcut locale/copy beklenti uyumsuzluklari:
+    - `src/components/chat/transcriptGroup.test.ts`
+    - `src/components/chat/ConversationSidebar.test.tsx`
+    - `src/pages/SecondarySurfacesReframe.test.tsx`
+    - `src/pages/OperatorDeveloperIsolation.test.tsx`
+    - `src/components/chat/blocks/BlockRenderer.test.tsx`
+- Sonuc: PR-9 token migration hedefi kod + lock/audit guard seviyesinde kapatildi; full web test suiti task-disi mevcut text/locale baseline nedeniyle tamamen yesil degil.
+
 ### TASK-UI-RESTRUCTURE-COMPLETE - 14 Mayis 2026
 
 - Kapsam: PR-1..PR-8 kapanis teyidi tamamlandi; durum dokumanlari ve kanit klasorleri senkronize edildi.
