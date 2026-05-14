@@ -387,7 +387,7 @@ export function ConversationSidebar({
 										onChange={(event: ChangeEvent<HTMLInputElement>) =>
 											setMemberUserId(event.target.value)
 										}
-										placeholder="üye bilgisi"
+										placeholder="Üye bilgisi"
 										className="runa-input"
 									/>
 									<select

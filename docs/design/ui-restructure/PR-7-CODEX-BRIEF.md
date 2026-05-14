@@ -327,4 +327,12 @@ pnpm --filter @runa/web build
 
 > Bu PR PR-1 ve PR-2'de ertelenen iki bÃ¼yÃ¼k teknik borcu (legacy token alias + migration CSS) kapatÄ±r. Diff bÃ¼yÃ¼klÃ¼ÄŸÃ¼ ortalama olabilir; gerekirse PR-7a (settings + stop) ve PR-7b (cleanup) olarak ikiye bÃ¶lÃ¼nebilir.
 
+---
+
+## 8. PR-7 sonrasi karar - Settings IA guncellemesi (2026-05-14)
+
+PR-7 uygulanirken Settings icin 3 yerine 5 tab tercih edildi (`appearance`, `conversation`,
+`notifications`, `privacy`, `advanced`). Bu karar `docs/RUNA-DESIGN-LANGUAGE.md` icindeki
+"Settings Information Architecture" bolumunde otorite olarak tutulur.
+
 

@@ -7,53 +7,104 @@
 
 ## Mevcut Durum Ozeti
 
-- **Tarih:** 2 MayÄ±s 2026
-- **Faz:** Core Hardening (Phase 2) - Sprint 9/10 kabul edilmiÅŸ iÅŸleri repoda, DeepSeek Tool Call Recovery (Faz 1-4) tamamlandÄ±.
-- **Vizyon:** Basit kullanÄ±cÄ±dan teknik uzmana kadar herkesin kullanabileceÄŸi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI Ã§alÄ±ÅŸma ortaÄŸÄ±.
-- **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
-- **Son Ã–nemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) baÅŸarÄ±yla tamamlandÄ±; Runa artÄ±k bozuk model Ã§Ä±ktÄ±larÄ±nÄ± kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter iÃ§inde kullanabiliyor ve DeepSeek ana Ã¼retim yolu (primary baseline) olarak onaylandÄ±.
+- **Tarih:** 14 Mayis 2026
+- **Faz:** Core Hardening (Phase 2) + UI Restructure tamamlandi (PR-1..PR-12).
+- **Vizyon:** Basit kullanicidan teknik uzmana kadar herkesin kullanabilecegi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI calisma ortagi.
+- **Odak:** UI restructure kapandi; sirada provider/runtime baseline genisletmesi ve plan-disi UI bosluklari (empty state personalization, markdown rendering).
+- **Son Onemli Olay:** 2026-05-14 tarihinde "UI Restructure PR-1..PR-12" sureci kapatildi; tasarim dili `docs/RUNA-DESIGN-LANGUAGE.md` icinde tek otoriteye kilitlendi, design-language lock test PR-1..9 + Settings IA + PR-11 memo discipline kurallarini kapsayacak sekilde genisletildi, Lighthouse + screen reader + dead-css kanitlari arsivlendi.
+
+### TASK-UI-RESTRUCTURE-PR-3-CHAT-SURFACE - 14 Mayis 2026
+
+- Kapsam: Chat transcript ritmi, day divider akisi, tool-result yuzeyi ve tekrarli run panel yogunlugu azaltma hedefleri.
+- Uygulama: `PersistedTranscript.tsx` icinde role label/timestamp gosterimi kaldirildi, `DayDivider` ile gun ritmi korundu; `ToolResultBlock.tsx` user-facing satir dili sadeleştirildi.
+- Lock/guard: `apps/web/src/test/design-language-lock.test.ts` icine PR-3 chat surface lock assert'leri eklendi.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-3-chat-surface/`
+- Dogrulama: `lint/typecheck/test/build` zinciri PR-3 kapanisinda calisti; PR-12'de lock kapsam dogrulamasi tekrarlandi.
+- Kalan not: Bu PR ile chat ritmi kapandi; daha derin transcript personalization kapsam disi kaldı.
+
+### TASK-UI-RESTRUCTURE-PR-4-APPROVAL-CALM - 14 Mayis 2026
+
+- Kapsam: Approval kartini kullanici tarafinda daha sakin/tek odakli hale getirmek, risk seviyesine gore karar aksiyonu korumak.
+- Uygulama: `ApprovalBlock.tsx` user-facing akista sade header/target/actions modeline indirildi; risk hesaplamasi `approvalRisk` modulu uzerinden stabil hale getirildi.
+- Lock/guard: PR-4 icin `ApprovalBlock` eski katman siniflari render etmeme + `approvalRisk` export + `RunaButton` danger variant lock assert'leri eklendi.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-4-approval-calm/`
+- Dogrulama: PR-4 kapanisinda web kalite kapilari yesildi; PR-12'de lock + dead CSS temizligi ile audit debt kapatildi.
+- Kalan not: Height/pixel metrikleri sonraki gorsel regresyon review turlerinde manuel izlenir.
+
+### TASK-UI-RESTRUCTURE-PR-5-ERRORS-USER-LABEL-TR - 14 Mayis 2026
+
+- Kapsam: Tool sonuc metninde TR odakli user label kontratini (`user_label_tr`) kullanmak, hata dili ve fallback satirlarini sade tutmak.
+- Uygulama: `ToolResultBlock.tsx`, `RunTimelineBlock.tsx` ve server label coverage hattinda `user_label_tr` fallback zinciri netlestirildi.
+- Lock/guard: PR-5 icin `user_label_tr` kullanim assert'leri lock test dosyasina eklendi.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-5-errors-user-label/`
+- Dogrulama: PR-5 kapanisinda `user-label-coverage` testleri ve web kalite kapilari calisti.
+- Kalan not: Dil/copy ince ayarlari plan-disi copy polish sprint'ine tasinabilir.
+
+### TASK-UI-RESTRUCTURE-PR-6-SHEETS-PALETTE - 14 Mayis 2026
+
+- Kapsam: History/Menu/Context sheet davranislarini ortak UI primitive'leriyle birlestirmek.
+- Uygulama: `RunaSheet`/`RunaModal` export zinciri netlestirildi; `ChatHeader` history trigger semantigi ve `ChatPage` sheet mount yuzeyleri sabitlendi.
+- Lock/guard: PR-6 icin sheet export + aria-controls + page mount assert'leri eklendi.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-6-sheets-palette/`
+- Dogrulama: PR-6 kapanisinda lint/typecheck/test/build + visual smoke pass raporlandi.
+- Kalan not: Tam focus-trap edge-case regresyonlari manuel a11y turlerinde izlenir.
+
+### TASK-UI-RESTRUCTURE-PR-7-SETTINGS-STOP - 14 Mayis 2026
+
+- Kapsam: Settings IA, composer stop aksiyonu, migration-cleanup kapanisi.
+- Uygulama: `ChatComposerSurface.tsx` stop ikon/davranis destekleri ve `useChatRuntime.ts` abort aksiyonu korunarak ilerletildi; `ThemePicker.tsx` varligi ve route migration temizligi kilitlendi.
+- Lock/guard: PR-7 lock assert'leri (Square importu, abort exportu, ThemePicker varligi, migration CSS yoklugu) eklendi.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-7-settings-stop/`
+- Dogrulama: PR-7 kapanisinda kalite kapilari ve stop davranisi visual kanitlari kayit altina alindi.
+- Kalan not: PR-7 brief'teki 3-tab plani PR-12 karariyla 5-tab IA olarak resmi otoriteye tasindi.
+
+### TASK-UI-RESTRUCTURE-PR-8-A11Y-POLISH - 14 Mayis 2026
+
+- Kapsam: Skip link, reduced-motion, mobile keyboard davranisi ve temel a11y polish kapanisi.
+- Uygulama: `useVisualViewport` + `SkipToContent` kontrati korunarak ilerletildi; PR-12'de ek olarak `role=\"main\"` landmarklari guclendirildi.
+- Lock/guard: PR-8 lock kapsamı (skip-to-content, reduced-motion, visual-viewport) korunmaya devam ediyor.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-8-a11y-polish/`
+- Dogrulama: PR-12'de Lighthouse desktop/mobile raporlari ve screen-reader checklist dosyalandi.
+- Kalan not: Gercek NVDA/VoiceOver kosumu manuel QA adimi olarak acik.
 
 ### TASK-UI-RESTRUCTURE-PR-9-TOKEN-CLEANUP - 14 Mayis 2026
 
-- Kapsam: `apps/web/src` icindeki legacy/undefined CSS token referanslari PR-9 brief tablosuna gore yeni token diline tasindi; `--ink-4` tum tema bloklarina eklendi.
-- Uygulama:
-  - `apps/web/src/styles/tokens.css` icine `--ink-4` eklendi (`ember-dark`, `ember-light`, `rose-dark` ve system-light fallback).
-  - Legacy token mapping'i `primitives.css`, `components.css`, `PersistedTranscript.module.css`, `BlockRenderer.module.css`, `RunProgressPanel.module.css` ve `reset.css` uzerinde mekanik olarak uygulandi.
-  - `hsl(var(--color-text*))` wrapper'lari kaldirildi.
-  - Spacing alias'lari (`--space-page-*`, `--space-panel`, `--space-subcard`) inline degerlere acildi ve kalan referanslar temizlendi.
-  - `apps/web/src/test/design-language-lock.test.ts` icine undefined-token lock testi eklendi; `ink-4` kullanimi icin small/light metin guard'i lock kapsaminda dogrulandi.
-  - `scripts/audit-tokens.mjs` eklendi ve `.github/workflows/ci.yml` quality job'ina `Audit token references` adimi baglandi.
-- Dogrulama:
-  - `node scripts/audit-tokens.mjs` PASS (`no undefined token references`)
-  - `pnpm --filter @runa/web lint` PASS
-  - `pnpm --filter @runa/web typecheck` PASS
-  - `pnpm --filter @runa/web exec vitest run src/test/design-language-lock.test.ts --config ./vitest.config.mjs --configLoader runner` PASS
-  - `pnpm --filter @runa/web build` PASS
-  - `pnpm --filter @runa/web test` RED (`5` dosya / `7` test fail) - PR-9 disi mevcut locale/copy beklenti uyumsuzluklari:
-    - `src/components/chat/transcriptGroup.test.ts`
-    - `src/components/chat/ConversationSidebar.test.tsx`
-    - `src/pages/SecondarySurfacesReframe.test.tsx`
-    - `src/pages/OperatorDeveloperIsolation.test.tsx`
-    - `src/components/chat/blocks/BlockRenderer.test.tsx`
-- Sonuc: PR-9 token migration hedefi kod + lock/audit guard seviyesinde kapatildi; full web test suiti task-disi mevcut text/locale baseline nedeniyle tamamen yesil degil.
+- Kapsam: Undefined/legacy token borcunu kapatmak ve token audit guard'ini CI seviyesinde korumak.
+- Uygulama: `tokens.css` icinde `--ink-4` dahil tema bloklari sabitlendi; `scripts/audit-tokens.mjs` ile undefined token denetimi otomasyona baglandi.
+- Lock/guard: PR-9 icin `--ink-4` varligi + `audit-tokens.mjs` exit-code lock assert'i eklendi.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-14-ui-restructure-pr-12-final-polish/` altinda PR-9 lock kapanis kanitlari.
+- Dogrulama: `node scripts/audit-tokens.mjs` PASS; PR-12 lock testleri bu guard'i dogruluyor.
+- Kalan not: Genis global CSS dead-candidate listesi rapor-only tutuldu, otomatik silinmedi.
+
+### TASK-UI-RESTRUCTURE-PR-11-RUNTIME-MEMO-DISCIPLINE - 14 Mayis 2026
+
+- Kapsam: `useChatRuntime` memo dependency patlamasini azaltip API yuzeyini guvenli sekilde parcalamak.
+- Uygulama: Config/state/actions memo gruplarina ayrilan runtime donusu ve mega-memo dusurme calismasi yapildi.
+- Lock/guard: `design-language-lock.test.ts` icindeki memo discipline assert'leri PR-11 invariants olarak korunuyor.
+- Gorsel kanit: Davranis odakli PR; gorsel kanit yerine lock/perf guard kayitlari kullanildi.
+- Dogrulama: PR-11 kapanisinda kalite kapilari + targeted testler calistirildi.
+- Kalan not: Streaming kaynakli jank takibi runtime/perf backlog'unda izlenmeye devam eder.
+
+### TASK-UI-RESTRUCTURE-PR-12-FINAL-POLISH - 14 Mayis 2026
+
+- Kapsam: PR-10 audit raporundaki BOS KANIT ve KISMEN maddelerini kapatmak; lock coverage, IA karari, Lighthouse/screen-reader kaniti, dead CSS raporu ve PROGRESS senkronu.
+- Uygulama: `design-language-lock.test.ts` PR-3/4/5/6/7/9 + Settings IA bloklariyla genisletildi; `docs/RUNA-DESIGN-LANGUAGE.md` icine Settings 5-tab IA eklendi; `PR-7-CODEX-BRIEF.md` sonuna history-preserving karar notu dusuldu; `BlockRenderer.module.css` icinde kullanilmayan approval status/decision/state feedback siniflari temizlendi; `scripts/audit-dead-css.mjs` eklendi; `ChatRuntimePage.tsx` ve `DeveloperRuntimePage.tsx` icine minimal loading skeleton eklendi.
+- Lock/guard: PR-12 kapsamindaki tum yeni lock assert'leri `apps/web/src/test/design-language-lock.test.ts` icinde.
+- Gorsel kanit: `docs/design-audit/screenshots/2026-05-14-ui-restructure-pr-12-final-polish/`
+- Dogrulama: Lighthouse desktop/mobile raporlari + dead CSS report + screen-reader checklist ayni klasore kaydedildi; full kalite komut sonucu bu kaydin sonundaki PR-12 raporunda tutulur.
+- Kalan not: Lighthouse calisimi sonunda gecici `EPERM` tmp-cleanup gurultusu goruldu; rapor dosyalari basariyla uretildi.
 
 ### TASK-UI-RESTRUCTURE-COMPLETE - 14 Mayis 2026
 
-- Kapsam: PR-1..PR-8 kapanis teyidi tamamlandi; durum dokumanlari ve kanit klasorleri senkronize edildi.
-- Durum: `main` dalinda UI restructure zinciri merge edildi (`fffb1911`, `ab36a050`, `2dd7ec57`).
-- Dokuman guncellemeleri:
-  - `docs/design/ui-restructure/PR-IMPLEMENTATION-INDEX.md` durum matrisi "Tamamlandi, main'e merge edildi" olarak guncellendi.
-  - PR-3..PR-8 icin eksik `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-N-*` klasorleri normalize edildi.
-- Dogrulama:
-  - `pnpm.cmd --filter @runa/web lint` PASS
-  - `pnpm.cmd --filter @runa/web typecheck` PASS
-  - `pnpm.cmd --filter @runa/web test` PASS (`39` dosya, `127` test PASS, `1` skipped)
-  - `pnpm.cmd --filter @runa/web build` PASS
-  - `pnpm.cmd --filter @runa/web test -- design-language-lock` PASS
-  - `pnpm.cmd --filter @runa/server test -- user-label-coverage` PASS
-  - `pnpm.cmd --filter @runa/server typecheck` PASS
-  - `pnpm.cmd --filter @runa/server lint` PASS (format drift duzeltmesi sonrasi)
-- Sonuc: UI restructure sureci dokuman + kod + temel kalite kapilari acisindan kapatildi.
+- 12 PR ile UI restructure sureci kapandi.
+- Brief'lerin tamami: `docs/design/ui-restructure/PR-1..PR-12-CODEX-BRIEF.md`.
+- Tek source of truth: `docs/RUNA-DESIGN-LANGUAGE.md` (Settings IA dahil).
+- Audit + gap raporu: `docs/design/ui-restructure/PR-10-GAP-AUDIT-REPORT.md`.
+- Lock test: `apps/web/src/test/design-language-lock.test.ts` PR-1..9 + Settings + PR-11 invariants.
+- Lighthouse: `docs/design-audit/screenshots/2026-05-14-ui-restructure-pr-12-final-polish/lighthouse-{desktop,mobile}.{json,html}`.
+- Screen reader checklist: `docs/design-audit/screenshots/2026-05-14-ui-restructure-pr-12-final-polish/screen-reader-checklist.md`.
+- Dead CSS report: `docs/design-audit/screenshots/2026-05-14-ui-restructure-pr-12-final-polish/dead-css-report.md`.
+- Kalan plan-disi alanlar (ayri sprint): Empty state personalization, markdown rendering kalitesi, voice composer derinlik, loading skeleton parity.
 
 ### TASK-UI-HIZALAMA-FULL-01 - 14 Mayis 2026
 
