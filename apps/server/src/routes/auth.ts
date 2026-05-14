@@ -24,6 +24,8 @@ import {
 	readBearerToken,
 	requireAuthenticatedRequest,
 } from '../auth/supabase-auth.js';
+import { closeWebSocketSessionsForAuthContext } from '../ws/ws-session-registry.js';
+import type { WebSocketTicketPath } from '../ws/ws-ticket.js';
 
 interface AuthContextResponse {
 	readonly auth: AuthContext;
@@ -46,6 +48,16 @@ export interface SupabaseAuthActionEnvironment {
 export type SupabaseAuthFetch = typeof fetch;
 
 export interface RegisterAuthRoutesOptions {
+	readonly issue_ws_ticket?: (input: {
+		readonly auth: AuthContext;
+		readonly path: WebSocketTicketPath;
+		readonly request_id?: string;
+	}) => {
+		readonly expires_at: string;
+		readonly expires_in_seconds: number;
+		readonly path: WebSocketTicketPath;
+		readonly ws_ticket: string;
+	};
 	readonly supabase?: {
 		readonly environment?: SupabaseAuthActionEnvironment;
 		readonly fetch?: SupabaseAuthFetch;
@@ -106,6 +118,10 @@ interface RefreshSessionBodyCandidate {
 interface OAuthCodeExchangeBodyCandidate {
 	readonly auth_code?: unknown;
 	readonly code_verifier?: unknown;
+}
+
+interface WebSocketTicketRequestBodyCandidate {
+	readonly path?: unknown;
 }
 
 interface SupabaseSessionTokensCandidate {
@@ -442,6 +458,21 @@ function parseOAuthCodeExchangeBody(body: unknown): {
 	};
 }
 
+function parseWebSocketTicketPath(body: unknown): WebSocketTicketPath {
+	if (!isRecord(body)) {
+		throw new AuthRouteError(400, 'Request body must be a JSON object.');
+	}
+
+	const candidate = body as WebSocketTicketRequestBodyCandidate;
+	const path = normalizeRequiredString(candidate.path, 'path');
+
+	if (path !== '/ws' && path !== '/ws/desktop-agent') {
+		throw new AuthRouteError(400, 'path must be /ws or /ws/desktop-agent.');
+	}
+
+	return path;
+}
+
 function isLoopbackRedirectTarget(value: string): boolean {
 	try {
 		const candidateUrl = new URL(value);
@@ -587,6 +618,10 @@ export async function registerAuthRoutes(
 			authorizationToken: parsedBearerToken.token,
 			pathname: '/auth/v1/logout',
 		});
+		closeWebSocketSessionsForAuthContext(request.auth, {
+			code: 1000,
+			reason: 'WebSocket session closed after logout.',
+		});
 
 		return {
 			message:
@@ -594,6 +629,28 @@ export async function registerAuthRoutes(
 			outcome: 'logged_out',
 			remote_sign_out: 'succeeded',
 		};
+	});
+
+	server.post('/auth/ws-ticket', async (request) => {
+		const principal = requireAuthenticatedRequest(request);
+		const path = parseWebSocketTicketPath(request.body);
+
+		if (path === '/ws/desktop-agent' && principal.kind !== 'authenticated') {
+			throw new AuthRouteError(
+				403,
+				'Desktop agent websocket tickets require an authenticated user session.',
+			);
+		}
+
+		if (!options.issue_ws_ticket) {
+			throw new AuthRouteError(503, 'WebSocket ticket issuer is not configured.');
+		}
+
+		return options.issue_ws_ticket({
+			auth: request.auth,
+			path,
+			request_id: request.id,
+		});
 	});
 
 	server.get('/auth/oauth/start', async (request, reply) => {

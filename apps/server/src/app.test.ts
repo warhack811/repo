@@ -265,6 +265,27 @@ async function waitForSocketClose(socket: WebSocket): Promise<{
 	});
 }
 
+async function issueWebSocketTicket(input: {
+	readonly bearerToken: string;
+	readonly path: '/ws' | '/ws/desktop-agent';
+	readonly server: FastifyInstance;
+}): Promise<string> {
+	const response = await input.server.inject({
+		headers: {
+			authorization: `Bearer ${input.bearerToken}`,
+			'content-type': 'application/json',
+		},
+		method: 'POST',
+		payload: {
+			path: input.path,
+		},
+		url: '/auth/ws-ticket',
+	});
+
+	expect(response.statusCode).toBe(200);
+	return response.json().ws_ticket as string;
+}
+
 function createStorageAdapterResult(
 	overrides: Partial<StorageObject> = {},
 ): StorageObject & { readonly content: Uint8Array } {
@@ -1153,7 +1174,12 @@ describe('buildServer auth wiring', () => {
 		serversToClose.push(server);
 
 		const port = await startListeningServer(server);
-		const socket = await connectWebSocket(`ws://127.0.0.1:${port}/ws?access_token=${token}`);
+		const wsTicket = await issueWebSocketTicket({
+			bearerToken: token,
+			path: '/ws',
+			server,
+		});
+		const socket = await connectWebSocket(`ws://127.0.0.1:${port}/ws?ws_ticket=${wsTicket}`);
 		const closePromise = waitForSocketClose(socket);
 		const readyMessage = await new Promise<string>((resolve, reject) => {
 			socket.addEventListener('message', (event) => resolve(String(event.data)), { once: true });
@@ -1189,8 +1215,13 @@ describe('buildServer auth wiring', () => {
 		serversToClose.push(server);
 
 		const port = await startListeningServer(server);
+		const wsTicket = await issueWebSocketTicket({
+			bearerToken: token,
+			path: '/ws/desktop-agent',
+			server,
+		});
 		const socket = await connectWebSocket(
-			`ws://127.0.0.1:${port}/ws/desktop-agent?access_token=${token}`,
+			`ws://127.0.0.1:${port}/ws/desktop-agent?ws_ticket=${wsTicket}`,
 		);
 		const closePromise = waitForSocketClose(socket);
 		const readyMessage = await new Promise<string>((resolve, reject) => {
@@ -1204,6 +1235,53 @@ describe('buildServer auth wiring', () => {
 		expect(readyMessage).toContain('"transport":"desktop_bridge"');
 		socket.close();
 		await closePromise;
+	});
+
+	it('closes active websocket sessions after logout/session invalidation', async () => {
+		const authFetch = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 }));
+		const server = await buildServer({
+			auth: {
+				supabase: {
+					environment: {
+						SUPABASE_ANON_KEY: 'anon-key',
+						SUPABASE_URL: 'https://project-ref.supabase.co',
+					},
+					fetch: authFetch,
+				},
+				verify_token: async () => ({
+					claims: createClaims(),
+					provider: 'supabase',
+					session: createSession(),
+					user: createUser(),
+				}),
+			},
+		});
+		serversToClose.push(server);
+
+		const port = await startListeningServer(server);
+		const wsTicket = await issueWebSocketTicket({
+			bearerToken: 'valid-token',
+			path: '/ws',
+			server,
+		});
+		const socket = await connectWebSocket(`ws://127.0.0.1:${port}/ws?ws_ticket=${wsTicket}`);
+		const readyMessage = await waitForSocketMessage(socket);
+		expect(readyMessage).toContain('"type":"connection.ready"');
+
+		const closePromise = waitForSocketClose(socket);
+		const logoutResponse = await server.inject({
+			headers: {
+				authorization: 'Bearer valid-token',
+			},
+			method: 'POST',
+			url: '/auth/logout',
+		});
+
+		expect(logoutResponse.statusCode).toBe(200);
+		await expect(closePromise).resolves.toMatchObject({
+			code: 1000,
+			reason: 'WebSocket session closed after logout.',
+		});
 	});
 
 	it('lists multiple authenticated desktop devices for the current user and clears only the disconnected snapshot', async () => {
@@ -1534,7 +1612,7 @@ describe('buildServer auth wiring', () => {
 		}
 	});
 
-	it('keeps configured conversation read failures as explicit persistence health failures', async () => {
+	it('keeps configured conversation read failures as an empty history response', async () => {
 		const originalDatabaseEnvironment = readConversationDatabaseEnvironment();
 		writeConversationDatabaseEnvironment({
 			DATABASE_TARGET: 'local',
@@ -1568,19 +1646,9 @@ describe('buildServer auth wiring', () => {
 				url: '/conversations',
 			});
 
-			expect(response.statusCode).toBe(500);
+			expect(response.statusCode).toBe(200);
 			expect(response.json()).toEqual({
-				code: 'CONVERSATION_PERSISTENCE_UNAVAILABLE',
-				error: 'Internal Server Error',
-				message:
-					'Conversation persistence is configured but unavailable. Check database target, selected URL source, connectivity, and schema bootstrap.',
-				operation: 'list_conversations',
-				persistence: {
-					database_url_source: 'DATABASE_URL',
-					target: 'local',
-					target_source: 'DATABASE_TARGET',
-				},
-				statusCode: 500,
+				conversations: [],
 			});
 		} finally {
 			writeConversationDatabaseEnvironment(originalDatabaseEnvironment);

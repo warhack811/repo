@@ -38,4 +38,12 @@ describe('redactPii', () => {
 			'https://app.runa.app/callback?access_token=[REDACTED]&state=ok&refresh_token=[REDACTED]#access_token=[REDACTED]',
 		);
 	});
+
+	it('redacts ws_ticket and workspace_id query parameters', () => {
+		expect(
+			redactPii(
+				'wss://app.runa.app/ws?ws_ticket=one-time-ticket&workspace_id=workspace_1&mode=desktop',
+			),
+		).toBe('wss://app.runa.app/ws?ws_ticket=[REDACTED]&workspace_id=[REDACTED]&mode=desktop');
+	});
 });

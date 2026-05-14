@@ -6,6 +6,7 @@ import {
 	createAuthContextFromVerification,
 	readBearerToken,
 } from '../auth/supabase-auth.js';
+import { type WebSocketTicketPath, WebSocketTicketError } from './ws-ticket.js';
 
 interface WebSocketHandshakeRequestLike {
 	readonly auth?: AuthContext;
@@ -24,7 +25,14 @@ interface WebSocketConnectionLike {
 }
 
 export interface VerifyWebSocketHandshakeInput {
+	readonly allow_query_access_token?: boolean;
+	readonly path: WebSocketTicketPath;
 	readonly request: WebSocketHandshakeRequestLike;
+	readonly resolve_ws_ticket_auth_context?: (input: {
+		readonly path: WebSocketTicketPath;
+		readonly request_id?: string;
+		readonly ticket: string;
+	}) => AuthContext;
 	readonly verify_token: AuthTokenVerifier;
 }
 
@@ -43,10 +51,15 @@ function getWebSocketRequestUrl(request: WebSocketHandshakeRequestLike): string 
 	return request.raw?.url ?? request.url;
 }
 
-function readHandshakeQueryToken(request: WebSocketHandshakeRequestLike): {
+interface ParsedHandshakeQueryValue {
+	readonly value?: string;
 	readonly status: 'malformed' | 'missing' | 'present';
-	readonly token?: string;
-} {
+}
+
+function readHandshakeQueryValue(
+	request: WebSocketHandshakeRequestLike,
+	queryKey: 'access_token' | 'ws_ticket',
+): ParsedHandshakeQueryValue {
 	const requestUrl = getWebSocketRequestUrl(request);
 
 	if (requestUrl === undefined) {
@@ -56,15 +69,15 @@ function readHandshakeQueryToken(request: WebSocketHandshakeRequestLike): {
 	}
 
 	const parsedUrl = new URL(requestUrl, 'http://localhost');
-	const accessToken = parsedUrl.searchParams.get('access_token');
+	const queryValue = parsedUrl.searchParams.get(queryKey);
 
-	if (accessToken === null) {
+	if (queryValue === null) {
 		return {
 			status: 'missing',
 		};
 	}
 
-	if (accessToken.trim() === '') {
+	if (queryValue.trim() === '') {
 		return {
 			status: 'malformed',
 		};
@@ -72,8 +85,49 @@ function readHandshakeQueryToken(request: WebSocketHandshakeRequestLike): {
 
 	return {
 		status: 'present',
-		token: accessToken,
+		value: queryValue,
 	};
+}
+
+function readHandshakeAccessTokenQuery(request: WebSocketHandshakeRequestLike): {
+	readonly status: 'malformed' | 'missing' | 'present';
+	readonly token?: string;
+} {
+	const parsedValue = readHandshakeQueryValue(request, 'access_token');
+
+	if (parsedValue.status === 'missing') {
+		return {
+			status: 'missing',
+		};
+	}
+
+	if (parsedValue.status === 'malformed') {
+		return {
+			status: 'malformed',
+		};
+	}
+
+	return {
+		status: 'present',
+		token: parsedValue.value,
+	};
+}
+
+function readHandshakeWebSocketTicket(request: WebSocketHandshakeRequestLike): ParsedHandshakeQueryValue {
+	return readHandshakeQueryValue(request, 'ws_ticket');
+}
+
+function throwFromWebSocketTicketError(error: WebSocketTicketError): never {
+	switch (error.code) {
+		case 'WS_TICKET_REUSED':
+			throw new SupabaseAuthError('SUPABASE_AUTH_INVALID_TOKEN', error.message);
+		case 'WS_TICKET_EXPIRED':
+			throw new SupabaseAuthError('SUPABASE_AUTH_INVALID_TOKEN', error.message);
+		case 'WS_TICKET_PATH_MISMATCH':
+			throw new SupabaseAuthError('SUPABASE_AUTH_INVALID_TOKEN', error.message);
+		default:
+			throw new SupabaseAuthError('SUPABASE_AUTH_INVALID_TOKEN', error.message);
+	}
 }
 
 function createWebSocketAuthContext(auth: AuthContext): AuthContext {
@@ -86,6 +140,9 @@ function createWebSocketAuthContext(auth: AuthContext): AuthContext {
 export async function verifyWebSocketHandshake(
 	input: VerifyWebSocketHandshakeInput,
 ): Promise<AuthContext> {
+	const parsedWebSocketTicket = readHandshakeWebSocketTicket(input.request);
+	const parsedQueryAccessToken = readHandshakeAccessTokenQuery(input.request);
+
 	const parsedHeaderToken = readBearerToken(
 		normalizeHeaderValue(input.request.headers.authorization),
 	);
@@ -97,15 +154,67 @@ export async function verifyWebSocketHandshake(
 		);
 	}
 
+	if (parsedWebSocketTicket.status === 'malformed') {
+		throw new SupabaseAuthError(
+			'SUPABASE_AUTH_INVALID_TOKEN',
+			'WebSocket ticket must be a non-empty string.',
+		);
+	}
+
+	if (parsedQueryAccessToken.status === 'malformed') {
+		throw new SupabaseAuthError(
+			'SUPABASE_AUTH_INVALID_TOKEN',
+			'WebSocket access token must be a non-empty string.',
+		);
+	}
+
+	if (
+		parsedWebSocketTicket.status === 'present' &&
+		parsedWebSocketTicket.value !== undefined &&
+		input.resolve_ws_ticket_auth_context
+	) {
+		try {
+			const ticketAuthContext = input.resolve_ws_ticket_auth_context({
+				path: input.path,
+				request_id: input.request.id,
+				ticket: parsedWebSocketTicket.value,
+			});
+
+			return createWebSocketAuthContext(ticketAuthContext);
+		} catch (error: unknown) {
+			if (error instanceof WebSocketTicketError) {
+				throwFromWebSocketTicketError(error);
+			}
+
+			if (error instanceof SupabaseAuthError) {
+				throw error;
+			}
+
+			throw new SupabaseAuthError(
+				'SUPABASE_AUTH_INVALID_TOKEN',
+				'WebSocket ticket validation failed.',
+			);
+		}
+	}
+
 	const parsedQueryToken =
-		parsedHeaderToken.status === 'missing'
-			? readHandshakeQueryToken(input.request)
-			: parsedHeaderToken;
+		parsedHeaderToken.status === 'missing' ? parsedQueryAccessToken : parsedHeaderToken;
 
 	if (parsedQueryToken.status === 'malformed') {
 		throw new SupabaseAuthError(
 			'SUPABASE_AUTH_INVALID_TOKEN',
 			'WebSocket access token must be a non-empty string.',
+		);
+	}
+
+	if (
+		parsedHeaderToken.status === 'missing' &&
+		parsedQueryToken.status === 'present' &&
+		input.allow_query_access_token !== true
+	) {
+		throw new SupabaseAuthError(
+			'SUPABASE_AUTH_INVALID_TOKEN',
+			'WebSocket query access_token is deprecated and disabled. Use ws_ticket or authenticated session context.',
 		);
 	}
 
@@ -119,7 +228,7 @@ export async function verifyWebSocketHandshake(
 
 		throw new SupabaseAuthError(
 			'SUPABASE_AUTH_REQUIRED',
-			'Authenticated WebSocket connection required.',
+			'Authenticated WebSocket connection required. Provide a valid ws_ticket or authenticated session context.',
 		);
 	}
 

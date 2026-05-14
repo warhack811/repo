@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -50,12 +50,18 @@ describe('useChatRuntime approval mode payload', () => {
 		vi.stubGlobal('WebSocket', MockWebSocket);
 	});
 
-	it('sends the selected approval mode in new run requests', () => {
+	it('sends the selected approval mode in new run requests', async () => {
 		render(<RuntimeHarness />);
+		await waitFor(() => {
+			expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+		});
 
 		fireEvent.click(screen.getByText('prepare'));
 		fireEvent.click(screen.getByText('submit'));
 
+		await waitFor(() => {
+			expect(MockWebSocket.instances[0]?.sentMessages[0]).toBeDefined();
+		});
 		const sentMessage = MockWebSocket.instances[0]?.sentMessages[0];
 
 		expect(sentMessage).toBeDefined();

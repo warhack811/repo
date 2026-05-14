@@ -247,6 +247,30 @@ async function fetchAuthContext(serverUrl, accessToken, label) {
 	};
 }
 
+async function requestWebSocketTicket(serverUrl, accessToken, path) {
+	const result = await fetchJson(
+		new URL('/auth/ws-ticket', serverUrl),
+		{
+			body: JSON.stringify({
+				path,
+			}),
+			headers: {
+				accept: 'application/json',
+				authorization: `Bearer ${accessToken}`,
+				'content-type': 'application/json',
+			},
+			method: 'POST',
+		},
+		`ws ticket ${path}`,
+	);
+
+	if (!result.ok || typeof result.payload?.ws_ticket !== 'string') {
+		throw new Error(`Failed to issue websocket ticket for ${path}.`);
+	}
+
+	return result.payload.ws_ticket;
+}
+
 async function listDevices(serverUrl, accessToken) {
 	const result = await fetchJson(
 		new URL('/desktop/devices', serverUrl),
@@ -388,7 +412,7 @@ async function waitForSocketMessage(socket, predicate, label) {
 
 async function openRuntimeSocket(serverUrl, accessToken) {
 	const wsUrl = toWebSocketUrl(serverUrl, '/ws');
-	wsUrl.searchParams.set('access_token', accessToken);
+	wsUrl.searchParams.set('ws_ticket', await requestWebSocketTicket(serverUrl, accessToken, '/ws'));
 	const socket = await openWebSocket(wsUrl);
 	await waitForSocketMessage(
 		socket,
@@ -400,7 +424,10 @@ async function openRuntimeSocket(serverUrl, accessToken) {
 
 async function openDesktopAgentSocket(serverUrl, accessToken, input) {
 	const wsUrl = toWebSocketUrl(serverUrl, '/ws/desktop-agent');
-	wsUrl.searchParams.set('access_token', accessToken);
+	wsUrl.searchParams.set(
+		'ws_ticket',
+		await requestWebSocketTicket(serverUrl, accessToken, '/ws/desktop-agent'),
+	);
 	const socket = await openWebSocket(wsUrl);
 	await waitForSocketMessage(
 		socket,
@@ -485,7 +512,7 @@ async function openDesktopAgentSocket(serverUrl, accessToken, input) {
 async function verifyInvalidTokenRejected(serverUrl, primaryAccessToken) {
 	const invalidAgentId = `${summary.agent_id}-invalid`;
 	const wsUrl = toWebSocketUrl(serverUrl, '/ws/desktop-agent');
-	wsUrl.searchParams.set('access_token', 'invalid.invalid.invalid');
+	wsUrl.searchParams.set('ws_ticket', 'invalid_ws_ticket');
 
 	let rejected = false;
 	try {

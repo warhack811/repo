@@ -60,7 +60,16 @@ const sensitiveKeys = new Set([
 	'servicekey',
 	'setcookie',
 	'token',
+	'workspaceid',
+	'wsticket',
 ]);
+
+const bearerTokenPattern = /\bBearer\s+[A-Za-z0-9._~+/=-]+/giu;
+const jwtPattern = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
+const sensitiveQueryTokenPattern =
+	/([?#&](?:access_token|refresh_token|authorization|api_key|apikey|secret|token|ws_ticket|workspace_id)=)[^&#\s"]+/giu;
+const sensitiveFragmentTokenPattern =
+	/(#(?:access_token|refresh_token|authorization|api_key|apikey|secret|token|ws_ticket|workspace_id)=)[^&#\s"]+/giu;
 
 function isSensitiveKey(key: string): boolean {
 	const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/gu, '');
@@ -74,9 +83,17 @@ function isSensitiveKey(key: string): boolean {
 
 function serializeError(error: Error): LogContextValue {
 	return {
-		error_message: error.message,
+		error_message: sanitizeString(error.message),
 		error_name: error.name,
 	};
+}
+
+function sanitizeString(value: string): string {
+	return value
+		.replace(bearerTokenPattern, 'Bearer [REDACTED]')
+		.replace(jwtPattern, '[REDACTED_JWT]')
+		.replace(sensitiveQueryTokenPattern, '$1[REDACTED]')
+		.replace(sensitiveFragmentTokenPattern, '$1[REDACTED]');
 }
 
 function sanitizeValue(
@@ -97,7 +114,7 @@ function sanitizeValue(
 	}
 
 	if (typeof value === 'string') {
-		return value;
+		return sanitizeString(value);
 	}
 
 	if (value instanceof Error) {

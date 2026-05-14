@@ -20,6 +20,13 @@ export interface FetchAuthContextInput {
 	readonly signal?: AbortSignal;
 }
 
+export interface WebSocketTicketResponse {
+	readonly expires_at: string;
+	readonly expires_in_seconds: number;
+	readonly path: '/ws' | '/ws/desktop-agent';
+	readonly ws_ticket: string;
+}
+
 export interface OAuthRedirectErrorResult {
 	readonly message: string;
 	readonly status: 'error';
@@ -82,6 +89,13 @@ interface SessionTokensCandidate {
 	readonly expires_in?: unknown;
 	readonly refresh_token?: unknown;
 	readonly token_type?: unknown;
+}
+
+interface WebSocketTicketResponseCandidate {
+	readonly expires_at?: unknown;
+	readonly expires_in_seconds?: unknown;
+	readonly path?: unknown;
+	readonly ws_ticket?: unknown;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -223,6 +237,21 @@ function isAuthLogoutResponse(value: unknown): value is AuthLogoutResponse {
 	);
 }
 
+function isWebSocketTicketResponse(value: unknown): value is WebSocketTicketResponse {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as WebSocketTicketResponseCandidate;
+
+	return (
+		typeof candidate.expires_at === 'string' &&
+		typeof candidate.expires_in_seconds === 'number' &&
+		(candidate.path === '/ws' || candidate.path === '/ws/desktop-agent') &&
+		typeof candidate.ws_ticket === 'string'
+	);
+}
+
 function resolveSessionStorage(): Storage | null {
 	if (typeof window === 'undefined') {
 		return null;
@@ -254,7 +283,7 @@ export function formatAuthErrorMessage(message: string, status?: number): string
 		lowerMessage.includes('invalid login credentials') ||
 		lowerMessage.includes('invalid credentials')
 	) {
-		return 'E-posta veya ÅŸifre hatalÄ±. Bilgileri kontrol et; yerel geliÅŸtirme yapÄ±yorsan deneme oturumunu da baÅŸlatabilirsin.';
+		return 'E-posta veya şifre hatalı. Bilgileri kontrol et; yerel geliştirme yapıyorsan deneme oturumunu da başlatabilirsin.';
 	}
 
 	if (
@@ -268,13 +297,13 @@ export function formatAuthErrorMessage(message: string, status?: number): string
 		lowerMessage.includes('failed to fetch') ||
 		lowerMessage.includes('networkerror')
 	) {
-		return 'Kimlik doÄŸrulama servisine ÅŸu an ulaÅŸÄ±lamÄ±yor. Biraz sonra tekrar dene; yerel geliÅŸtirme yapÄ±yorsan deneme oturumunu baÅŸlatabilirsin.';
+		return 'Kimlik doğrulama servisine şu an ulaşılamıyor. Biraz sonra tekrar dene; yerel geliştirme yapıyorsan deneme oturumunu başlatabilirsin.';
 	}
 
 	if (normalizedMessage.length === 0) {
 		return status
-			? `Kimlik doÄŸrulama isteÄŸi ${status} durumuyla baÅŸarÄ±sÄ±z oldu.`
-			: 'Kimlik doÄŸrulama isteÄŸi baÅŸarÄ±sÄ±z oldu.';
+			? `Kimlik doğrulama isteği ${status} durumuyla başarısız oldu.`
+			: 'Kimlik doğrulama isteği başarısız oldu.';
 	}
 
 	return normalizedMessage;
@@ -404,7 +433,7 @@ export async function loginWithPassword(
 		method: 'POST',
 		pathname: '/auth/login',
 		validate: isAuthPasswordActionResponse,
-		validationErrorMessage: 'Desteklenmeyen login yanÄ±tÄ±.',
+		validationErrorMessage: 'Desteklenmeyen login yanıtı.',
 	});
 
 	return parsed as AuthPasswordActionResponse;
@@ -421,7 +450,7 @@ export async function signupWithPassword(
 		method: 'POST',
 		pathname: '/auth/signup',
 		validate: isAuthPasswordActionResponse,
-		validationErrorMessage: 'Desteklenmeyen signup yanÄ±tÄ±.',
+		validationErrorMessage: 'Desteklenmeyen signup yanıtı.',
 	});
 
 	return parsed as AuthPasswordActionResponse;
@@ -433,10 +462,30 @@ export async function logout(bearerToken?: string): Promise<AuthLogoutResponse> 
 		method: 'POST',
 		pathname: '/auth/logout',
 		validate: isAuthLogoutResponse,
-		validationErrorMessage: 'Desteklenmeyen logout yanÄ±tÄ±.',
+		validationErrorMessage: 'Desteklenmeyen logout yanıtı.',
 	});
 
 	return parsed as AuthLogoutResponse;
+}
+
+export async function requestWebSocketTicket(input: {
+	readonly bearerToken: string;
+	readonly path: '/ws' | '/ws/desktop-agent';
+	readonly signal?: AbortSignal;
+}): Promise<WebSocketTicketResponse> {
+	const parsed = await requestAuthJson({
+		bearerToken: input.bearerToken,
+		body: {
+			path: input.path,
+		},
+		method: 'POST',
+		pathname: '/auth/ws-ticket',
+		signal: input.signal,
+		validate: isWebSocketTicketResponse,
+		validationErrorMessage: 'Desteklenmeyen websocket ticket yaniti.',
+	});
+
+	return parsed as WebSocketTicketResponse;
 }
 
 export function buildOAuthStartPath(provider: OAuthProvider, redirectTo?: string): string {
@@ -504,7 +553,7 @@ export function consumeOAuthRedirectResult(): OAuthRedirectResult {
 	if (authErrorDescription || authError) {
 		clearWindowHash();
 		return {
-			message: authErrorDescription ?? authError ?? 'OAuth ile giriÅŸ baÅŸarÄ±sÄ±z oldu.',
+			message: authErrorDescription ?? authError ?? 'OAuth ile giriş başarısız oldu.',
 			status: 'error',
 		};
 	}
@@ -541,7 +590,7 @@ export async function fetchAuthContext(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isAuthContextResponse(parsed)) {
-		throw new Error('Desteklenmeyen auth context yanÄ±tÄ±.');
+		throw new Error('Desteklenmeyen auth context yanıtı.');
 	}
 
 	return parsed;

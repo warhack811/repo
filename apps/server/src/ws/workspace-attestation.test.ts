@@ -17,7 +17,7 @@ describe('workspace attestation', () => {
 	it('allows websocket handshakes when workspace attestation query is missing', () => {
 		const validation = validateWorkspaceAttestation(
 			{
-				url: '/ws?access_token=test-token',
+				url: '/ws?ws_ticket=test-ticket',
 			},
 			'workspace-id',
 		);
@@ -28,7 +28,7 @@ describe('workspace attestation', () => {
 	it('rejects websocket handshakes when workspace attestation query mismatches', () => {
 		const validation = validateWorkspaceAttestation(
 			{
-				url: '/ws?access_token=test-token&workspace_id=wrong-id',
+				url: '/ws?ws_ticket=test-ticket&workspace_id=wrong-id',
 			},
 			'expected-id',
 		);

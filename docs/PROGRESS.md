@@ -587,3 +587,40 @@
 - Kritik bulgu basliklari: run bilgisi tekrarli render yuzeyleri, teknik/debug dilin user-facing akis riskleri, card-in-card yogunlugu ureten CSS module seams, mobile sticky/fixed katmanlar arasinda overlap riski.
 - Sonuc: Yalniz plan/audit tamamlandi; implementasyon degisikligi yapilmadi.
 
+### TASK-WS-AUTH-TRANSPORT-HARDENING-01 - 14 Mayis 2026
+
+- Kapsam: WebSocket auth transport hardening tamamlandi; hedef sadece warning temizligi degil, gercek bearer/Supabase JWT'nin URL query, browser/network URL ve log yuzeylerinden kaldirilmasiydi.
+- Guvenlik modeli:
+  - Browser runtime artik `access_token` ile WS URL kurmuyor; `/auth/ws-ticket` uzerinden kisa omurlu, tek kullanimlik, path-bound `ws_ticket` alip WS'e bununla baglaniyor.
+  - Server default/prod davranista query `?access_token=` reddediyor; sadece explicit backward-compat flag (`RUNA_WS_ALLOW_QUERY_ACCESS_TOKEN=1`) aciksa legacy path kabul ediliyor.
+  - `ws_ticket` modeli: TTL clamp (30-60s), one-time consume, path audience ayrimi (`/ws` vs `/ws/desktop-agent`), digest/hash tabanli saklama, reuse/expired/path mismatch rejection.
+  - `/ws` ve `/ws/desktop-agent` handshake'lerinde ticket resolver wiring aktif.
+  - Origin ve transport guvenligi: exact origin allowlist + production secure transport enforcement (localhost/dev explicit istisna).
+  - Logout sonrasi aktif WS session kapatma (session registry invalidation) aktif.
+  - Logger redaction katmani genisletildi: `access_token`, `refresh_token`, `ws_ticket`, bearer/jwt pattern ve query/hash secret alanlari maskeleniyor.
+- Lifecycle/root-cause:
+  - `useChatRuntime` WS lifecycle'i reconnect/attempt id + stale event ignore + controlled CONNECTING close ile merkezi hale getirildi.
+  - Ticket fetch abort/cancel ve stale socket event izolasyonu eklendi; hizli navigation churn'de beklenmeyen close path'leri kontrol altina alindi.
+- Degisen ana dosyalar:
+  - Server: `apps/server/src/ws/ws-ticket.ts`, `apps/server/src/ws/ws-session-registry.ts`, `apps/server/src/ws/ws-security.ts`, `apps/server/src/ws/ws-auth.ts`, `apps/server/src/ws/register-ws.ts`, `apps/server/src/routes/auth.ts`, `apps/server/src/app.ts`, `apps/server/src/utils/logger.ts` ve ilgili test dosyalari.
+  - Web: `apps/web/src/lib/ws-client.ts`, `apps/web/src/lib/auth-client.ts`, `apps/web/src/hooks/useChatRuntime.ts`, `apps/web/src/lib/ws-client.test.ts`, `apps/web/src/hooks/useChatRuntime.approval.test.tsx`, `apps/web/src/hooks/useChatRuntime.narration.test.tsx`.
+  - Desktop/smoke: `apps/desktop-agent/src/auth.ts`, `apps/desktop-agent/src/ws-bridge.ts`, `apps/desktop-agent/src/session.ts`, `apps/desktop-agent/src/logger.ts`, smoke scriptleri (`live-auth-companion-smoke.mjs`, `packaged-runtime-smoke.mjs`) ve E2E harness `e2e/serve-runa-e2e.mjs`, yeni `e2e/ws-auth-transport-hardening.spec.ts`.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server test -- ws-auth.test.js ws-subscription-gate.test.js ws-ticket.test.js ws-security.test.js workspace-attestation.test.js logger.test.js app.test.js` PASS (`7` dosya / `71` test)
+  - `pnpm.cmd --filter @runa/web test -- src/lib/ws-client.test.ts src/hooks/useChatRuntime.approval.test.tsx src/hooks/useChatRuntime.narration.test.tsx` PASS (`3` dosya / `8` test)
+  - `pnpm.cmd exec playwright test e2e/ws-auth-transport-hardening.spec.ts --config playwright.config.ts --project=chromium --workers=1` PASS (`1` test)
+    - Senaryo: login bootstrap + hizli route gecisleri (`/history`, `/settings`, `/devices`, `/chat`) + chat send.
+    - Assertion: runtime WS URL'lerinde `access_token`/`refresh_token` yok, `/ws` baglantilarinda `ws_ticket` var; `pageErrors=[]`, `badResponses=[]`, warning signal yok.
+  - `pnpm.cmd --filter @runa/desktop-agent test` PASS (`14` dosya / `35` test)
+  - `pnpm.cmd --filter @runa/desktop-agent dist:win` PASS
+  - `pnpm.cmd --filter @runa/desktop-agent smoke:packaged` PASS (`DESKTOP_PACKAGED_RUNTIME_SMOKE_SUMMARY`)
+  - `pnpm.cmd --filter @runa/desktop-agent smoke:live-auth` BLOCKED (beklenen: canli environment credential eksik; summary'de `missing_env` ve `status=blocked` acik)
+- Deprecated/backward-compat notu:
+  - Legacy query-token yolu sadece explicit flag ile acilabilir, default kapali ve deprecated.
+- Kalan risk:
+  - Kod ve local/package smoke seviyesinde kalan kritik risk gorulmedi.
+  - Gercek staging/production credential ile `smoke:live-auth` yeniden kosulmadan canli ortam kaniti tamamlanmis sayilmaz (operasyonel/environment blocker).
+

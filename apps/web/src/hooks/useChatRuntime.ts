@@ -3,6 +3,7 @@ import type { ModelAttachment, ModelMessage } from '@runa/types';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { requestWebSocketTicket } from '../lib/auth-client.js';
 import { toSortedStringArray } from '../lib/chat-runtime/collections.js';
 import {
 	countInspectionRequestsForRun,
@@ -579,6 +580,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		let isDisposed = false;
 		let activeSocket: WebSocket | null = null;
 		let reconnectAttemptCount = 0;
+		let socketConnectionAttemptId = 0;
+		let wsTicketFetchController: AbortController | null = null;
 
 		function clearReconnectTimer(): void {
 			if (reconnectTimerRef.current === null) {
@@ -651,7 +654,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			}));
 			reconnectTimerRef.current = window.setTimeout(
 				() => {
-					connectSocket();
+					void connectSocket();
 				},
 				Math.min(1000 * reconnectAttemptCount, 4000),
 			);
@@ -672,7 +675,67 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			}));
 		}
 
-		function connectSocket(): void {
+		function closeSocketGracefully(
+			socket: WebSocket | null,
+			input: Readonly<{
+				readonly code: number;
+				readonly reason: string;
+			}> = {
+				code: 1000,
+				reason: 'Chat runtime reconnecting.',
+			},
+		): void {
+			if (!socket) {
+				return;
+			}
+
+			if (socket.readyState === WebSocket.CONNECTING) {
+				socket.addEventListener(
+					'open',
+					() => {
+						socket.close(input.code, input.reason);
+					},
+					{ once: true },
+				);
+				return;
+			}
+
+			if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CLOSING) {
+				socket.close(input.code, input.reason);
+			}
+		}
+
+		async function resolveRuntimeWebSocketTicket(): Promise<string | undefined> {
+			const normalizedAccessToken = accessToken?.trim();
+
+			if (!normalizedAccessToken) {
+				return undefined;
+			}
+
+			const controller = new AbortController();
+			wsTicketFetchController?.abort();
+			wsTicketFetchController = controller;
+
+			try {
+				const response = await requestWebSocketTicket({
+					bearerToken: normalizedAccessToken,
+					path: '/ws',
+					signal: controller.signal,
+				});
+
+				if (isDisposed || wsTicketFetchController !== controller) {
+					return undefined;
+				}
+
+				return response.ws_ticket;
+			} finally {
+				if (wsTicketFetchController === controller) {
+					wsTicketFetchController = null;
+				}
+			}
+		}
+
+		async function connectSocket(): Promise<void> {
 			if (isDisposed) {
 				return;
 			}
@@ -682,7 +745,37 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 				...currentConnectionState,
 				connectionStatus: 'connecting',
 			}));
-			const socket = new WebSocket(createWebSocketUrl(accessToken));
+			const attemptId = socketConnectionAttemptId + 1;
+			socketConnectionAttemptId = attemptId;
+			let websocketTicket: string | undefined;
+
+			try {
+				websocketTicket = await resolveRuntimeWebSocketTicket();
+			} catch (error: unknown) {
+				if (isDisposed || attemptId !== socketConnectionAttemptId) {
+					return;
+				}
+
+				const errorMessage =
+					error instanceof Error
+						? error.message
+						: 'WebSocket authentication ticket could not be created.';
+				chatStore.setConnectionState((currentConnectionState) => ({
+					...currentConnectionState,
+					connectionStatus: 'error',
+					lastError: errorMessage,
+					transportErrorCode: 'server-error',
+				}));
+				reportTransportErrorMetric('server-error');
+				scheduleReconnect(errorMessage, 'server-error');
+				return;
+			}
+
+			if (isDisposed || attemptId !== socketConnectionAttemptId) {
+				return;
+			}
+
+			const socket = new WebSocket(createWebSocketUrl(websocketTicket));
 			activeSocket = socket;
 			socketRef.current = socket;
 
@@ -1029,7 +1122,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								...currentConnectionState,
 								isSubmitting: false,
 								lastError:
-									parsedMessage.payload.final_state === 'FAILED' ? (parsedMessage.payload.error_message ?? 'Çalışma hata ile bitti.')
+									parsedMessage.payload.final_state === 'FAILED'
+										? (parsedMessage.payload.error_message ?? 'Çalışma hata ile bitti.')
 										: null,
 							}));
 							chatStore.setPresentationState((currentPresentationState) => ({
@@ -1092,8 +1186,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			const socketToClose = activeSocket;
 			activeSocket = null;
 			socketRef.current = null;
-			socketToClose?.close();
-			connectSocket();
+			closeSocketGracefully(socketToClose);
+			void connectSocket();
 
 			const isSubmittingNow = chatStore.getState().connection.isSubmitting;
 			if (isSubmittingNow) {
@@ -1146,14 +1240,19 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 
 		window.addEventListener('offline', handleBrowserOffline);
 		window.addEventListener('online', handleBrowserOnline);
-		connectSocket();
+		void connectSocket();
 
 		return () => {
 			isDisposed = true;
+			wsTicketFetchController?.abort();
+			wsTicketFetchController = null;
 			window.removeEventListener('offline', handleBrowserOffline);
 			window.removeEventListener('online', handleBrowserOnline);
 			clearReconnectTimer();
-			activeSocket?.close();
+			closeSocketGracefully(activeSocket, {
+				code: 1000,
+				reason: 'Chat runtime unmounted.',
+			});
 			socketRef.current = null;
 			reconnectNowRef.current = () => undefined;
 		};
@@ -1620,4 +1719,3 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		],
 	);
 }
-

@@ -8,6 +8,7 @@ import type { AuthTokenVerifier } from '../auth/supabase-auth.js';
 import type { SupabaseAuthError } from '../auth/supabase-auth.js';
 import type { SubscriptionContextResolver } from '../policy/subscription-context.js';
 import type { WebSocketServerBridgeMessage } from './messages.js';
+import { createWebSocketTicketService } from './ws-ticket.js';
 
 import {
 	WEBSOCKET_AUTH_CLOSE_CODE,
@@ -179,6 +180,27 @@ async function startWebSocketServer(
 	};
 }
 
+async function issueWebSocketTicket(input: {
+	readonly bearerToken: string;
+	readonly path: '/ws' | '/ws/desktop-agent';
+	readonly server: FastifyInstance;
+}): Promise<string> {
+	const response = await input.server.inject({
+		headers: {
+			authorization: `Bearer ${input.bearerToken}`,
+			'content-type': 'application/json',
+		},
+		method: 'POST',
+		payload: {
+			path: input.path,
+		},
+		url: '/auth/ws-ticket',
+	});
+
+	expect(response.statusCode).toBe(200);
+	return response.json().ws_ticket as string;
+}
+
 async function connectWebSocket(url: string): Promise<WebSocket> {
 	return await new Promise((resolve, reject) => {
 		const socket = new WebSocket(url);
@@ -232,6 +254,7 @@ describe('verifyWebSocketHandshake', () => {
 		const verifyToken = vi.fn<AuthTokenVerifier>();
 
 		const result = await verifyWebSocketHandshake({
+			path: '/ws',
 			request: {
 				auth: createAuthenticatedHttpAuthContext(),
 				headers: {},
@@ -251,6 +274,7 @@ describe('verifyWebSocketHandshake', () => {
 			.mockResolvedValue(createAuthVerificationResult());
 
 		const result = await verifyWebSocketHandshake({
+			path: '/ws',
 			request: {
 				auth: {
 					bearer_token_present: false,
@@ -279,59 +303,78 @@ describe('verifyWebSocketHandshake', () => {
 		expect(result.principal.kind).toBe('authenticated');
 	});
 
-	it('supports access_token query fallback for browser-compatible handshakes', async () => {
+	it('accepts one-time ws_ticket query authentication', async () => {
+		const verifyToken = vi.fn<AuthTokenVerifier>();
+		const wsTicketService = createWebSocketTicketService({
+			now: () => 1_700_000_000_000,
+			ttl_seconds: 45,
+		});
+		const issuedTicket = wsTicketService.issue({
+			auth: createAuthenticatedHttpAuthContext(),
+			path: '/ws',
+			request_id: 'req_ws_ticket_issue_1',
+		});
+
+		const result = await verifyWebSocketHandshake({
+			path: '/ws',
+			request: {
+				headers: {},
+				id: 'req_ws_ticket_1',
+				url: `/ws?ws_ticket=${issuedTicket.ws_ticket}`,
+			},
+			resolve_ws_ticket_auth_context: wsTicketService.consume,
+			verify_token: verifyToken,
+		});
+
+		expect(verifyToken).not.toHaveBeenCalled();
+		expect(result.transport).toBe('websocket');
+		expect(result.principal.kind).toBe('authenticated');
+	});
+
+	it('rejects deprecated query access_token on default secure path', async () => {
+		await expect(
+			verifyWebSocketHandshake({
+				path: '/ws',
+				request: {
+					headers: {},
+					id: 'req_ws_query_access_token_reject_1',
+					url: '/ws?access_token=query-token',
+				},
+				verify_token: async () => createAuthVerificationResult(),
+			}),
+		).rejects.toMatchObject({
+			code: 'SUPABASE_AUTH_INVALID_TOKEN',
+			statusCode: 401,
+		} satisfies Partial<SupabaseAuthError>);
+	});
+
+	it('keeps deprecated query access_token behind explicit compatibility flag', async () => {
 		const verifyToken = vi
 			.fn<AuthTokenVerifier>()
 			.mockResolvedValue(createAuthVerificationResult());
 
 		const result = await verifyWebSocketHandshake({
+			allow_query_access_token: true,
+			path: '/ws',
 			request: {
 				headers: {},
-				id: 'req_ws_query_1',
-				url: '/ws?access_token=query-token',
+				id: 'req_ws_query_compat_1',
+				url: '/ws?access_token=query-token-compat',
 			},
 			verify_token: verifyToken,
 		});
 
-		expect(verifyToken).toHaveBeenCalledWith({
-			request_id: 'req_ws_query_1',
-			token: 'query-token',
-		});
 		expect(result.transport).toBe('websocket');
-	});
-
-	it('verifies an explicit websocket query token instead of reusing a pre-authenticated request context', async () => {
-		const verifyToken = vi.fn<AuthTokenVerifier>().mockResolvedValue({
-			claims: createClaims({ sub: 'user_2' }),
-			provider: 'supabase' as const,
-			session: createSession({ session_id: 'session_2', user_id: 'user_2' }),
-			user: createUser({ user_id: 'user_2' }),
-		});
-
-		const result = await verifyWebSocketHandshake({
-			request: {
-				auth: createAuthenticatedHttpAuthContext(),
-				headers: {},
-				id: 'req_ws_query_overrides_auth_1',
-				url: '/ws?access_token=query-token-user-2',
-			},
-			verify_token: verifyToken,
-		});
-
 		expect(verifyToken).toHaveBeenCalledWith({
-			request_id: 'req_ws_query_overrides_auth_1',
-			token: 'query-token-user-2',
+			request_id: 'req_ws_query_compat_1',
+			token: 'query-token-compat',
 		});
-		expect(result.transport).toBe('websocket');
-		expect(result.principal.kind).toBe('authenticated');
-		if (result.principal.kind === 'authenticated') {
-			expect(result.principal.user_id).toBe('user_2');
-		}
 	});
 
 	it('rejects missing websocket auth tokens with a required-auth error', async () => {
 		await expect(
 			verifyWebSocketHandshake({
+				path: '/ws',
 				request: {
 					headers: {},
 					id: 'req_ws_missing_1',
@@ -348,6 +391,7 @@ describe('verifyWebSocketHandshake', () => {
 	it('rejects malformed authorization headers and invalid verified tokens', async () => {
 		await expect(
 			verifyWebSocketHandshake({
+				path: '/ws',
 				request: {
 					headers: {
 						authorization: 'Token malformed',
@@ -362,14 +406,16 @@ describe('verifyWebSocketHandshake', () => {
 
 		await expect(
 			verifyWebSocketHandshake({
+				path: '/ws',
 				request: {
 					headers: {},
 					id: 'req_ws_invalid_1',
-					url: '/ws?access_token=expired-token',
+					url: '/ws?ws_ticket=invalid-ticket',
 				},
-				verify_token: async () => {
-					throw new Error('jwt expired');
+				resolve_ws_ticket_auth_context: () => {
+					throw new Error('ticket invalid');
 				},
+				verify_token: async () => createAuthVerificationResult(),
 			}),
 		).rejects.toMatchObject({
 			code: 'SUPABASE_AUTH_INVALID_TOKEN',
@@ -391,8 +437,13 @@ describe('rejectWebSocketConnection', () => {
 
 describe('websocket auth integration', () => {
 	it('accepts valid JWT handshakes and emits connection.ready', async () => {
-		const { wsUrl } = await startWebSocketServer(async () => createAuthVerificationResult());
-		const socket = await connectWebSocket(`${wsUrl}?access_token=valid-token`);
+		const { server, wsUrl } = await startWebSocketServer(async () => createAuthVerificationResult());
+		const wsTicket = await issueWebSocketTicket({
+			bearerToken: 'valid-token',
+			path: '/ws',
+			server,
+		});
+		const socket = await connectWebSocket(`${wsUrl}?ws_ticket=${wsTicket}`);
 
 		const readyMessage = await waitForServerMessage(socket);
 
@@ -407,25 +458,19 @@ describe('websocket auth integration', () => {
 	});
 
 	it('rejects missing and invalid JWT handshakes before connection.ready', async () => {
-		const { wsUrl } = await startWebSocketServer(async ({ token }) => {
-			if (token === 'invalid-token') {
-				throw new Error('jwt expired');
-			}
-
-			return createAuthVerificationResult();
-		});
+		const { wsUrl } = await startWebSocketServer(async () => createAuthVerificationResult());
 
 		const missingTokenSocket = await connectWebSocket(wsUrl);
 		const missingTokenClose = await waitForSocketClose(missingTokenSocket);
 
 		expect(missingTokenClose.code).toBe(WEBSOCKET_AUTH_CLOSE_CODE);
-		expect(missingTokenClose.reason).toBe('Authenticated WebSocket connection required.');
+		expect(missingTokenClose.reason).toContain('Authenticated WebSocket connection required.');
 
-		const invalidTokenSocket = await connectWebSocket(`${wsUrl}?access_token=invalid-token`);
+		const invalidTokenSocket = await connectWebSocket(`${wsUrl}?ws_ticket=invalid-ticket`);
 		const invalidTokenClose = await waitForSocketClose(invalidTokenSocket);
 
 		expect(invalidTokenClose.code).toBe(WEBSOCKET_AUTH_CLOSE_CODE);
-		expect(invalidTokenClose.reason).toBe('Invalid or expired bearer token.');
+		expect(invalidTokenClose.reason).toBe('WebSocket ticket is invalid.');
 	});
 
 	it('rejects missing desktop-agent websocket auth before the desktop bridge handshake starts', async () => {
@@ -434,6 +479,6 @@ describe('websocket auth integration', () => {
 		const closeResult = await waitForSocketClose(desktopAgentSocket);
 
 		expect(closeResult.code).toBe(WEBSOCKET_AUTH_CLOSE_CODE);
-		expect(closeResult.reason).toBe('Authenticated WebSocket connection required.');
+		expect(closeResult.reason).toContain('Authenticated WebSocket connection required.');
 	});
 });

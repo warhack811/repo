@@ -59,14 +59,30 @@ function RuntimeHarness(): ReactElement {
 	);
 }
 
-function submitRunAndResolveIds(): { readonly runId: string; readonly socket: MockWebSocket } {
+async function submitRunAndResolveIds(): Promise<{
+	readonly runId: string;
+	readonly socket: MockWebSocket;
+}> {
+	await waitFor(() => {
+		expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+	});
+
 	fireEvent.click(screen.getByText('prepare'));
 	fireEvent.click(screen.getByText('submit'));
 
-	const socket = MockWebSocket.instances[0];
-	const sentMessage = socket?.sentMessages[0];
+	await waitFor(() => {
+		expect(MockWebSocket.instances[0]?.sentMessages[0]).toBeDefined();
+	});
 
-	if (!socket || !sentMessage) {
+	const socket = MockWebSocket.instances[0];
+
+	if (!socket) {
+		throw new Error('Expected an initialized websocket instance.');
+	}
+
+	const sentMessage = socket.sentMessages[0];
+
+	if (!sentMessage) {
 		throw new Error('Expected a submitted run request.');
 	}
 
@@ -117,7 +133,7 @@ describe('useChatRuntime narration streaming state', () => {
 
 	it('appends narration.delta chunks into one live work_narration block', async () => {
 		render(<RuntimeHarness />);
-		const { runId, socket } = submitRunAndResolveIds();
+		const { runId, socket } = await submitRunAndResolveIds();
 
 		socket.emitMessage(
 			createNarrationDelta({
@@ -165,7 +181,7 @@ describe('useChatRuntime narration streaming state', () => {
 
 	it('finalizes narration.completed without duplicating the narration block', async () => {
 		render(<RuntimeHarness />);
-		const { runId, socket } = submitRunAndResolveIds();
+		const { runId, socket } = await submitRunAndResolveIds();
 
 		socket.emitMessage(
 			createNarrationDelta({
@@ -177,7 +193,7 @@ describe('useChatRuntime narration streaming state', () => {
 		);
 		socket.emitMessage({
 			payload: {
-				full_text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
+				full_text: 'package.json dosyasını kontrol ediyorum.',
 				linked_tool_call_id: 'call_read',
 				narration_id: 'narration_001',
 				run_id: runId,
@@ -198,7 +214,7 @@ describe('useChatRuntime narration streaming state', () => {
 			payload: {
 				linked_tool_call_id: 'call_read',
 				status: 'completed',
-				text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
+				text: 'package.json dosyasını kontrol ediyorum.',
 			},
 			type: 'work_narration',
 		});
@@ -206,14 +222,14 @@ describe('useChatRuntime narration streaming state', () => {
 
 	it('marks narration.superseded for the renderer to collapse', async () => {
 		render(<RuntimeHarness />);
-		const { runId, socket } = submitRunAndResolveIds();
+		const { runId, socket } = await submitRunAndResolveIds();
 
 		socket.emitMessage(
 			createNarrationDelta({
 				narrationId: 'narration_001',
 				runId,
 				sequenceNo: 1,
-				textDelta: 'eski anlatÄ±m',
+				textDelta: 'eski anlat?m',
 			}),
 		);
 		socket.emitMessage({
@@ -232,7 +248,7 @@ describe('useChatRuntime narration streaming state', () => {
 
 	it('keeps simultaneous narration ids separated', async () => {
 		render(<RuntimeHarness />);
-		const { runId, socket } = submitRunAndResolveIds();
+		const { runId, socket } = await submitRunAndResolveIds();
 
 		socket.emitMessage(
 			createNarrationDelta({
@@ -265,7 +281,7 @@ describe('useChatRuntime narration streaming state', () => {
 
 	it('keeps legacy text.delta separate from narration blocks', async () => {
 		render(<RuntimeHarness />);
-		const { runId, socket } = submitRunAndResolveIds();
+		const { runId, socket } = await submitRunAndResolveIds();
 
 		socket.emitMessage({
 			payload: {
