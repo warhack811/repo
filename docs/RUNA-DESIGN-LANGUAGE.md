@@ -53,6 +53,17 @@ Button treatment must stay risk-aware and visually distinct from standard send/c
 
 Frontend must consume server-provided Turkish user labels through `user_label_tr` and should not hardcode alternative labels where server contract exists.
 
+## Settings Information Architecture
+
+Settings is organized into 5 tabs:
+- **appearance** - Theme, brand palette, typography preference
+- **conversation** - Approval mode, voice defaults, runtime preferences
+- **notifications** - Language, quiet hours, data retention
+- **privacy** - Active root, working directory, directory refresh controls
+- **advanced** - Advanced view toggle and developer-oriented options
+
+The original PR-7 3-tab plan was expanded to 5 tabs. This section is the authority for Settings IA.
+
 ## Mobile and Keyboard Behavior
 
 - Composer must remain reachable with safe-area aware spacing.

@@ -1,4 +1,4 @@
-import type { AuthContext } from '@runa/types';
+﻿import type { AuthContext } from '@runa/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -133,7 +133,7 @@ describe('operator/developer hard isolation', () => {
 		);
 
 		expect(markup).toContain('Hesap');
-		expect(markup).toContain('Appearance');
+		expect(markup).toContain('Görünüm');
 		expect(markup).not.toContain('Developer Mode');
 		expect(markup).not.toContain('/developer');
 		expect(markup).not.toContain('Project Memory');

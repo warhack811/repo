@@ -69,11 +69,11 @@ const approvalModeOptions: readonly {
 ];
 
 const tabs: readonly { id: SettingsTab; label: string }[] = [
-	{ id: 'appearance', label: 'Appearance' },
-	{ id: 'conversation', label: 'Conversation' },
-	{ id: 'notifications', label: 'Notifications' },
-	{ id: 'privacy', label: 'Privacy' },
-	{ id: 'advanced', label: 'Advanced' },
+	{ id: 'appearance', label: 'Görünüm' },
+	{ id: 'conversation', label: 'Sohbet' },
+	{ id: 'notifications', label: 'Bildirimler' },
+	{ id: 'privacy', label: 'Gizlilik' },
+	{ id: 'advanced', label: 'Gelişmiş' },
 ];
 
 function parseSettingsTab(value: string | null): SettingsTab {

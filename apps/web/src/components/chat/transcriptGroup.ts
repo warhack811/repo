@@ -17,11 +17,11 @@ function getDayDividerLabel(messageDate: Date, now: Date): string {
 	const messageDay = startOfDay(messageDate).getTime();
 
 	if (messageDay === today.getTime()) {
-		return 'Bugun';
+		return 'Bugün';
 	}
 
 	if (messageDay === yesterday.getTime()) {
-		return 'Dun';
+		return 'Dün';
 	}
 
 	return messageDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });

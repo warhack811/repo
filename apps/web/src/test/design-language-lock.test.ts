@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +24,25 @@ const useChatRuntimePath = join(webSrcRoot, 'hooks', 'useChatRuntime.ts');
 const uiIndexPath = join(webSrcRoot, 'components', 'ui', 'index.ts');
 const skipToContentPath = join(webSrcRoot, 'components', 'ui', 'SkipToContent.tsx');
 const useVisualViewportPath = join(webSrcRoot, 'hooks', 'useVisualViewport.ts');
+const persistedTranscriptPath = join(webSrcRoot, 'components', 'chat', 'PersistedTranscript.tsx');
+const currentRunSurfacePath = join(webSrcRoot, 'components', 'chat', 'CurrentRunSurface.tsx');
+const toolResultBlockPath = join(webSrcRoot, 'components', 'chat', 'blocks', 'ToolResultBlock.tsx');
+const dayDividerPath = join(webSrcRoot, 'components', 'chat', 'DayDivider.tsx');
+const approvalBlockPath = join(webSrcRoot, 'components', 'chat', 'blocks', 'ApprovalBlock.tsx');
+const runaButtonPath = join(webSrcRoot, 'components', 'ui', 'RunaButton.tsx');
+const runTimelineBlockPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'blocks',
+	'RunTimelineBlock.tsx',
+);
+const chatHeaderPath = join(webSrcRoot, 'components', 'chat', 'ChatHeader.tsx');
+const chatPagePath = join(webSrcRoot, 'pages', 'ChatPage.tsx');
+const chatComposerSurfacePath = join(webSrcRoot, 'components', 'chat', 'ChatComposerSurface.tsx');
+const settingsPagePath = join(webSrcRoot, 'pages', 'SettingsPage.tsx');
+const themePickerPath = join(webSrcRoot, 'components', 'settings', 'ThemePicker.tsx');
+const routeStylesPath = join(webSrcRoot, 'styles', 'routes');
 
 function collectFiles(dir: string, extension: string): string[] {
 	const entries = readdirSync(dir, { withFileTypes: true });
@@ -262,5 +282,125 @@ describe('design language lock', () => {
 		});
 
 		expect(missingFiles).toEqual([]);
+	});
+});
+
+describe('PR-3 chat surface lock', () => {
+	it('PersistedTranscript icinde rol etiketi veya saniye-tarihli timestamp yok', () => {
+		const src = readFileSync(persistedTranscriptPath, 'utf8');
+		expect(src).not.toMatch(/['"]Sen['"]|['"]Runa['"]/);
+		expect(src).not.toMatch(/toLocaleTimeString|formatDate.*Long/);
+	});
+
+	it('CurrentRunSurface currentRunProgressPanel prop tanimlamiyor', () => {
+		const src = readFileSync(currentRunSurfacePath, 'utf8');
+		expect(src).not.toMatch(/currentRunProgressPanel\s*[:?]/);
+	});
+
+	it('ToolResultBlock user-facing modda toolLine details kullaniyor', () => {
+		const src = readFileSync(toolResultBlockPath, 'utf8');
+		expect(src).toMatch(/toolLine/);
+		expect(src).not.toMatch(/['"]Islem sonucu['"]/);
+	});
+
+	it('DayDivider export ediliyor', () => {
+		expect(existsSync(dayDividerPath)).toBe(true);
+	});
+});
+
+describe('PR-4 approval calm lock', () => {
+	it('ApprovalBlock eyebrow/approvalStatusChip/approvalStateFeedback render etmiyor', () => {
+		const src = readFileSync(approvalBlockPath, 'utf8');
+		expect(src).not.toMatch(/approvalStatusChip|approvalStateFeedback/);
+		expect(src).not.toMatch(/className=\{[^}]*eyebrow[^}]*\}/);
+	});
+
+	it('approvalRisk modul getApprovalRiskLevel export ediyor', async () => {
+		const mod = await import('../components/chat/blocks/approvalRisk.js');
+		expect(typeof mod.getApprovalRiskLevel).toBe('function');
+	});
+
+	it('RunaButton danger variant tanimi var', () => {
+		const src = readFileSync(runaButtonPath, 'utf8');
+		expect(src).toMatch(/['"]danger['"]/);
+	});
+});
+
+describe('PR-5 user_label_tr lock', () => {
+	it('Frontend tool result renderinde user_label_tr okunuyor', () => {
+		const src = readFileSync(toolResultBlockPath, 'utf8');
+		expect(src).toMatch(/user_label_tr/);
+	});
+
+	it('RunTimelineBlock user_label_tr fallback kullaniyor', () => {
+		const src = readFileSync(runTimelineBlockPath, 'utf8');
+		expect(src).toMatch(/user_label_tr\s*\?\?/);
+	});
+});
+
+describe('PR-6 sheets + palette lock', () => {
+	it('RunaSheet ve RunaModal export var', async () => {
+		const mod = await import('../components/ui/index.js');
+		expect(mod.RunaSheet).toBeTruthy();
+		expect(mod.RunaModal).toBeTruthy();
+	});
+
+	it('ChatHeader history sheet aria-controlsa sahip', () => {
+		const src = readFileSync(chatHeaderPath, 'utf8');
+		expect(src).toMatch(/aria-controls=['"]history-sheet['"]/);
+	});
+
+	it('ChatPage HistorySheet/MenuSheet/ContextSheet mount ediyor', () => {
+		const src = readFileSync(chatPagePath, 'utf8');
+		expect(src).toMatch(/<HistorySheet\b/);
+		expect(src).toMatch(/<MenuSheet\b/);
+		expect(src).toMatch(/<ContextSheet\b/);
+	});
+});
+
+describe('PR-7 settings + stop lock', () => {
+	it('Composer Stop ikonu (Square) ve aria-label icin destegi var', () => {
+		const src = readFileSync(chatComposerSurfacePath, 'utf8');
+		expect(src).toMatch(/import\s*\{[^}]*\bSquare\b[^}]*\}\s*from\s*['"]lucide-react['"]/);
+		expect(src).toMatch(/Calismayi durdur|abortCurrentRun|Çalışmayı durdur/);
+	});
+
+	it('useChatRuntime abortCurrentRun export ediyor', () => {
+		const src = readFileSync(useChatRuntimePath, 'utf8');
+		expect(src).toMatch(/abortCurrentRun\s*[:,]/);
+	});
+
+	it('ThemePicker komponenti var', () => {
+		expect(existsSync(themePickerPath)).toBe(true);
+	});
+
+	it('apps/web/src/styles/routes altinda migration.css dosyasi yok', () => {
+		const dir = readdirSync(routeStylesPath);
+		const offenders = dir.filter((fileName) => fileName.endsWith('-migration.css'));
+		expect(offenders).toEqual([]);
+	});
+});
+
+describe('PR-9 token cleanup lock', () => {
+	it('apps/web/src/styles/tokens.css icinde --ink-4 tanimi var', () => {
+		const src = readFileSync(tokensPath, 'utf8');
+		expect(src).toMatch(/--ink-4\s*:/);
+	});
+
+	it('Tanimsiz token referansi yok (audit-tokens.mjs PASS)', () => {
+		const result = spawnSync('node', ['scripts/audit-tokens.mjs'], {
+			cwd: repoRoot,
+			encoding: 'utf8',
+		});
+		expect(result.status, result.stderr || result.stdout).toBe(0);
+	});
+});
+
+describe('Settings IA lock', () => {
+	it('SettingsPage 5 tab gosteriyor', () => {
+		const src = readFileSync(settingsPagePath, 'utf8');
+		for (const tab of ['appearance', 'conversation', 'notifications', 'privacy', 'advanced']) {
+			expect(src).toContain(`'${tab}'`);
+		}
 	});
 });
