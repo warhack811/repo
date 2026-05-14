@@ -56,6 +56,10 @@ function suppressExpectedWsProxyShutdownNoise(): Plugin {
 
 // Dev proxy follows the Fastify server port used by local dev and isolated E2E runs.
 export default defineConfig({
+	cacheDir: '.vite-cache',
+	optimizeDeps: {
+		entries: ['index.html'],
+	},
 	define: {
 		'import.meta.env.VITE_RUNA_WORKSPACE_ID': JSON.stringify(workspaceAttestationId),
 	},

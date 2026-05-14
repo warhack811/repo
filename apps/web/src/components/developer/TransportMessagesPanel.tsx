@@ -24,30 +24,23 @@ export function TransportMessagesPanel({
 	return (
 		<aside
 			aria-labelledby="transport-messages-heading"
-			className="runa-ambient-panel runa-migrated-components-developer-transportmessagespanel-1"
+			className="runa-ambient-panel runa-developer-transportmessagespanel-1"
 		>
-			<div className="runa-migrated-components-developer-transportmessagespanel-2">
-				<div className="runa-migrated-components-developer-transportmessagespanel-3">
-					<div className="runa-migrated-components-developer-transportmessagespanel-4">
-						{uiCopy.developer.heading}
-					</div>
-					<h2
-						id="transport-messages-heading"
-						className="runa-migrated-components-developer-transportmessagespanel-5"
-					>
+			<div className="runa-developer-transportmessagespanel-2">
+				<div className="runa-developer-transportmessagespanel-3">
+					<div className="runa-developer-transportmessagespanel-4">{uiCopy.developer.heading}</div>
+					<h2 id="transport-messages-heading" className="runa-developer-transportmessagespanel-5">
 						{uiCopy.developer.rawTransport}
 					</h2>
 				</div>
-				<div className="runa-migrated-components-developer-transportmessagespanel-6">
-					<div className="runa-migrated-components-developer-transportmessagespanel-7">
-						{messages.length} ileti
-					</div>
+				<div className="runa-developer-transportmessagespanel-6">
+					<div className="runa-developer-transportmessagespanel-7">{messages.length} ileti</div>
 					<button
 						type="button"
 						onClick={onToggleTransportMessages}
 						aria-expanded={showTransportMessages}
 						aria-controls="transport-messages-content"
-						className="runa-migrated-components-developer-transportmessagespanel-8"
+						className="runa-developer-transportmessagespanel-8"
 					>
 						{transportMessagesLabel}
 					</button>
@@ -55,37 +48,31 @@ export function TransportMessagesPanel({
 			</div>
 
 			{showTransportMessages ? (
-				<div
-					id="transport-messages-content"
-					className="runa-migrated-components-developer-transportmessagespanel-9"
-				>
+				<div id="transport-messages-content" className="runa-developer-transportmessagespanel-9">
 					{lastError ? (
-						<div
-							role="alert"
-							className="runa-migrated-components-developer-transportmessagespanel-10"
-						>
+						<div role="alert" className="runa-developer-transportmessagespanel-10">
 							{lastError}
 						</div>
 					) : null}
 
-					<div className="runa-migrated-components-developer-transportmessagespanel-11">
+					<div className="runa-developer-transportmessagespanel-11">
 						{messages.length === 0 ? (
-							<div className="runa-migrated-components-developer-transportmessagespanel-12">
+							<div className="runa-developer-transportmessagespanel-12">
 								{uiCopy.developer.noMessages}
 							</div>
 						) : (
 							messages.map((message, index) => (
 								<article
 									key={`${message.type}_${index}`}
-									className="runa-migrated-components-developer-transportmessagespanel-13"
+									className="runa-developer-transportmessagespanel-13"
 								>
-									<div className="runa-migrated-components-developer-transportmessagespanel-14">
+									<div className="runa-developer-transportmessagespanel-14">
 										<strong>{message.type}</strong>
-										<span className="runa-migrated-components-developer-transportmessagespanel-15">
+										<span className="runa-developer-transportmessagespanel-15">
 											{summarizeServerMessage(message)}
 										</span>
 									</div>
-									<pre className="runa-migrated-components-developer-transportmessagespanel-16">
+									<pre className="runa-developer-transportmessagespanel-16">
 										{formatMessagePayload(message)}
 									</pre>
 								</article>
@@ -94,12 +81,9 @@ export function TransportMessagesPanel({
 					</div>
 				</div>
 			) : (
-				<div
-					id="transport-messages-content"
-					className="runa-migrated-components-developer-transportmessagespanel-17"
-				>
-					Ham transport verisi varsayılan olarak gizli kalır. Teknik WebSocket ayrıntısı veya hata
-					incelemesi gerektiğinde bu alanı aç.
+				<div id="transport-messages-content" className="runa-developer-transportmessagespanel-17">
+					Ham transport verisi varsayılan olarak gizli kalır. Teknik WebSocket ayrıntısı veya
+					hata incelemesi gerektiğinde bu alanı aç.
 				</div>
 			)}
 		</aside>

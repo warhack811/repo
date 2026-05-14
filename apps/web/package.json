@@ -5,8 +5,8 @@
 	"description": "Runa frontend — React + Vite SPA",
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
-		"build": "vite build",
+		"dev": "vite --configLoader native",
+		"build": "vite build --configLoader native",
 		"lint": "biome check src vite.config.ts index.html",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run --config ./vitest.config.mjs --configLoader runner"

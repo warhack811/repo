@@ -120,11 +120,11 @@ export function buildRunFeedbackState(
 
 	if (input.is_submitting) {
 		return {
-			chip_label: 'gönderiliyor',
-			detail: 'İstek canlı çalışma hattına iletiliyor.',
+			chip_label: 'gÃ¶nderiliyor',
+			detail: 'Ä°stek canlÄ± Ã§alÄ±ÅŸma hattÄ±na iletiliyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'İstek gönderiliyor',
+			title: 'Ä°stek gÃ¶nderiliyor',
 			tone: 'info',
 			trace_id: input.run_summary?.trace_id,
 		};
@@ -132,11 +132,11 @@ export function buildRunFeedbackState(
 
 	if (!input.run_summary) {
 		return {
-			chip_label: 'hazırlanıyor',
-			detail: 'Çalışma kabul edildi; ilk yanıt hazırlanıyor.',
+			chip_label: 'hazÄ±rlanÄ±yor',
+			detail: 'Ã‡alÄ±ÅŸma kabul edildi; ilk yanÄ±t hazÄ±rlanÄ±yor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Çalışma hazırlanıyor',
+			title: 'Ã‡alÄ±ÅŸma hazÄ±rlanÄ±yor',
 			tone: 'info',
 		};
 	}
@@ -144,10 +144,10 @@ export function buildRunFeedbackState(
 	if (input.run_summary.final_state === 'FAILED') {
 		return {
 			chip_label: 'durdu',
-			detail: 'Bu çalışma tamamlanamadı. Son görünür sonuçlar korunur.',
+			detail: 'Bu Ã§alÄ±ÅŸma tamamlanamadÄ±. Son gÃ¶rÃ¼nÃ¼r sonuÃ§lar korunur.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Çalışma durdu',
+			title: 'Ã‡alÄ±ÅŸma durdu',
 			tone: 'error',
 			trace_id: input.run_summary.trace_id,
 		};
@@ -155,26 +155,26 @@ export function buildRunFeedbackState(
 
 	if (input.run_summary.final_state === 'COMPLETED') {
 		return {
-			chip_label: 'tamamlandı',
+			chip_label: 'tamamlandÄ±',
 			detail: input.has_visible_surface
-				? 'Çalışma tamamlandı. Son sonuçlar hazır.'
-				: 'Çalışma tamamlandı.',
+				? 'Ã‡alÄ±ÅŸma tamamlandÄ±. Son sonuÃ§lar hazÄ±r.'
+				: 'Ã‡alÄ±ÅŸma tamamlandÄ±.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Çalışma tamamlandı',
+			title: 'Ã‡alÄ±ÅŸma tamamlandÄ±',
 			tone: 'success',
 			trace_id: input.run_summary.trace_id,
 		};
 	}
 
 	return {
-		chip_label: input.include_presentation_blocks ? 'canlı' : 'düşünüyor',
+		chip_label: input.include_presentation_blocks ? 'canlÄ±' : 'dÃ¼ÅŸÃ¼nÃ¼yor',
 		detail: input.has_visible_surface
-			? 'Sonuçlar güncellenirken akış korunuyor.'
-			: 'İlk yanıt hazırlanıyor.',
+			? 'SonuÃ§lar gÃ¼ncellenirken akÄ±ÅŸ korunuyor.'
+			: 'Ä°lk yanÄ±t hazÄ±rlanÄ±yor.',
 		pending_detail_count: input.pending_detail_count,
 		run_id: runId,
-		title: 'Çalışma sürüyor',
+		title: 'Ã‡alÄ±ÅŸma sÃ¼rÃ¼yor',
 		tone: 'info',
 		trace_id: input.run_summary.trace_id,
 	};
@@ -192,7 +192,7 @@ export function getRunSurfaceStatusChip(
 	}
 
 	if (runSummary.final_state === 'COMPLETED') {
-		return { label: 'Tamamlandı', tone: 'success' };
+		return { label: 'TamamlandÄ±', tone: 'success' };
 	}
 
 	if (runSummary.latest_runtime_state === 'WAITING_APPROVAL') {
@@ -200,10 +200,10 @@ export function getRunSurfaceStatusChip(
 	}
 
 	if (runSummary.last_runtime_event_type === 'model.completed') {
-		return { label: 'Yanıt hazır', tone: 'info' };
+		return { label: 'YanÄ±t hazÄ±r', tone: 'info' };
 	}
 
-	return runSummary.has_presentation_blocks ? { label: 'Canlı', tone: 'info' } : null;
+	return runSummary.has_presentation_blocks ? { label: 'CanlÄ±', tone: 'info' } : null;
 }
 
 export function isRunFinishedMessage(

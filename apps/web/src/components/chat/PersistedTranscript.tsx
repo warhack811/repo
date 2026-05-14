@@ -13,19 +13,15 @@ type PersistedTranscriptProps = Readonly<{
 	activeConversationMessages: readonly ConversationMessage[];
 }>;
 
-function formatTimeLabel(timestamp: string): string {
-	return new Date(timestamp).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-}
-
 export function PersistedTranscript({
 	activeConversationId,
 	activeConversationMessages,
 }: PersistedTranscriptProps): ReactElement {
 	if (activeConversationMessages.length === 0) {
 		return activeConversationId ? (
-			<div className="runa-subtle-copy">Bu sohbet için henüz kayıtlı mesaj yok.</div>
+			<div className="runa-subtle-copy">Bu sohbet icin henuz kayitli mesaj yok.</div>
 		) : (
-			<div className="runa-subtle-copy">Yeni bir sohbet hazır.</div>
+			<div className="runa-subtle-copy">Yeni bir sohbet hazir.</div>
 		);
 	}
 
@@ -56,7 +52,6 @@ export function PersistedTranscript({
 									<span className={styles['assistantMarkSpacer']} aria-hidden />
 								)}
 								<div className={styles['messageBody']}>
-									<span className={styles['timestamp']}>{formatTimeLabel(message.created_at)}</span>
 									<div className={styles['bubble']}>
 										<StreamdownMessage>{message.content}</StreamdownMessage>
 									</div>

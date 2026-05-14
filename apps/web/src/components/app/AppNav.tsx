@@ -1,10 +1,10 @@
-import { Clock3, type LucideIcon, MessageCircle, Monitor, UserRound } from 'lucide-react';
+import { Bell, Clock3, type LucideIcon, MessageCircle, Monitor, UserRound } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import { uiCopy } from '../../localization/copy.js';
 
-export type AuthenticatedPageId = 'account' | 'chat' | 'devices' | 'history';
+export type AuthenticatedPageId = 'account' | 'chat' | 'devices' | 'history' | 'notifications';
 
 interface AppNavItem {
 	readonly description: string;
@@ -37,6 +37,13 @@ const appNavItems: readonly AppNavItem[] = [
 		to: '/devices',
 	},
 	{
+		description: uiCopy.appNav.notificationsDescription,
+		id: 'notifications',
+		icon: Bell,
+		label: uiCopy.appNav.notificationsLabel,
+		to: '/notifications',
+	},
+	{
 		description: uiCopy.appNav.accountDescription,
 		id: 'account',
 		icon: UserRound,
@@ -54,9 +61,9 @@ export function AppNav({ activePage, variant = 'tiles' }: AppNavProps): ReactEle
 	return (
 		<nav
 			aria-label={uiCopy.appNav.navLabel}
-			className={`runa-app-nav runa-app-nav--${variant} runa-migrated-components-app-appnav-1`}
+			className={`runa-app-nav runa-app-nav--${variant} runa-app-appnav-1`}
 		>
-			<div className="runa-app-nav__items runa-migrated-components-app-appnav-2">
+			<div className="runa-app-nav__items runa-app-appnav-2">
 				{appNavItems.map((item) => {
 					const isActive = item.id === activePage;
 					const Icon = item.icon;
@@ -69,19 +76,14 @@ export function AppNav({ activePage, variant = 'tiles' }: AppNavProps): ReactEle
 							aria-label={`${item.label}. ${item.description}`}
 							className={`runa-app-nav__item${
 								isActive ? ' runa-app-nav__item--active' : ''
-							} runa-migrated-components-app-appnav-3`}
+							} runa-app-appnav-3`}
 						>
-							<span
-								className="runa-app-nav__icon runa-migrated-components-app-appnav-4"
-								aria-hidden="true"
-							>
+							<span className="runa-app-nav__icon runa-app-appnav-4" aria-hidden="true">
 								<Icon size={14} />
 							</span>
-							<span className="runa-app-nav__copy runa-migrated-components-app-appnav-5">
-								<span className="runa-app-nav__label runa-migrated-components-app-appnav-6">
-									{item.label}
-								</span>
-								<span className="runa-app-nav__description runa-migrated-components-app-appnav-7">
+							<span className="runa-app-nav__copy runa-app-appnav-5">
+								<span className="runa-app-nav__label runa-app-appnav-6">{item.label}</span>
+								<span className="runa-app-nav__description runa-app-appnav-7">
 									{item.description}
 								</span>
 							</span>

@@ -127,11 +127,11 @@ export function buildRunFeedbackState(
 		return {
 			chip_label: 'failed',
 			detail: input.has_visible_surface
-				? 'Son yüzey görünür kalır; böylece hata öncesinde tamamlanan kısmı görebilirsin.'
-				: 'Bu başarısız çalışma için yeni bir görünür yüzey yok.',
+				? 'Son yÃ¼zey gÃ¶rÃ¼nÃ¼r kalÄ±r; bÃ¶ylece hata Ã¶ncesinde tamamlanan kÄ±smÄ± gÃ¶rebilirsin.'
+				: 'Bu baÅŸarÄ±sÄ±z Ã§alÄ±ÅŸma iÃ§in yeni bir gÃ¶rÃ¼nÃ¼r yÃ¼zey yok.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Çalışma hata ile bitti',
+			title: 'Ã‡alÄ±ÅŸma hata ile bitti',
 			tone: 'error',
 			trace_id: traceId,
 		};
@@ -142,14 +142,14 @@ export function buildRunFeedbackState(
 			chip_label: 'detail loading',
 			detail:
 				input.pending_detail_count === 1
-					? 'İstenen detay kartı yanıt geldiğinde aynı akış içinde açılacak.'
-					: 'İstenen detay kartları geldikçe aynı akış içinde açılacak.',
+					? 'Ä°stenen detay kartÄ± yanÄ±t geldiÄŸinde aynÄ± akÄ±ÅŸ iÃ§inde aÃ§Ä±lacak.'
+					: 'Ä°stenen detay kartlarÄ± geldikÃ§e aynÄ± akÄ±ÅŸ iÃ§inde aÃ§Ä±lacak.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title:
 				input.pending_detail_count === 1
-					? '1 detay kartı yükleniyor'
-					: `${input.pending_detail_count} detay kartı yükleniyor`,
+					? '1 detay kartÄ± yÃ¼kleniyor'
+					: `${input.pending_detail_count} detay kartÄ± yÃ¼kleniyor`,
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -158,10 +158,10 @@ export function buildRunFeedbackState(
 	if (input.is_submitting && !input.run_summary?.has_accepted) {
 		return {
 			chip_label: 'sending',
-			detail: 'İstek gönderiliyor ve sunucunun kabul etmesi bekleniyor.',
+			detail: 'Ä°stek gÃ¶nderiliyor ve sunucunun kabul etmesi bekleniyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'İstek gönderiliyor',
+			title: 'Ä°stek gÃ¶nderiliyor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -170,10 +170,10 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.has_accepted && !input.run_summary.has_runtime_event) {
 		return {
 			chip_label: 'accepted',
-			detail: 'Sunucu isteği kabul etti. İlk görünür çıktı hazırlanıyor.',
+			detail: 'Sunucu isteÄŸi kabul etti. Ä°lk gÃ¶rÃ¼nÃ¼r Ã§Ä±ktÄ± hazÄ±rlanÄ±yor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Çalışma kabul edildi',
+			title: 'Ã‡alÄ±ÅŸma kabul edildi',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -182,7 +182,7 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.latest_runtime_state === 'WAITING_APPROVAL') {
 		return {
 			chip_label: 'approval',
-			detail: 'Çalışma onay beklediği için duraklatıldı.',
+			detail: 'Ã‡alÄ±ÅŸma onay beklediÄŸi iÃ§in duraklatÄ±ldÄ±.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: 'Onay bekleniyor',
@@ -195,10 +195,10 @@ export function buildRunFeedbackState(
 		if (input.include_presentation_blocks === false) {
 			return {
 				chip_label: 'bridge off',
-				detail: 'Bu istekte presentation blocks kapalı olduğu için görünür yüzey üretilmiyor.',
+				detail: 'Bu istekte presentation blocks kapalÄ± olduÄŸu iÃ§in gÃ¶rÃ¼nÃ¼r yÃ¼zey Ã¼retilmiyor.',
 				pending_detail_count: input.pending_detail_count,
 				run_id: runId,
-				title: 'Canlı runtime açık, görünür yüzey köprüsü kapalı',
+				title: 'CanlÄ± runtime aÃ§Ä±k, gÃ¶rÃ¼nÃ¼r yÃ¼zey kÃ¶prÃ¼sÃ¼ kapalÄ±',
 				tone: 'warning',
 				trace_id: traceId,
 			};
@@ -206,10 +206,10 @@ export function buildRunFeedbackState(
 
 		return {
 			chip_label: 'warming up',
-			detail: 'Runtime başladı. İlk görünür yüzey hazır olduğunda burada belirecek.',
+			detail: 'Runtime baÅŸladÄ±. Ä°lk gÃ¶rÃ¼nÃ¼r yÃ¼zey hazÄ±r olduÄŸunda burada belirecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'İlk özet kartları hazırlanıyor',
+			title: 'Ä°lk Ã¶zet kartlarÄ± hazÄ±rlanÄ±yor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -218,10 +218,10 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.latest_runtime_state === 'TOOL_EXECUTING') {
 		return {
 			chip_label: 'tools',
-			detail: 'Çalışma sürüyor. Araçlar tamamlandıkça özet ve detaylar yenilenecek.',
+			detail: 'Ã‡alÄ±ÅŸma sÃ¼rÃ¼yor. AraÃ§lar tamamlandÄ±kÃ§a Ã¶zet ve detaylar yenilenecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Araçlar çalışıyor',
+			title: 'AraÃ§lar Ã§alÄ±ÅŸÄ±yor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -230,10 +230,10 @@ export function buildRunFeedbackState(
 	if (input.run_summary?.latest_runtime_state === 'TOOL_RESULT_INGESTING') {
 		return {
 			chip_label: 'refreshing',
-			detail: 'Araç sonucu mevcut çalışma yüzeyine işleniyor.',
+			detail: 'AraÃ§ sonucu mevcut Ã§alÄ±ÅŸma yÃ¼zeyine iÅŸleniyor.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Özetler yenileniyor',
+			title: 'Ã–zetler yenileniyor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -243,13 +243,13 @@ export function buildRunFeedbackState(
 		return {
 			chip_label: 'thinking',
 			detail: input.has_visible_surface
-				? 'Mevcut çalışma sabit kalırken model yeni çıktı üretmeye devam ediyor.'
-				: 'Model düşünüyor. İlk görünür çıktı hazır olduğunda burada belirecek.',
+				? 'Mevcut Ã§alÄ±ÅŸma sabit kalÄ±rken model yeni Ã§Ä±ktÄ± Ã¼retmeye devam ediyor.'
+				: 'Model dÃ¼ÅŸÃ¼nÃ¼yor. Ä°lk gÃ¶rÃ¼nÃ¼r Ã§Ä±ktÄ± hazÄ±r olduÄŸunda burada belirecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
 			title: input.has_visible_surface
-				? 'Model çalışmaya devam ediyor'
-				: 'İlk görünür çıktı hazırlanıyor',
+				? 'Model Ã§alÄ±ÅŸmaya devam ediyor'
+				: 'Ä°lk gÃ¶rÃ¼nÃ¼r Ã§Ä±ktÄ± hazÄ±rlanÄ±yor',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -263,10 +263,10 @@ export function buildRunFeedbackState(
 	) {
 		return {
 			chip_label: 'live',
-			detail: 'Çalışma sürerken yeni özet ve detaylar aynı akış içinde yerleşecek.',
+			detail: 'Ã‡alÄ±ÅŸma sÃ¼rerken yeni Ã¶zet ve detaylar aynÄ± akÄ±ÅŸ iÃ§inde yerleÅŸecek.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Canlı çalışma yüzeyi',
+			title: 'CanlÄ± Ã§alÄ±ÅŸma yÃ¼zeyi',
 			tone: 'info',
 			trace_id: traceId,
 		};
@@ -277,11 +277,11 @@ export function buildRunFeedbackState(
 			chip_label: 'complete',
 			detail:
 				input.include_presentation_blocks === false
-					? 'Bu istek görünür yüzey köprüsü olmadan tamamlandı.'
-					: 'Çalışma tamamlandı ancak tutulmuş bir görünür yüzey oluşmadı.',
+					? 'Bu istek gÃ¶rÃ¼nÃ¼r yÃ¼zey kÃ¶prÃ¼sÃ¼ olmadan tamamlandÄ±.'
+					: 'Ã‡alÄ±ÅŸma tamamlandÄ± ancak tutulmuÅŸ bir gÃ¶rÃ¼nÃ¼r yÃ¼zey oluÅŸmadÄ±.',
 			pending_detail_count: input.pending_detail_count,
 			run_id: runId,
-			title: 'Çalışma tamamlandı',
+			title: 'Ã‡alÄ±ÅŸma tamamlandÄ±',
 			tone: 'success',
 			trace_id: traceId,
 		};

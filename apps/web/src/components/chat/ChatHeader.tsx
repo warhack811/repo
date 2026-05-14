@@ -1,11 +1,12 @@
-﻿import { Bell, ChevronLeft, MoreHorizontal, Search, Settings } from 'lucide-react';
+import { Bell, ChevronLeft, MoreHorizontal, Search, Settings } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useCommandPaletteTrigger } from '../command/CommandPaletteContext.js';
 
 type ChatHeaderProps = Readonly<{
 	activeConversationTitle?: string;
+	activeDeviceLabel?: string;
 	isHistorySheetOpen: boolean;
 	isMenuSheetOpen: boolean;
 	onOpenHistorySheet: () => void;
@@ -22,11 +23,13 @@ function getCommandShortcutLabel(): string {
 
 export function ChatHeader({
 	activeConversationTitle,
+	activeDeviceLabel,
 	isHistorySheetOpen,
 	isMenuSheetOpen,
 	onOpenHistorySheet,
 	onOpenMenuSheet,
 }: ChatHeaderProps): ReactElement {
+	const navigate = useNavigate();
 	const openCommandPalette = useCommandPaletteTrigger();
 	const title = activeConversationTitle?.trim() || 'Yeni sohbet';
 	const shortcutLabel = getCommandShortcutLabel();
@@ -44,7 +47,21 @@ export function ChatHeader({
 				>
 					<ChevronLeft aria-hidden="true" size={21} />
 				</button>
-				<h1 className="runa-chat-header__title">{title}</h1>
+				<div className="runa-chat-header__title-group">
+					<h1 className="runa-chat-header__title">{title}</h1>
+					{activeDeviceLabel ? (
+						<>
+							<p className="runa-chat-header__subtitle runa-chat-header__subtitle--desktop">
+								{activeDeviceLabel} uzerinde
+							</p>
+							<p className="runa-chat-header__subtitle runa-chat-header__subtitle--mobile">
+								cevrimici - {activeDeviceLabel}
+							</p>
+						</>
+					) : (
+						<p className="runa-chat-header__subtitle">Cihaz baglantisi bekleniyor</p>
+					)}
+				</div>
 			</div>
 
 			<div className="runa-chat-header__actions">
@@ -59,7 +76,12 @@ export function ChatHeader({
 					<span>Komut ara</span>
 					<kbd>{shortcutLabel}</kbd>
 				</button>
-				<button type="button" className="runa-chat-icon-button" aria-label="Bildirimler">
+				<button
+					type="button"
+					className="runa-chat-icon-button"
+					aria-label="Bildirimler"
+					onClick={() => navigate('/notifications')}
+				>
 					<Bell aria-hidden="true" size={18} />
 				</button>
 				<Link className="runa-chat-icon-button" aria-label="Hesap" to="/account">

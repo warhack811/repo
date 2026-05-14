@@ -13,6 +13,53 @@
 - **Odak:** DeepSeek + Groq dual-baseline stabilitesi, tool-call resilience, otonom agent-loop hardening ve desktop companion rollout.
 - **Son Ã–nemli Olay:** 2026-05-02 tarihinde "DeepSeek Tool Call Recovery" (Faz 1-4) baÅŸarÄ±yla tamamlandÄ±; Runa artÄ±k bozuk model Ã§Ä±ktÄ±larÄ±nÄ± kendi kendine onarabiliyor, token-limit recovery yolunu agent-loop adapter iÃ§inde kullanabiliyor ve DeepSeek ana Ã¼retim yolu (primary baseline) olarak onaylandÄ±.
 
+### TASK-UI-RESTRUCTURE-COMPLETE - 14 Mayis 2026
+
+- Kapsam: PR-1..PR-8 kapanis teyidi tamamlandi; durum dokumanlari ve kanit klasorleri senkronize edildi.
+- Durum: `main` dalinda UI restructure zinciri merge edildi (`fffb1911`, `ab36a050`, `2dd7ec57`).
+- Dokuman guncellemeleri:
+  - `docs/design/ui-restructure/PR-IMPLEMENTATION-INDEX.md` durum matrisi "Tamamlandi, main'e merge edildi" olarak guncellendi.
+  - PR-3..PR-8 icin eksik `docs/design-audit/screenshots/2026-05-13-ui-restructure-pr-N-*` klasorleri normalize edildi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`39` dosya, `127` test PASS, `1` skipped)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `pnpm.cmd --filter @runa/web test -- design-language-lock` PASS
+  - `pnpm.cmd --filter @runa/server test -- user-label-coverage` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/server lint` PASS (format drift duzeltmesi sonrasi)
+- Sonuc: UI restructure sureci dokuman + kod + temel kalite kapilari acisindan kapatildi.
+
+### TASK-UI-HIZALAMA-FULL-01 - 14 Mayis 2026
+
+- Kapsam: Frontend mimar belgeleri + HTML mock artefaktlarina tam hizalama icin Faz 0-3 kod implementasyonu yapildi; Faz 4 kalite kapisi ortam kisitlarina takildi.
+- Faz 0:
+  - `docs/design-audit/FRONTEND-MIMAR-HIZALAMA-GAP-MATRIX-2026-05-14.md` olusturuldu.
+  - Sapmalar kanitli sekilde listelendi (onboarding adim sayisi, header aktif cihaz subtitle, transcript timestamp, notifications route/surface, settings IA, migration class debt).
+- Faz 1:
+  - Onboarding 3 adima indirildi ve her adimda `Atla` akisi korundu (`apps/web/src/components/onboarding/OnboardingWizard.tsx`).
+  - Chat header'a aktif cihaz subtitle eklendi; mobile/desktop varyanti tanimlandi (`apps/web/src/components/chat/ChatHeader.tsx`, `apps/web/src/pages/ChatPage.tsx`, `apps/web/src/styles/components.css`).
+  - Per-message timestamp kaldirildi, day divider korundu (`apps/web/src/components/chat/PersistedTranscript.tsx`).
+  - Notifications placeholder akisi gercek route/surface'e tasindi (`/notifications` + `NotificationsPage`) ve header/menu/command aksiyonlari buraya baglandi (`apps/web/src/AuthenticatedApp.tsx`, `apps/web/src/components/app/*`, `apps/web/src/pages/NotificationsPage.tsx`).
+- Faz 2:
+  - Settings IA `Appearance / Conversation / Notifications / Privacy / Advanced` sekmelerine tasindi.
+  - Dil, sessiz saatler, veri saklama suresi, gelismis gorunum ayarlari eklendi; mevcut approval/workspace akislari korundu (`apps/web/src/pages/SettingsPage.tsx`).
+- Faz 3:
+  - `runa-migrated-components-*` ve `runa-migrated-pages-*` gecici sinif adlari uygulama ve stil katmaninda temizlendi (`apps/web/src/components/**`, `apps/web/src/pages/**`, `apps/web/src/styles/components.css`).
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web test` FAIL (vitest config/startup + spawn EPERM)
+  - `pnpm.cmd --filter @runa/web build` FAIL (tailwind oxide native binding yukleme / UTF-8)
+  - Playwright visual run FAIL (EPERM unlink/mkdir + spawn EPERM)
+- Faz 4 notu:
+  - Hedef klasor olusturuldu: `docs/design-audit/screenshots/2026-05-14-frontend-mimar-full-alignment/`
+  - `EVIDENCE-MAP.md` olusturuldu ancak tum capture girdileri `BLOCKED` durumunda.
+  - Ayrintili blokaj kaydi: `docs/design-audit/FRONTEND-MIMAR-HIZALAMA-ESCALATION.md`
+- Kalan risk:
+  - Ortam izin/kisitlari (spawn/mkdir/unlink EPERM) giderilmeden test-gate, visual regression ve Lighthouse kapanisi kanitlanamiyor.
+
 ### TASK-UI-RESTRUCTURE-BRIEF-V11-LOCK - 13 Mayis 2026
 
 - Kapsam: Sadece planlama / kilitleme. Kod degisikligi yapilmadi. `docs/design/RUNA-DESIGN-BRIEF.md` v1.0 -> v1.1 yukseltildi; PR-1 icin Codex brief'i yazildi.

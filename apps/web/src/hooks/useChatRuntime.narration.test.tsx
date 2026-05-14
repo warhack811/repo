@@ -177,7 +177,7 @@ describe('useChatRuntime narration streaming state', () => {
 		);
 		socket.emitMessage({
 			payload: {
-				full_text: 'package.json dosyasını kontrol ediyorum.',
+				full_text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
 				linked_tool_call_id: 'call_read',
 				narration_id: 'narration_001',
 				run_id: runId,
@@ -198,7 +198,7 @@ describe('useChatRuntime narration streaming state', () => {
 			payload: {
 				linked_tool_call_id: 'call_read',
 				status: 'completed',
-				text: 'package.json dosyasını kontrol ediyorum.',
+				text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
 			},
 			type: 'work_narration',
 		});
@@ -213,7 +213,7 @@ describe('useChatRuntime narration streaming state', () => {
 				narrationId: 'narration_001',
 				runId,
 				sequenceNo: 1,
-				textDelta: 'eski anlatım',
+				textDelta: 'eski anlatÄ±m',
 			}),
 		);
 		socket.emitMessage({

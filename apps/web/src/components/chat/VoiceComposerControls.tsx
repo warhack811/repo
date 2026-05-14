@@ -51,20 +51,20 @@ export function VoiceComposerControls({
 					type="button"
 					onClick={isSpeaking ? onStopSpeaking : onReadLatestResponse}
 					disabled={!canReadLatestResponse || !isSpeechPlaybackSupported}
-					aria-label={isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
-					title={isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
+					aria-label={isSpeaking ? 'OkumayÄ± durdur' : 'Son yanÄ±tÄ± oku'}
+					title={isSpeaking ? 'OkumayÄ± durdur' : 'Son yanÄ±tÄ± oku'}
 					className={`runa-button runa-button--secondary ${styles['speakButton']}`}
 				>
-					{isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
+					{isSpeaking ? 'OkumayÄ± durdur' : 'Son yanÄ±tÄ± oku'}
 				</button>
 			</div>
 
 			<div className={styles['status']} aria-live="polite">
-				{voiceStatusMessage ??
-					(isVoiceSupported
-						? 'Mikrofonu açıp kısa bir not söyleyebilir veya son yanıtı sesli okutabilirsin.'
-						: 'Bu tarayıcı sesli girişi desteklemiyor. Sohbet yazılı olarak devam eder.')}
+				{voiceStatusMessage ?? (isVoiceSupported
+						? 'Mikrofonu aÃ§Ä±p kÄ±sa bir not sÃ¶yleyebilir veya son yanÄ±tÄ± sesli okutabilirsin.'
+						: 'Bu tarayÄ±cÄ± sesli giriÅŸi desteklemiyor. Sohbet yazÄ±lÄ± olarak devam eder.')}
 			</div>
 		</div>
 	);
 }
+

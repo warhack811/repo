@@ -16,12 +16,12 @@ function getStatusCopy(status: ProjectMemorySummaryProps['status']): {
 	switch (status) {
 		case 'available':
 			return {
-				body: 'Bu çalışma alanı için kayıtlı proje hafızası hazır.',
+				body: 'Bu çalÄ±şma alanı için kayıtlı proje hafızası hazır.',
 				label: 'Hazır',
 			};
 		case 'empty':
 			return {
-				body: 'Bu çalışma alanına henüz proje hafızası eklenmedi.',
+				body: 'Bu çalÄ±şma alanına henüz proje hafızası eklenmedi.',
 				label: 'Boş',
 			};
 		case 'unavailable':
@@ -42,20 +42,15 @@ export function ProjectMemorySummary({
 
 	return (
 		<section
-			className="runa-migrated-components-settings-projectmemorysummary-1"
+			className="runa-settings-projectmemorysummary-1"
 			aria-labelledby="project-memory-heading"
 		>
-			<div className="runa-migrated-components-settings-projectmemorysummary-2">
-				<div className="runa-migrated-components-settings-projectmemorysummary-3">
-					Gizlilik ve hafıza
-				</div>
-				<h2
-					id="project-memory-heading"
-					className="runa-migrated-components-settings-projectmemorysummary-4"
-				>
+			<div className="runa-settings-projectmemorysummary-2">
+				<div className="runa-settings-projectmemorysummary-3">Gizlilik ve hafıza</div>
+				<h2 id="project-memory-heading" className="runa-settings-projectmemorysummary-4">
 					Proje hafızası
 				</h2>
-				<p className="runa-migrated-components-settings-projectmemorysummary-5">
+				<p className="runa-settings-projectmemorysummary-5">
 					{isLoading ? (
 						<output aria-busy="true" className="runa-memory-skeleton">
 							<RunaSkeleton variant="text" />
@@ -75,8 +70,8 @@ export function ProjectMemorySummary({
 			</div>
 
 			<div className="runa-alert runa-alert--info">
-				Hafıza görünürlüğü yalnız bilgilendirme içindir; kaynak ve politika kontrolleri bağlanana
-				kadar veri uydurulmaz.
+				Hafıza görünürlüğü yalnız bilgilendirme içindir; kaynak ve politika kontrolleri
+				bağlanana kadar veri uydurulmaz.
 			</div>
 		</section>
 	);

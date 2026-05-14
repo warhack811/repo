@@ -1,4 +1,4 @@
-﻿import type { AuthContext } from '@runa/types';
+import type { AuthContext } from '@runa/types';
 import { type ReactElement, Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -24,6 +24,9 @@ const DeveloperRuntimePage = lazy(() =>
 );
 const DevicesPage = lazy(() =>
 	import('./pages/DevicesPage.js').then((module) => ({ default: module.DevicesPage })),
+);
+const NotificationsPage = lazy(() =>
+	import('./pages/NotificationsPage.js').then((module) => ({ default: module.NotificationsPage })),
 );
 const HistoryRoute = lazy(() =>
 	import('./pages/HistoryRoute.js').then((module) => ({ default: module.HistoryRoute })),
@@ -55,6 +58,10 @@ function resolveActivePage(pathname: string): AuthenticatedPageId {
 
 	if (pathname === '/history') {
 		return 'history';
+	}
+
+	if (pathname === '/notifications') {
+		return 'notifications';
 	}
 
 	return 'chat';
@@ -130,6 +137,7 @@ export function AuthenticatedApp(props: AuthenticatedAppProps): ReactElement {
 						<Route path="chat" element={<ChatRuntimePage bearerToken={props.bearerToken} />} />
 						<Route path="history" element={<HistoryRoute bearerToken={props.bearerToken} />} />
 						<Route path="devices" element={<DevicesPage accessToken={props.bearerToken} />} />
+						<Route path="notifications" element={<NotificationsPage />} />
 						<Route
 							path="account"
 							element={

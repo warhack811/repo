@@ -71,22 +71,22 @@ export function validateAttachmentFileForUpload(file: UploadPreflightFile): stri
 	const contentType = file.type.trim().toLowerCase();
 
 	if (extension !== null && DANGEROUS_ATTACHMENT_EXTENSIONS.has(extension)) {
-		return 'Bu dosya türü güvenlik nedeniyle yüklenemez.';
+		return 'Bu dosya tÃ¼rÃ¼ gÃ¼venlik nedeniyle yÃ¼klenemez.';
 	}
 
 	if (contentType.startsWith('image/')) {
-		return file.size > MAX_UPLOAD_IMAGE_BYTES ? 'Görsel ekleri 1.5 MB ile sınırlıdır.' : null;
+		return file.size > MAX_UPLOAD_IMAGE_BYTES ? 'GÃ¶rsel ekleri 1.5 MB ile sÄ±nÄ±rlÄ±dÄ±r.' : null;
 	}
 
 	if (contentType.startsWith('text/') || contentType === 'application/json') {
-		return file.size > MAX_UPLOAD_TEXT_BYTES ? 'Metin ekleri 200 KB ile sınırlıdır.' : null;
+		return file.size > MAX_UPLOAD_TEXT_BYTES ? 'Metin ekleri 200 KB ile sÄ±nÄ±rlÄ±dÄ±r.' : null;
 	}
 
 	if (isDocumentAttachmentFile(contentType, extension)) {
-		return file.size > MAX_UPLOAD_DOCUMENT_BYTES ? 'Doküman ekleri 5 MB ile sınırlıdır.' : null;
+		return file.size > MAX_UPLOAD_DOCUMENT_BYTES ? 'DokÃ¼man ekleri 5 MB ile sÄ±nÄ±rlÄ±dÄ±r.' : null;
 	}
 
-	return 'Yalnız görsel, metin, JSON ve desteklenen dokümanlar yüklenebilir.';
+	return 'YalnÄ±z gÃ¶rsel, metin, JSON ve desteklenen dokÃ¼manlar yÃ¼klenebilir.';
 }
 
 function createRequestHeaders(accessToken?: string | null): Headers {
@@ -200,12 +200,12 @@ export function FileUploadButton({
 						'message' in payload &&
 						typeof payload.message === 'string'
 						? payload.message
-						: 'Dosya yüklenemedi.',
+						: 'Dosya yÃ¼klenemedi.',
 				);
 			}
 
 			if (!isAttachmentResponse(payload)) {
-				throw new Error('Dosya yükleme yanıtı desteklenmiyor.');
+				throw new Error('Dosya yÃ¼kleme yanÄ±tÄ± desteklenmiyor.');
 			}
 
 			onAttachmentUploaded(payload.attachment);
@@ -216,7 +216,7 @@ export function FileUploadButton({
 		} catch (error: unknown) {
 			onUploadStateChange?.({
 				error:
-					error instanceof Error ? error.message : 'Dosya yüklenirken beklenmeyen bir hata oluştu.',
+					error instanceof Error ? error.message : 'Dosya yÃ¼klenirken beklenmeyen bir hata oluÅŸtu.',
 				isUploading: false,
 			});
 		} finally {
@@ -250,7 +250,7 @@ export function FileUploadButton({
 			>
 				{icon}
 				<span className="runa-chat-visually-hidden">
-					{isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
+					{isUploading ? 'YÃ¼kleniyor...' : 'Dosya ekle'}
 				</span>
 			</label>
 		</>

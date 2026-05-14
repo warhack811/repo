@@ -1,4 +1,4 @@
-﻿import { gatewayProviders, defaultGatewayModels as runtimeDefaultGatewayModels } from '@runa/types';
+import { gatewayProviders, defaultGatewayModels as runtimeDefaultGatewayModels } from '@runa/types';
 import type { ModelAttachment, ModelMessage } from '@runa/types';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -1029,8 +1029,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 								...currentConnectionState,
 								isSubmitting: false,
 								lastError:
-									parsedMessage.payload.final_state === 'FAILED'
-										? (parsedMessage.payload.error_message ?? 'Çalışma hata ile bitti.')
+									parsedMessage.payload.final_state === 'FAILED' ? (parsedMessage.payload.error_message ?? 'Çalışma hata ile bitti.')
 										: null,
 							}));
 							chatStore.setPresentationState((currentPresentationState) => ({
@@ -1621,3 +1620,4 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		],
 	);
 }
+

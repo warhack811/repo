@@ -6,6 +6,7 @@
 	"packageManager": "pnpm@9.15.4",
 	"scripts": {
 		"dev": "node scripts/dev.mjs",
+		"dev:clean-start": "node scripts/dev-clean-start.mjs",
 		"build": "turbo run build",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",

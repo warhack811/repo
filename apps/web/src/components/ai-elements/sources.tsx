@@ -18,12 +18,12 @@ export type SourcesTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
 
 export const SourcesTrigger = ({ className, count, children, ...props }: SourcesTriggerProps) => (
 	<CollapsibleTrigger className={cn('flex items-center gap-2', className)} {...props}>
-		{children ?? (
+		{children ? (
 			<>
 				<p className="font-medium">{uiText.sources.used(count)}</p>
 				<ChevronDownIcon className="h-4 w-4" />
 			</>
-		)}
+		) : null}
 	</CollapsibleTrigger>
 );
 
@@ -44,11 +44,11 @@ export type SourceProps = ComponentProps<'a'>;
 
 export const Source = ({ href, title, children, ...props }: SourceProps) => (
 	<a className="flex items-center gap-2" href={href} rel="noreferrer" target="_blank" {...props}>
-		{children ?? (
+		{children ? (
 			<>
 				<BookIcon className="h-4 w-4" />
 				<span className="block font-medium">{title}</span>
 			</>
-		)}
+		) : null}
 	</a>
 );

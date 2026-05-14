@@ -1,4 +1,4 @@
-﻿import { Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { ChangeEvent, KeyboardEvent, ReactElement } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
@@ -166,7 +166,7 @@ export function CommandPalette({
 						})}
 					</div>
 				) : (
-					<output className="runa-command-palette__empty">Bu aramayla eÅŸleÅŸen komut yok.</output>
+					<output className="runa-command-palette__empty">Bu aramayla eşleşen komut yok.</output>
 				)}
 			</div>
 		</RunaModal>

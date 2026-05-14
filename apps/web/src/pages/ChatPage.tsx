@@ -1,4 +1,4 @@
-﻿import type { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { lazy, useEffect, useMemo, useState } from 'react';
 
 import { AppSidebar } from '../components/app/AppSidebar.js';
@@ -151,6 +151,29 @@ export function ChatPage({
 			onSelectedDeviceMissing: () => setDesktopTargetConnectionId(null),
 			selectedConnectionId: runtimeDesktopTargetConnectionId,
 		});
+	const selectedDesktopDevice = useMemo(() => {
+		if (runtimeDesktopTargetConnectionId) {
+			return (
+				desktopDevices.find(
+					(device) => device.connection_id === runtimeDesktopTargetConnectionId,
+				) ?? null
+			);
+		}
+
+		return desktopDevices[0] ?? null;
+	}, [desktopDevices, runtimeDesktopTargetConnectionId]);
+	const activeDesktopDeviceLabel = useMemo(() => {
+		const label = selectedDesktopDevice?.machine_label?.trim();
+		if (label && label.length > 0) {
+			return label;
+		}
+
+		if (selectedDesktopDevice) {
+			return `Desktop ${selectedDesktopDevice.agent_id.slice(0, 8)}`;
+		}
+
+		return 'Cihaz yok';
+	}, [selectedDesktopDevice]);
 
 	const { currentInspectionSurfaceMeta, getInspectionActionState } = useChatPageInspection({
 		currentBlocks: currentPresentationSurface?.blocks ?? null,
@@ -292,6 +315,7 @@ export function ChatPage({
 		<ChatShell embedded={embedded}>
 			<ChatHeader
 				activeConversationTitle={conversations.activeConversationSummary?.title}
+				activeDeviceLabel={selectedDesktopDevice ? activeDesktopDeviceLabel : undefined}
 				isHistorySheetOpen={isHistorySheetOpen}
 				isMenuSheetOpen={isMenuSheetOpen}
 				onOpenHistorySheet={() => {
