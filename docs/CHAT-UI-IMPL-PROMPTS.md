@@ -1481,5 +1481,5 @@ const streamingText = useChatStoreSelector(chatStore, (s) => s.presentation.curr
 - `apps/web/src/stores/chat-store.ts` — selector pattern implementasyonu
 - `apps/web/src/styles/routes/chat-migration.css` — 3519 satır migration CSS
 - `apps/web/src/hooks/useChatRuntime.ts:1304-1386` — useMemo implementation
-- `docs/UI-OVERHAUL-04.md` — bu promtların UI-OVERHAUL-04 ile örtüşen kapsamı
+- `docs/archive/ui-overhaul/UI-OVERHAUL-04.md` — bu promtların UI-OVERHAUL-04 ile ortusen kapsamı
 - `apps/web/src/styles/components.css:4–33` — tasarım felsefesi (ihlal etme)

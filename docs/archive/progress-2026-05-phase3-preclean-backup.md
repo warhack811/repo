@@ -200,7 +200,7 @@
 ### TASK-WORK-NARRATION-PHASE-2A - 5 Mayis 2026
 
 - Kapsam: Provider foundation kuruldu; henuz narration classifier, guardrail, WS narration emission veya frontend UI eklenmedi. DeepSeek streaming adapter'i `delta.content` ve `delta.tool_calls` SSE wire sirasini `ordered_content` icinde `ordering_origin: 'wire_streaming'` ile koruyor; non-streaming DeepSeek response'lari `synthetic_non_streaming` olarak isaretleniyor.
-- Spike: `apps/server/scripts/deepseek-wire-spike.mjs` eklendi ve dogrudan DeepSeek API ile 3 prompt calistirildi. Cikti local spike `.log` artifact'ina yazildi (repoya alinmadi). Sonuc: content chunk'lari tool_call chunk'larindan once geliyor, iki tool-call senaryosunda temporal SSE sirasi korunuyor, `deepseek-chat` modunda `reasoning_content` gorulmedi, fallthrough gorulmedi.
+- Spike: `apps/server/scripts/deepseek-wire-spike.mjs` eklendi ve dogrudan DeepSeek API ile 3 prompt calistirildi. Cikti local spike log artifact'ina yazildi; `.log` repo ignore kapsaminda. Sonuc: content chunk'lari tool_call chunk'larindan once geliyor, iki tool-call senaryosunda temporal SSE sirasi korunuyor, `deepseek-chat` modunda `reasoning_content` gorulmedi, fallthrough gorulmedi.
 - Capability matrix: Gateway adapter'lari kendi modul sabitleriyle `ProviderCapabilities` export ediyor. Claude `native_blocks`; OpenAI ve DeepSeek `temporal_stream`; Gemini/Groq/SambaNova `unsupported`. Factory bu capability'yi gateway instance'ina tasiyor ve `gateway.capability.loaded` log'u basiyor.
 - Reasoning isolation: `internal_reasoning` model response metadata'si olarak eklendi, DeepSeek `reasoning_content` ayri buffer'da tutuluyor ve `ordered_content`/WS public model request kontratlarina karismiyor. `RUNA_PERSIST_REASONING=1` acik degilse reasoning trace DB'ye yazilmiyor.
 - Persistence: `agent_reasoning_traces` tablosu, bootstrap SQL'i, Drizzle schema tipi, migration dosyasi ve `apps/server/src/persistence/reasoning-store.ts` eklendi. Varsayilan retention `debug_30d`, cleanup helper'i `expires_at` uzerinden calisiyor.
@@ -523,14 +523,14 @@
   - `pnpm.cmd --filter @runa/server lint` PASS
   - `pnpm.cmd --filter @runa/server test` FAIL (task-disi mevcut baseline kirmizi: `shell-exec`, `shell-session`, `ws/register-ws` testlerinde var olan ortam/baseline kaynakli hatalar)
 - Kalan risk: legacy patch-only cagri yolu geriye donuk uyum nedeniyle acik; `target_path` model tarafinda her zaman uretilmedigi surece header-derived fallback devam eder (approval'da gorunur ambiguity sinyali veriliyor).
-
-### UI Audit and Restructuring Plan - May 2026
-
-- Kapsam: Completed a read-only audit of the frontend UI architecture to prepare for a consumer-grade, chat-first redesign.
-- Yapi: Mapped components responsible for chat, run progress, approvals, and mobile layout.
-- Plan: Created \docs/CHAT-UI-RESTRUCTURING-PLAN.md\ detailing the new surface model, strict rules for the main chat vs developer mode, and a 4-phase PR plan to eliminate card-in-card nesting and raw debug leaks.
-- Sonuc: Audit only, no implementation code touched.
-
+ 
+ # # #   U I   A u d i t   a n d   R e s t r u c t u r i n g   P l a n   -   M a y   2 0 2 6  
+  
+ -   K a p s a m :   C o m p l e t e d   a   r e a d - o n l y   a u d i t   o f   t h e   f r o n t e n d   U I   a r c h i t e c t u r e   t o   p r e p a r e   f o r   a   c o n s u m e r - g r a d e ,   c h a t - f i r s t   r e d e s i g n .  
+ -   Y a p i :   M a p p e d   c o m p o n e n t s   r e s p o n s i b l e   f o r   c h a t ,   r u n   p r o g r e s s ,   a p p r o v a l s ,   a n d   m o b i l e   l a y o u t .  
+ -   P l a n :   C r e a t e d   \ d o c s / C H A T - U I - R E S T R U C T U R I N G - P L A N . m d \   d e t a i l i n g   t h e   n e w   s u r f a c e   m o d e l ,   s t r i c t   r u l e s   f o r   t h e   m a i n   c h a t   v s   d e v e l o p e r   m o d e ,   a n d   a   4 - p h a s e   P R   p l a n   t o   e l i m i n a t e   c a r d - i n - c a r d   n e s t i n g   a n d   r a w   d e b u g   l e a k s .  
+ -   S o n u c :   A u d i t   o n l y ,   n o   i m p l e m e n t a t i o n   c o d e   t o u c h e d .  
+ 
 ### TASK-FRONTEND-RESTRUCTURING-PLAN-CHAT-FIRST-AUDIT - 11 Mayis 2026
 
 - Kapsam: Kod degisikligi yapmadan, mevcut Runa frontend mimarisi ve ekran goruntusu denetim artefaktlari uzerinden chat-first yeniden yapilanma plani hazirlandi.

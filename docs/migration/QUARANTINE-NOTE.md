@@ -25,7 +25,7 @@ The quarantine commit preserves:
   - `apps/web/src/styles/routes/chat-migration.css`
   - `apps/web/tests/visual/competitive-chat-ux.spec.ts`
   - `docs/COMPETITIVE-CHAT-UX-IMPLEMENTATION-PROMPTS.md`
-  - `docs/runa-ui-design-audit-2026-04-30.docx`
+  - runa-ui-design-audit-2026-04-30.docx (external artifact)
 - Visual artifacts:
   - `apps/web/tests/visual/__screenshots__/**`
   - `docs/design-audit/screenshots/**`
@@ -33,4 +33,3 @@ The quarantine commit preserves:
 ## How To Restore
 
 After production-lock migration lands, restore this work through a separate PR from `quarantine/non-stack-work`. Review it as a UI polish/backend hardening follow-up, not as part of the stack migration.
-

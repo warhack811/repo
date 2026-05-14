@@ -11,6 +11,7 @@ Once sadece su dosyalari oku:
 - docs/AGENTS.md
 - docs/TASK-TEMPLATE.md
 - docs/LLM-CONTEXT.md
+- docs/IDE-LLM-RUNBOOK.md
 - docs/PROGRESS.md icindeki Mevcut Durum Ozeti ve en son ilgili kayitlar
 - Bu gorevin exact task/prompt dosyasi
 
@@ -25,7 +26,7 @@ Kod davranisini degistirmeden once kapsam/non-goal listesini tekrar kontrol et.
 - Auth/security/policy: `docs/security-model.md`, ilgili auth/policy kodu ve testleri.
 - Release/CI/merge: `docs/release-demo-checklist.md`, `docs/launch/`, GitHub check sonuclari.
 - Provider/live smoke: DeepSeek/Groq env truth, ilgili smoke scriptleri.
-- Desktop companion: ilgili `docs/tasks/TASK-01*`, `TASK-06*`, desktop-agent kodu ve progress kayitlari.
+- Desktop companion: `docs/tasks/TASK-01-ELECTRON-DESKTOP-APP.md`, `docs/tasks/TASK-06-DESKTOP-UTILITY-TOOLS.md`, desktop-agent kodu ve progress kayitlari.
 
 ## Normalde Okunmayacaklar
 

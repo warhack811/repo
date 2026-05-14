@@ -1,49 +1,56 @@
-# Runa Docs Index
+﻿# Runa Docs Index
 
-Bu indeks, `docs/` klasorunun tamamini LLM context'ine yuklemek yerine dogru belgeye hizli gitmek icin kullanilir.
+Bu indeks, IDE LLM'lerin tum `docs/` klasorunu yuklemek yerine dogru belgeye hizli ulasmasi icin kullanilir.
 
-## Her Oturumda Okunacaklar
+## Core (Her Oturum)
 
-- `docs/AGENTS.md` - proje kimligi, kirmizi cizgiler, aktif faz ve ana kod giris noktalari.
-- `docs/TASK-TEMPLATE.md` - IDE LLM gorevlerinin standart sekli.
-- `docs/LLM-CONTEXT.md` - context window'u koruyan okuma rotasi.
-- `docs/PROGRESS.md` - yalniz guncel ozet ve son operasyonel kayitlar.
+- `docs/AGENTS.md` - proje kimligi, kirmizi cizgiler, aktif faz, kod giris noktalari
+- `docs/TASK-TEMPLATE.md` - task yazim standardi
+- `docs/LLM-CONTEXT.md` - minimum okuma protokolu
+- `docs/IDE-LLM-RUNBOOK.md` - uygulama ve raporlama operasyonu
+- `docs/PROGRESS.md` - mevcut durum ve en yeni ilgili kayit
 
-## Goreve Gore Okunacaklar
+## Active Specs
+
+- `docs/tasks/TASK-*.md` - aktif capability/backlog task belgeleri
+- `docs/design/ui-restructure/*.md` - UI restructure brief ve uygulama rehberleri (gecici aktif alan)
+- `docs/RUNA-DESIGN-LANGUAGE.md` - tasarim kilit kurallari
+
+## Domain Rehberleri
 
 | Gorev tipi | Ek belge |
 | --- | --- |
 | Mimari veya cross-module karar | `docs/implementation-blueprint.md`, `docs/technical-architecture.md`, `docs/architecture/constitution.md` |
-| Resilience, Recovery, Self-Repair | `docs/technical-architecture.md` runtime/gateway bolumleri, `docs/PROGRESS.md` Faz 1-4 kayitlari |
-| Security, auth, policy, approval | `docs/security-model.md`, ilgili `docs/tasks/TASK-*.md` |
-| UI, chat surface, design polish | `docs/RUNA-DESIGN-LANGUAGE.md`, ilgili `docs/tasks/TASK-*.md` veya aktif UI promptu |
-| Release, CI, launch proof | `docs/release-demo-checklist.md`, `docs/launch/` |
-| Provider/live smoke | `docs/groq-demo-runbook.md`, DeepSeek baseline notlari, `docs/PROGRESS.md` son kayitlar |
-| Desktop companion | `docs/tasks/TASK-01-ELECTRON-DESKTOP-APP.md`, `docs/tasks/TASK-06-DESKTOP-UTILITY-TOOLS.md`, ilgili progress kaydi |
-| Migration veya production-lock UI stack | `docs/migration/` raporlari |
+| Security/auth/policy | `docs/security-model.md`, ilgili `docs/tasks/TASK-*.md` |
+| UI/chat surface | `docs/RUNA-DESIGN-LANGUAGE.md`, ilgili UI brief/task |
+| Release/CI/launch | `docs/release-demo-checklist.md`, `docs/launch/` |
+| Provider/live smoke | `docs/groq-demo-runbook.md`, ilgili `docs/PROGRESS.md` kayitlari |
+| Desktop companion | `docs/tasks/TASK-01-ELECTRON-DESKTOP-APP.md`, `docs/tasks/TASK-06-DESKTOP-UTILITY-TOOLS.md` |
+| Migration/prod-lock audit | `docs/migration/` |
 
-## Arsiv ve Kanit Alanlari
+## Archive ve Evidence
 
-- `docs/archive/` tarihsel kayittir; sadece eski karar veya eski progress kaniti gerekiyorsa okunur.
-- `docs/design-audit/screenshots/` gorsel kanittir; normal kod gorevlerinde context'e alinmaz.
-- `docs/migration/screenshots/` migration smoke kanitidir; yalniz gorsel/migration audit icin acilir.
-- `docs/archive/ui-phases/` tamamlanmis UI faz planlaridir; yeni implementasyon icin once `docs/tasks/` ve aktif promptlara bakilir.
-- `docs/archive/ui-overhaul/` tamamlanmis UI overhaul plan/prompt belgelerini tasir; yalniz tarihsel scope kaniti gerekiyorsa okunur.
+- `docs/archive/` - tarihsel kayitlar, tamamlanmis fazlar
+- `docs/design-audit/screenshots/` - gorsel kanit, varsayilan context degil
+- `docs/migration/screenshots/` - migration smoke kaniti, varsayilan context degil
+- `docs/ui-smoke/` - UI smoke artefaktlari
 
 ## Otorite Sirasi
 
-Bir celiski varsa siralama su sekildedir:
+1. Kullanici mesajindaki exact kapsam ve non-goals
+2. `docs/AGENTS.md`
+3. Ilgili task/prompt belgesi
+4. `docs/PROGRESS.md` guncel kayitlari
+5. Diger mimari belgeler
+6. Arsiv belgeleri
 
-1. Kullanici mesajindaki exact kapsam ve non-goals.
-2. `docs/AGENTS.md` ve `docs/TASK-TEMPLATE.md`.
-3. Ilgili task/prompt belgesi.
-4. `docs/PROGRESS.md` guncel kayitlari.
-5. Mimari belgeler.
-6. Arsiv ve eski faz belgeleri.
+## Bu Ayin Notu (2026-05)
 
-## Guncelleme Kurali
+- `docs/DOCS-AUDIT-2026-05.md` aktif dokuman temizligi ve risk envanterini tutar.
+- Phase-2 ile eski frontend-mimar klasoru icerigi `docs/design/` altina tasindi.
+- Yeni path standardi:
+  - Design authority: `docs/design/RUNA-DESIGN-BRIEF.md`
+  - UI brief seti: `docs/design/ui-restructure/`
+  - Mockup/artifact html dosyalari: `docs/design/artifacts/`
+  - Logo varliklari: `docs/design/logo-pack/`
 
-- Yeni uzun raporlar once `docs/migration/`, `docs/launch/`, `docs/archive/` gibi amacina uygun klasore konur.
-- `docs/PROGRESS.md` sadece guncel operasyonel ozet ve son kayitlari tasir.
-- Tamamlanmis buyuk ledger parcalari `docs/archive/` altina tasinir.
-- Screenshot ve test artefaktlari task icin zorunlu degilse LLM context'ine eklenmez.

@@ -3,7 +3,7 @@
 > **Tarih:** 2026-05-13
 > **Branch:** `codex/ui-restructure-pr-1-theme-typography-mark`
 > **Worktree:** `.claude/worktrees/runa-ui-pr-1-theme`
-> **Authority:** `docs/frontend mimar/RUNA-DESIGN-BRIEF.md` v1.1 (yetki belgesi)
+> **Authority:** `docs/design/RUNA-DESIGN-BRIEF.md` v1.1 (yetki belgesi)
 > **Hedef:** Tek PR ile Runa'nÄ±n gÃ¶rsel kimliÄŸini tamamen yeni dile geÃ§irmek. Layout aynÄ± kalÄ±r â€” kasÄ±tlÄ±.
 
 ---
@@ -225,7 +225,7 @@ body {
 
 Yeni dosya: `apps/web/src/components/ui/HafizaMark.tsx`
 
-Path verisi `docs/frontend mimar/logo-pack/` altındaki 6 SVG dosyasından çıkarılır ve component içine inline edilir (runtime fetch yok). Path setleri `docs/frontend mimar/runa-complete-product-mock.html:464-503` referans implementasyonundan birebir alınır.
+Path verisi `docs/design/logo-pack/` altındaki 6 SVG dosyasından çıkarılır ve component içine inline edilir (runtime fetch yok). Path setleri `docs/design/artifacts/runa-complete-product-mock.html:464-503` referans implementasyonundan birebir alınır.
 
 ```typescript
 import type { ReactElement } from 'react';
@@ -313,7 +313,7 @@ Eski compass/sun SVG'sini silenecek yerler:
 - `apps/web/src/components/chat/ChatHeader.tsx` — brand badge → `<HafizaMark weight="regular" variant="brand" />`
 - `apps/web/src/components/chat/EmptyState.tsx` — hero mark (yeni) → `<HafizaMark weight="bold" variant="brand" aria-hidden="true" />`
 
-Kaynak SVG dosyaları (`docs/frontend mimar/logo-pack/*.svg`) referans olarak korunur; component runtime'da kullanmaz.
+Kaynak SVG dosyaları (`docs/design/logo-pack/*.svg`) referans olarak korunur; component runtime'da kullanmaz.
 
 
 ### 2.5 Empty state hero baÅŸlÄ±ÄŸÄ± (basit ekleme)
@@ -379,7 +379,7 @@ PR-1 merge edilmeden Ã¶nce ÅŸu ÅŸartlar PASS olmalÄ±:
 
 ### 4.2 GÃ¶rsel kanÄ±t (zorunlu)
 
-`docs/design-audit/screenshots/2026-05-XX-ui-restructure-pr-1-theme/` altÄ±na commit:
+`docs/design-audit/screenshots/` altÄ±na commit:
 
 - [ ] `desktop-1440-chat-empty-ember-dark.png`
 - [ ] `desktop-1440-chat-empty-ember-light.png`
@@ -432,7 +432,7 @@ Tek-PR yapÄ±sÄ± sayesinde geri-alma temiz; baÅŸka PR'a baÄŸÄ±mlÄ±lÄ
 
 ## 6. Yetki ve doÄŸrulama
 
-- **Yetki belgesi:** `docs/frontend mimar/RUNA-DESIGN-BRIEF.md` v1.1. Bu dokÃ¼man Ã¶nceliklidir.
+- **Yetki belgesi:** `docs/design/RUNA-DESIGN-BRIEF.md` v1.1. Bu dokÃ¼man Ã¶nceliklidir.
 - **Bu brief ile brief arasÄ±nda Ã§akÄ±ÅŸma olursa:** Brief kazanÄ±r. Bu dokÃ¼man implementation rehberi, brief karar belgesidir.
 - **Review akÄ±ÅŸÄ±:** PR aÃ§Ä±ldÄ±ÄŸÄ±nda Claude'a review iÃ§in linki gÃ¶nder. Claude gÃ¶rsel + kontrat + risk review yapar, kullanÄ±cÄ±ya raporlar. KullanÄ±cÄ± merge/revize kararÄ± verir.
 
@@ -466,4 +466,6 @@ pnpm --filter @runa/web exec playwright test e2e/visual-pr-1-theme.spec.ts
 ---
 
 > Bu brief Codex'e doÄŸrudan verilir. Soru / belirsizlik Ã§Ä±karsa Codex iÅŸ baÅŸlamadan kullanÄ±cÄ±ya sorar; tahmin yapmaz.
+
+
 

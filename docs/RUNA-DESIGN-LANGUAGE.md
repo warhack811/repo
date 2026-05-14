@@ -1,4 +1,4 @@
-# RUNA Design Language (Post UI-Restructure PR-1 to PR-8)
+﻿# RUNA Design Language (Post UI-Restructure PR-1 to PR-8)
 
 Last updated: 2026-05-14
 Status: Source of truth for web UI after UI restructure completion.
@@ -9,14 +9,14 @@ This document is the single-page UI contract for the Runa web surface after PR-8
 Implementation details live in the PR briefs and code. This page defines the final user-facing language.
 
 Reference briefs:
-- `docs/frontend mimar/PR-1-CODEX-BRIEF.md`
-- `docs/frontend mimar/PR-2-CODEX-BRIEF.md`
-- `docs/frontend mimar/PR-3-CODEX-BRIEF.md`
-- `docs/frontend mimar/PR-4-CODEX-BRIEF.md`
-- `docs/frontend mimar/PR-5-CODEX-BRIEF.md`
-- `docs/frontend mimar/PR-6-CODEX-BRIEF.md`
-- `docs/frontend mimar/PR-7-CODEX-BRIEF.md`
-- `docs/frontend mimar/PR-8-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-1-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-2-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-3-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-4-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-5-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-6-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-7-CODEX-BRIEF.md`
+- `docs/design/ui-restructure/PR-8-CODEX-BRIEF.md`
 
 ## Surface Model
 
@@ -90,3 +90,4 @@ Minimum mobile Lighthouse targets for this phase closure:
 - Best Practices >= 90
 
 PR-8 closes the UI restructure only when these gates are met together with lint/typecheck/test/build pass.
+

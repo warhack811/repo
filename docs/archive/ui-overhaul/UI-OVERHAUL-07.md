@@ -178,7 +178,7 @@ Yapilacaklar:
 - Empty state'ler aciklama degil davet olur.
 - Tek ekranda TR/EN karisimi kalmaz.
 - Brand redundancy azaltilir.
-- `docs/RUNA-VOICE.md` veya `docs/RUNA-DESIGN-LANGUAGE.md` icinde voice kurallari kaydedilir.
+- `docs/RUNA-DESIGN-LANGUAGE.md` icinde voice kurallari kaydedilir.
 
 Done:
 
