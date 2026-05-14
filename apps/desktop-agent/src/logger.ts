@@ -19,12 +19,14 @@ const REDACTED_KEYS = new Set([
 	'secret',
 	'api_key',
 	'apikey',
+	'workspace_id',
+	'ws_ticket',
 ]);
 
 const BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/giu;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
 const SENSITIVE_QUERY_PARAM_PATTERN =
-	/([?#&](?:access_token|refresh_token|authorization|api_key|apikey|secret|token)=)[^&#\s"]+/giu;
+	/([?#&](?:access_token|refresh_token|authorization|api_key|apikey|secret|token|ws_ticket|workspace_id)=)[^&#\s"]+/giu;
 
 export interface DesktopAgentLogger {
 	debug(message: string, ...data: readonly unknown[]): void;

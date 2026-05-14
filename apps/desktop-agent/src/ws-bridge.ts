@@ -20,7 +20,7 @@ import {
 } from '@runa/types';
 
 import { executeDesktopAgentLaunch } from './app-launcher.js';
-import type { DesktopAgentConfig } from './auth.js';
+import { requestDesktopAgentWebSocketTicket, type DesktopAgentAuthFetch, type DesktopAgentConfig } from './auth.js';
 import {
 	executeDesktopAgentClipboardRead,
 	executeDesktopAgentClipboardWrite,
@@ -35,6 +35,7 @@ export const desktopAgentImplementedCapabilities = desktopAgentToolNames.map((to
 }));
 
 export interface DesktopAgentBridgeOptions extends DesktopAgentConfig {
+	readonly auth_fetch?: DesktopAgentAuthFetch;
 	readonly capture_screenshot?: () => Promise<DesktopAgentScreenshotPayload>;
 	readonly web_socket_factory?: (url: string) => WebSocket;
 }
@@ -317,8 +318,13 @@ export async function startDesktopAgentBridge(
 ): Promise<DesktopAgentBridgeSession> {
 	const socketFactory = options.web_socket_factory ?? ((url: string) => new WebSocket(url));
 	const bridgeUrl = new URL(options.server_url);
+	const wsTicket = await requestDesktopAgentWebSocketTicket({
+		access_token: options.access_token,
+		auth_fetch: options.auth_fetch,
+		server_url: options.server_url,
+	});
 
-	bridgeUrl.searchParams.set('access_token', options.access_token);
+	bridgeUrl.searchParams.set('ws_ticket', wsTicket.ws_ticket);
 
 	const socket = socketFactory(bridgeUrl.toString());
 	const connectionReadyPromise = waitForServerMessage(

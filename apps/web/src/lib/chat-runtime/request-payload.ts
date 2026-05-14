@@ -6,7 +6,7 @@ import type { ApprovalMode, GatewayProvider, RunRequestPayload } from '../../ws-
 export const DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 2048;
 
 const TURKISH_SIGNAL_PATTERN =
-	/[Ã§ÄŸÄ±Ã¶ÅŸÃ¼Ã‡ÄÄ°Ã–ÅÃœ]|\b(merhaba|lutfen|lÃ¼tfen|dosya|komut|kontrol|Ã§alÄ±ÅŸtÄ±r|calistir|proje|sunucu|oku|yaz|bul)\b/iu;
+	/[çğıöşüÇĞİÖŞÜ]|\b(merhaba|lutfen|lütfen|dosya|komut|kontrol|çalıştır|calistir|proje|sunucu|oku|yaz|bul)\b/iu;
 const ENGLISH_SIGNAL_PATTERN =
 	/\b(hello|please|could|would|should|what|how|read|check|find|write|run|project|server|file|command)\b/iu;
 

@@ -105,6 +105,9 @@ export default defineConfig({
 			'/storage': {
 				target: devHttpTarget,
 			},
+			'/workspace': {
+				target: devHttpTarget,
+			},
 		},
 	},
 });

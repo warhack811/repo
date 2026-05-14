@@ -38,6 +38,8 @@ import {
 } from './storage/supabase-storage-adapter.js';
 import { createLogger } from './utils/logger.js';
 import { type RegisterWebSocketRoutesOptions, registerWebSocketRoutes } from './ws/register-ws.js';
+import { resolveWebSocketSecurityConfig } from './ws/ws-security.js';
+import { createWebSocketTicketService } from './ws/ws-ticket.js';
 
 export interface BuildServerOptions extends FastifyServerOptions {
 	readonly auth?: {
@@ -147,6 +149,28 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 		adapter: storageAdapter,
 	});
 	const storageDownloadUrlSigner = createStorageDownloadUrlSigner();
+	const wsSecurityConfig = resolveWebSocketSecurityConfig(
+		process.env as NodeJS.ProcessEnv & {
+			readonly NODE_ENV?: string;
+			readonly RUNA_WS_ALLOW_QUERY_ACCESS_TOKEN?: string;
+			readonly RUNA_WS_ALLOWED_ORIGINS?: string;
+			readonly RUNA_WS_ENFORCE_SECURE_TRANSPORT?: string;
+		},
+	);
+	const wsTicketTtlSecondsRaw = (
+		process.env as NodeJS.ProcessEnv & { readonly RUNA_WS_TICKET_TTL_SECONDS?: string }
+	).RUNA_WS_TICKET_TTL_SECONDS;
+	const wsTicketTtlSeconds =
+		typeof wsTicketTtlSecondsRaw === 'string' && wsTicketTtlSecondsRaw.trim().length > 0
+			? Number.parseInt(wsTicketTtlSecondsRaw.trim(), 10)
+			: undefined;
+	const resolvedWsTicketTtlSeconds =
+		typeof wsTicketTtlSeconds === 'number' && Number.isFinite(wsTicketTtlSeconds)
+			? wsTicketTtlSeconds
+			: undefined;
+	const wsTicketService = createWebSocketTicketService({
+		ttl_seconds: resolvedWsTicketTtlSeconds,
+	});
 
 	server.addHook(
 		'onRequest',
@@ -164,6 +188,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 	await server.register(websocket);
 	serverLogger.info('server.auth_routes.registering');
 	await registerAuthRoutes(server, {
+		issue_ws_ticket: wsTicketService.issue,
 		supabase: {
 			environment: authEnvironment as NonNullable<
 				NonNullable<RegisterAuthRoutesOptions['supabase']>['environment']
@@ -185,10 +210,15 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 	});
 	serverLogger.info('server.websocket_routes.registering');
 	await registerWebSocketRoutes(server, {
+		allow_ws_query_access_token: wsSecurityConfig.allow_query_access_token,
+		allowed_ws_origins: wsSecurityConfig.allowed_origins,
 		allow_service_principal: subscription?.websocket?.allow_service_principal,
 		desktopAgentBridgeRegistry: websocketOptions?.desktopAgentBridgeRegistry,
+		enforce_secure_ws_transport_in_production:
+			wsSecurityConfig.enforce_secure_transport_in_production,
 		feature_gate: subscription?.websocket?.feature_gate,
 		resolve_subscription_context: subscription?.resolve_context,
+		resolve_ws_ticket_auth_context: wsTicketService.consume,
 		runtime: websocketOptions?.runtime,
 		storage_service: storageService,
 		create_storage_download_url: storageDownloadUrlSigner.create,

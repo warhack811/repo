@@ -8,8 +8,8 @@ export function ChatDeveloperHint(): ReactElement {
 		>
 			<div className="runa-developer-chatdeveloperhint-2">Developer Mode kapalı</div>
 			<div className="runa-subtle-copy">
-				Ham timeline, geçmiş çalÄ±şmalar ve teknik izler ikinci katmanda tutulur. İhtiyaç
-				olduğunda navigation içinden Developer Mode'u açabilirsin.
+				Ham timeline, geçmiş çalışmalar ve teknik izler ikinci katmanda tutulur. İhtiyaç olduğunda
+				navigation içinden Developer Mode'u açabilirsin.
 			</div>
 		</section>
 	);

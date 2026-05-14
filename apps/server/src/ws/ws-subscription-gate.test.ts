@@ -144,6 +144,7 @@ async function startWebSocketServer(input: {
 	readonly websocket_feature_gate?: FeatureGate;
 	readonly websocket_allow_service_principal?: boolean;
 }): Promise<{
+	readonly server: FastifyInstance;
 	readonly wsUrl: string;
 }> {
 	const server = await buildServer({
@@ -172,8 +173,30 @@ async function startWebSocketServer(input: {
 	}
 
 	return {
+		server,
 		wsUrl: `ws://127.0.0.1:${address.port}/ws`,
 	};
+}
+
+async function issueWebSocketTicket(input: {
+	readonly bearerToken: string;
+	readonly path: '/ws' | '/ws/desktop-agent';
+	readonly server: FastifyInstance;
+}): Promise<string> {
+	const response = await input.server.inject({
+		headers: {
+			authorization: `Bearer ${input.bearerToken}`,
+			'content-type': 'application/json',
+		},
+		method: 'POST',
+		payload: {
+			path: input.path,
+		},
+		url: '/auth/ws-ticket',
+	});
+
+	expect(response.statusCode).toBe(200);
+	return response.json().ws_ticket as string;
 }
 
 async function connectWebSocket(url: string): Promise<WebSocket> {
@@ -355,11 +378,16 @@ describe('verifyWebSocketSubscriptionAccess', () => {
 
 describe('websocket subscription integration', () => {
 	it('keeps connection.ready for active free-tier websocket access', async () => {
-		const { wsUrl } = await startWebSocketServer({
+		const { server, wsUrl } = await startWebSocketServer({
 			resolve_context: async () => createSubscriptionContext(),
 			verify_token: async () => createAuthVerificationResult(),
 		});
-		const socket = await connectWebSocket(`${wsUrl}?access_token=valid-token`);
+		const wsTicket = await issueWebSocketTicket({
+			bearerToken: 'valid-token',
+			path: '/ws',
+			server,
+		});
+		const socket = await connectWebSocket(`${wsUrl}?ws_ticket=${wsTicket}`);
 
 		const readyMessage = await waitForServerMessage(socket);
 
@@ -378,8 +406,13 @@ describe('websocket subscription integration', () => {
 			resolve_context: async () => null,
 			verify_token: async () => createAuthVerificationResult(),
 		});
+		const missingContextTicket = await issueWebSocketTicket({
+			bearerToken: 'valid-token',
+			path: '/ws',
+			server: missingContextServer.server,
+		});
 		const missingContextSocket = await connectWebSocket(
-			`${missingContextServer.wsUrl}?access_token=valid-token`,
+			`${missingContextServer.wsUrl}?ws_ticket=${missingContextTicket}`,
 		);
 		const missingContextReadyMessage = await waitForServerMessage(missingContextSocket);
 
@@ -400,8 +433,13 @@ describe('websocket subscription integration', () => {
 				}),
 			verify_token: async () => createAuthVerificationResult(),
 		});
+		const inactiveTicket = await issueWebSocketTicket({
+			bearerToken: 'valid-token',
+			path: '/ws',
+			server: inactiveServer.server,
+		});
 		const inactiveSocket = await connectWebSocket(
-			`${inactiveServer.wsUrl}?access_token=valid-token`,
+			`${inactiveServer.wsUrl}?ws_ticket=${inactiveTicket}`,
 		);
 		const inactiveClose = await waitForSocketClose(inactiveSocket);
 
@@ -416,8 +454,13 @@ describe('websocket subscription integration', () => {
 			verify_token: async () => createAuthVerificationResult(),
 			websocket_feature_gate: proWebSocketGate,
 		});
+		const restrictedTicket = await issueWebSocketTicket({
+			bearerToken: 'valid-token',
+			path: '/ws',
+			server: restrictedServer.server,
+		});
 		const restrictedSocket = await connectWebSocket(
-			`${restrictedServer.wsUrl}?access_token=valid-token`,
+			`${restrictedServer.wsUrl}?ws_ticket=${restrictedTicket}`,
 		);
 		const restrictedClose = await waitForSocketClose(restrictedSocket);
 
@@ -430,9 +473,12 @@ describe('websocket subscription integration', () => {
 			resolve_context: async () => null,
 			verify_token: async () => createServiceVerificationResult(),
 		});
-		const allowedSocket = await connectWebSocket(
-			`${allowedServer.wsUrl}?access_token=service-token`,
-		);
+		const allowedTicket = await issueWebSocketTicket({
+			bearerToken: 'service-token',
+			path: '/ws',
+			server: allowedServer.server,
+		});
+		const allowedSocket = await connectWebSocket(`${allowedServer.wsUrl}?ws_ticket=${allowedTicket}`);
 		const readyMessage = await waitForServerMessage(allowedSocket);
 
 		expect(readyMessage).toEqual({
@@ -449,7 +495,12 @@ describe('websocket subscription integration', () => {
 			verify_token: async () => createServiceVerificationResult(),
 			websocket_allow_service_principal: false,
 		});
-		const deniedSocket = await connectWebSocket(`${deniedServer.wsUrl}?access_token=service-token`);
+		const deniedTicket = await issueWebSocketTicket({
+			bearerToken: 'service-token',
+			path: '/ws',
+			server: deniedServer.server,
+		});
+		const deniedSocket = await connectWebSocket(`${deniedServer.wsUrl}?ws_ticket=${deniedTicket}`);
 		const deniedClose = await waitForSocketClose(deniedSocket);
 
 		expect(deniedClose.code).toBe(WEBSOCKET_AUTH_CLOSE_CODE);

@@ -36,6 +36,12 @@ export interface DesktopAgentSessionInputPayload {
 }
 
 export type DesktopAgentAuthFetch = typeof fetch;
+export interface DesktopAgentWebSocketTicket {
+	readonly expires_at: string;
+	readonly expires_in_seconds: number;
+	readonly path: '/ws' | '/ws/desktop-agent';
+	readonly ws_ticket: string;
+}
 
 interface AuthenticatedActionResponseCandidate extends Record<string, unknown> {
 	readonly outcome?: unknown;
@@ -53,6 +59,13 @@ interface SessionCandidate extends Record<string, unknown> {
 	readonly expires_in?: unknown;
 	readonly refresh_token?: unknown;
 	readonly token_type?: unknown;
+}
+
+interface WebSocketTicketCandidate extends Record<string, unknown> {
+	readonly expires_at?: unknown;
+	readonly expires_in_seconds?: unknown;
+	readonly path?: unknown;
+	readonly ws_ticket?: unknown;
 }
 
 function readRequiredValue(value: string | undefined, key: keyof DesktopAgentEnvironment): string {
@@ -85,6 +98,21 @@ function isAuthenticatedActionResponse(
 	const sessionCandidate = candidate.session as SessionCandidate;
 
 	return typeof sessionCandidate.access_token === 'string';
+}
+
+function isWebSocketTicketPayload(value: unknown): value is DesktopAgentWebSocketTicket {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	const candidate = value as WebSocketTicketCandidate;
+
+	return (
+		typeof candidate.expires_at === 'string' &&
+		typeof candidate.expires_in_seconds === 'number' &&
+		candidate.path === '/ws/desktop-agent' &&
+		typeof candidate.ws_ticket === 'string'
+	);
 }
 
 async function readResponsePayload(response: Response): Promise<unknown> {
@@ -299,4 +327,47 @@ export async function refreshDesktopAgentSession(
 	}
 
 	return normalizeDesktopAgentPersistedSession(payload.session);
+}
+
+export async function requestDesktopAgentWebSocketTicket(
+	input: Readonly<{
+		readonly access_token: string;
+		readonly auth_fetch?: DesktopAgentAuthFetch;
+		readonly server_url: string;
+	}>,
+): Promise<DesktopAgentWebSocketTicket> {
+	const accessToken = input.access_token.trim();
+
+	if (accessToken.length === 0) {
+		throw new Error('Desktop agent websocket ticket request requires access_token.');
+	}
+
+	const authFetch = input.auth_fetch ?? globalThis.fetch;
+
+	if (!authFetch) {
+		throw new Error('Desktop agent websocket ticket request requires a fetch implementation.');
+	}
+
+	const response = await authFetch(resolveDesktopAgentHttpUrl(input.server_url, '/auth/ws-ticket'), {
+		body: JSON.stringify({
+			path: '/ws/desktop-agent',
+		}),
+		headers: {
+			accept: 'application/json',
+			authorization: `Bearer ${accessToken}`,
+			'content-type': 'application/json',
+		},
+		method: 'POST',
+	});
+	const payload = await readResponsePayload(response);
+
+	if (!response.ok) {
+		throw new Error(readErrorMessage(payload, response.status));
+	}
+
+	if (!isWebSocketTicketPayload(payload)) {
+		throw new Error('Desktop agent websocket ticket response has an invalid shape.');
+	}
+
+	return payload;
 }

@@ -50,20 +50,20 @@ function getSpeechRecognitionConstructor(): BrowserSpeechRecognitionConstructor 
 function getVoiceInputErrorMessage(error: VoiceInputErrorCode): string {
 	switch (error) {
 		case 'audio-capture':
-			return 'Mikrofon kullanÄ±labilir deÄŸil. Cihaz baÄŸlantÄ±sÄ±nÄ± ve tarayÄ±cÄ± izinlerini kontrol et.';
+			return 'Mikrofon kullanılabilir değil. Cihaz bağlantısını ve tarayıcı izinlerini kontrol et.';
 		case 'language-not-supported':
-			return 'TarayÄ±cÄ± seÃ§ilen dilde ses tanÄ±mayÄ± desteklemiyor.';
+			return 'Tarayıcı seçilen dilde ses tanımayı desteklemiyor.';
 		case 'network':
-			return 'Ses tanÄ±ma isteÄŸi sÄ±rasÄ±nda baÄŸlantÄ± sorunu oluÅŸtu.';
+			return 'Ses tanıma isteği sırasında bağlantı sorunu oluştu.';
 		case 'no-speech':
-			return 'Ses algÄ±lanmadÄ±. Tekrar deneyebilirsin.';
+			return 'Ses algılanmadı. Tekrar deneyebilirsin.';
 		case 'not-allowed':
 		case 'service-not-allowed':
-			return 'Mikrofon izni reddedildi. Ses giriÅŸi kullanmak istersen tarayÄ±cÄ± iznini aÃ§man gerekiyor.';
+			return 'Mikrofon izni reddedildi. Ses girişi kullanmak istersen tarayıcı iznini açman gerekiyor.';
 		case 'aborted':
 			return 'Ses dinleme durduruldu.';
 		default:
-			return 'Ses giriÅŸi baÅŸlatÄ±lamadÄ±. TarayÄ±cÄ±nÄ±n ses desteÄŸini kontrol et.';
+			return 'Ses girişi başlatılamadı. Tarayıcının ses desteğini kontrol et.';
 	}
 }
 
@@ -144,7 +144,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 	function startListening(): void {
 		if (!isSupported || recognitionRef.current === null) {
 			setStatus('unsupported');
-			setErrorMessage('Bu tarayÄ±cÄ± ses giriÅŸini desteklemiyor.');
+			setErrorMessage('Bu tarayıcı ses girişini desteklemiyor.');
 			return;
 		}
 
@@ -159,7 +159,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 			setErrorMessage(
 				error instanceof Error
 					? error.message
-					: 'Ses giriÅŸi baÅŸlatÄ±lÄ±rken beklenmeyen bir hata oluÅŸtu.',
+					: 'Ses girişi başlatılırken beklenmeyen bir hata oluştu.',
 			);
 		}
 	}

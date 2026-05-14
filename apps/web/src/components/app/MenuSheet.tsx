@@ -38,7 +38,7 @@ export function MenuSheet({
 
 	function showComingSoon(): void {
 		const messageByAction = {
-			help: 'Yardim ve geri bildirim akisi hazirlaniyor. Bu alan kisa sure icinde aktif olacak.',
+			help: 'Yardım ve geri bildirim akışı hazırlanıyor. Bu alan kısa süre içinde aktif olacak.',
 		} as const;
 
 		pushToast({

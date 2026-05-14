@@ -66,6 +66,26 @@ describe('createLogger', () => {
 		);
 	});
 
+	it('redacts bearer, jwt, ws_ticket, and workspace_id tokens in string payloads', () => {
+		const sink = vi.fn();
+		const logger = createLogger({ sink });
+
+		logger.warn('logger.redaction.patterns', {
+			url: 'wss://app.runa.ai/ws?ws_ticket=secret-ticket&workspace_id=workspace_123',
+			value:
+				'authorization=Bearer secret-token jwt=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.signature',
+		});
+
+		expect(sink).toHaveBeenCalledWith(
+			'warn',
+			expect.objectContaining({
+				message: 'logger.redaction.patterns',
+				url: 'wss://app.runa.ai/ws?ws_ticket=[REDACTED]&workspace_id=[REDACTED]',
+				value: 'authorization=Bearer [REDACTED] jwt=[REDACTED_JWT]',
+			}),
+		);
+	});
+
 	it('emits span lifecycle entries with shared span metadata', () => {
 		const sink = vi.fn();
 		const logger = createLogger({

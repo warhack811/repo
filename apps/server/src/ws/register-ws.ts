@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { AuthContext } from '@runa/types';
 
 import { type AuthTokenVerifier, SupabaseAuthError } from '../auth/supabase-auth.js';
 import type { SubscriptionContextResolver } from '../policy/subscription-context.js';
@@ -20,6 +21,9 @@ import {
 	resolveExpectedWorkspaceAttestationId,
 	validateWorkspaceAttestation,
 } from './workspace-attestation.js';
+import { validateWebSocketOrigin, validateWebSocketTransportSecurity } from './ws-security.js';
+import { registerWebSocketSession } from './ws-session-registry.js';
+import type { WebSocketTicketPath } from './ws-ticket.js';
 import { rejectWebSocketConnection, verifyWebSocketHandshake } from './ws-auth.js';
 import {
 	type VerifyWebSocketSubscriptionAccessInput,
@@ -60,10 +64,18 @@ export function attachDesktopAgentWebSocketHandler(
 
 export interface RegisterWebSocketRoutesOptions {
 	readonly allow_service_principal?: boolean;
+	readonly allow_ws_query_access_token?: boolean;
+	readonly allowed_ws_origins?: readonly string[];
 	readonly create_storage_download_url?: StorageDownloadUrlSigner['create'];
 	readonly desktopAgentBridgeRegistry?: DesktopAgentBridgeRegistry;
+	readonly enforce_secure_ws_transport_in_production?: boolean;
 	readonly feature_gate?: VerifyWebSocketSubscriptionAccessInput['feature_gate'];
 	readonly resolve_subscription_context?: SubscriptionContextResolver;
+	readonly resolve_ws_ticket_auth_context?: (input: {
+		readonly path: WebSocketTicketPath;
+		readonly request_id?: string;
+		readonly ticket: string;
+	}) => AuthContext;
 	readonly runtime?: Omit<
 		RuntimeWebSocketHandlerOptions,
 		'auth_context' | 'create_storage_download_url' | 'storage_service' | 'subscription_context'
@@ -72,14 +84,53 @@ export interface RegisterWebSocketRoutesOptions {
 	readonly verify_token: AuthTokenVerifier;
 }
 
+function parseSessionExpiryUnixMs(authContext: NonNullable<RuntimeWebSocketHandlerOptions['auth_context']>): number | null {
+	const expiresAt = authContext.session?.expires_at;
+
+	if (!expiresAt) {
+		return null;
+	}
+
+	const parsed = Date.parse(expiresAt);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+function scheduleSocketSessionExpiryClose(
+	socket: WebSocketConnection,
+	authContext: NonNullable<RuntimeWebSocketHandlerOptions['auth_context']>,
+): void {
+	const expiresAtUnixMs = parseSessionExpiryUnixMs(authContext);
+
+	if (expiresAtUnixMs === null) {
+		return;
+	}
+
+	const delayMs = Math.max(0, expiresAtUnixMs - Date.now());
+	const timeout = setTimeout(() => {
+		socket.close(1008, 'WebSocket session expired. Reconnect with a fresh session.');
+	}, delayMs);
+
+	socket.on('close', () => {
+		clearTimeout(timeout);
+	});
+}
+
 export async function registerWebSocketRoutes(
 	server: FastifyInstance,
 	options: RegisterWebSocketRoutesOptions,
 ): Promise<void> {
 	const expectedWorkspaceAttestationId = resolveExpectedWorkspaceAttestationId();
+	const wsSecurityConfig = {
+		allow_query_access_token: options.allow_ws_query_access_token === true,
+		allowed_origins: options.allowed_ws_origins,
+		enforce_secure_transport_in_production:
+			options.enforce_secure_ws_transport_in_production !== false,
+	};
 
 	server.get('/ws', { websocket: true }, async (socket, request) => {
 		try {
+			validateWebSocketTransportSecurity(request, wsSecurityConfig);
+			validateWebSocketOrigin(request, wsSecurityConfig);
 			const workspaceAttestationFailure = validateWorkspaceAttestation(
 				request,
 				expectedWorkspaceAttestationId,
@@ -93,7 +144,10 @@ export async function registerWebSocketRoutes(
 			}
 
 			const authContext = await verifyWebSocketHandshake({
+				allow_query_access_token: options.allow_ws_query_access_token,
+				path: '/ws',
 				request,
+				resolve_ws_ticket_auth_context: options.resolve_ws_ticket_auth_context,
 				verify_token: options.verify_token,
 			});
 			const subscriptionAccess = await verifyWebSocketSubscriptionAccess({
@@ -110,6 +164,8 @@ export async function registerWebSocketRoutes(
 				storage_service: options.storage_service,
 				subscription_context: subscriptionAccess.subscription,
 			});
+			registerWebSocketSession(socket, subscriptionAccess.auth);
+			scheduleSocketSessionExpiryClose(socket, subscriptionAccess.auth);
 		} catch (error: unknown) {
 			rejectWebSocketConnection(socket, error);
 		}
@@ -117,8 +173,13 @@ export async function registerWebSocketRoutes(
 
 	server.get('/ws/desktop-agent', { websocket: true }, async (socket, request) => {
 		try {
+			validateWebSocketTransportSecurity(request, wsSecurityConfig);
+			validateWebSocketOrigin(request, wsSecurityConfig);
 			const authContext = await verifyWebSocketHandshake({
+				allow_query_access_token: options.allow_ws_query_access_token,
+				path: '/ws/desktop-agent',
 				request,
+				resolve_ws_ticket_auth_context: options.resolve_ws_ticket_auth_context,
 				verify_token: options.verify_token,
 			});
 
@@ -133,6 +194,8 @@ export async function registerWebSocketRoutes(
 				auth_context: authContext,
 				desktopAgentBridgeRegistry: options.desktopAgentBridgeRegistry,
 			});
+			registerWebSocketSession(socket, authContext);
+			scheduleSocketSessionExpiryClose(socket, authContext);
 		} catch (error: unknown) {
 			rejectWebSocketConnection(socket, error);
 		}

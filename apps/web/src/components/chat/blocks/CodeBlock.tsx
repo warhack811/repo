@@ -20,9 +20,9 @@ const COLLAPSED_LINE_LIMIT = 8;
 function getCopyButtonLabel(copyState: CopyState): string {
 	switch (copyState) {
 		case 'copied':
-			return 'KopyalandÄ±';
+			return 'Kopyaland?';
 		case 'failed':
-			return 'Kopyalama baÅŸarÄ±sÄ±z';
+			return 'Kopyalama ba?ar?s?z';
 		case 'idle':
 			return 'Kopyala';
 	}
@@ -99,7 +99,7 @@ export function CodeBlock({ block }: CodeBlockProps): ReactElement {
 						<span className={styles['chip']}>{block.payload.language || 'plain text'}</span>
 						{isLongBlock && !isExpanded ? (
 							<span className={styles['muted']}>
-								{lines.length} satÄ±rÄ±n ilk {COLLAPSED_LINE_LIMIT} satÄ±rÄ± gÃ¶steriliyor
+								{lines.length} sat?r?n ilk {COLLAPSED_LINE_LIMIT} sat?r? g?steriliyor
 							</span>
 						) : null}
 					</div>
@@ -109,7 +109,7 @@ export function CodeBlock({ block }: CodeBlockProps): ReactElement {
 							onClick={() => setIsWrapped((current) => !current)}
 							variant="ghost"
 						>
-							<WrapText size={16} /> KaydÄ±r
+							<WrapText size={16} /> Kayd?r
 						</RunaButton>
 						<RunaButton aria-live="polite" onClick={handleCopy} variant="secondary">
 							{copyState === 'copied' ? <Check size={16} /> : <Clipboard size={16} />}
@@ -139,7 +139,7 @@ export function CodeBlock({ block }: CodeBlockProps): ReactElement {
 						variant="ghost"
 					>
 						<ChevronDown size={16} />
-						{isExpanded ? 'Daralt' : `TÃ¼mÃ¼nÃ¼ gÃ¶ster (${lines.length} satÄ±r)`}
+						{isExpanded ? 'Daralt' : `Tümünü göster (${lines.length} satır)`}
 					</RunaButton>
 				) : null}
 			</div>

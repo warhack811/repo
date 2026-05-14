@@ -315,7 +315,7 @@ export function SettingsPage({
 				setWorkspaceDirectoryError(
 					error instanceof Error
 						? error.message
-						: 'Calisma klasorleri yuklenemedi. Baglantiyi kontrol edip tekrar dene.',
+						: 'Çalışma klasörleri yüklenemedi. Bağlantıyı kontrol edip tekrar dene.',
 				);
 			} finally {
 				if (!isDisposed && !abortController.signal.aborted) {
@@ -541,10 +541,10 @@ export function SettingsPage({
 								</label>
 								<div className="runa-settings-row runa-settings-row--stacked">
 									<div>
-										Mikrofon {voiceInput.isSupported ? 'kullanilabilir' : 'desteklenmiyor'}.
+										Mikrofon {voiceInput.isSupported ? 'kullanılabilir' : 'desteklenmiyor'}.
 									</div>
 									<div>
-										Sesli yanit {isTextToSpeechSupported ? 'kullanilabilir' : 'desteklenmiyor'}.
+										Sesli yanıt {isTextToSpeechSupported ? 'kullanılabilir' : 'desteklenmiyor'}.
 									</div>
 									{voiceInput.permissionDenied ? (
 										<div className="runa-alert runa-alert--warning">Mikrofon izni reddedildi.</div>
@@ -558,7 +558,7 @@ export function SettingsPage({
 											Okumayi durdur
 										</button>
 									) : null}
-									{voiceInput.errorMessage ?? textToSpeechErrorMessage ? (
+									{(voiceInput.errorMessage ?? textToSpeechErrorMessage) ? (
 										<div className="runa-subtle-copy">
 											{voiceInput.errorMessage ?? textToSpeechErrorMessage}
 										</div>
@@ -627,10 +627,10 @@ export function SettingsPage({
 								className="runa-settings-preference-section"
 								aria-labelledby="workspace-directory-heading"
 							>
-								<h2 id="workspace-directory-heading">Calisma klasoru</h2>
+								<h2 id="workspace-directory-heading">Çalışma klasörü</h2>
 								<div className="runa-settings-row runa-settings-row--stacked">
 									<label className="runa-settings-row">
-										<span>Aktif calisma koku</span>
+										<span>Aktif çalışma kökü</span>
 										<output>{workspaceRootName}</output>
 									</label>
 									<label className="runa-settings-row">
@@ -655,14 +655,14 @@ export function SettingsPage({
 											onClick={reloadWorkspaceDirectories}
 											disabled={workspaceDirectoryLoading}
 										>
-											{workspaceDirectoryLoading ? 'Yenileniyor...' : 'Klasorleri yenile'}
+											{workspaceDirectoryLoading ? 'Yenileniyor...' : 'Klasörleri yenile'}
 										</button>
 									</div>
 									{workspaceDirectoryError ? (
 										<div className="runa-alert runa-alert--warning">{workspaceDirectoryError}</div>
 									) : (
 										<div className="runa-subtle-copy">
-											Secilen klasor yeni runlarda calisma koku olarak kullanilir.
+											Seçilen klasör yeni runlarda çalışma kökü olarak kullanılır.
 										</div>
 									)}
 								</div>

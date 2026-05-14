@@ -308,6 +308,7 @@ class DesktopAgentSessionRuntimeImpl implements DesktopAgentSessionRuntime {
 				const bridgeSession = await this.#options.bridge_factory({
 					access_token: resolvedSession.access_token,
 					agent_id: this.#options.agent_id,
+					auth_fetch: this.#options.auth_fetch,
 					machine_label: this.#options.machine_label,
 					server_url: this.#options.server_url,
 				});

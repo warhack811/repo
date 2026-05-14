@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthContext, ToolDefinition } from '@runa/types';
 
-import type { PolicyStateStore } from '../persistence/policy-state-store.js';
+import {
+	type PolicyStateStore,
+	PolicyStateStoreReadError,
+	PolicyStateStoreWriteError,
+} from '../persistence/policy-state-store.js';
 import type { PermissionEngineState } from '../policy/permission-engine.js';
 import { createPermissionEngine } from '../policy/permission-engine.js';
 import { createWebSocketPolicyWiring } from './policy-wiring.js';
@@ -107,6 +111,34 @@ function createToolDefinition(
 }
 
 describe('websocket policy wiring', () => {
+	it('falls back to socket-local state when policy persistence is unavailable', async () => {
+		const socket = createSocket();
+		const getPolicyState = vi.fn(async () => {
+			throw new PolicyStateStoreReadError(
+				'Failed to read policy state for session "session_policy".',
+			);
+		});
+		const putPolicyState = vi.fn(async () => {
+			throw new PolicyStateStoreWriteError(
+				'Failed to persist policy state for session "session_policy".',
+			);
+		});
+		const wiring = createWebSocketPolicyWiring({
+			policy_state_store: {
+				getPolicyState,
+				putPolicyState,
+			},
+		});
+
+		attachAuthContext(socket);
+
+		const state = await wiring.setApprovalMode(socket, 'trusted-session');
+
+		expect(state.progressive_trust.approval_mode.mode).toBe('trusted-session');
+		expect(getPolicyState).toHaveBeenCalledTimes(1);
+		expect(putPolicyState).toHaveBeenCalledTimes(1);
+	});
+
 	it('reconstructs approval decisions without socket-local memory for approval resolution', () => {
 		const socket = createSocket();
 		const wiring = createWebSocketPolicyWiring();

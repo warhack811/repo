@@ -1,65 +1,65 @@
 const workToolLabels = new Map<string, string>([
-	['agent.delegate', 'Alt gÃ¶rev'],
-	['browser.click', 'TarayÄ±cÄ± tÄ±klamasÄ±'],
+	['agent.delegate', 'Alt görev'],
+	['browser.click', 'Tarayıcı tıklaması'],
 	['browser.extract', 'Sayfa okuma'],
 	['browser.fill', 'Form doldurma'],
-	['browser.navigate', 'TarayÄ±cÄ± gezintisi'],
-	['desktop.click', 'MasaÃ¼stÃ¼ tÄ±klamasÄ±'],
+	['browser.navigate', 'Tarayıcı gezintisi'],
+	['desktop.click', 'Masaüstü tıklaması'],
 	['desktop.clipboard.read', 'Pano okuma'],
 	['desktop.clipboard.write', 'Pano yazma'],
-	['desktop.keypress', 'Klavye kÄ±sayolu'],
-	['desktop.launch', 'Uygulama baÅŸlatma'],
-	['desktop.scroll', 'MasaÃ¼stÃ¼ kaydÄ±rma'],
-	['desktop.screenshot', 'Ekran gÃ¶rÃ¼ntÃ¼sÃ¼'],
-	['desktop.type', 'MasaÃ¼stÃ¼ne yazma'],
-	['desktop.verify_state', 'MasaÃ¼stÃ¼ doÄŸrulama'],
+	['desktop.keypress', 'Klavye kısayolu'],
+	['desktop.launch', 'Uygulama başlatma'],
+	['desktop.scroll', 'Masaüstü kaydırma'],
+	['desktop.screenshot', 'Ekran görüntüsü'],
+	['desktop.type', 'Masaüstüne yazma'],
+	['desktop.verify_state', 'Masaüstü doğrulama'],
 	['desktop.vision_analyze', 'Ekran analizi'],
-	['edit.patch', 'Kod deÄŸiÅŸikliÄŸi'],
+	['edit.patch', 'Kod değişikliği'],
 	['file.list', 'Dosya listeleme'],
 	['file.read', 'Dosya okuma'],
 	['file.write', 'Dosya yazma'],
-	['file.share', 'Dosya paylaÅŸÄ±mÄ±'],
+	['file.share', 'Dosya paylaşımı'],
 	['file.watch', 'Dosya takibi'],
-	['git.diff', 'DeÄŸiÅŸiklik inceleme'],
-	['git.status', 'Git durum kontrolÃ¼'],
+	['git.diff', 'Değişiklik inceleme'],
+	['git.status', 'Git durum kontrolü'],
 	['memory.delete', 'Bellek silme'],
 	['memory.list', 'Bellek listeleme'],
-	['memory.save', 'BelleÄŸe kaydetme'],
-	['memory.search', 'Bellek aramasÄ±'],
+	['memory.save', 'Belleğe kaydetme'],
+	['memory.search', 'Bellek araması'],
 	['search.codebase', 'Kod arama'],
 	['search.grep', 'Dosya arama'],
-	['search.memory', 'Bellek aramasÄ±'],
+	['search.memory', 'Bellek araması'],
 	['shell.exec', 'Terminal komutu'],
 	['web.search', 'Web arama'],
 ]);
 
 const timelineLabelOverrides = new Map<string, string>([
-	['Run started', 'Runa iÅŸi baÅŸlattÄ±'],
-	['Model planned the next step', 'Sonraki adÄ±m belirlendi'],
-	['Model is thinking', 'Runa sonraki adÄ±mÄ± deÄŸerlendiriyor'],
-	['Assistant finished the turn', 'YanÄ±t tamamlandÄ±'],
-	['Run failed', 'Ã‡alÄ±ÅŸma tamamlanamadÄ±'],
-	['Approval requested for desktop.screenshot', 'Ekran gÃ¶rÃ¼ntÃ¼sÃ¼ iÃ§in onay bekleniyor'],
-	['Approval requested for file.write', 'Dosya yazma iÃ§in onay bekleniyor'],
-	['Approval requested for file.read', 'Dosya okuma iÃ§in onay bekleniyor'],
+	['Run started', 'Runa işi başlattı'],
+	['Model planned the next step', 'Sonraki adım belirlendi'],
+	['Model is thinking', 'Runa sonraki adımı değerlendiriyor'],
+	['Assistant finished the turn', 'Yanıt tamamlandı'],
+	['Run failed', 'Çalışma tamamlanamadı'],
+	['Approval requested for desktop.screenshot', 'Ekran görüntüsü için onay bekleniyor'],
+	['Approval requested for file.write', 'Dosya yazma için onay bekleniyor'],
+	['Approval requested for file.read', 'Dosya okuma için onay bekleniyor'],
 ]);
 
 const knownDetailTranslations = new Map<string, string>([
 	[
 		'Captures a screenshot of the server host desktop and returns the image as base64-encoded PNG data.',
-		'Ekrandaki gÃ¶rÃ¼nÃ¼r bilgileri yakalamak iÃ§in ekran gÃ¶rÃ¼ntÃ¼sÃ¼ alÄ±nÄ±r.',
+		'Ekrandaki görünür bilgileri yakalamak için ekran görüntüsü alınır.',
 	],
 	[
 		'Reads text from the connected desktop agent clipboard through an approval-gated bridge, returning a bounded redaction-aware payload.',
-		'BaÄŸlÄ± masaÃ¼stÃ¼ panosundaki metin gÃ¼venli sÄ±nÄ±rlar iÃ§inde okunur.',
+		'Bağlı masaüstü panosundaki metin güvenli sınırlar içinde okunur.',
 	],
 	[
 		'Writes text to the connected desktop agent clipboard through an approval-gated bridge.',
-		'BaÄŸlÄ± masaÃ¼stÃ¼ panosuna metin yazÄ±lÄ±r.',
+		'Bağlı masaüstü panosuna metin yazılır.',
 	],
 	[
 		'Writes text to the connected desktop agent clipboard through an explicit approval-gated bridge path.',
-		'BaÄŸlÄ± masaÃ¼stÃ¼ panosuna metin yazÄ±lÄ±r.',
+		'Bağlı masaüstü panosuna metin yazılır.',
 	],
 ]);
 
@@ -96,8 +96,8 @@ export function formatWorkDetail(detail: string | undefined): string | null {
 	formattedDetail = formattedDetail
 		.replaceAll('deepseek / deepseek-v4-pro', 'DeepSeek V4 Pro')
 		.replaceAll('Approval rejected for ', 'Onay reddedildi: ')
-		.replaceAll('completed successfully.', 'tamamlandÄ±.')
-		.replaceAll('failed.', 'tamamlanamadÄ±.');
+		.replaceAll('completed successfully.', 'tamamlandı.')
+		.replaceAll('failed.', 'tamamlanamadı.');
 
 	if (englishLeakPattern.test(formattedDetail)) {
 		return null;
@@ -107,52 +107,52 @@ export function formatWorkDetail(detail: string | undefined): string | null {
 }
 
 export function formatWorkTimelineLabel(label: string): string {
-	return timelineLabelOverrides.get(label) ?? formatWorkDetail(label) ?? 'Ã‡alÄ±ÅŸma adÄ±mÄ±';
+	return timelineLabelOverrides.get(label) ?? formatWorkDetail(label) ?? 'Çalışma adımı';
 }
 
 export function formatWorkSummary(summary: string): string {
 	if (summary === 'Timeline shows approval wait for desktop screenshot.') {
-		return 'Runa ekran gÃ¶rÃ¼ntÃ¼sÃ¼ iÃ§in onay bekliyor.';
+		return 'Runa ekran görüntüsü için onay bekliyor.';
 	}
 
 	if (summary === 'Timeline shows a direct assistant completion.') {
-		return 'Runa yanÄ±tÄ± doÄŸrudan tamamladÄ±.';
+		return 'Runa yanıtı doğrudan tamamladı.';
 	}
 
 	const formattedSummary = formatWorkDetail(summary);
 
 	if (!formattedSummary) {
-		return 'Runa Ã§alÄ±ÅŸma adÄ±mlarÄ±nÄ± sÃ¼rdÃ¼rÃ¼yor.';
+		return 'Runa çalışma adımlarını sürdürüyor.';
 	}
 
 	return formattedSummary
 		.replaceAll('Timeline shows ', 'Runa ')
-		.replaceAll(' before assistant completion.', ' yaptÄ± ve yanÄ±tÄ± tamamladÄ±.')
-		.replaceAll(' before run failure.', ' adÄ±mÄ±nda sorunla karÅŸÄ±laÅŸtÄ±.')
+		.replaceAll(' before assistant completion.', ' yaptı ve yanıtı tamamladı.')
+		.replaceAll(' before run failure.', ' adımında sorunla karşılaştı.')
 		.replaceAll('approval wait for ', 'onay bekliyor: ')
-		.replaceAll('public web search', 'web aramasÄ±')
-		.replaceAll('codebase search', 'kod aramasÄ±')
-		.replaceAll('git diff inspection', 'deÄŸiÅŸiklik inceleme')
-		.replaceAll('assistant completion', 'yanÄ±t tamamlama')
+		.replaceAll('public web search', 'web araması')
+		.replaceAll('codebase search', 'kod araması')
+		.replaceAll('git diff inspection', 'değişiklik inceleme')
+		.replaceAll('assistant completion', 'yanıt tamamlama')
 		.replaceAll('file write', 'dosya yazma')
-		.replaceAll('desktop screenshot', 'ekran gÃ¶rÃ¼ntÃ¼sÃ¼');
+		.replaceAll('desktop screenshot', 'ekran görüntüsü');
 }
 
 export function formatWorkStateLabel(state: string | undefined): string {
 	switch (state) {
 		case 'active':
 		case 'info':
-			return 'sÃ¼rÃ¼yor';
+			return 'sürüyor';
 		case 'approved':
-			return 'onaylandÄ±';
+			return 'onaylandı';
 		case 'completed':
 		case 'success':
-			return 'tamamlandÄ±';
+			return 'tamamlandı';
 		case 'error':
 		case 'failed':
 			return 'hata';
 		case 'neutral':
-			return 'hazÄ±r';
+			return 'hazır';
 		case 'pending':
 		case 'paused':
 		case 'warning':
@@ -162,6 +162,6 @@ export function formatWorkStateLabel(state: string | undefined): string {
 		case 'requested':
 			return 'isteniyor';
 		default:
-			return state ?? 'hazÄ±r';
+			return state ?? 'hazır';
 	}
 }

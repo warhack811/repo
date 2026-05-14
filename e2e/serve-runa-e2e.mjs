@@ -392,6 +392,7 @@ const [
 	usageQuotaModule,
 	registryModule,
 	registerWsModule,
+	wsTicketModule,
 	wsAuthModule,
 	wsSubscriptionGateModule,
 ] = await Promise.all([
@@ -406,6 +407,7 @@ const [
 	import(pathToFileURL(resolve(serverDistRoot, 'policy', 'usage-quota.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'tools', 'registry.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'ws', 'register-ws.js')).href),
+	import(pathToFileURL(resolve(serverDistRoot, 'ws', 'ws-ticket.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'ws', 'ws-auth.js')).href),
 	import(pathToFileURL(resolve(serverDistRoot, 'ws', 'ws-subscription-gate.js')).href),
 ]);
@@ -425,6 +427,7 @@ const { createWebSocketPolicyWiring } = policyWiringModule;
 const { resetUsageRateLimitStore } = usageQuotaModule;
 const { createBuiltInToolRegistry } = registryModule;
 const { attachRuntimeWebSocketHandler } = registerWsModule;
+const { createWebSocketTicketService } = wsTicketModule;
 const { rejectWebSocketConnection, verifyWebSocketHandshake } = wsAuthModule;
 const { verifyWebSocketSubscriptionAccess } = wsSubscriptionGateModule;
 
@@ -573,6 +576,7 @@ if (!verifyToken) {
 const conversationStore = createInMemoryConversationStore();
 const approvalStore = createInMemoryApprovalStore();
 const toolRegistry = createBuiltInToolRegistry();
+const wsTicketService = createWebSocketTicketService();
 const policyWiring = createWebSocketPolicyWiring({
 	permission_engine: createPermissionEngine(),
 	policy_state_store: null,
@@ -597,6 +601,12 @@ server.addHook(
 
 await server.register(websocket);
 await registerAuthRoutes(server, {
+	issue_ws_ticket: ({ auth, path, request_id }) =>
+		wsTicketService.issue({
+			auth,
+			path,
+			request_id,
+		}),
 	supabase: {
 		environment: process.env,
 		fetch: globalThis.fetch,
@@ -672,7 +682,14 @@ server.get('/desktop/devices', async (request) => {
 server.get('/ws', { websocket: true }, async (socket, request) => {
 	try {
 		const authContext = await verifyWebSocketHandshake({
+			path: '/ws',
 			request,
+			resolve_ws_ticket_auth_context: ({ path, request_id, ticket }) =>
+				wsTicketService.consume({
+					path,
+					request_id,
+					ticket,
+				}),
 			verify_token: async (input) => {
 				const result = await verifyToken(input);
 

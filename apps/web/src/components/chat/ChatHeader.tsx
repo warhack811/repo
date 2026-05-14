@@ -59,7 +59,7 @@ export function ChatHeader({
 							</p>
 						</>
 					) : (
-						<p className="runa-chat-header__subtitle">Cihaz baglantisi bekleniyor</p>
+						<p className="runa-chat-header__subtitle">Cihaz bağlantısı bekleniyor</p>
 					)}
 				</div>
 			</div>

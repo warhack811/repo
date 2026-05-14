@@ -46,16 +46,16 @@ export function parseServerMessage(raw: string): WebSocketServerBridgeMessage {
 	throw new Error(uiCopy.runtime.unsupportedWsMessage);
 }
 
-export function createWebSocketUrl(accessToken?: string | null): string {
+export function createWebSocketUrl(wsTicket?: string | null): string {
 	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 	const websocketUrl = new URL(`${protocol}//${window.location.host}/ws`);
-	const normalizedAccessToken = accessToken?.trim();
+	const normalizedWebSocketTicket = wsTicket?.trim();
 	const workspaceAttestationId = (
 		import.meta.env['VITE_RUNA_WORKSPACE_ID'] as string | undefined
 	)?.trim();
 
-	if (normalizedAccessToken) {
-		websocketUrl.searchParams.set('access_token', normalizedAccessToken);
+	if (normalizedWebSocketTicket) {
+		websocketUrl.searchParams.set('ws_ticket', normalizedWebSocketTicket);
 	}
 
 	if (workspaceAttestationId) {

@@ -25,9 +25,11 @@ import type {
 	PendingApprovalEntry,
 	PersistApprovalRequestInput,
 } from '../persistence/approval-store.js';
+import { ConversationStoreWriteError } from '../persistence/conversation-store.js';
+import { EventStoreWriteError } from '../persistence/event-store.js';
 import type { MemoryStore } from '../persistence/memory-store.js';
 import type { PolicyStateStore } from '../persistence/policy-state-store.js';
-import type { PersistRunStateInput } from '../persistence/run-store.js';
+import { type PersistRunStateInput, RunStoreWriteError } from '../persistence/run-store.js';
 import type { PermissionEngineState } from '../policy/permission-engine.js';
 import { createPermissionEngine } from '../policy/permission-engine.js';
 import { resetUsageRateLimitStore } from '../policy/usage-quota.js';
@@ -921,6 +923,173 @@ describe('register-ws', () => {
 				trace_id: 'trace_ws_1',
 			}),
 		);
+	});
+
+	it('keeps a live run ephemeral when conversation persistence is unavailable', async () => {
+		const socket = new MockSocket();
+		const persistEvents = vi.fn(async (_events: readonly RuntimeEvent[]) => {});
+		const persistRunState = vi.fn(async (_input: PersistRunStateInput) => {});
+		const conversationStore = {
+			appendConversationMessage: vi.fn(async () => {
+				throw new ConversationStoreWriteError('Failed to append conversation message.');
+			}),
+			ensureConversation: vi.fn(async () => {
+				throw new ConversationStoreWriteError('Failed to ensure conversation.');
+			}),
+		};
+
+		attachRuntimeWebSocketHandler(socket);
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							choices: [
+								{
+									finish_reason: 'stop',
+									message: {
+										content: 'Ephemeral reply',
+										role: 'assistant',
+									},
+								},
+							],
+							id: 'chatcmpl_ws_ephemeral',
+							model: 'llama-3.3-70b-versatile',
+							usage: {
+								completion_tokens: 8,
+								prompt_tokens: 8,
+								total_tokens: 16,
+							},
+						}),
+						{
+							headers: {
+								'content-type': 'application/json',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					conversation_id: 'conversation_unavailable',
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Hello without persistence', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_ephemeral',
+					trace_id: 'trace_ws_ephemeral',
+				},
+				type: 'run.request',
+			}),
+			{
+				conversationStore,
+				persistEvents,
+				persistRunState,
+			},
+		);
+
+		const messages = parseMessages(socket);
+		const acceptedMessage = messages.find((message) => message.type === 'run.accepted');
+
+		expect(messages.map((message) => message.type)).toContain('run.accepted');
+		expect(messages.map((message) => message.type)).toContain('run.finished');
+		expect(
+			acceptedMessage?.type === 'run.accepted' ? acceptedMessage.payload.conversation_id : null,
+		).toBe(undefined);
+		expect(conversationStore.ensureConversation).toHaveBeenCalledTimes(1);
+		expect(conversationStore.appendConversationMessage).not.toHaveBeenCalled();
+		expect(persistEvents).toHaveBeenCalledTimes(1);
+		expect(persistRunState).toHaveBeenCalledWith(
+			expect.objectContaining({
+				current_state: 'COMPLETED',
+				run_id: 'run_ws_ephemeral',
+				trace_id: 'trace_ws_ephemeral',
+			}),
+		);
+	});
+
+	it('finishes a live run when runtime persistence is unavailable', async () => {
+		const socket = new MockSocket();
+		const persistEvents = vi.fn(async () => {
+			throw new EventStoreWriteError('Failed to persist runtime events.');
+		});
+		const persistRunState = vi.fn(async () => {
+			throw new RunStoreWriteError('Failed to persist run state.');
+		});
+
+		attachRuntimeWebSocketHandler(socket);
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							choices: [
+								{
+									finish_reason: 'stop',
+									message: {
+										content: 'Ephemeral runtime persistence reply',
+										role: 'assistant',
+									},
+								},
+							],
+							id: 'chatcmpl_ws_runtime_ephemeral',
+							model: 'llama-3.3-70b-versatile',
+							usage: {
+								completion_tokens: 8,
+								prompt_tokens: 8,
+								total_tokens: 16,
+							},
+						}),
+						{
+							headers: {
+								'content-type': 'application/json',
+							},
+							status: 200,
+						},
+					),
+			),
+		);
+
+		await handleWebSocketMessage(
+			socket,
+			JSON.stringify({
+				payload: {
+					provider: 'groq',
+					provider_config: {
+						apiKey: 'groq-key',
+					},
+					request: {
+						max_output_tokens: 64,
+						messages: [{ content: 'Hello without runtime persistence', role: 'user' }],
+						model: 'llama-3.3-70b-versatile',
+					},
+					run_id: 'run_ws_runtime_ephemeral',
+					trace_id: 'trace_ws_runtime_ephemeral',
+				},
+				type: 'run.request',
+			}),
+			{
+				persistEvents,
+				persistRunState,
+			},
+		);
+
+		expect(parseMessages(socket).map((message) => message.type)).toContain('run.finished');
+		expect(persistEvents).toHaveBeenCalledTimes(1);
+		expect(persistRunState).toHaveBeenCalledTimes(1);
 	});
 
 	it('accepts trusted-session mode payloads and persists the server-owned policy state', async () => {

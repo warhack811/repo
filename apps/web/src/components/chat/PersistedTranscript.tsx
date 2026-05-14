@@ -21,7 +21,7 @@ export function PersistedTranscript({
 		return activeConversationId ? (
 			<div className="runa-subtle-copy">Bu sohbet icin henuz kayitli mesaj yok.</div>
 		) : (
-			<div className="runa-subtle-copy">Yeni bir sohbet hazir.</div>
+			<div className="runa-subtle-copy">Yeni bir sohbet hazır.</div>
 		);
 	}
 

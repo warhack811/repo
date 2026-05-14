@@ -12,6 +12,9 @@ import type {
 import type { PendingApprovalEntry } from '../persistence/approval-store.js';
 import {
 	type PolicyStateStore,
+	PolicyStateStoreConfigurationError,
+	PolicyStateStoreReadError,
+	PolicyStateStoreWriteError,
 	createDefaultPolicyStateStore,
 	toPolicyStateScope,
 } from '../persistence/policy-state-store.js';
@@ -26,9 +29,15 @@ import {
 	createPermissionEngine,
 	createToolPermissionRequest,
 } from '../policy/permission-engine.js';
+import { createLogger } from '../utils/logger.js';
 import { type WebSocketConnection, getWebSocketAuthContext } from './transport.js';
 
 const AUTO_CONTINUE_APPROVAL_TARGET_LABEL = 'agent.auto_continue';
+const policyWiringLogger = createLogger({
+	context: {
+		component: 'ws.policy_wiring',
+	},
+});
 
 export interface WebSocketPolicyWiring {
 	readonly permission_engine: PermissionEngine;
@@ -203,6 +212,14 @@ function createFallbackApprovalDecision(
 	};
 }
 
+function isPolicyStatePersistenceUnavailable(error: unknown): boolean {
+	return (
+		error instanceof PolicyStateStoreConfigurationError ||
+		error instanceof PolicyStateStoreReadError ||
+		error instanceof PolicyStateStoreWriteError
+	);
+}
+
 export function createWebSocketPolicyWiring(
 	options: CreateWebSocketPolicyWiringOptions = {},
 ): WebSocketPolicyWiring {
@@ -227,7 +244,21 @@ export function createWebSocketPolicyWiring(
 		const persistentScope = getPersistentScope(socket);
 
 		if (policyStateStore && persistentScope) {
-			const persistedState = await policyStateStore.getPolicyState(persistentScope);
+			let persistedState: PermissionEngineState | null = null;
+
+			try {
+				persistedState = await policyStateStore.getPolicyState(persistentScope);
+			} catch (error: unknown) {
+				if (!isPolicyStatePersistenceUnavailable(error)) {
+					throw error;
+				}
+
+				policyWiringLogger.warn('policy_state.persistence_unavailable_degraded', {
+					error: error instanceof Error ? error : String(error),
+					session_id: persistentScope.session_id,
+					stage: 'get_policy_state',
+				});
+			}
 
 			if (persistedState !== null) {
 				stateBySocket.set(socket, persistedState);
@@ -249,7 +280,19 @@ export function createWebSocketPolicyWiring(
 		const persistentScope = getPersistentScope(socket);
 
 		if (policyStateStore && persistentScope) {
-			await policyStateStore.putPolicyState(persistentScope, state);
+			try {
+				await policyStateStore.putPolicyState(persistentScope, state);
+			} catch (error: unknown) {
+				if (!isPolicyStatePersistenceUnavailable(error)) {
+					throw error;
+				}
+
+				policyWiringLogger.warn('policy_state.persistence_unavailable_degraded', {
+					error: error instanceof Error ? error : String(error),
+					session_id: persistentScope.session_id,
+					stage: 'put_policy_state',
+				});
+			}
 		}
 	}
 

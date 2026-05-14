@@ -167,15 +167,15 @@ export const ReasoningTrigger = memo(
 				)}
 				{...props}
 			>
-					{children ? (
-						<>
-							<BrainIcon className="size-4" />
-							{getThinkingMessage(isStreaming, duration)}
-							<ChevronDownIcon
-								className={cn('size-4 transition-transform', isOpen ? 'rotate-180' : 'rotate-0')}
-							/>
-						</>
-					) : null}
+				{children ? (
+					<>
+						<BrainIcon className="size-4" />
+						{getThinkingMessage(isStreaming, duration)}
+						<ChevronDownIcon
+							className={cn('size-4 transition-transform', isOpen ? 'rotate-180' : 'rotate-0')}
+						/>
+					</>
+				) : null}
 			</CollapsibleTrigger>
 		);
 	},

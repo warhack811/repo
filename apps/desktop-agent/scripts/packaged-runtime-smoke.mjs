@@ -183,6 +183,34 @@ async function listDevices(accessToken) {
 	return Array.isArray(payload.devices) ? payload.devices : [];
 }
 
+async function requestWebSocketTicket(accessToken, path) {
+	const response = await fetch(new URL('/auth/ws-ticket', serverBaseUrl), {
+		body: JSON.stringify({
+			path,
+		}),
+		headers: {
+			accept: 'application/json',
+			authorization: `Bearer ${accessToken}`,
+			'content-type': 'application/json',
+		},
+		method: 'POST',
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`WebSocket ticket request for ${path} returned HTTP ${response.status}: ${await response.text()}`,
+		);
+	}
+
+	const payload = await response.json();
+
+	if (!payload || typeof payload.ws_ticket !== 'string') {
+		throw new Error(`WebSocket ticket request for ${path} returned an invalid payload.`);
+	}
+
+	return payload.ws_ticket;
+}
+
 async function waitForDevice(accessToken) {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
@@ -261,7 +289,7 @@ function waitForSocketClose(socket) {
 
 async function runDesktopScreenshotProof(accessToken, targetConnectionId) {
 	const wsUrl = new URL('/ws', serverBaseUrl.replace(/^http/u, 'ws'));
-	wsUrl.searchParams.set('access_token', accessToken);
+	wsUrl.searchParams.set('ws_ticket', await requestWebSocketTicket(accessToken, '/ws'));
 	const socket = await openWebSocket(wsUrl);
 	const messages = [];
 	let approvalResolveSent = false;
@@ -395,7 +423,7 @@ async function runCrossAccountTargetRejectionProof(accessToken, targetConnection
 	}
 
 	const wsUrl = new URL('/ws', serverBaseUrl.replace(/^http/u, 'ws'));
-	wsUrl.searchParams.set('access_token', accessToken);
+	wsUrl.searchParams.set('ws_ticket', await requestWebSocketTicket(accessToken, '/ws'));
 	const socket = await openWebSocket(wsUrl);
 	const messages = [];
 	let approvalResolveSent = false;
