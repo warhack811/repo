@@ -19,6 +19,7 @@ const chatLayoutPath = join(webSrcRoot, 'components', 'chat', 'ChatLayout.tsx');
 const appShellPath = join(webSrcRoot, 'components', 'app', 'AppShell.tsx');
 const componentsCssPath = join(stylesRoot, 'components.css');
 const appPath = join(webSrcRoot, 'App.tsx');
+const useChatRuntimePath = join(webSrcRoot, 'hooks', 'useChatRuntime.ts');
 const uiIndexPath = join(webSrcRoot, 'components', 'ui', 'index.ts');
 const skipToContentPath = join(webSrcRoot, 'components', 'ui', 'SkipToContent.tsx');
 const useVisualViewportPath = join(webSrcRoot, 'hooks', 'useVisualViewport.ts');
@@ -131,6 +132,22 @@ describe('design language lock', () => {
 		expect(chatLayout).not.toContain('insights');
 		expect(componentsCss).toContain('grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);');
 		expect(chatBranch).not.toContain('runa-command-palette-trigger');
+	});
+
+	it('splits the useChatRuntime return memo and removes streaming fields from it', () => {
+		const source = readFileSync(useChatRuntimePath, 'utf8');
+		const megaMemoMatch = source.match(/return useMemo\([\s\S]*?\),\s*\[[\s\S]{2000,}\]/);
+
+		expect(source).toContain('const runtimeConfigState = useMemo(');
+		expect(source).toContain('const runtimeState = useMemo(');
+		expect(source).toContain('const runtimeActions = useMemo(');
+		expect(source).not.toContain(
+			'currentStreamingRunId: chatStore.getState().presentation.currentStreamingRunId',
+		);
+		expect(source).not.toContain(
+			'currentStreamingText: chatStore.getState().presentation.currentStreamingText',
+		);
+		expect(megaMemoMatch).toBeNull();
 	});
 
 	it('disallows ink-3 on small or lightweight text blocks', () => {

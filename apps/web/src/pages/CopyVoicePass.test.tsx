@@ -10,6 +10,7 @@ import { EmptyState } from '../components/chat/EmptyState.js';
 import { DevicePresencePanel } from '../components/desktop/DevicePresencePanel.js';
 import type { UseConversationsResult } from '../hooks/useConversations.js';
 import { uiCopy } from '../localization/copy.js';
+import type { ChatStore } from '../stores/chat-store.js';
 import { HistoryPage } from './HistoryPage.js';
 import { SettingsPage } from './SettingsPage.js';
 
@@ -52,6 +53,22 @@ const authContext: AuthContext = {
 		user_id: 'user_normal',
 	},
 };
+
+function createComposerStore(): ChatStore {
+	return {
+		getState: () => ({
+			presentation: {
+				currentStreamingRunId: null,
+				currentStreamingText: '',
+			},
+		}),
+		setConnectionState: () => undefined,
+		setPresentationState: () => undefined,
+		setRuntimeConfigState: () => undefined,
+		setTransportState: () => undefined,
+		subscribe: () => () => undefined,
+	} as unknown as ChatStore;
+}
 
 function flattenCopy(value: unknown): string[] {
 	if (typeof value === 'string') {
@@ -106,7 +123,6 @@ function renderNormalSurfaces(): string {
 				attachments={[]}
 				canReadLatestResponse={false}
 				connectionStatus="open"
-				currentStreamingRunId={null}
 				desktopDeviceError={null}
 				desktopDevices={[]}
 				isDesktopDevicesLoading={false}
@@ -119,6 +135,7 @@ function renderNormalSurfaces(): string {
 				isUploadingAttachment={false}
 				isVoiceSupported
 				lastError={null}
+				store={createComposerStore()}
 				onAttachmentUploadStateChange={() => undefined}
 				onAttachmentsChange={() => undefined}
 				onAbortRun={() => undefined}

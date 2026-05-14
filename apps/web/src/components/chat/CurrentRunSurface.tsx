@@ -2,6 +2,8 @@ import { ThreadPrimitive } from '@assistant-ui/react';
 import type { ReactElement, ReactNode } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
+import { useStreamingMessage } from '../../hooks/useStreamingMessage.js';
+import type { ChatStore } from '../../stores/chat-store.js';
 import { RunaSkeleton } from '../ui/RunaSkeleton.js';
 import styles from './CurrentRunSurface.module.css';
 import { PersistedTranscript } from './PersistedTranscript.js';
@@ -12,10 +14,9 @@ type CurrentRunSurfaceProps = Readonly<{
 	activeConversationMessages: readonly ConversationMessage[];
 	currentPresentationContent: ReactNode;
 	currentRunId: string | undefined;
-	currentStreamingRunId: string | null;
-	currentStreamingText: string;
 	emptyStateContent: ReactNode;
 	isHistoryLoading?: boolean;
+	store: ChatStore;
 }>;
 
 export function CurrentRunSurface({
@@ -23,11 +24,11 @@ export function CurrentRunSurface({
 	activeConversationMessages,
 	currentPresentationContent,
 	currentRunId,
-	currentStreamingRunId,
-	currentStreamingText,
 	emptyStateContent,
 	isHistoryLoading = false,
+	store,
 }: CurrentRunSurfaceProps): ReactElement | null {
+	const { runId: currentStreamingRunId, text: currentStreamingText } = useStreamingMessage(store);
 	const isBusy = currentStreamingText.trim().length > 0 || currentPresentationContent !== null;
 	const hasTranscript = activeConversationMessages.length > 0;
 	const shouldShowEmptyState =
