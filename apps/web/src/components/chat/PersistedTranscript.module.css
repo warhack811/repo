@@ -7,7 +7,7 @@
 
 .dayDivider {
 	align-items: center;
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-3);
 	display: flex;
 	font-size: 0.75rem;
 	font-weight: 600;
@@ -80,7 +80,7 @@
 }
 
 .timestamp {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-3);
 	font-size: 0.75rem;
 	opacity: 0;
 	pointer-events: none;

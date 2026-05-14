@@ -15,7 +15,7 @@ html {
 
 [data-theme="light"] {
 	color-scheme: light;
-	background: var(--text-strong);
+	background: var(--ink-1);
 }
 
 body {
@@ -117,7 +117,7 @@ pre {
 }
 
 ::selection {
-	background: var(--border-warning);
+	background: var(--warn);
 	color: var(--ink-1);
 }
 

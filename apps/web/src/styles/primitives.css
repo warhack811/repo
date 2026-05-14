@@ -8,10 +8,10 @@
 	background: var(--surface-1);
 	color: var(--ink-1);
 	font-family: var(--font-body);
-	padding: calc(var(--space-page-y) + var(--safe-area-top))
-		calc(var(--space-page-x) + var(--safe-area-right))
-		calc(var(--space-page-y) + var(--safe-area-bottom))
-		calc(var(--space-page-x) + var(--safe-area-left));
+	padding: calc(clamp(20px, 3vw, 32px) + var(--safe-area-top))
+		calc(clamp(20px, 4vw, 40px) + var(--safe-area-right))
+		calc(clamp(20px, 3vw, 32px) + var(--safe-area-bottom))
+		calc(clamp(20px, 4vw, 40px) + var(--safe-area-left));
 }
 
 .runa-shell-frame {
@@ -75,9 +75,9 @@
 	overflow: hidden;
 	display: grid;
 	gap: 16px;
-	padding: var(--space-panel);
+	padding: 20px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-default);
+	border: 1px solid var(--hairline);
 	background: var(--surface-2);
 	box-shadow: none;
 	backdrop-filter: blur(12px);
@@ -87,7 +87,7 @@
 }
 
 .runa-card--hero {
-	border-color: var(--border-primary);
+	border-color: var(--accent);
 	background: var(--surface-2);
 }
 
@@ -108,7 +108,7 @@
 }
 
 .runa-card--subtle {
-	padding: var(--space-subcard);
+	padding: 12px;
 	border-radius: var(--radius-input);
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	background: var(--surface-3);
@@ -162,7 +162,7 @@
 	box-sizing: border-box;
 	padding: 10px 12px;
 	border-radius: var(--radius-input);
-	border: 1px solid var(--border-default);
+	border: 1px solid var(--hairline);
 	background: var(--surface-3);
 	color: var(--ink-1);
 	font-size: 14px;
@@ -176,11 +176,11 @@
 }
 
 .runa-input:hover {
-	border-color: var(--border-strong);
+	border-color: color-mix(in srgb, var(--ink-1) 18%, transparent);
 }
 
 [data-theme="light"] .runa-input:hover {
-	border-color: var(--border-strong);
+	border-color: color-mix(in srgb, var(--ink-1) 18%, transparent);
 }
 
 .runa-input--textarea {
@@ -228,31 +228,31 @@
 }
 
 .runa-button--secondary {
-	border: 1px solid var(--border-strong);
+	border: 1px solid color-mix(in srgb, var(--ink-1) 18%, transparent);
 	background: var(--surface-2);
 	color: var(--ink-1);
 	box-shadow: none;
 }
 
 [data-theme="light"] .runa-button--secondary {
-	border-color: var(--border-default);
+	border-color: var(--hairline);
 }
 
 .runa-button--secondary-active {
-	border-color: var(--border-primary);
+	border-color: var(--accent);
 	background: var(--accent-bg);
 	color: var(--ink-1);
 	box-shadow: none;
 }
 
 .runa-button--danger {
-	border-color: var(--border-danger);
-	color: var(--status-danger-text);
+	border-color: var(--error);
+	color: var(--error);
 }
 
 [data-theme="light"] .runa-button--danger {
-	color: var(--status-danger-text);
-	border-color: var(--border-danger);
+	color: var(--error);
+	border-color: var(--error);
 }
 
 /* ---- Pill / badge ---- */
@@ -263,9 +263,9 @@
 	gap: 8px;
 	padding: 8px 12px;
 	border-radius: var(--radius-pill);
-	border: 1px solid var(--border-warning);
-	background: var(--status-warning-bg);
-	color: var(--status-warning-text);
+	border: 1px solid var(--warn);
+	background: var(--warn-bg);
+	color: var(--warn);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -275,8 +275,8 @@
 }
 
 [data-theme="light"] .runa-pill {
-	background: var(--status-warning-bg);
-	color: var(--status-warning-text);
+	background: var(--warn-bg);
+	color: var(--warn);
 }
 
 /* ---- Alert ---- */
@@ -289,39 +289,39 @@
 }
 
 .runa-alert--info {
-	background: var(--status-info-bg);
-	border: 1px solid var(--border-info);
-	color: var(--status-info-text);
+	background: var(--status-bg);
+	border: 1px solid var(--status);
+	color: var(--status);
 }
 
 [data-theme="light"] .runa-alert--info {
-	background: var(--status-info-bg);
-	border-color: var(--border-info);
-	color: var(--status-info-text);
+	background: var(--status-bg);
+	border-color: var(--status);
+	color: var(--status);
 }
 
 .runa-alert--warning {
-	background: var(--status-warning-bg);
-	border: 1px solid var(--border-warning);
-	color: var(--status-warning-text);
+	background: var(--warn-bg);
+	border: 1px solid var(--warn);
+	color: var(--warn);
 }
 
 [data-theme="light"] .runa-alert--warning {
-	background: var(--status-warning-bg);
-	border-color: var(--border-warning);
-	color: var(--status-warning-text);
+	background: var(--warn-bg);
+	border-color: var(--warn);
+	color: var(--warn);
 }
 
 .runa-alert--danger {
-	background: var(--status-danger-bg);
-	border: 1px solid var(--border-danger);
-	color: var(--status-danger-text);
+	background: var(--error-bg);
+	border: 1px solid var(--error);
+	color: var(--error);
 }
 
 [data-theme="light"] .runa-alert--danger {
-	background: var(--status-danger-bg);
-	border-color: var(--border-danger);
-	color: var(--status-danger-text);
+	background: var(--error-bg);
+	border-color: var(--error);
+	color: var(--error);
 }
 
 /* ---- Developer details ---- */
@@ -372,7 +372,7 @@
 
 .runa-empty-state {
 	border-radius: var(--radius-input);
-	border: 1px dashed var(--border-default);
+	border: 1px dashed var(--hairline);
 	padding: 20px;
 	color: var(--ink-2);
 }
@@ -422,8 +422,8 @@
 }
 
 [data-theme="light"] .runa-chat-header {
-	background: var(--surface-panel);
-	border-color: var(--border-default);
+	background: var(--surface-2);
+	border-color: var(--hairline);
 	box-shadow: none;
 }
 
@@ -464,13 +464,13 @@
 }
 
 .runa-chat-header__brand strong {
-	color: var(--text-strong);
+	color: var(--ink-1);
 	font-family: var(--font-heading);
 	font-size: 16px;
 }
 
 [data-theme="light"] .runa-chat-header__brand strong {
-	color: var(--text-strong);
+	color: var(--ink-1);
 }
 
 .runa-chat-header__brand span {
@@ -485,7 +485,7 @@
 
 .runa-chat-icon-button {
 	align-items: center;
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-input);
 	color: var(--ink-1);
@@ -499,18 +499,18 @@
 }
 
 .runa-chat-icon-button:hover {
-	background: var(--surface-hover);
-	border-color: var(--border-primary);
+	background: color-mix(in srgb, var(--ink-1) 6%, transparent);
+	border-color: var(--accent);
 	transform: translateY(-1px);
 }
 
 [data-theme="light"] .runa-chat-icon-button {
-	background: var(--surface-chip);
-	border-color: var(--border-strong);
+	background: var(--surface-3);
+	border-color: color-mix(in srgb, var(--ink-1) 18%, transparent);
 }
 
 [data-theme="light"] .runa-chat-icon-button:hover {
-	background: var(--surface-hover);
+	background: color-mix(in srgb, var(--ink-1) 6%, transparent);
 }
 
 /* ---- Chat presence ---- */
@@ -529,14 +529,14 @@
 }
 
 .runa-chat-presence--open {
-	background: var(--status-success-bg);
-	border-color: var(--border-success);
-	color: var(--status-success-text);
+	background: var(--status-bg);
+	border-color: var(--status);
+	color: var(--status);
 }
 
 [data-theme="light"] .runa-chat-presence--open {
-	background: var(--status-success-bg);
-	color: var(--status-success-text);
+	background: var(--status-bg);
+	color: var(--status);
 }
 
 /* ---- Chat empty state ---- */
@@ -544,14 +544,14 @@
 .runa-chat-empty-state {
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
-	background: var(--surface-subtle);
+	background: var(--surface-2);
 	display: grid;
 	gap: 18px;
 	padding: clamp(18px, 4vw, 28px);
 }
 
 [data-theme="light"] .runa-chat-empty-state {
-	background: var(--surface-panel);
+	background: var(--surface-2);
 }
 
 .runa-chat-empty-hero {
@@ -604,7 +604,7 @@
 }
 
 .runa-chat-suggestion {
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	color: var(--ink-1);
@@ -618,17 +618,17 @@
 }
 
 .runa-chat-suggestion:hover {
-	background: var(--surface-hover);
-	border-color: var(--border-primary);
+	background: color-mix(in srgb, var(--ink-1) 6%, transparent);
+	border-color: var(--accent);
 	transform: translateY(-1px);
 }
 
 [data-theme="light"] .runa-chat-suggestion {
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 }
 
 [data-theme="light"] .runa-chat-suggestion:hover {
-	background: var(--surface-hover);
+	background: color-mix(in srgb, var(--ink-1) 6%, transparent);
 }
 
 /* ---- Nav meta ---- */
@@ -649,8 +649,8 @@
 	gap: 10px;
 	padding: 10px 14px;
 	border-radius: 999px;
-	border: 1px solid var(--border-default);
-	background: var(--surface-chip);
+	border: 1px solid var(--hairline);
+	background: var(--surface-3);
 	color: var(--ink-2);
 	font-size: 12px;
 	font-weight: 600;
@@ -660,7 +660,7 @@
 }
 
 [data-theme="light"] .runa-developer-toggle {
-	background: var(--surface-chip);
+	background: var(--surface-3);
 }
 
 .runa-developer-toggle__switch {
@@ -668,7 +668,7 @@
 	width: 42px;
 	height: 24px;
 	border-radius: 999px;
-	background: var(--border-strong);
+	background: color-mix(in srgb, var(--ink-1) 18%, transparent);
 	transition: background-color 180ms ease;
 }
 
@@ -686,15 +686,15 @@
 }
 
 .runa-developer-toggle--active {
-	border-color: var(--border-primary);
-	background: var(--status-warning-bg);
-	color: var(--status-warning-text);
+	border-color: var(--accent);
+	background: var(--warn-bg);
+	color: var(--warn);
 	box-shadow: none;
 }
 
 [data-theme="light"] .runa-developer-toggle--active {
-	background: var(--status-warning-bg);
-	color: var(--status-warning-text);
+	background: var(--warn-bg);
+	color: var(--warn);
 }
 
 .runa-developer-toggle--active .runa-developer-toggle__switch {
@@ -711,7 +711,7 @@
 	font-size: 12px;
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
-	color: var(--status-warning-text);
+	color: var(--warn);
 }
 
 .runa-subtle-copy {
@@ -754,11 +754,11 @@
 	overflow-x: auto;
 	border-radius: var(--radius-panel);
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
-	background: var(--surface-subtle);
+	background: var(--surface-2);
 }
 
 [data-theme="light"] .runa-markdown__table-wrap {
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 }
 
 .runa-markdown__table {
@@ -776,16 +776,16 @@
 }
 
 .runa-markdown__table th {
-	color: var(--text-strong);
+	color: var(--ink-1);
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	background: var(--surface-chip);
+	background: var(--surface-3);
 }
 
 [data-theme="light"] .runa-markdown__table th {
-	color: var(--text-strong);
-	background: var(--surface-hover);
+	color: var(--ink-1);
+	background: color-mix(in srgb, var(--ink-1) 6%, transparent);
 }
 
 .runa-markdown__table tbody tr:last-child td {
@@ -797,15 +797,15 @@
 	padding: 0.08rem 0.42rem;
 	margin: 0 0.1rem;
 	border-radius: 999px;
-	border: 1px solid var(--border-default);
-	background: var(--surface-chip);
-	color: var(--status-warning-text);
+	border: 1px solid var(--hairline);
+	background: var(--surface-3);
+	color: var(--warn);
 	font-size: 12px;
 }
 
 [data-theme="light"] .runa-markdown__inline-code {
-	background: var(--surface-hover);
-	color: var(--status-warning-text);
+	background: color-mix(in srgb, var(--ink-1) 6%, transparent);
+	color: var(--warn);
 }
 
 .runa-markdown__code-block {
@@ -813,7 +813,7 @@
 	gap: 10px;
 	padding: 14px 16px;
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-info);
+	border: 1px solid var(--status);
 	background: var(--surface-2);
 	box-shadow: none;
 	overflow-x: auto;
@@ -822,19 +822,19 @@
 
 [data-theme="light"] .runa-markdown__code-block {
 	background: var(--surface-2);
-	border-color: var(--border-info);
+	border-color: var(--status);
 }
 
 .runa-markdown__code-block code {
-	color: var(--text-primary);
+	color: var(--ink-1);
 }
 
 [data-theme="light"] .runa-markdown__code-block code {
-	color: var(--status-info-text);
+	color: var(--status);
 }
 
 .runa-markdown__code-label {
-	color: var(--text-link);
+	color: var(--accent);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -842,27 +842,27 @@
 }
 
 [data-theme="light"] .runa-markdown__code-label {
-	color: var(--status-info-text);
+	color: var(--status);
 }
 
 .runa-markdown__link {
-	color: var(--text-link);
+	color: var(--accent);
 	text-decoration: underline;
-	text-decoration-color: var(--border-info);
+	text-decoration-color: var(--status);
 	text-underline-offset: 0.18rem;
 }
 
 .runa-markdown__link:hover {
-	color: var(--status-info-text);
+	color: var(--status);
 }
 
 [data-theme="light"] .runa-markdown__link {
-	color: var(--status-info-text);
-	text-decoration-color: var(--border-info);
+	color: var(--status);
+	text-decoration-color: var(--status);
 }
 
 [data-theme="light"] .runa-markdown__link:hover {
-	color: var(--status-info-text);
+	color: var(--status);
 }
 
 /* ---- Streaming cursor ---- */
@@ -913,31 +913,31 @@
 .runa-conversation-sidebar__header,
 .runa-conversation-sidebar__footer {
 	align-items: center;
-	background: var(--surface-subtle);
+	background: var(--surface-2);
 	backdrop-filter: blur(12px);
 	display: flex;
 	flex-wrap: wrap;
 	gap: 12px;
 	justify-content: space-between;
-	margin: calc(var(--space-subcard) * -1);
+	margin: calc(12px * -1);
 	margin-bottom: 0;
-	padding: var(--space-subcard);
+	padding: 12px;
 	position: sticky;
 	z-index: 2;
 }
 
 [data-theme="light"] .runa-conversation-sidebar__header,
 [data-theme="light"] .runa-conversation-sidebar__footer {
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 }
 
 .runa-conversation-sidebar__header {
-	top: calc(var(--space-subcard) * -1);
+	top: calc(12px * -1);
 }
 
 .runa-conversation-sidebar__footer {
-	bottom: calc(var(--space-subcard) * -1);
-	margin-bottom: calc(var(--space-subcard) * -1);
+	bottom: calc(12px * -1);
+	margin-bottom: calc(12px * -1);
 	margin-top: 0;
 }
 
@@ -957,7 +957,7 @@
 }
 
 .runa-conversation-item {
-	background: var(--surface-subtle);
+	background: var(--surface-2);
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	color: var(--ink-1);
@@ -976,12 +976,12 @@
 }
 
 [data-theme="light"] .runa-conversation-item {
-	background: var(--surface-panel);
+	background: var(--surface-2);
 }
 
 .runa-conversation-item--active {
 	background: var(--surface-2);
-	border-color: var(--border-warning);
+	border-color: var(--warn);
 }
 
 [data-theme="light"] .runa-conversation-item--active {
@@ -1015,9 +1015,9 @@
 }
 
 .runa-conversation-role {
-	background: var(--status-info-bg);
+	background: var(--status-bg);
 	border-radius: 999px;
-	color: var(--status-info-text);
+	color: var(--status);
 	flex: 0 0 auto;
 	font-size: 12px;
 	font-weight: 600;
@@ -1025,8 +1025,8 @@
 }
 
 [data-theme="light"] .runa-conversation-role {
-	background: var(--status-info-bg);
-	color: var(--status-info-text);
+	background: var(--status-bg);
+	color: var(--status);
 }
 
 .runa-conversation-members {
@@ -1041,8 +1041,8 @@
 
 .runa-conversation-member {
 	align-items: center;
-	background: var(--surface-panel-muted);
-	border: 1px solid var(--border-hairline);
+	background: var(--surface-3);
+	border: 1px solid var(--hairline);
 	border-radius: var(--radius-input);
 	display: flex;
 	gap: 12px;
@@ -1052,7 +1052,7 @@
 }
 
 [data-theme="light"] .runa-conversation-member {
-	background: var(--surface-panel-muted);
+	background: var(--surface-3);
 }
 
 /* ---- Skeleton loader ---- */
@@ -1069,7 +1069,7 @@
 
 .runa-settings-row {
 	align-items: center;
-	background: var(--surface-subtle);
+	background: var(--surface-2);
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	border-radius: var(--radius-panel);
 	display: flex;
@@ -1079,7 +1079,7 @@
 }
 
 [data-theme="light"] .runa-settings-row {
-	background: var(--surface-panel);
+	background: var(--surface-2);
 }
 
 .runa-settings-row--stacked {
@@ -1222,13 +1222,6 @@
 }
 
 @media (max-width: 480px) {
-	:root {
-		--space-page-y: 12px;
-		--space-page-x: 10px;
-		--space-panel: 16px;
-		--space-subcard: 14px;
-	}
-
 	.runa-card {
 		border-radius: var(--radius-panel);
 	}

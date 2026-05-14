@@ -42,6 +42,40 @@ function collectFiles(dir: string, extension: string): string[] {
 	return files;
 }
 
+function collectVarReferences(rootDir: string): Set<string> {
+	const files = [
+		...collectFiles(rootDir, '.css'),
+		...collectFiles(rootDir, '.ts'),
+		...collectFiles(rootDir, '.tsx'),
+	];
+	const refs = new Set<string>();
+
+	for (const filePath of files) {
+		const source = readFileSync(filePath, 'utf8');
+		for (const match of source.matchAll(/var\(--([a-z][a-z0-9-]*)/g)) {
+			refs.add(`--${match[1]}`);
+		}
+	}
+
+	return refs;
+}
+
+function collectTokenDefinitions(...filePaths: string[]): Set<string> {
+	const defs = new Set<string>();
+
+	for (const filePath of filePaths) {
+		const source = readFileSync(filePath, 'utf8');
+		for (const match of source.matchAll(/^\s*(--[a-z][a-z0-9-]*)\s*:/gm)) {
+			const token = match[1];
+			if (token) {
+				defs.add(token);
+			}
+		}
+	}
+
+	return defs;
+}
+
 function parsePxValue(body: string, propertyName: string): number | null {
 	const match = new RegExp(`${propertyName}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)px`, 'i').exec(body);
 	if (!match) {
@@ -160,6 +194,47 @@ describe('design language lock', () => {
 		}
 
 		expect(violations).toEqual([]);
+	});
+
+	it('disallows ink-4 on small or lightweight text blocks', () => {
+		const cssFiles = collectFiles(webSrcRoot, '.css');
+		const violations: string[] = [];
+		const blockRegex = /([^{}]+)\{([^{}]*)\}/gms;
+
+		for (const filePath of cssFiles) {
+			const content = readFileSync(filePath, 'utf8');
+			for (const block of content.matchAll(blockRegex)) {
+				const selector = block[1]?.trim() ?? '(unknown)';
+				const body = block[2] ?? '';
+
+				if (!body.includes('var(--ink-4)')) {
+					continue;
+				}
+
+				const fontSize = parsePxValue(body, 'font-size');
+				const fontWeight = parseUnitlessValue(body, 'font-weight');
+				const isSmallText = fontSize !== null && fontSize < 18;
+				const isLightWeight = fontWeight === null || fontWeight < 600;
+
+				if (isSmallText && isLightWeight) {
+					violations.push(`${filePath} :: ${selector}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('rejects undefined token references in apps/web/src', () => {
+		const used = collectVarReferences(webSrcRoot);
+		const defined = collectTokenDefinitions(tokensPath, fontsPath);
+		const runtimeAllowed = new Set(['--keyboard-offset', '--bg', '--spread']);
+
+		const undefinedTokens = [...used]
+			.filter((token) => !defined.has(token) && !runtimeAllowed.has(token))
+			.sort((left, right) => left.localeCompare(right));
+
+		expect(undefinedTokens, `Undefined tokens: ${undefinedTokens.join(', ')}`).toEqual([]);
 	});
 
 	it('requires reduced-motion media query in every css module file', () => {

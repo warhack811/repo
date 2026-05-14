@@ -1,7 +1,7 @@
 ﻿.root {
 	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-primary);
-	background: var(--surface-panel);
+	border: 1px solid var(--accent);
+	background: var(--surface-2);
 	padding: clamp(16px, 3vw, 20px);
 	display: grid;
 	gap: 16px;
@@ -16,7 +16,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--text-link);
+	color: var(--accent);
 }
 
 .contentRow {
@@ -36,11 +36,11 @@
 .headline {
 	margin: 0px;
 	font-size: 20px;
-	color: var(--text-strong);
+	color: var(--ink-1);
 }
 
 .detail {
-	color: var(--text-muted);
+	color: var(--ink-2);
 	line-height: 1.6;
 }
 
@@ -53,7 +53,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--text-link);
+	color: var(--accent);
 }
 
 .contextSection {
@@ -65,7 +65,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--text-link);
+	color: var(--accent);
 }
 
 .targetSection {
@@ -77,7 +77,7 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--text-link);
+	color: var(--accent);
 }
 
 .targetLabel {
@@ -85,11 +85,11 @@
 	align-items: center;
 	padding: 3px 8px;
 	border-radius: 999px;
-	background: var(--surface-chip);
+	background: var(--surface-3);
 	border: 1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);
 	font-size: 12px;
 	width: fit-content;
-	color: var(--text-strong);
+	color: var(--ink-1);
 }
 
 .stepsSection {
@@ -109,16 +109,17 @@
 	font-size: 12px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--text-link);
+	color: var(--accent);
 }
 
 .stepsCount {
-	color: var(--text-soft);
+	color: var(--ink-3);
 	font-size: 12px;
+	font-weight: 600;
 }
 
 .approvalBoundary {
-	color: var(--status-warning-text);
+	color: var(--warn);
 	font-size: 14px;
 	line-height: 1.6;
 }
@@ -126,8 +127,8 @@
 /* â”€â”€â”€ Non-developer mode: compact activity line â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .activityLine {
 	align-items: flex-start;
-	background: var(--surface-panel);
-	border: 1px solid var(--border-primary);
+	background: var(--surface-2);
+	border: 1px solid var(--accent);
 	border-radius: var(--radius-panel);
 	display: flex;
 	gap: 10px;
@@ -165,15 +166,16 @@
 }
 
 .activityHeadline {
-	color: var(--text-strong);
+	color: var(--ink-1);
 	font-size: 14px;
 	font-weight: 500;
 	margin: 0;
 }
 
 .activityDetail {
-	color: var(--text-soft);
+	color: var(--ink-3);
 	font-size: 14px;
+	font-weight: 600;
 	line-height: 1.5;
 	margin: 0;
 }
