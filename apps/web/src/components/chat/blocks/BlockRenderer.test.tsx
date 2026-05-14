@@ -118,9 +118,9 @@ const sampleBlocks: readonly RenderBlock[] = [
 		created_at: createdAt,
 		id: 'timeline:block',
 		payload: {
-			items: [{ kind: 'run_started', label: 'Runa iÅŸi baÅŸlattÄ±', state: 'active' }],
+			items: [{ kind: 'run_started', label: 'Runa i?i ba?latt?', state: 'active' }],
 			summary: 'Runa started the work.',
-			title: 'Ã‡alÃ„Â±ÅŸma akÄ±ÅŸÄ±',
+			title: '?al??ma ak???',
 		},
 		schema_version: 1,
 		type: 'run_timeline_block',
@@ -262,7 +262,7 @@ const sampleBlocks: readonly RenderBlock[] = [
 			run_id: 'run_renderer',
 			sequence_no: 7,
 			status: 'completed',
-			text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
+			text: 'package.json dosyas?n? kontrol ediyorum.',
 			turn_index: 1,
 			linked_tool_call_id: 'call_renderer',
 		},
@@ -312,7 +312,7 @@ describe('BlockRenderer', () => {
 		expect(BlockRenderer({ block: statusBlock })).toEqual(null);
 		expect(BlockRenderer({ block: traceBlock })).toEqual(null);
 		expect(renderToStaticMarkup(<BlockRenderer block={timelineBlock} />)).toContain(
-			'CanlÄ± Ã§alÄ±ÅŸma notlarÄ±',
+			'Canl? ?al??ma notlar?',
 		);
 		expect(BlockRenderer({ block: workspaceBlock })).toEqual(null);
 	});
@@ -331,8 +331,8 @@ describe('BlockRenderer', () => {
 
 		expect(markup).toContain('<details');
 		expect(markup).toContain('Dosya okuma');
-		expect(markup).toContain('Dosya okuma tamamlandÄ±.');
-		expect(markup).not.toContain('Ä°ÅŸlem sonucu');
+		expect(markup).toContain('Dosya okuma tamamland?.');
+		expect(markup).not.toContain('??lem sonucu');
 		expect(markup).not.toContain('Hata kodu:');
 		expect(markup).not.toContain('file.read');
 		expect(markup).not.toContain('call_renderer');
@@ -350,7 +350,7 @@ describe('BlockRenderer', () => {
 
 		const markup = renderToStaticMarkup(<BlockRenderer block={narrationBlock} replayMode />);
 
-		expect(markup).toContain('package.json dosyasÄ±nÄ± kontrol ediyorum.');
+		expect(markup).toContain('package.json dosyas?n? kontrol ediyorum.');
 		expect(markup).toContain('_replay_');
 		expect(markup).not.toContain('run_renderer');
 		expect(markup).not.toContain('call_renderer');
@@ -389,13 +389,13 @@ describe('BlockRenderer', () => {
 
 		const markup = renderToStaticMarkup(<BlockRenderer block={webSearchBlock} />);
 
-		expect(markup).toContain('Web arama sonuÃ§larÄ±');
-		expect(markup).toContain('3 web sonucu gÃ¶steriliyor');
-		expect(markup).toContain('2 kaynak kullanÄ±ldÄ±');
+		expect(markup).toContain('Web arama sonu?lar?');
+		expect(markup).toContain('3 web sonucu g?steriliyor');
+		expect(markup).toContain('2 kaynak kullan?ld?');
 		expect(markup).toContain('2 arama');
-		expect(markup).toContain('3 sonuÃ§');
-		expect(markup).toContain('BazÄ± sonuÃ§lar kÄ±saltÄ±ldÄ±');
-		expect(markup).toContain('Kaynak gÃ¼veni sÄ±nÄ±rlÄ±');
+		expect(markup).toContain('3 sonu?');
+		expect(markup).toContain('Baz? sonu?lar k?salt?ld?');
+		expect(markup).toContain('Kaynak g?veni s?n?rl?');
 		expect(markup).not.toContain(['Web', 'Search', 'Results'].join(' '));
 		expect(markup).not.toContain(['Show', 'ing 1 web results'].join(''));
 	});
@@ -410,13 +410,13 @@ describe('BlockRenderer', () => {
 						call_id: 'call_file_write',
 						detail: 'file.write completed successfully.',
 						kind: 'tool_completed',
-						label: 'Dosya gÃ¼ncellendi',
+						label: 'Dosya g?ncellendi',
 						state: 'success',
 						tool_name: 'file.write',
 					},
 				],
-				summary: 'Runa dosya yazma onayÄ± aldÄ±.',
-				title: 'Ã‡alÃ„Â±ÅŸma akÄ±ÅŸÄ±',
+				summary: 'Runa dosya yazma onay? ald?.',
+				title: '?al??ma ak???',
 			},
 			schema_version: 1,
 			type: 'run_timeline_block',
@@ -439,11 +439,11 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Dosyaya yazma isteÄŸi');
+		expect(markup).toContain('Dosyaya yazma iste?i');
 		expect(markup).toContain('Dosya yazma');
 		expect(markup).toContain('Onayla');
 		expect(markup).toContain('Reddet');
-		expect(markup).not.toContain('AyrÄ±ntÄ±lar');
+		expect(markup).not.toContain('Ayr?nt?lar');
 		expect(markup).not.toContain('file.write');
 		expect(markup).not.toContain('Approval required');
 		expect(markup).not.toContain('Approve file write.');
@@ -478,7 +478,7 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={clipboardReadBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Pano okuma isteÄŸi');
+		expect(markup).toContain('Pano okuma iste?i');
 		expect(markup).toContain('Pano okuma');
 		expect(markup).not.toContain('desktop.clipboard.read');
 		expect(markup).not.toContain('Allow desktop.clipboard.read');
@@ -498,7 +498,7 @@ describe('BlockRenderer', () => {
 				approval_id: 'approval_desktop_keypress',
 				target_kind: 'tool_call',
 				target_label: 'desktop.keypress',
-				title: 'AraÃ§ Ã§alÄ±ÅŸtÄ±rma isteÄŸi',
+				title: 'Ara? ?al??t?rma iste?i',
 				tool_name: undefined,
 			},
 		};
@@ -507,9 +507,9 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={keypressBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Klavye kÄ±sayolu isteÄŸi');
-		expect(markup).toContain('Klavye kÄ±sayolu');
-		expect(markup).not.toContain('AraÃ§ Ã§alÄ±ÅŸtÄ±rma isteÄŸi');
+		expect(markup).toContain('Klavye k?sayolu iste?i');
+		expect(markup).toContain('Klavye k?sayolu');
+		expect(markup).not.toContain('Ara? ?al??t?rma iste?i');
 		expect(markup).not.toContain('desktop.keypress');
 	});
 
@@ -556,7 +556,7 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={rejectedBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(approvedMarkup).toContain('Ä°zin verildi');
+		expect(approvedMarkup).toContain('?zin verildi');
 		expect(approvedMarkup).not.toContain('Onayla</button>');
 		expect(rejectedMarkup).toContain('Reddedildi');
 		expect(rejectedMarkup).not.toContain('Reddet</button>');

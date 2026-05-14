@@ -2495,6 +2495,13 @@ function isAuthenticatedActionResponse(value) {
   const sessionCandidate = candidate.session;
   return typeof sessionCandidate.access_token === "string";
 }
+function isWebSocketTicketPayload(value) {
+  if (!isRecord2(value)) {
+    return false;
+  }
+  const candidate = value;
+  return typeof candidate.expires_at === "string" && typeof candidate.expires_in_seconds === "number" && candidate.path === "/ws/desktop-agent" && typeof candidate.ws_ticket === "string";
+}
 async function readResponsePayload(response) {
   const responseText = await response.text();
   const normalizedResponse = responseText.trim();
@@ -2628,6 +2635,35 @@ async function refreshDesktopAgentSession(input) {
     throw new Error("Desktop agent session refresh returned an unsupported payload shape.");
   }
   return normalizeDesktopAgentPersistedSession(payload.session);
+}
+async function requestDesktopAgentWebSocketTicket(input) {
+  const accessToken = input.access_token.trim();
+  if (accessToken.length === 0) {
+    throw new Error("Desktop agent websocket ticket request requires access_token.");
+  }
+  const authFetch = input.auth_fetch ?? globalThis.fetch;
+  if (!authFetch) {
+    throw new Error("Desktop agent websocket ticket request requires a fetch implementation.");
+  }
+  const response = await authFetch(resolveDesktopAgentHttpUrl(input.server_url, "/auth/ws-ticket"), {
+    body: JSON.stringify({
+      path: "/ws/desktop-agent"
+    }),
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json"
+    },
+    method: "POST"
+  });
+  const payload = await readResponsePayload(response);
+  if (!response.ok) {
+    throw new Error(readErrorMessage(payload, response.status));
+  }
+  if (!isWebSocketTicketPayload(payload)) {
+    throw new Error("Desktop agent websocket ticket response has an invalid shape.");
+  }
+  return payload;
 }
 
 // src/clipboard.ts
@@ -2930,11 +2966,13 @@ var REDACTED_KEYS = /* @__PURE__ */ new Set([
   "refresh",
   "secret",
   "api_key",
-  "apikey"
+  "apikey",
+  "workspace_id",
+  "ws_ticket"
 ]);
 var BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/giu;
 var JWT_PATTERN = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
-var SENSITIVE_QUERY_PARAM_PATTERN = /([?#&](?:access_token|refresh_token|authorization|api_key|apikey|secret|token)=)[^&#\s"]+/giu;
+var SENSITIVE_QUERY_PARAM_PATTERN = /([?#&](?:access_token|refresh_token|authorization|api_key|apikey|secret|token|ws_ticket|workspace_id)=)[^&#\s"]+/giu;
 function rotateLogFiles(logFilePath) {
   const oldestPath = `${logFilePath}.5`;
   if ((0, import_node_fs.existsSync)(oldestPath)) {
@@ -4479,7 +4517,12 @@ async function handleExecuteMessage(socket, message, captureScreenshot) {
 async function startDesktopAgentBridge(options) {
   const socketFactory = options.web_socket_factory ?? ((url) => new WebSocket(url));
   const bridgeUrl = new URL(options.server_url);
-  bridgeUrl.searchParams.set("access_token", options.access_token);
+  const wsTicket = await requestDesktopAgentWebSocketTicket({
+    access_token: options.access_token,
+    auth_fetch: options.auth_fetch,
+    server_url: options.server_url
+  });
+  bridgeUrl.searchParams.set("ws_ticket", wsTicket.ws_ticket);
   const socket = socketFactory(bridgeUrl.toString());
   const connectionReadyPromise = waitForServerMessage(
     socket,
@@ -4695,6 +4738,7 @@ var DesktopAgentSessionRuntimeImpl = class {
         const bridgeSession = await this.#options.bridge_factory({
           access_token: resolvedSession.access_token,
           agent_id: this.#options.agent_id,
+          auth_fetch: this.#options.auth_fetch,
           machine_label: this.#options.machine_label,
           server_url: this.#options.server_url
         });

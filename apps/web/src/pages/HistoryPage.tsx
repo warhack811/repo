@@ -87,7 +87,7 @@ function getFriendlyErrorMessage(message: string): string {
 	const trimmedMessage = message.trim();
 	void trimmedMessage;
 
-	return 'Geçmiş çalÄ±şmalar şu anda yüklenemedi. Biraz sonra yeniden deneyebilirsin.';
+	return 'Geçmiş çalışmalar şu anda yüklenemedi. Biraz sonra yeniden deneyebilirsin.';
 }
 
 export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
@@ -178,7 +178,7 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 				{!conversations.isConversationLoading &&
 				conversations.conversations.length > 0 &&
 				filteredConversations.length === 0 ? (
-					<div className="runa-empty-state">Bu aramayla eşleşen çalÄ±şma bulunamadı.</div>
+					<div className="runa-empty-state">Bu aramayla eşleşen çalışma bulunamadı.</div>
 				) : null}
 
 				<div className="runa-page-historypage-16">

@@ -37,7 +37,7 @@ describe('groupMessagesByDay', () => {
 		expect(grouped).toHaveLength(3);
 		expect(grouped[0]?.dayDivider).toBe(null);
 		expect(grouped[0]?.messages).toHaveLength(2);
-		expect(grouped[1]?.dayDivider).toBe('Dun');
-		expect(grouped[2]?.dayDivider).toBe('10 MayÄ±s');
+		expect(grouped[1]?.dayDivider).toBe('Dün');
+		expect(grouped[2]?.dayDivider).toBe('10 Mayıs');
 	});
 });

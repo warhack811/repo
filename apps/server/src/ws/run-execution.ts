@@ -32,16 +32,27 @@ import {
 	approvalPersistenceScopeFromAuthContext,
 } from '../persistence/approval-store.js';
 import {
+	ConversationStoreConfigurationError,
+	ConversationStoreReadError,
+	ConversationStoreWriteError,
 	appendConversationMessage,
 	appendConversationRunBlocks,
 	conversationScopeFromAuthContext,
 	ensureConversation,
 	hasConversationStoreConfiguration,
 } from '../persistence/conversation-store.js';
-import { persistRuntimeEvents } from '../persistence/event-store.js';
+import {
+	EventStoreConfigurationError,
+	EventStoreWriteError,
+	persistRuntimeEvents,
+} from '../persistence/event-store.js';
 import { defaultMemoryStore } from '../persistence/memory-store.js';
 import { persistReasoningTrace } from '../persistence/reasoning-store.js';
-import { persistRunState } from '../persistence/run-store.js';
+import {
+	RunStoreConfigurationError,
+	RunStoreWriteError,
+	persistRunState,
+} from '../persistence/run-store.js';
 import {
 	type RequireApprovalPermissionDecision,
 	normalizeApprovalMode,
@@ -255,6 +266,23 @@ function isRuntimeEventEnvelope(event: AnyRuntimeEvent): event is RuntimeEvent {
 		event.event_type === 'run.failed' ||
 		event.event_type === 'run.started' ||
 		event.event_type === 'state.entered'
+	);
+}
+
+function isConversationPersistenceUnavailable(error: unknown): boolean {
+	return (
+		error instanceof ConversationStoreConfigurationError ||
+		error instanceof ConversationStoreReadError ||
+		error instanceof ConversationStoreWriteError
+	);
+}
+
+function isRuntimePersistenceUnavailable(error: unknown): boolean {
+	return (
+		error instanceof EventStoreConfigurationError ||
+		error instanceof EventStoreWriteError ||
+		error instanceof RunStoreConfigurationError ||
+		error instanceof RunStoreWriteError
 	);
 }
 
@@ -2725,15 +2753,38 @@ export async function finalizeLiveRunResult(
 		);
 	}
 
-	await persistEvents(result.runtime_events);
-	await persistRunStateRecord({
-		conversation_id: finalizeOptions.conversation_id,
-		current_state: result.final_state,
-		last_error_code: result.status === 'failed' ? result.error_code : undefined,
-		recorded_at: result.runtime_events.at(-1)?.timestamp,
-		run_id: payload.run_id,
-		trace_id: payload.trace_id,
-	});
+	try {
+		await persistEvents(result.runtime_events);
+	} catch (error: unknown) {
+		if (!isRuntimePersistenceUnavailable(error)) {
+			throw error;
+		}
+
+		finalizeLogger.warn('runtime.persistence_unavailable_degraded', {
+			error: error instanceof Error ? error : String(error),
+			stage: 'persist_runtime_events',
+		});
+	}
+
+	try {
+		await persistRunStateRecord({
+			conversation_id: finalizeOptions.conversation_id,
+			current_state: result.final_state,
+			last_error_code: result.status === 'failed' ? result.error_code : undefined,
+			recorded_at: result.runtime_events.at(-1)?.timestamp,
+			run_id: payload.run_id,
+			trace_id: payload.trace_id,
+		});
+	} catch (error: unknown) {
+		if (!isRuntimePersistenceUnavailable(error)) {
+			throw error;
+		}
+
+		finalizeLogger.warn('runtime.persistence_unavailable_degraded', {
+			error: error instanceof Error ? error : String(error),
+			stage: 'persist_run_state',
+		});
+	}
 
 	if (
 		conversationStore &&
@@ -2980,35 +3031,71 @@ export async function handleRunRequestMessage(
 			: undefined);
 	const conversationScope = conversationScopeFromAuthContext(options.auth_context);
 	const extractedUserTurn = extractUserTurn(payload.request.messages);
-	const resolvedConversation =
-		conversationStore && extractedUserTurn
-			? await conversationStore.ensureConversation({
-					conversation_id: payload.conversation_id,
-					initial_preview: extractedUserTurn.user_turn,
-					scope: conversationScope,
-				})
-			: undefined;
-	const resolvedPayload =
+	let resolvedConversation: Awaited<ReturnType<typeof ensureConversation>> | undefined;
+	let isConversationPersistenceDisabled = false;
+
+	if (conversationStore && extractedUserTurn) {
+		try {
+			resolvedConversation = await conversationStore.ensureConversation({
+				conversation_id: payload.conversation_id,
+				initial_preview: extractedUserTurn.user_turn,
+				scope: conversationScope,
+			});
+		} catch (error: unknown) {
+			if (!isConversationPersistenceUnavailable(error)) {
+				throw error;
+			}
+
+			requestLogger.warn('conversation.persistence_unavailable_degraded', {
+				error: error instanceof Error ? error : String(error),
+				stage: 'ensure_conversation',
+			});
+			isConversationPersistenceDisabled = true;
+		}
+	}
+
+	let resolvedPayload: RunRequestPayload =
 		resolvedConversation === undefined
 			? payload
 			: {
 					...payload,
 					conversation_id: resolvedConversation.conversation_id,
 				};
+
+	if (isConversationPersistenceDisabled && resolvedPayload.conversation_id) {
+		const { conversation_id: _conversationId, ...payloadWithoutConversation } = resolvedPayload;
+		resolvedPayload = payloadWithoutConversation;
+	}
+
 	const policyWiring = getPolicyWiring(options);
 	const approvalMode = normalizeApprovalMode(resolvedPayload.approval_policy?.mode);
 
 	await policyWiring.setApprovalMode(socket, approvalMode);
 
 	if (conversationStore && extractedUserTurn && resolvedPayload.conversation_id) {
-		await conversationStore.appendConversationMessage({
-			content: extractedUserTurn.user_turn,
-			conversation_id: resolvedPayload.conversation_id,
-			role: 'user',
-			run_id: resolvedPayload.run_id,
-			scope: conversationScope,
-			trace_id: resolvedPayload.trace_id,
-		});
+		try {
+			await conversationStore.appendConversationMessage({
+				content: extractedUserTurn.user_turn,
+				conversation_id: resolvedPayload.conversation_id,
+				role: 'user',
+				run_id: resolvedPayload.run_id,
+				scope: conversationScope,
+				trace_id: resolvedPayload.trace_id,
+			});
+		} catch (error: unknown) {
+			if (!isConversationPersistenceUnavailable(error)) {
+				throw error;
+			}
+
+			requestLogger.warn('conversation.persistence_unavailable_degraded', {
+				conversation_id: resolvedPayload.conversation_id,
+				error: error instanceof Error ? error : String(error),
+				stage: 'append_user_message',
+			});
+
+			const { conversation_id: _conversationId, ...payloadWithoutConversation } = resolvedPayload;
+			resolvedPayload = payloadWithoutConversation;
+		}
 	}
 
 	requestLogger.info('run.request.accepted', {

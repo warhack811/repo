@@ -74,8 +74,8 @@ function renderNormalComposer(): string {
 				prompt=""
 				selectedDesktopTargetConnectionId={null}
 				showDeveloperControls={false}
-				statusLabel="CanlÄ±"
-				submitButtonLabel="GÃ¶nder"
+				statusLabel="Canlı"
+				submitButtonLabel="Gönder"
 				voiceStatusMessage={null}
 			/>
 		</MemoryRouter>,
@@ -91,7 +91,7 @@ describe('operator/developer hard isolation', () => {
 		);
 
 		expect(markup).toContain('Sohbet');
-		expect(markup).toContain('GeÃ§miÅŸ');
+		expect(markup).toContain('Geçmiş');
 		expect(markup).toContain('Cihazlar');
 		expect(markup).toContain('Hesap');
 		expect(markup).not.toContain('Developer');
@@ -116,7 +116,7 @@ describe('operator/developer hard isolation', () => {
 		);
 
 		expect(markup).toContain('Hesap');
-		expect(markup).toContain('GÃ¶rÃ¼nÃ¼m');
+		expect(markup).toContain('Görünüm');
 		expect(markup).not.toContain('Developer Mode');
 		expect(markup).not.toContain('/developer');
 		expect(markup).not.toContain('Project Memory');
@@ -133,9 +133,9 @@ describe('operator/developer hard isolation', () => {
 	it('keeps normal composer copy free of developer setup actions', () => {
 		const markup = renderNormalComposer();
 
-		expect(markup).toContain('Runa ÅŸu anda mesaj gÃ¶ndermeye hazÄ±r deÄŸil.');
+		expect(markup).toContain('Runa şu anda mesaj göndermeye hazır değil.');
 		expect(markup).not.toContain('Developer Mode');
 		expect(markup).not.toContain('/developer');
-		expect(markup).not.toContain('Geli?tirici ayarlar?ndaki');
+		expect(markup).not.toContain('Geliştirici ayarlarındaki');
 	});
 });

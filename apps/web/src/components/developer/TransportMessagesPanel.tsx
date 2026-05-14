@@ -82,8 +82,8 @@ export function TransportMessagesPanel({
 				</div>
 			) : (
 				<div id="transport-messages-content" className="runa-developer-transportmessagespanel-17">
-					Ham transport verisi varsayılan olarak gizli kalır. Teknik WebSocket ayrıntısı veya
-					hata incelemesi gerektiğinde bu alanı aç.
+					Ham transport verisi varsayılan olarak gizli kalır. Teknik WebSocket ayrıntısı veya hata
+					incelemesi gerektiğinde bu alanı aç.
 				</div>
 			)}
 		</aside>

@@ -52,7 +52,7 @@ export function SessionCard({
 					</div>
 					<div className="runa-auth-sessioncard-13">
 						{authContext.principal.kind === 'authenticated'
-							? 'Kimliği doğrulanmÄ±ş oturum'
+							? 'Kimliği doğrulanmış oturum'
 							: authContext.principal.kind === 'service'
 								? 'Servis oturumu'
 								: 'Anonim bağlam'}
@@ -76,14 +76,14 @@ export function SessionCard({
 						başladı
 					</div>
 					<div className="runa-auth-sessioncard-20">{issuedAt}</div>
-					<div className="runa-auth-sessioncard-21">Oturum açılÄ±ş zamanı</div>
+					<div className="runa-auth-sessioncard-21">Oturum açılış zamanı</div>
 				</div>
 				<div className="runa-metric runa-auth-sessioncard-22">
 					<div lang="tr" className="runa-auth-sessioncard-23">
 						sona erer
 					</div>
 					<div className="runa-auth-sessioncard-24">{expiresAt}</div>
-					<div className="runa-auth-sessioncard-25">Åu anki oturum süresi</div>
+					<div className="runa-auth-sessioncard-25">Şu anki oturum süresi</div>
 				</div>
 			</div>
 		</article>

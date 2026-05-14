@@ -422,11 +422,13 @@ export function useAuth(): UseAuthResult {
 			setHasStoredBearerToken(true);
 			setSessionExpiresAt(sessionExpiresAt);
 			bindDesktopCompanionSession(
-				input.session ? {
-					access_token: input.bearerToken,
-					expires_at: sessionExpiresAt ?? undefined,
-					refresh_token: sessionRefreshToken ?? undefined,
-				} : undefined,
+				input.session
+					? {
+							access_token: input.bearerToken,
+							expires_at: sessionExpiresAt ?? undefined,
+							refresh_token: sessionRefreshToken ?? undefined,
+						}
+					: undefined,
 			);
 		},
 		[],
@@ -569,14 +571,14 @@ export function useAuth(): UseAuthResult {
 
 			if (authResponse.principal_kind !== 'anonymous') {
 				bindDesktopCompanionSession(
-					redirectSession ?
-						(storedBearerToken
+					redirectSession
+						? storedBearerToken
 							? {
 									access_token: storedBearerToken,
 									expires_at: storedExpiresAt ?? undefined,
 									refresh_token: storedRefreshToken ?? undefined,
 								}
-							: undefined)
+							: undefined
 						: undefined,
 				);
 				setAuthNotice(null);

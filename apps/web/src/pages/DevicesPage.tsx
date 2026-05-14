@@ -105,8 +105,8 @@ export function DevicesPage({ accessToken }: DevicesPageProps): ReactElement {
 						Bağlı bilgisayar
 					</h2>
 					<p className="runa-page-devicespage-5">
-						Bilgisayar bağlantısı açık olduğunda dosya, ekran ve masaüstü adımları senin
-						onayınla ilerler.
+						Bilgisayar bağlantısı açık olduğunda dosya, ekran ve masaüstü adımları senin onayınla
+						ilerler.
 					</p>
 				</div>
 			</section>

@@ -121,7 +121,7 @@ export function InspectionActionDetailModal({
 }: InspectionActionDetailModalProps): ReactElement | null {
 	return (
 		<ActionDetailModal
-			description="Bu detay, Runa'nÄ±n gÃ¶rÃ¼nÃ¼r kartÄ±nÄ± nasÄ±l Ã¼rettiÄŸini anlamana yardÄ±mcÄ± olur."
+			description="Bu detay, Runa'nın görünür kartını nasıl ürettiğini anlamana yardımcı olur."
 			details={createInspectionDetailItems({
 				actionState,
 				anchorId,

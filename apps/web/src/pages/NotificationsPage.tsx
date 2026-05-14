@@ -40,7 +40,7 @@ const notificationsSeed: readonly NotificationItem[] = [
 		unread: false,
 	},
 	{
-		body: 'Son calisma basariyla tamamlandi.',
+		body: 'Son çalışma başarıyla tamamlandı.',
 		id: 'n-system-1',
 		timeLabel: '1 sa',
 		title: 'Sistem',
@@ -159,7 +159,7 @@ export function NotificationsPage(): ReactElement {
 									className="runa-button runa-button--secondary"
 									onClick={() => openNotification(item)}
 								>
-									Ac
+									Aç
 								</button>
 								<button
 									type="button"

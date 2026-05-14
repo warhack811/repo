@@ -16,12 +16,12 @@ function getStatusCopy(status: ProjectMemorySummaryProps['status']): {
 	switch (status) {
 		case 'available':
 			return {
-				body: 'Bu çalÄ±şma alanı için kayıtlı proje hafızası hazır.',
+				body: 'Bu çalışma alanı için kayıtlı proje hafızası hazır.',
 				label: 'Hazır',
 			};
 		case 'empty':
 			return {
-				body: 'Bu çalÄ±şma alanına henüz proje hafızası eklenmedi.',
+				body: 'Bu çalışma alanına henüz proje hafızası eklenmedi.',
 				label: 'Boş',
 			};
 		case 'unavailable':
@@ -70,8 +70,8 @@ export function ProjectMemorySummary({
 			</div>
 
 			<div className="runa-alert runa-alert--info">
-				Hafıza görünürlüğü yalnız bilgilendirme içindir; kaynak ve politika kontrolleri
-				bağlanana kadar veri uydurulmaz.
+				Hafıza görünürlüğü yalnız bilgilendirme içindir; kaynak ve politika kontrolleri bağlanana
+				kadar veri uydurulmaz.
 			</div>
 		</section>
 	);

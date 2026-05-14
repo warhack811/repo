@@ -52,9 +52,9 @@ export function ContextSheet({
 				</header>
 
 				<section className={styles['section']}>
-					<h3 className={styles['sectionTitle']}>Calisma klasoru</h3>
+					<h3 className={styles['sectionTitle']}>Çalışma klasörü</h3>
 					<p className={styles['mono']} title={normalizedWorkingDirectory}>
-						{normalizedWorkingDirectory || 'Calisma klasoru secilmedi'}
+						{normalizedWorkingDirectory || 'Çalışma klasörü secilmedi'}
 					</p>
 				</section>
 

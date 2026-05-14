@@ -54,17 +54,17 @@ function humanizeProvider(provider: RunTransportSummary['provider']): string {
 function humanizeRuntimeState(state: string | undefined): string {
 	switch (state) {
 		case 'MODEL_THINKING':
-			return 'Model dÃ¼ÅŸÃ¼nÃ¼yor';
+			return 'Model düşünüyor';
 		case 'TOOL_EXECUTING':
-			return 'AraÃ§ Ã§alÄ±ÅŸÄ±yor';
+			return 'Araç çalışıyor';
 		case 'TOOL_RESULT_INGESTING':
-			return 'AraÃ§ sonucu iÅŸleniyor';
+			return 'Araç sonucu işleniyor';
 		case 'WAITING_APPROVAL':
 			return 'Onay bekleniyor';
 		case 'COMPLETED':
-			return 'TamamlandÄ±';
+			return 'Tamamlandı';
 		case 'FAILED':
-			return 'BaÅŸarÄ±sÄ±z';
+			return 'Başarısız';
 		default:
 			return 'Bekliyor';
 	}
@@ -75,9 +75,9 @@ function humanizeApprovalStatus(status: ApprovalBlock['payload']['status']): str
 		case 'approved':
 			return uiCopy.approval.approved;
 		case 'cancelled':
-			return 'Ä°ptal edildi';
+			return 'İptal edildi';
 		case 'expired':
-			return 'SÃ¼resi doldu';
+			return 'Süresi doldu';
 		case 'pending':
 			return 'Bekliyor';
 		case 'rejected':
@@ -408,11 +408,11 @@ function getStatusTone(
 
 function getFallbackHeadline(runSummary: RunTransportSummary | undefined): string {
 	if (runSummary?.final_state === 'FAILED') {
-		return 'Ã‡alÄ±ÅŸma hata ile bitti';
+		return 'Çalışma hata ile bitti';
 	}
 
 	if (runSummary?.final_state === 'COMPLETED') {
-		return 'Ã‡alÄ±ÅŸma tamamlandÄ±';
+		return 'Çalışma tamamlandı';
 	}
 
 	if (runSummary?.latest_runtime_state === 'WAITING_APPROVAL') {
@@ -420,19 +420,19 @@ function getFallbackHeadline(runSummary: RunTransportSummary | undefined): strin
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_RESULT_INGESTING') {
-		return 'AraÃ§ sonucu iÅŸleniyor';
+		return 'Araç sonucu işleniyor';
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_EXECUTING') {
-		return 'AraÃ§lar Ã§alÄ±ÅŸÄ±yor';
+		return 'Araçlar çalışıyor';
 	}
 
 	if (runSummary?.latest_runtime_state === 'MODEL_THINKING') {
-		return 'Model Ã§alÄ±ÅŸÄ±yor';
+		return 'Model çalışıyor';
 	}
 
 	if (runSummary?.has_accepted) {
-		return 'Ã‡alÄ±ÅŸma kabul edildi';
+		return 'Çalışma kabul edildi';
 	}
 
 	return uiCopy.run.currentRunProgress;
@@ -443,7 +443,7 @@ function getApprovalRejectedHeadline(): string {
 }
 
 function getApprovalRejectedDetail(): string {
-	return 'Ã‡alÄ±ÅŸma gÃ¼ven kararÄ±nla durduruldu. Ä°stersen isteÄŸi deÄŸiÅŸtirip yeniden gÃ¶nderebilirsin.';
+	return 'Çalışma güven kararınla durduruldu. İstersen isteği değiştirip yeniden gönderebilirsin.';
 }
 
 function getFallbackDetail(
@@ -451,34 +451,34 @@ function getFallbackDetail(
 	approvalBlock: ApprovalBlock | null,
 ): string {
 	if (approvalBlock?.payload.status === 'pending') {
-		return 'Mevcut Ã§alÄ±ÅŸma onay sÄ±nÄ±rÄ±nda durdu. Devam etmeden Ã¶nce istenen iÅŸlemi gÃ¶zden geÃ§ir.';
+		return 'Mevcut çalışma onay sınırında durdu. Devam etmeden önce istenen işlemi gözden geçir.';
 	}
 
 	if (runSummary?.final_state === 'COMPLETED') {
-		return 'Mevcut Ã§alÄ±ÅŸma tamamlandÄ±. Son Ã¶zet ve destek kartlarÄ± aÅŸaÄŸÄ±da gÃ¶rÃ¼nÃ¼r kalÄ±r.';
+		return 'Mevcut çalışma tamamlandı. Son özet ve destek kartları aşağıda görünür kalır.';
 	}
 
 	if (runSummary?.final_state === 'FAILED') {
-		return 'Mevcut Ã§alÄ±ÅŸma baÅŸarÄ±sÄ±z oldu. Son gÃ¶rÃ¼nÃ¼r kartlar inceleme iÃ§in aÅŸaÄŸÄ±da kalÄ±r.';
+		return 'Mevcut çalışma başarısız oldu. Son görünür kartlar inceleme için aşağıda kalır.';
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_RESULT_INGESTING') {
-		return 'AraÃ§ sonucu mevcut Ã§alÄ±ÅŸma yÃ¼zeyine iÅŸleniyor.';
+		return 'Araç sonucu mevcut çalışma yüzeyine işleniyor.';
 	}
 
 	if (runSummary?.latest_runtime_state === 'TOOL_EXECUTING') {
-		return 'Ã‡alÄ±ÅŸma araÃ§larÄ± Ã§alÄ±ÅŸtÄ±rÄ±yor. AdÄ±mlar tamamlandÄ±kÃ§a yeni Ã¶zetler gÃ¼ncellenecek.';
+		return 'Çalışma araçları çalıştırıyor. Adımlar tamamlandıkça yeni özetler güncellenecek.';
 	}
 
 	if (runSummary?.latest_runtime_state === 'MODEL_THINKING') {
-		return 'Model sonraki adÄ±mÄ± planlÄ±yor. Yeni Ã§Ä±ktÄ± gelirken mevcut yÃ¼zey sabit kalÄ±r.';
+		return 'Model sonraki adımı planlıyor. Yeni çıktı gelirken mevcut yüzey sabit kalır.';
 	}
 
 	if (runSummary?.has_accepted) {
-		return 'Ä°stek kabul edildi. Ã‡alÄ±ÅŸma kaldÄ±ÄŸÄ± yerden devam ediyor.';
+		return 'İstek kabul edildi. Çalışma kaldığı yerden devam ediyor.';
 	}
 
-	return 'Mevcut Ã§alÄ±ÅŸma burada birinci planda kalÄ±r.';
+	return 'Mevcut çalışma burada birinci planda kalır.';
 }
 
 export function deriveCurrentRunProgressSurface(

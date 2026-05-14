@@ -47,10 +47,10 @@ function getFriendlyOutputSummary(block: ToolResultBlockProps['block']): string 
 	const selected =
 		preview && !isTechnicalPreview(preview)
 			? preview
-			: (summary ?? preview ?? 'SonuÃ§ sohbet akÄ±ÅŸÄ±na eklendi.');
+			: (summary ?? preview ?? 'Sonuç sohbet akışına eklendi.');
 	const formatted = formatWorkDetail(selected);
 
-	return formatted ?? 'SonuÃ§ sohbet akÄ±ÅŸÄ±na eklendi.';
+	return formatted ?? 'Sonuç sohbet akışına eklendi.';
 }
 
 function getDeveloperErrorText(block: ToolResultBlockProps['block']): string | undefined {
@@ -83,7 +83,7 @@ export function ToolResultBlock({
 					<span className={styles['toolLineIcon']} aria-hidden>
 						<AlertTriangle size={12} />
 					</span>
-					<span className={styles['toolLineLabel']}>{friendlyToolLabel} tamamlanamadÄ±</span>
+					<span className={styles['toolLineLabel']}>{friendlyToolLabel} tamamlanamadı</span>
 					<ChevronRight aria-hidden size={14} className={styles['toolLineChevron']} />
 				</summary>
 				<div className={styles['toolLineDetail']}>
@@ -98,7 +98,7 @@ export function ToolResultBlock({
 			<details className={styles['toolLine']}>
 				<summary className={styles['toolLineSummary']}>
 					<span className={styles['toolLineIcon']} aria-hidden>
-						â€¢
+						-
 					</span>
 					<span className={styles['toolLineLabel']}>{friendlyToolLabel}</span>
 					<ChevronRight aria-hidden size={14} className={styles['toolLineChevron']} />
@@ -134,5 +134,3 @@ export function ToolResultBlock({
 		</Tool>
 	);
 }
-
-

@@ -1,37 +1,37 @@
 /**
-	 * Runa Design System - Chat Surface Density Reduction
-	 *
-	 * DESIGN PHILOSOPHY: "More single flow, less panel stack"
-	 * The goal is to reduce the "card inside card" feeling and overall framed visual weight.
-	 *
-	 * KEY CHANGES:
-	 * 1. Removed ambient glow from .runa-chat-surface - the ::after pseudo-element was adding
-	 *    visual weight and making the surface feel like a contained card
-	 *
-	 * 2. Simplified .runa-transcript-details - now uses minimal left border instead of
-	 *    heavy background/border/radius, feels like part of transcript flow
-	 *
-	 * 3. .runa-composer-options integrated into composer - only subtle top border separates
-	 *    it from main composer, no card treatment
-	 *
-	 * 4. Added .runa-attachment-preview utility - provides subtle treatment for inline content
-	 *    without creating nested card feeling
-	 *
-	 * 5. Reduced visual weight across all chat surface elements:
-	 *    - Lower background opacities
-	 *    - Reduced border strengths
-	 *    - Smaller border-radius values
-	 *    - Lighter shadows or none
-	 *    - Softer hover states
-	 *
-	 * CARD DENSITY GUIDELINES:
-	 * - .runa-card: Full treatment for primary content panels only
-	 * - .runa-card--subtle: Lightweight for nested content (no shadow, reduced borders)
-	 * - .runa-card--chat: Lighter treatment for chat-specific containers
-	 * - .runa-attachment-preview: Inline content that shouldn't feel like cards
-	 * - Avoid using card classes for every container; prefer flat/semi-transparent styles
-	 */
-	*,
+ * Runa Design System - Chat Surface Density Reduction
+ *
+ * DESIGN PHILOSOPHY: "More single flow, less panel stack"
+ * The goal is to reduce the "card inside card" feeling and overall framed visual weight.
+ *
+ * KEY CHANGES:
+ * 1. Removed ambient glow from .runa-chat-surface - the ::after pseudo-element was adding
+ *    visual weight and making the surface feel like a contained card
+ *
+ * 2. Simplified .runa-transcript-details - now uses minimal left border instead of
+ *    heavy background/border/radius, feels like part of transcript flow
+ *
+ * 3. .runa-composer-options integrated into composer - only subtle top border separates
+ *    it from main composer, no card treatment
+ *
+ * 4. Added .runa-attachment-preview utility - provides subtle treatment for inline content
+ *    without creating nested card feeling
+ *
+ * 5. Reduced visual weight across all chat surface elements:
+ *    - Lower background opacities
+ *    - Reduced border strengths
+ *    - Smaller border-radius values
+ *    - Lighter shadows or none
+ *    - Softer hover states
+ *
+ * CARD DENSITY GUIDELINES:
+ * - .runa-card: Full treatment for primary content panels only
+ * - .runa-card--subtle: Lightweight for nested content (no shadow, reduced borders)
+ * - .runa-card--chat: Lighter treatment for chat-specific containers
+ * - .runa-attachment-preview: Inline content that shouldn't feel like cards
+ * - Avoid using card classes for every container; prefer flat/semi-transparent styles
+ */
+*,
 *::before,
 *::after {
 	box-sizing: border-box;

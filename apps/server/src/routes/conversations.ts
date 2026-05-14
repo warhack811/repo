@@ -109,6 +109,12 @@ function isConversationPersistenceUnconfigured(error: unknown): boolean {
 	);
 }
 
+function isConversationReadPersistenceUnavailable(error: unknown): boolean {
+	return (
+		error instanceof ConversationStoreReadError || isConversationPersistenceUnconfigured(error)
+	);
+}
+
 function replyWithConversationStoreError(
 	reply: FastifyReply,
 	error: ConversationStoreAccessError | ConversationStoreWriteError,
@@ -165,7 +171,10 @@ export async function registerConversationRoutes(
 				conversations: await listConversationsRoute(conversationScopeFromAuthContext(request.auth)),
 			};
 		} catch (error) {
-			if (isConversationPersistenceUnconfigured(error)) {
+			if (
+				isConversationPersistenceUnconfigured(error) ||
+				isConversationReadPersistenceUnavailable(error)
+			) {
 				return {
 					conversations: [],
 				};
@@ -200,6 +209,13 @@ export async function registerConversationRoutes(
 					return replyWithConversationStoreError(reply, error);
 				}
 
+				if (isConversationReadPersistenceUnavailable(error)) {
+					return {
+						conversation_id: request.params.conversationId,
+						messages: [],
+					};
+				}
+
 				throw error;
 			}
 		},
@@ -223,6 +239,13 @@ export async function registerConversationRoutes(
 					return replyWithConversationStoreError(reply, error);
 				}
 
+				if (isConversationReadPersistenceUnavailable(error)) {
+					return {
+						conversation_id: request.params.conversationId,
+						run_surfaces: [],
+					};
+				}
+
 				throw error;
 			}
 		},
@@ -244,6 +267,13 @@ export async function registerConversationRoutes(
 			} catch (error) {
 				if (error instanceof ConversationStoreAccessError) {
 					return replyWithConversationStoreError(reply, error);
+				}
+
+				if (isConversationReadPersistenceUnavailable(error)) {
+					return {
+						conversation_id: request.params.conversationId,
+						members: [],
+					};
 				}
 
 				throw error;

@@ -84,7 +84,7 @@ describe('UI Phase 5 surfaces', () => {
 			correlation_label: null,
 			detail:
 				'Writes text to the connected desktop agent clipboard through an explicit approval-gated bridge path.',
-			headline: 'Calisma tamamlandi',
+			headline: 'Çalışma tamamlandı',
 			hidden_step_count: 0,
 			meta_items: [],
 			phase_items: [],

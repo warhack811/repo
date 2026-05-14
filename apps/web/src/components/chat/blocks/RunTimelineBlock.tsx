@@ -42,9 +42,9 @@ export function RunTimelineBlock({
 		>
 			<div className={styles['header']}>
 				<div className={styles['headerStack']}>
-					<span className={styles['eyebrow']}>CanlÄ± Ã§alÄ±ÅŸma notlarÄ±</span>
+					<span className={styles['eyebrow']}>Canlı çalışma notları</span>
 					<h3 className={styles['title']} id={getPresentationBlockTitleDomId(block.id)}>
-						{block.payload.title === 'Run Timeline' ? 'Ã‡alÄ±ÅŸma akÄ±ÅŸÄ±' : block.payload.title}
+						{block.payload.title === 'Run Timeline' ? 'Çalışma akışı' : block.payload.title}
 					</h3>
 				</div>
 				{isDeveloperMode

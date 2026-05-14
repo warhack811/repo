@@ -526,7 +526,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setConversationError(
-					error instanceof Error ? error.message : 'Conversation listesi yuklenemedi.',
+					error instanceof Error ? error.message : 'Conversation listesi yüklenemedi.',
 				);
 				setConversations([]);
 				setActiveConversationId(null);
@@ -605,7 +605,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setConversationError(
-					error instanceof Error ? error.message : 'Conversation mesajlari yuklenemedi.',
+					error instanceof Error ? error.message : 'Conversation mesajları yüklenemedi.',
 				);
 				setActiveConversationMessages([]);
 				setActiveConversationRunSurfaces([]);
@@ -664,7 +664,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 				}
 
 				setMemberError(
-					error instanceof Error ? error.message : 'Conversation member listesi yuklenemedi.',
+					error instanceof Error ? error.message : 'Conversation member listesi yüklenemedi.',
 				);
 				setActiveConversationMembers([]);
 			} finally {
@@ -806,7 +806,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 					setMemberError(null);
 				} catch (error) {
 					setConversationError(
-						error instanceof Error ? error.message : 'Conversation senkronizasyonu basarisiz oldu.',
+						error instanceof Error ? error.message : 'Conversation senkronizasyonu başarısız oldu.',
 					);
 				}
 			})();
