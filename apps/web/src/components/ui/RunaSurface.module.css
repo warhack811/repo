@@ -38,3 +38,10 @@
 	box-shadow: none;
 	padding: clamp(18px, 3vw, 24px);
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

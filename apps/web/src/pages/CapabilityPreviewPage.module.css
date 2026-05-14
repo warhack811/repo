@@ -111,3 +111,10 @@
 .fitContent {
 	width: fit-content;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

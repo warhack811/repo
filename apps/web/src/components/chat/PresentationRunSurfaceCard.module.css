@@ -163,3 +163,10 @@
 	gap: 6px;
 	min-width: 0;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

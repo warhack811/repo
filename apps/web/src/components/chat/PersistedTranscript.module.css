@@ -101,3 +101,10 @@
 		max-width: min(680px, 92%);
 	}
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

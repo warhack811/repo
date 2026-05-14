@@ -141,3 +141,17 @@
 		background-position: -200% center;
 	}
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.respect-reduced-motion,
+	.respect-reduced-motion * {
+		animation: none !important;
+		transition: none !important;
+	}
+
+	.force-motion,
+	.force-motion * {
+		animation: initial !important;
+		transition: initial !important;
+	}
+}

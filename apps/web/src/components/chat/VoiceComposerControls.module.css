@@ -45,3 +45,10 @@
 	line-height: 1.5;
 	color: var(--ink-4);
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

@@ -25,3 +25,10 @@
 	overflow: auto;
 	padding: 0 12px 14px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

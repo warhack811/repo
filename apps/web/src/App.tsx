@@ -3,6 +3,7 @@ import { type ReactElement, Suspense, lazy, useCallback, useEffect, useState } f
 
 import { RunaSkeleton } from './components/ui/RunaSkeleton.js';
 import { useAuth } from './hooks/useAuth.js';
+import { useVisualViewport } from './hooks/useVisualViewport.js';
 import {
 	type BrandTheme,
 	type Theme,
@@ -50,6 +51,7 @@ function AuthenticatedFallback(): ReactElement {
 export function App(): ReactElement {
 	const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 	const [brandTheme, setBrandTheme] = useState<BrandTheme>(() => getStoredBrandTheme());
+	useVisualViewport();
 	const {
 		authContext,
 		authError,

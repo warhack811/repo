@@ -23,3 +23,10 @@
 	text-transform: uppercase;
 	color: var(--ink-2);
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

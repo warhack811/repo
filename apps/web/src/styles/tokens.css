@@ -61,6 +61,8 @@
 	--duration-slow: 220ms;
 	--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 	--ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+	--focus-ring: 0 0 0 2px var(--accent);
+	--focus-ring-offset: 2px;
 
 	/* Derived semantic surfaces */
 	--surface-transcript-user: color-mix(in srgb, var(--accent) 22%, var(--surface-2));

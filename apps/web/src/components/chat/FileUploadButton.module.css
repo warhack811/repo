@@ -24,3 +24,10 @@
 	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 	transform: translateY(-1px);
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

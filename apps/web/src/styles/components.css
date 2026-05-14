@@ -622,10 +622,22 @@ pre {
 	color: var(--ink-1);
 }
 
-:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 3px;
-	box-shadow: none;
+.runa-skip-link {
+	left: -9999px;
+	position: absolute;
+	top: 0;
+	z-index: 100;
+	background: var(--surface-2);
+	border-radius: var(--radius-input);
+	color: var(--ink-1);
+	padding: 10px 14px;
+	text-decoration: none;
+	border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.runa-skip-link:focus {
+	left: calc(var(--safe-area-left) + 12px);
+	top: calc(var(--safe-area-top) + 12px);
 }
 
 .runa-ambient-panel {
@@ -810,8 +822,11 @@ pre {
 }
 
 .runa-chat-layout__composer {
-	position: relative;
-	z-index: 1;
+	position: sticky;
+	bottom: calc(var(--safe-area-bottom) + 12px);
+	transform: translateY(calc(-1 * var(--keyboard-offset, 0px)));
+	transition: transform 120ms var(--ease-standard);
+	z-index: 30;
 }
 
 .runa-chat-layout__work {
@@ -2023,7 +2038,6 @@ pre {
 
 	.runa-chat-layout__composer {
 		order: 2;
-		position: sticky;
 		bottom: var(--safe-area-bottom);
 	}
 
@@ -2093,6 +2107,12 @@ pre {
 	.runa-conversation-item,
 	.runa-app-nav__item {
 		min-height: 44px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.runa-chat-layout__composer {
+		transition: none;
 	}
 }
 
