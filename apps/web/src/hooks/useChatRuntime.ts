@@ -49,9 +49,7 @@ import { uiCopy } from '../localization/copy.js';
 import {
 	createChatStore,
 	selectConnectionState,
-	selectPresentationState,
 	selectRuntimeConfigState,
-	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
 import type { ChatStore } from '../stores/chat-store.js';
@@ -61,8 +59,8 @@ import type {
 	ConnectionStatus,
 	GatewayProvider,
 	InspectionTargetKind,
-	WebSocketServerBridgeMessage,
 } from '../ws-types.js';
+import { useChatStoreSlice } from './useChatStoreSlice.js';
 
 export type {
 	PresentationRunSurface,
@@ -78,8 +76,6 @@ export interface UseChatRuntimeResult {
 	readonly connectionStatus: ConnectionStatus;
 	readonly currentPresentationSurface: PresentationRunSurface | null;
 	readonly currentRunFeedback: RunFeedbackState | null;
-	readonly currentStreamingRunId: string | null;
-	readonly currentStreamingText: string;
 	readonly desktopTargetConnectionId: string | null;
 	readonly expandedPastRunIds: readonly string[];
 	readonly includePresentationBlocks: boolean;
@@ -88,7 +84,6 @@ export interface UseChatRuntimeResult {
 	readonly isRuntimeConfigReady: boolean;
 	readonly lastError: string | null;
 	readonly latestRunRequestIncludesPresentationBlocks: boolean | null;
-	readonly messages: readonly WebSocketServerBridgeMessage[];
 	readonly model: string;
 	readonly pastPresentationSurfaces: readonly PresentationRunSurface[];
 	readonly pendingInspectionRequestKeys: readonly string[];
@@ -159,6 +154,43 @@ const LEGACY_GROQ_DEFAULT_MODELS = new Set<string>([
 	LEGACY_DEFAULT_MODEL,
 	'llama-3.3-70b-versatile',
 ]);
+
+function areRunTransportSummaryMapsEqual(
+	left: ReadonlyMap<string, RunTransportSummary>,
+	right: ReadonlyMap<string, RunTransportSummary>,
+): boolean {
+	if (left === right) {
+		return true;
+	}
+
+	if (left.size !== right.size) {
+		return false;
+	}
+
+	for (const [runId, leftSummary] of left) {
+		const rightSummary = right.get(runId);
+
+		if (!rightSummary) {
+			return false;
+		}
+
+		if (
+			leftSummary.run_id !== rightSummary.run_id ||
+			leftSummary.trace_id !== rightSummary.trace_id ||
+			leftSummary.provider !== rightSummary.provider ||
+			leftSummary.final_state !== rightSummary.final_state ||
+			leftSummary.has_accepted !== rightSummary.has_accepted ||
+			leftSummary.has_presentation_blocks !== rightSummary.has_presentation_blocks ||
+			leftSummary.has_runtime_event !== rightSummary.has_runtime_event ||
+			leftSummary.latest_runtime_state !== rightSummary.latest_runtime_state ||
+			leftSummary.last_runtime_event_type !== rightSummary.last_runtime_event_type
+		) {
+			return false;
+		}
+	}
+
+	return true;
+}
 function isGatewayProviderValue(value: unknown): value is GatewayProvider {
 	return typeof value === 'string' && gatewayProviders.includes(value as GatewayProvider);
 }
@@ -402,21 +434,38 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 
 	const runtimeConfig = useChatStoreSelector(chatStore, selectRuntimeConfigState);
 	const connectionState = useChatStoreSelector(chatStore, selectConnectionState);
-	const presentationState = useChatStoreSelector(chatStore, selectPresentationState);
-	const transportState = useChatStoreSelector(chatStore, selectTransportState);
+	const presentationRunId = useChatStoreSelector(
+		chatStore,
+		(state) => state.presentation.presentationRunId,
+	);
+	const expandedPastRunIds = useChatStoreSelector(
+		chatStore,
+		(state) => state.presentation.expandedPastRunIds,
+	);
+	const pendingInspectionRequestKeys = useChatStoreSelector(
+		chatStore,
+		(state) => state.presentation.pendingInspectionRequestKeys,
+	);
+	const presentationRunSurfaces = useChatStoreSelector(
+		chatStore,
+		(state) => state.presentation.presentationRunSurfaces,
+	);
+	const staleInspectionRequestKeys = useChatStoreSelector(
+		chatStore,
+		(state) => state.presentation.staleInspectionRequestKeys,
+	);
 	const { apiKey, approvalMode, includePresentationBlocks, model, provider, workingDirectory } =
 		runtimeConfig;
 	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
-	const { currentStreamingRunId, currentStreamingText } = presentationState;
-	const {
-		expandedPastRunIds,
-		pendingInspectionRequestKeys,
-		presentationRunId,
-		presentationRunSurfaces,
-		staleInspectionRequestKeys,
-	} = presentationState;
-	const { latestRunRequestIncludesPresentationBlocks, messages, runTransportSummaries } =
-		transportState;
+	const latestRunRequestIncludesPresentationBlocks = useChatStoreSelector(
+		chatStore,
+		(state) => state.transport.latestRunRequestIncludesPresentationBlocks,
+	);
+	const runTransportSummaries = useChatStoreSlice(
+		chatStore,
+		(state) => state.transport.runTransportSummaries,
+		areRunTransportSummaryMapsEqual,
+	);
 	const isRuntimeConfigReady = model.trim().length > 0;
 
 	useEffect(() => {
@@ -1258,6 +1307,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		};
 	}, [accessToken, chatStore]);
 
+	// Stable ref snapshot: the Set identity stays fixed while its contents evolve.
 	const expectedPresentationRunIds = expectedPresentationRunIdsRef.current;
 	const presentationSurfaceState = useMemo(
 		() =>
@@ -1629,40 +1679,74 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 		});
 	}, [chatStore]);
 
-	return useMemo(
+	const runtimeConfigState = useMemo(
 		() => ({
 			accessToken,
-			attachments,
 			apiKey,
 			approvalMode,
+			includePresentationBlocks,
+			isRuntimeConfigReady,
+			model,
+			provider,
+			workingDirectory,
+		}),
+		[
+			accessToken,
+			apiKey,
+			approvalMode,
+			includePresentationBlocks,
+			isRuntimeConfigReady,
+			model,
+			provider,
+			workingDirectory,
+		],
+	);
+	const runtimeState = useMemo(
+		() => ({
+			attachments,
 			connectionStatus,
 			currentPresentationSurface: presentationSurfaceState.currentPresentationSurface,
 			currentRunFeedback,
-			currentStreamingRunId: chatStore.getState().presentation.currentStreamingRunId,
-			currentStreamingText: chatStore.getState().presentation.currentStreamingText,
 			desktopTargetConnectionId: selectedDesktopTargetConnectionId,
 			expandedPastRunIds,
-			includePresentationBlocks,
 			inspectionAnchorIdsByDetailId: inspectionAnchorIdsByDetailIdRef.current,
 			isSubmitting,
-			isRuntimeConfigReady,
 			lastError,
 			latestRunRequestIncludesPresentationBlocks,
-			messages,
-			model,
 			pastPresentationSurfaces: presentationSurfaceState.pastPresentationSurfaces,
 			pendingInspectionRequestKeys,
 			presentationRunSurfaces,
 			prompt,
-			provider,
-			workingDirectory,
+			runTransportSummaries,
+			staleInspectionRequestKeys,
+			transportErrorCode,
+		}),
+		[
+			attachments,
+			connectionStatus,
+			currentRunFeedback,
+			selectedDesktopTargetConnectionId,
+			expandedPastRunIds,
+			isSubmitting,
+			lastError,
+			latestRunRequestIncludesPresentationBlocks,
+			pendingInspectionRequestKeys,
+			presentationRunSurfaces,
+			presentationSurfaceState.currentPresentationSurface,
+			presentationSurfaceState.pastPresentationSurfaces,
+			prompt,
+			runTransportSummaries,
+			staleInspectionRequestKeys,
+			transportErrorCode,
+		],
+	);
+	const runtimeActions = useMemo(
+		() => ({
+			abortCurrentRun,
 			requestInspection,
 			resetRunState,
 			resolveApproval,
 			retryTransport,
-			runTransportSummaries,
-			store: chatStore,
-			abortCurrentRun,
 			setApiKey,
 			setApprovalMode,
 			setAttachments,
@@ -1673,39 +1757,16 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			setPrompt,
 			setProvider,
 			setWorkingDirectory,
-			staleInspectionRequestKeys,
+			store: chatStore,
 			submitRunRequest,
-			transportErrorCode,
 		}),
 		[
-			accessToken,
-			attachments,
-			apiKey,
-			approvalMode,
-			connectionStatus,
-			presentationSurfaceState,
-			currentRunFeedback,
-			selectedDesktopTargetConnectionId,
-			expandedPastRunIds,
-			includePresentationBlocks,
-			isSubmitting,
-			isRuntimeConfigReady,
-			lastError,
-			latestRunRequestIncludesPresentationBlocks,
-			messages,
-			model,
-			pendingInspectionRequestKeys,
-			presentationRunSurfaces,
-			prompt,
-			provider,
-			workingDirectory,
+			abortCurrentRun,
+			chatStore,
 			requestInspection,
 			resetRunState,
 			resolveApproval,
 			retryTransport,
-			runTransportSummaries,
-			chatStore,
-			abortCurrentRun,
 			setApiKey,
 			setApprovalMode,
 			setIncludePresentationBlocks,
@@ -1713,9 +1774,16 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}): UseChatRunt
 			setPastRunExpanded,
 			setProvider,
 			setWorkingDirectory,
-			staleInspectionRequestKeys,
 			submitRunRequest,
-			transportErrorCode,
 		],
+	);
+
+	return useMemo(
+		() => ({
+			...runtimeConfigState,
+			...runtimeState,
+			...runtimeActions,
+		}),
+		[runtimeActions, runtimeConfigState, runtimeState],
 	);
 }

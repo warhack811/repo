@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { RunRequestClientMessage, WebSocketServerBridgeMessage } from '../ws-types.js';
 import { useChatRuntime } from './useChatRuntime.js';
+import { useStreamingMessage } from './useStreamingMessage.js';
 
 type MockWebSocketListener = (event: { readonly data?: string; readonly reason?: string }) => void;
 
@@ -40,6 +41,7 @@ class MockWebSocket {
 
 function RuntimeHarness(): ReactElement {
 	const runtime = useChatRuntime();
+	const { text: currentStreamingText } = useStreamingMessage(runtime.store);
 	const blocks = runtime.currentPresentationSurface?.blocks ?? [];
 
 	return (
@@ -53,7 +55,7 @@ function RuntimeHarness(): ReactElement {
 				prepare
 			</button>
 			<button type="submit">submit</button>
-			<output data-testid="streaming-text">{runtime.currentStreamingText}</output>
+			<output data-testid="streaming-text">{currentStreamingText}</output>
 			<output data-testid="blocks">{JSON.stringify(blocks)}</output>
 		</form>
 	);

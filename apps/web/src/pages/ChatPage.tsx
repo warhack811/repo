@@ -41,9 +41,7 @@ import type { PresentationRunSurface } from '../lib/chat-runtime/types.js';
 import { uiCopy } from '../localization/copy.js';
 import {
 	selectConnectionState,
-	selectPresentationState,
 	selectRuntimeConfigState,
-	selectTransportState,
 	useChatStoreSelector,
 } from '../stores/chat-store.js';
 
@@ -69,22 +67,29 @@ export function ChatPage({
 	const { isDeveloperMode, setDeveloperMode } = useDeveloperMode();
 	const runtimeConfig = useChatStoreSelector(runtime.store, selectRuntimeConfigState);
 	const connectionState = useChatStoreSelector(runtime.store, selectConnectionState);
-	const presentationState = useChatStoreSelector(runtime.store, selectPresentationState);
-	const transportState = useChatStoreSelector(runtime.store, selectTransportState);
+	const expandedPastRunIds = useChatStoreSelector(
+		runtime.store,
+		(state) => state.presentation.expandedPastRunIds,
+	);
+	const pendingInspectionRequestKeys = useChatStoreSelector(
+		runtime.store,
+		(state) => state.presentation.pendingInspectionRequestKeys,
+	);
+	const presentationRunSurfaces = useChatStoreSelector(
+		runtime.store,
+		(state) => state.presentation.presentationRunSurfaces,
+	);
+	const staleInspectionRequestKeys = useChatStoreSelector(
+		runtime.store,
+		(state) => state.presentation.staleInspectionRequestKeys,
+	);
 	const currentPresentationSurface = runtime.currentPresentationSurface;
 	const currentRunFeedback = runtime.currentRunFeedback;
 	const pastPresentationSurfaces = runtime.pastPresentationSurfaces;
-	const {
-		currentStreamingRunId,
-		currentStreamingText,
-		expandedPastRunIds,
-		pendingInspectionRequestKeys,
-		presentationRunSurfaces,
-		staleInspectionRequestKeys,
-	} = presentationState;
 	const { connectionStatus, isSubmitting, lastError, transportErrorCode } = connectionState;
 	const { apiKey, model } = runtimeConfig;
 	const isRuntimeConfigReady = model.trim().length > 0;
+	const { runTransportSummaries } = runtime;
 	const {
 		accessToken,
 		abortCurrentRun,
@@ -101,7 +106,6 @@ export function ChatPage({
 		submitRunRequest,
 		workingDirectory,
 	} = runtime;
-	const { runTransportSummaries } = transportState;
 	const {
 		activeConversationId,
 		activeConversationMessages,
@@ -304,10 +308,7 @@ export function ChatPage({
 			getInspectionActionState={getInspectionActionState}
 		/>
 	);
-	const hasVisibleRunSurface =
-		isRunInProgress ||
-		currentPresentationContent !== null ||
-		currentStreamingText.trim().length > 0;
+	const hasVisibleRunSurface = isRunInProgress || currentPresentationContent !== null;
 	const shouldShowEmptyComposerSuggestions =
 		!hasVisibleRunSurface && activeConversationMessages.length === 0 && !isConversationLoading;
 
@@ -341,7 +342,6 @@ export function ChatPage({
 							attachments={attachments}
 							canReadLatestResponse={latestReadableResponse.length > 0}
 							connectionStatus={connectionStatus}
-							currentStreamingRunId={currentStreamingRunId}
 							desktopDeviceError={desktopDeviceError}
 							desktopDevices={desktopDevices}
 							emptySuggestions={shouldShowEmptyComposerSuggestions ? emptyRunTimelineContent : null}
@@ -355,6 +355,7 @@ export function ChatPage({
 							isUploadingAttachment={isUploadingAttachment}
 							isVoiceSupported={voiceInput.isSupported}
 							lastError={lastError}
+							store={runtime.store}
 							onAttachmentUploadStateChange={({ error, isUploading }) => {
 								setAttachmentUploadError(error);
 								setIsUploadingAttachment(isUploading);
@@ -390,10 +391,9 @@ export function ChatPage({
 						activeConversationMessages={activeConversationMessages}
 						currentPresentationContent={currentPresentationContent}
 						currentRunId={currentRunId}
-						currentStreamingRunId={currentStreamingRunId}
-						currentStreamingText={currentStreamingText}
 						emptyStateContent={null}
 						isHistoryLoading={isConversationLoading}
+						store={runtime.store}
 					/>
 				}
 				onCloseSidebar={() => undefined}
