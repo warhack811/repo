@@ -37,57 +37,48 @@ export function RunTimelinePanel({
 		<section
 			aria-labelledby="presentation-blocks-heading"
 			aria-describedby="inspection-surface-a11y-note"
-			className="runa-ambient-panel runa-migrated-components-developer-runtimelinepanel-1"
+			className="runa-ambient-panel runa-developer-runtimelinepanel-1"
 		>
-			<div className="runa-migrated-components-developer-runtimelinepanel-2">
-				<h2
-					id="presentation-blocks-heading"
-					className="runa-migrated-components-developer-runtimelinepanel-3"
-				>
+			<div className="runa-developer-runtimelinepanel-2">
+				<h2 id="presentation-blocks-heading" className="runa-developer-runtimelinepanel-3">
 					{uiCopy.run.surfaceHeading}
 				</h2>
-				<div className="runa-migrated-components-developer-runtimelinepanel-4">
+				<div className="runa-developer-runtimelinepanel-4">
 					{createInspectionCountLabel(presentationRunSurfaceCount, 'run surface', 'run surfaces')}
 				</div>
 			</div>
-			<p
-				id="inspection-surface-a11y-note"
-				className="runa-migrated-components-developer-runtimelinepanel-5"
-			>
+			<p id="inspection-surface-a11y-note" className="runa-developer-runtimelinepanel-5">
 				Inspection detail actions append a focused card below the related summary inside the same
 				run group and move keyboard focus to that card. Use Back to summary to return focus to the
 				linked summary card.
 			</p>
 
-			<div className="runa-migrated-components-developer-runtimelinepanel-6">
+			<div className="runa-developer-runtimelinepanel-6">
 				{currentRunProgressPanel}
 				{presentationRunSurfaceCount === 0 ? (
 					emptyStateContent
 				) : (
 					<>
 						{currentInspectionSurfaceMeta ? (
-							<div className="runa-migrated-components-developer-runtimelinepanel-7">
-								<div className="runa-migrated-components-developer-runtimelinepanel-8">
-									<div className="runa-migrated-components-developer-runtimelinepanel-9">
-										<div
-											lang="tr"
-											className="runa-migrated-components-developer-runtimelinepanel-10"
-										>
+							<div className="runa-developer-runtimelinepanel-7">
+								<div className="runa-developer-runtimelinepanel-8">
+									<div className="runa-developer-runtimelinepanel-9">
+										<div lang="tr" className="runa-developer-runtimelinepanel-10">
 											{uiCopy.run.currentRunProgress}
 										</div>
-										<div className="runa-migrated-components-developer-runtimelinepanel-11">
+										<div className="runa-developer-runtimelinepanel-11">
 											{uiCopy.run.surfaceSubtitle}
 										</div>
 									</div>
-									<div className="runa-migrated-components-developer-runtimelinepanel-12">
-										<code className="runa-migrated-components-developer-runtimelinepanel-13">
+									<div className="runa-developer-runtimelinepanel-12">
+										<code className="runa-developer-runtimelinepanel-13">
 											{createInspectionCountLabel(
 												currentInspectionSurfaceMeta.summary_count,
 												'summary card',
 												'summary cards',
 											)}
 										</code>
-										<code className="runa-migrated-components-developer-runtimelinepanel-14">
+										<code className="runa-developer-runtimelinepanel-14">
 											{createInspectionCountLabel(
 												currentInspectionSurfaceMeta.detail_count,
 												'detail card',
@@ -95,7 +86,7 @@ export function RunTimelinePanel({
 											)}
 										</code>
 										{pastPresentationSurfaceCount > 0 ? (
-											<code className="runa-migrated-components-developer-runtimelinepanel-15">
+											<code className="runa-developer-runtimelinepanel-15">
 												{createInspectionCountLabel(
 													pastPresentationSurfaceCount,
 													'recent run',
@@ -109,16 +100,13 @@ export function RunTimelinePanel({
 						) : null}
 						{currentPresentationContent}
 						{pastPresentationSurfaceCount > 0 ? (
-							<div className="runa-migrated-components-developer-runtimelinepanel-16">
-								<div className="runa-migrated-components-developer-runtimelinepanel-17">
-									<div className="runa-migrated-components-developer-runtimelinepanel-18">
-										<div
-											lang="tr"
-											className="runa-migrated-components-developer-runtimelinepanel-19"
-										>
+							<div className="runa-developer-runtimelinepanel-16">
+								<div className="runa-developer-runtimelinepanel-17">
+									<div className="runa-developer-runtimelinepanel-18">
+										<div lang="tr" className="runa-developer-runtimelinepanel-19">
 											{uiCopy.run.pastRuns}
 										</div>
-										<div className="runa-migrated-components-developer-runtimelinepanel-20">
+										<div className="runa-developer-runtimelinepanel-20">
 											{uiCopy.run.pastRunsCollapsed}
 										</div>
 									</div>
@@ -127,7 +115,7 @@ export function RunTimelinePanel({
 										onClick={onToggleRecentSessionRuns}
 										aria-expanded={showRecentSessionRuns}
 										aria-controls="recent-session-runs-panel"
-										className="runa-migrated-components-developer-runtimelinepanel-21"
+										className="runa-developer-runtimelinepanel-21"
 									>
 										{recentSessionRunsLabel}
 									</button>
@@ -137,7 +125,7 @@ export function RunTimelinePanel({
 								) : (
 									<div
 										id="recent-session-runs-panel"
-										className="runa-migrated-components-developer-runtimelinepanel-22"
+										className="runa-developer-runtimelinepanel-22"
 									>
 										{uiCopy.run.pastRunsCollapsed}
 									</div>

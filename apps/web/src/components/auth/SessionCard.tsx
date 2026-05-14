@@ -19,19 +19,19 @@ export function SessionCard({
 	const expiresAt = formatTimestamp(authContext.session?.expires_at ?? authContext.claims?.exp);
 
 	return (
-		<article className="runa-card runa-migrated-components-auth-sessioncard-1">
-			<div className="runa-migrated-components-auth-sessioncard-2">
-				<div lang="tr" className="runa-migrated-components-auth-sessioncard-3">
+		<article className="runa-card runa-auth-sessioncard-1">
+			<div className="runa-auth-sessioncard-2">
+				<div lang="tr" className="runa-auth-sessioncard-3">
 					oturum
 				</div>
-				<h3 className="runa-migrated-components-auth-sessioncard-4">Oturum durumu</h3>
-				<p className="runa-migrated-components-auth-sessioncard-5">
+				<h3 className="runa-auth-sessioncard-4">Oturum durumu</h3>
+				<p className="runa-auth-sessioncard-5">
 					Temel oturum bilgilerini sade bir özetle görebilirsin.
 				</p>
 			</div>
 
-			<div className="runa-migrated-components-auth-sessioncard-6">
-				<span className="runa-migrated-components-auth-sessioncard-7">
+			<div className="runa-auth-sessioncard-6">
+				<span className="runa-auth-sessioncard-7">
 					{authContext.principal.kind === 'authenticated' ||
 					authContext.principal.kind === 'service'
 						? 'açık'
@@ -39,51 +39,51 @@ export function SessionCard({
 				</span>
 			</div>
 
-			<div className="runa-migrated-components-auth-sessioncard-9">
-				<div className="runa-metric runa-migrated-components-auth-sessioncard-10">
-					<div lang="tr" className="runa-migrated-components-auth-sessioncard-11">
+			<div className="runa-auth-sessioncard-9">
+				<div className="runa-metric runa-auth-sessioncard-10">
+					<div lang="tr" className="runa-auth-sessioncard-11">
 						durum
 					</div>
-					<div className="runa-migrated-components-auth-sessioncard-12">
+					<div className="runa-auth-sessioncard-12">
 						{authContext.principal.kind === 'authenticated' ||
 						authContext.principal.kind === 'service'
 							? 'Açık'
 							: 'Sınırlı'}
 					</div>
-					<div className="runa-migrated-components-auth-sessioncard-13">
+					<div className="runa-auth-sessioncard-13">
 						{authContext.principal.kind === 'authenticated'
-							? 'Kimliği doğrulanmış oturum'
+							? 'Kimliği doğrulanmÄ±ş oturum'
 							: authContext.principal.kind === 'service'
 								? 'Servis oturumu'
 								: 'Anonim bağlam'}
 					</div>
 				</div>
-				<div className="runa-metric runa-migrated-components-auth-sessioncard-14">
-					<div lang="tr" className="runa-migrated-components-auth-sessioncard-15">
+				<div className="runa-metric runa-auth-sessioncard-14">
+					<div lang="tr" className="runa-auth-sessioncard-15">
 						giriş
 					</div>
-					<div className="runa-migrated-components-auth-sessioncard-16">
+					<div className="runa-auth-sessioncard-16">
 						{authContext.user?.email ?? authContext.principal.kind}
 					</div>
-					<div className="runa-migrated-components-auth-sessioncard-17">
+					<div className="runa-auth-sessioncard-17">
 						{(authContext.user?.email_verified ?? authContext.claims?.email_verified)
 							? 'E-posta doğrulandı'
 							: 'E-posta doğrulaması açıklanmadı'}
 					</div>
 				</div>
-				<div className="runa-metric runa-migrated-components-auth-sessioncard-18">
-					<div lang="tr" className="runa-migrated-components-auth-sessioncard-19">
+				<div className="runa-metric runa-auth-sessioncard-18">
+					<div lang="tr" className="runa-auth-sessioncard-19">
 						başladı
 					</div>
-					<div className="runa-migrated-components-auth-sessioncard-20">{issuedAt}</div>
-					<div className="runa-migrated-components-auth-sessioncard-21">Oturum açılış zamanı</div>
+					<div className="runa-auth-sessioncard-20">{issuedAt}</div>
+					<div className="runa-auth-sessioncard-21">Oturum açılÄ±ş zamanı</div>
 				</div>
-				<div className="runa-metric runa-migrated-components-auth-sessioncard-22">
-					<div lang="tr" className="runa-migrated-components-auth-sessioncard-23">
+				<div className="runa-metric runa-auth-sessioncard-22">
+					<div lang="tr" className="runa-auth-sessioncard-23">
 						sona erer
 					</div>
-					<div className="runa-migrated-components-auth-sessioncard-24">{expiresAt}</div>
-					<div className="runa-migrated-components-auth-sessioncard-25">Şu anki oturum süresi</div>
+					<div className="runa-auth-sessioncard-24">{expiresAt}</div>
+					<div className="runa-auth-sessioncard-25">Åu anki oturum süresi</div>
 				</div>
 			</div>
 		</article>

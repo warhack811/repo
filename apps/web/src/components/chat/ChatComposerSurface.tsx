@@ -1,4 +1,4 @@
-﻿import type { DesktopDevicePresenceSnapshot } from '@runa/types';
+import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import { ChevronRight, Paperclip, SendHorizontal, SlidersHorizontal, Square } from 'lucide-react';
 import type { FormEvent, KeyboardEvent, ReactElement, ReactNode } from 'react';
 import { useId, useRef } from 'react';

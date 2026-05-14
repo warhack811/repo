@@ -1,4 +1,4 @@
-﻿import type { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -13,7 +13,7 @@ import { BRAND_THEME_OPTIONS, type BrandTheme, type Theme } from '../lib/theme.j
 import { fetchWorkspaceDirectories } from '../lib/workspace-directories.js';
 import { uiCopy } from '../localization/copy.js';
 
-type SettingsTab = 'account' | 'appearance' | 'workspace';
+type SettingsTab = 'advanced' | 'appearance' | 'conversation' | 'notifications' | 'privacy';
 
 type SettingsPageProps = Readonly<{
 	accessToken: string | null;
@@ -29,8 +29,21 @@ type SettingsPageProps = Readonly<{
 
 const runtimeConfigStorageKey = 'runa.developer.runtime_config';
 const typographyStorageKey = 'runa.settings.typography';
+const notificationsSettingsStorageKey = 'runa.settings.notifications';
 const approvalModeValues = ['ask-every-time', 'standard', 'trusted-session'] as const;
 const defaultSettingsApprovalMode: ApprovalMode = 'standard';
+
+type NotificationSettings = Readonly<{
+	dataRetention: '30' | '90' | 'forever';
+	language: 'en' | 'tr';
+	quietHours: boolean;
+}>;
+
+const defaultNotificationSettings: NotificationSettings = {
+	dataRetention: '90',
+	language: 'tr',
+	quietHours: true,
+};
 
 const approvalModeOptions: readonly {
 	readonly description: string;
@@ -56,21 +69,31 @@ const approvalModeOptions: readonly {
 ];
 
 const tabs: readonly { id: SettingsTab; label: string }[] = [
-	{ id: 'account', label: 'Hesap' },
-	{ id: 'appearance', label: 'Görünüm' },
-	{ id: 'workspace', label: 'Çalışma' },
+	{ id: 'appearance', label: 'Appearance' },
+	{ id: 'conversation', label: 'Conversation' },
+	{ id: 'notifications', label: 'Notifications' },
+	{ id: 'privacy', label: 'Privacy' },
+	{ id: 'advanced', label: 'Advanced' },
 ];
 
 function parseSettingsTab(value: string | null): SettingsTab {
-	if (value === 'appearance') {
-		return 'appearance';
+	if (value === 'conversation') {
+		return 'conversation';
 	}
 
-	if (value === 'workspace') {
-		return 'workspace';
+	if (value === 'notifications') {
+		return 'notifications';
 	}
 
-	return 'account';
+	if (value === 'privacy') {
+		return 'privacy';
+	}
+
+	if (value === 'advanced') {
+		return 'advanced';
+	}
+
+	return 'appearance';
 }
 
 function isApprovalMode(value: unknown): value is ApprovalMode {
@@ -126,6 +149,39 @@ function readStoredTypographyPreference(): 'comfortable' | 'compact' {
 
 	const rawValue = window.localStorage.getItem(typographyStorageKey);
 	return rawValue === 'compact' ? 'compact' : 'comfortable';
+}
+
+function readStoredNotificationSettings(): NotificationSettings {
+	if (typeof window === 'undefined') {
+		return defaultNotificationSettings;
+	}
+
+	try {
+		const rawValue = window.localStorage.getItem(notificationsSettingsStorageKey);
+		if (!rawValue) {
+			return defaultNotificationSettings;
+		}
+
+		const parsed = JSON.parse(rawValue) as Partial<NotificationSettings>;
+		return {
+			dataRetention:
+				parsed.dataRetention === '30' || parsed.dataRetention === 'forever'
+					? parsed.dataRetention
+					: '90',
+			language: parsed.language === 'en' ? 'en' : 'tr',
+			quietHours: parsed.quietHours !== false,
+		};
+	} catch {
+		return defaultNotificationSettings;
+	}
+}
+
+function storeNotificationSettings(next: NotificationSettings): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
+
+	window.localStorage.setItem(notificationsSettingsStorageKey, JSON.stringify(next));
 }
 
 function storeApprovalMode(mode: ApprovalMode): void {
@@ -202,6 +258,9 @@ export function SettingsPage({
 	const [typographyPreference, setTypographyPreference] = useState<'comfortable' | 'compact'>(() =>
 		readStoredTypographyPreference(),
 	);
+	const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(() =>
+		readStoredNotificationSettings(),
+	);
 	const { isEnabled: isAdvancedViewEnabled, setEnabled: setAdvancedViewEnabled } =
 		useAdvancedViewMode();
 	const {
@@ -256,7 +315,7 @@ export function SettingsPage({
 				setWorkspaceDirectoryError(
 					error instanceof Error
 						? error.message
-						: 'Çalışma klasörleri yüklenemedi. Bağlantıyı kontrol edip tekrar dene.',
+						: 'Calisma klasorleri yuklenemedi. Baglantiyi kontrol edip tekrar dene.',
 				);
 			} finally {
 				if (!isDisposed && !abortController.signal.aborted) {
@@ -312,12 +371,23 @@ export function SettingsPage({
 
 	function selectTab(nextTab: SettingsTab): void {
 		setActiveTab(nextTab);
-		setSearchParams(nextTab === 'account' ? {} : { tab: nextTab }, { replace: true });
+		setSearchParams(nextTab === 'appearance' ? {} : { tab: nextTab }, { replace: true });
 	}
 
 	function selectTypographyPreference(nextValue: 'comfortable' | 'compact'): void {
 		setTypographyPreference(nextValue);
 		window.localStorage.setItem(typographyStorageKey, nextValue);
+	}
+
+	function patchNotificationSettings(nextValue: Partial<NotificationSettings>): void {
+		setNotificationSettings((current) => {
+			const nextSettings = {
+				...current,
+				...nextValue,
+			};
+			storeNotificationSettings(nextSettings);
+			return nextSettings;
+		});
 	}
 
 	return (
@@ -329,7 +399,29 @@ export function SettingsPage({
 				</div>
 			) : null}
 
-			<section className="runa-settings-tabs" aria-label="Hesap ayarları">
+			<section className="runa-settings-panel-grid" aria-labelledby="account-heading">
+				<section className="runa-settings-preference-section" id="account-heading">
+					<h2>Hesap</h2>
+					{isAuthPending ? (
+						<output aria-busy="true" className="runa-settings-skeleton">
+							<RunaSkeleton variant="rect" />
+							<RunaSkeleton variant="text" />
+						</output>
+					) : (
+						<ProfileCard authContext={authContext} />
+					)}
+					<button
+						type="button"
+						onClick={() => void onLogout()}
+						disabled={isAuthPending}
+						className="runa-button runa-button--secondary runa-button--danger"
+					>
+						{uiCopy.account.logout}
+					</button>
+				</section>
+			</section>
+
+			<section className="runa-settings-tabs" aria-label="Hesap ayarlari">
 				<div className="runa-settings-tabs__list" role="tablist">
 					{tabs.map((tab) => (
 						<button
@@ -346,27 +438,6 @@ export function SettingsPage({
 				</div>
 
 				<div className="runa-settings-tabs__panel" role="tabpanel">
-					{activeTab === 'account' ? (
-						<div className="runa-settings-panel-grid">
-							{isAuthPending ? (
-								<output aria-busy="true" className="runa-settings-skeleton">
-									<RunaSkeleton variant="rect" />
-									<RunaSkeleton variant="text" />
-								</output>
-							) : (
-								<ProfileCard authContext={authContext} />
-							)}
-							<button
-								type="button"
-								onClick={() => void onLogout()}
-								disabled={isAuthPending}
-								className="runa-button runa-button--secondary runa-button--danger"
-							>
-								{uiCopy.account.logout}
-							</button>
-						</div>
-					) : null}
-
 					{activeTab === 'appearance' ? (
 						<div className="runa-settings-panel-grid">
 							<section className="runa-settings-preference-section" aria-labelledby="theme-heading">
@@ -404,7 +475,7 @@ export function SettingsPage({
 							>
 								<h2 id="typography-heading">Tipografi</h2>
 								<label className="runa-settings-row">
-									<span>Metin yoğunluğu</span>
+									<span>Metin yogunlugu</span>
 									<select
 										value={typographyPreference}
 										onChange={(event) =>
@@ -414,29 +485,14 @@ export function SettingsPage({
 										}
 									>
 										<option value="comfortable">Rahat</option>
-										<option value="compact">Sıkı</option>
+										<option value="compact">Siki</option>
 									</select>
 								</label>
-							</section>
-							<section
-								className="runa-settings-preference-section"
-								aria-labelledby="advanced-view-heading"
-							>
-								<h2 id="advanced-view-heading">Gelişmiş görünüm</h2>
-								<label className="runa-settings-row">
-									<span>{uiCopy.advancedView.heading}</span>
-									<input
-										type="checkbox"
-										checked={isAdvancedViewEnabled}
-										onChange={(event) => setAdvancedViewEnabled(event.target.checked)}
-									/>
-								</label>
-								<div className="runa-subtle-copy">{uiCopy.advancedView.description}</div>
 							</section>
 						</div>
 					) : null}
 
-					{activeTab === 'workspace' ? (
+					{activeTab === 'conversation' ? (
 						<div className="runa-settings-panel-grid">
 							<section
 								className="runa-settings-preference-section"
@@ -472,24 +528,119 @@ export function SettingsPage({
 									))}
 								</div>
 							</section>
+							<section className="runa-settings-preference-section" aria-labelledby="voice-heading">
+								<h2 id="voice-heading">Ses tercihleri</h2>
+								<label className="runa-settings-row">
+									<span>Yeni yanitlari otomatik oku</span>
+									<input
+										type="checkbox"
+										checked={autoReadEnabled}
+										onChange={(event) => setAutoReadEnabled(event.target.checked)}
+										disabled={!isTextToSpeechSupported}
+									/>
+								</label>
+								<div className="runa-settings-row runa-settings-row--stacked">
+									<div>
+										Mikrofon {voiceInput.isSupported ? 'kullanilabilir' : 'desteklenmiyor'}.
+									</div>
+									<div>
+										Sesli yanit {isTextToSpeechSupported ? 'kullanilabilir' : 'desteklenmiyor'}.
+									</div>
+									{voiceInput.permissionDenied ? (
+										<div className="runa-alert runa-alert--warning">Mikrofon izni reddedildi.</div>
+									) : null}
+									{isSpeaking ? (
+										<button
+											type="button"
+											onClick={cancelTextToSpeech}
+											className="runa-button runa-button--secondary"
+										>
+											Okumayi durdur
+										</button>
+									) : null}
+									{voiceInput.errorMessage ?? textToSpeechErrorMessage ? (
+										<div className="runa-subtle-copy">
+											{voiceInput.errorMessage ?? textToSpeechErrorMessage}
+										</div>
+									) : null}
+								</div>
+							</section>
+						</div>
+					) : null}
+
+					{activeTab === 'notifications' ? (
+						<div className="runa-settings-panel-grid">
+							<section
+								className="runa-settings-preference-section"
+								aria-labelledby="notifications-heading"
+							>
+								<h2 id="notifications-heading">Bildirimler</h2>
+								<label className="runa-settings-row">
+									<span>Dil</span>
+									<select
+										value={notificationSettings.language}
+										onChange={(event) =>
+											patchNotificationSettings({
+												language: event.target.value === 'en' ? 'en' : 'tr',
+											})
+										}
+									>
+										<option value="tr">Turkce</option>
+										<option value="en">English</option>
+									</select>
+								</label>
+								<label className="runa-settings-row">
+									<span>Sessiz saatler (22:00-08:00)</span>
+									<input
+										type="checkbox"
+										checked={notificationSettings.quietHours}
+										onChange={(event) =>
+											patchNotificationSettings({ quietHours: event.target.checked })
+										}
+									/>
+								</label>
+								<label className="runa-settings-row">
+									<span>Veri saklama suresi</span>
+									<select
+										value={notificationSettings.dataRetention}
+										onChange={(event) =>
+											patchNotificationSettings({
+												dataRetention:
+													event.target.value === '30' || event.target.value === 'forever'
+														? event.target.value
+														: '90',
+											})
+										}
+									>
+										<option value="30">30 gun</option>
+										<option value="90">90 gun</option>
+										<option value="forever">Suresiz</option>
+									</select>
+								</label>
+							</section>
+						</div>
+					) : null}
+
+					{activeTab === 'privacy' ? (
+						<div className="runa-settings-panel-grid">
 							<section
 								className="runa-settings-preference-section"
 								aria-labelledby="workspace-directory-heading"
 							>
-								<h2 id="workspace-directory-heading">Çalışma klasörü</h2>
+								<h2 id="workspace-directory-heading">Calisma klasoru</h2>
 								<div className="runa-settings-row runa-settings-row--stacked">
 									<label className="runa-settings-row">
-										<span>Aktif çalışma kökü</span>
+										<span>Aktif calisma koku</span>
 										<output>{workspaceRootName}</output>
 									</label>
 									<label className="runa-settings-row">
-										<span>Run klasörü</span>
+										<span>Run klasoru</span>
 										<select
 											value={workingDirectory}
 											onChange={(event) => selectWorkingDirectory(event.target.value)}
 											disabled={workspaceDirectoryLoading || workspaceDirectories.length === 0}
 										>
-											<option value="">Workspace kökü (varsayılan)</option>
+											<option value="">Workspace koku (varsayilan)</option>
 											{workspaceDirectories.map((directory) => (
 												<option key={directory.relative_path} value={directory.relative_path}>
 													{`${'  '.repeat(directory.depth)}${directory.relative_path}`}
@@ -504,7 +655,7 @@ export function SettingsPage({
 											onClick={reloadWorkspaceDirectories}
 											disabled={workspaceDirectoryLoading}
 										>
-											{workspaceDirectoryLoading ? 'Yenileniyor...' : 'Klasörleri yenile'}
+											{workspaceDirectoryLoading ? 'Yenileniyor...' : 'Klasorleri yenile'}
 										</button>
 									</div>
 									{workspaceDirectoryError ? (
@@ -516,42 +667,25 @@ export function SettingsPage({
 									)}
 								</div>
 							</section>
-							<section className="runa-settings-preference-section" aria-labelledby="voice-heading">
-								<h2 id="voice-heading">Ses tercihleri</h2>
+						</div>
+					) : null}
+
+					{activeTab === 'advanced' ? (
+						<div className="runa-settings-panel-grid">
+							<section
+								className="runa-settings-preference-section"
+								aria-labelledby="advanced-view-heading"
+							>
+								<h2 id="advanced-view-heading">Gelismis gorunum</h2>
 								<label className="runa-settings-row">
-									<span>Yeni yanıtları otomatik oku</span>
+									<span>{uiCopy.advancedView.heading}</span>
 									<input
 										type="checkbox"
-										checked={autoReadEnabled}
-										onChange={(event) => setAutoReadEnabled(event.target.checked)}
-										disabled={!isTextToSpeechSupported}
+										checked={isAdvancedViewEnabled}
+										onChange={(event) => setAdvancedViewEnabled(event.target.checked)}
 									/>
 								</label>
-								<div className="runa-settings-row runa-settings-row--stacked">
-									<div>
-										Mikrofon {voiceInput.isSupported ? 'kullanılabilir' : 'desteklenmiyor'}.
-									</div>
-									<div>
-										Sesli yanıt {isTextToSpeechSupported ? 'kullanılabilir' : 'desteklenmiyor'}.
-									</div>
-									{voiceInput.permissionDenied ? (
-										<div className="runa-alert runa-alert--warning">Mikrofon izni reddedildi.</div>
-									) : null}
-									{isSpeaking ? (
-										<button
-											type="button"
-											onClick={cancelTextToSpeech}
-											className="runa-button runa-button--secondary"
-										>
-											Okumayı durdur
-										</button>
-									) : null}
-									{(voiceInput.errorMessage ?? textToSpeechErrorMessage) ? (
-										<div className="runa-subtle-copy">
-											{voiceInput.errorMessage ?? textToSpeechErrorMessage}
-										</div>
-									) : null}
-								</div>
+								<div className="runa-subtle-copy">{uiCopy.advancedView.description}</div>
 							</section>
 						</div>
 					) : null}

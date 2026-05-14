@@ -24,8 +24,8 @@ type OAuthButtonsProps = Readonly<{
 
 export function OAuthButtons({ isDisabled, onStartOAuth }: OAuthButtonsProps): ReactElement {
 	return (
-		<div className="runa-migrated-components-auth-oauthbuttons-1">
-			<div className="runa-migrated-components-auth-oauthbuttons-2">
+		<div className="runa-auth-oauthbuttons-1">
+			<div className="runa-auth-oauthbuttons-2">
 				{providers.map((provider) => (
 					<button
 						key={provider.provider}
@@ -33,13 +33,13 @@ export function OAuthButtons({ isDisabled, onStartOAuth }: OAuthButtonsProps): R
 						disabled={isDisabled}
 						onClick={() => onStartOAuth(provider.provider)}
 						aria-label={provider.label}
-						className="runa-button runa-button--secondary runa-migrated-components-auth-oauthbuttons-3"
+						className="runa-button runa-button--secondary runa-auth-oauthbuttons-3"
 					>
 						{provider.label}
 					</button>
 				))}
 			</div>
-			<p className="runa-migrated-components-auth-oauthbuttons-4">{uiCopy.auth.oauthDescription}</p>
+			<p className="runa-auth-oauthbuttons-4">{uiCopy.auth.oauthDescription}</p>
 		</div>
 	);
 }

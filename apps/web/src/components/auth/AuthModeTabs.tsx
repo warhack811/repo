@@ -37,11 +37,7 @@ export function AuthModeTabs({
 	const visibleTabs = showTokenMode ? tabs : tabs.filter((tab) => tab.id !== 'token');
 
 	return (
-		<div
-			role="tablist"
-			aria-label={uiCopy.auth.modeLabel}
-			className="runa-migrated-components-auth-authmodetabs-1"
-		>
+		<div role="tablist" aria-label={uiCopy.auth.modeLabel} className="runa-auth-authmodetabs-1">
 			{visibleTabs.map((tab) => {
 				const isActive = tab.id === activeMode;
 				const panelId = `${panelIdBase}-${tab.id}`;
@@ -58,14 +54,12 @@ export function AuthModeTabs({
 						onClick={() => onSelectMode(tab.id)}
 						className={[
 							`runa-button ${isActive ? 'runa-button--secondary-active' : 'runa-button--secondary'}`,
-							'runa-migrated-components-auth-authmodetabs-2',
+							'runa-auth-authmodetabs-2',
 						]
 							.filter(Boolean)
 							.join(' ')}
 					>
-						{isActive ? (
-							<span className="runa-migrated-components-auth-authmodetabs-3">active</span>
-						) : null}
+						{isActive ? <span className="runa-auth-authmodetabs-3">active</span> : null}
 						{tab.label}
 					</button>
 				);

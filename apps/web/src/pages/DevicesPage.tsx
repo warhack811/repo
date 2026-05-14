@@ -98,23 +98,20 @@ export function DevicesPage({ accessToken }: DevicesPageProps): ReactElement {
 
 	return (
 		<>
-			<section className="runa-migrated-pages-devicespage-1" aria-labelledby="devices-heading">
-				<div className="runa-migrated-pages-devicespage-2">
-					<div className="runa-migrated-pages-devicespage-3">Cihazlar</div>
-					<h2 id="devices-heading" className="runa-migrated-pages-devicespage-4">
+			<section className="runa-page-devicespage-1" aria-labelledby="devices-heading">
+				<div className="runa-page-devicespage-2">
+					<div className="runa-page-devicespage-3">Cihazlar</div>
+					<h2 id="devices-heading" className="runa-page-devicespage-4">
 						Bağlı bilgisayar
 					</h2>
-					<p className="runa-migrated-pages-devicespage-5">
-						Bilgisayar bağlantısı açık olduğunda dosya, ekran ve masaüstü adımları senin onayınla
-						ilerler.
+					<p className="runa-page-devicespage-5">
+						Bilgisayar bağlantısı açık olduğunda dosya, ekran ve masaüstü adımları senin
+						onayınla ilerler.
 					</p>
 				</div>
 			</section>
 
-			<section
-				className="runa-migrated-pages-devicespage-18"
-				aria-labelledby="online-devices-heading"
-			>
+			<section className="runa-page-devicespage-18" aria-labelledby="online-devices-heading">
 				<DevicePresencePanel
 					devices={desktopDevices}
 					error={desktopDeviceError}

@@ -72,39 +72,31 @@ export function ProfileCard({ authContext }: Readonly<{ authContext: AuthContext
 		authContext.user?.email_verified ?? authContext.claims?.email_verified ?? false;
 
 	return (
-		<article className="runa-card runa-ambient-panel runa-migrated-components-auth-profilecard-1">
-			<div className="runa-migrated-components-auth-profilecard-2">
-				<div lang="tr" className="runa-migrated-components-auth-profilecard-3">
+		<article className="runa-card runa-ambient-panel runa-auth-profilecard-1">
+			<div className="runa-auth-profilecard-2">
+				<div lang="tr" className="runa-auth-profilecard-3">
 					profil
 				</div>
-				<h3 className="runa-migrated-components-auth-profilecard-4">
-					{getProfileTitle(authContext)}
-				</h3>
-				<p className="runa-migrated-components-auth-profilecard-5">{uiCopy.account.description}</p>
+				<h3 className="runa-auth-profilecard-4">{getProfileTitle(authContext)}</h3>
+				<p className="runa-auth-profilecard-5">{uiCopy.account.description}</p>
 			</div>
 
-			<dl className="runa-migrated-components-auth-profilecard-6">
-				<div className="runa-migrated-components-auth-profilecard-7">
-					<dt lang="tr" className="runa-migrated-components-auth-profilecard-8">
+			<dl className="runa-auth-profilecard-6">
+				<div className="runa-auth-profilecard-7">
+					<dt lang="tr" className="runa-auth-profilecard-8">
 						e-posta
 					</dt>
-					<dd className="runa-migrated-components-auth-profilecard-9">
-						{getProfileEmail(authContext)}
-					</dd>
-					<div className="runa-migrated-components-auth-profilecard-10">
+					<dd className="runa-auth-profilecard-9">{getProfileEmail(authContext)}</dd>
+					<div className="runa-auth-profilecard-10">
 						{emailVerified ? 'E-posta doğrulandı' : 'E-posta henüz doğrulanmadı'}
 					</div>
 				</div>
-				<div className="runa-migrated-components-auth-profilecard-11">
-					<dt lang="tr" className="runa-migrated-components-auth-profilecard-12">
+				<div className="runa-auth-profilecard-11">
+					<dt lang="tr" className="runa-auth-profilecard-12">
 						oturum
 					</dt>
-					<dd className="runa-migrated-components-auth-profilecard-13">
-						{getSessionSummary(authContext)}
-					</dd>
-					<div className="runa-migrated-components-auth-profilecard-14">
-						{getProfileMethod(authContext)}
-					</div>
+					<dd className="runa-auth-profilecard-13">{getSessionSummary(authContext)}</dd>
+					<div className="runa-auth-profilecard-14">{getProfileMethod(authContext)}</div>
 				</div>
 			</dl>
 		</article>

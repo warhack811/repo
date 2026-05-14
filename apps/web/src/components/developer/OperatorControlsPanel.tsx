@@ -65,20 +65,18 @@ export function OperatorControlsPanel({
 
 	return (
 		<section
-			className="runa-migrated-components-developer-operatorcontrolspanel-1"
+			className="runa-developer-operatorcontrolspanel-1"
 			aria-labelledby="developer-runtime-config-heading"
 		>
-			<div className="runa-migrated-components-developer-operatorcontrolspanel-2">
-				<div className="runa-migrated-components-developer-operatorcontrolspanel-3">
-					{uiCopy.developer.heading}
-				</div>
+			<div className="runa-developer-operatorcontrolspanel-2">
+				<div className="runa-developer-operatorcontrolspanel-3">{uiCopy.developer.heading}</div>
 				<h2
 					id="developer-runtime-config-heading"
-					className="runa-migrated-components-developer-operatorcontrolspanel-4"
+					className="runa-developer-operatorcontrolspanel-4"
 				>
 					{uiCopy.developer.configHeading}
 				</h2>
-				<div className="runa-migrated-components-developer-operatorcontrolspanel-5">
+				<div className="runa-developer-operatorcontrolspanel-5">
 					{uiCopy.developer.configDescription}
 				</div>
 			</div>
@@ -86,35 +84,33 @@ export function OperatorControlsPanel({
 			{connectionNotice ? (
 				<div
 					role={connectionNotice.tone === 'error' ? 'alert' : 'status'}
-					className="runa-migrated-components-developer-operatorcontrolspanel-6"
+					className="runa-developer-operatorcontrolspanel-6"
 				>
-					<strong className="runa-migrated-components-developer-operatorcontrolspanel-7">
+					<strong className="runa-developer-operatorcontrolspanel-7">
 						{connectionNotice.title}
 					</strong>
-					<div className="runa-migrated-components-developer-operatorcontrolspanel-8">
-						{connectionNotice.detail}
-					</div>
+					<div className="runa-developer-operatorcontrolspanel-8">{connectionNotice.detail}</div>
 				</div>
 			) : null}
 
-			<div className="runa-migrated-components-developer-operatorcontrolspanel-9">
-				<label className="runa-migrated-components-developer-operatorcontrolspanel-10">
+			<div className="runa-developer-operatorcontrolspanel-9">
+				<label className="runa-developer-operatorcontrolspanel-10">
 					<span>{uiCopy.developer.apiKey}</span>
 					<input
 						value={apiKey}
 						onChange={(event) => onApiKeyChange(event.target.value)}
 						placeholder={uiCopy.developer.apiKey}
 						type="password"
-						className="runa-migrated-components-developer-operatorcontrolspanel-11"
+						className="runa-developer-operatorcontrolspanel-11"
 					/>
 				</label>
 
-				<label className="runa-migrated-components-developer-operatorcontrolspanel-12">
+				<label className="runa-developer-operatorcontrolspanel-12">
 					<span>{uiCopy.developer.provider}</span>
 					<select
 						value={provider}
 						onChange={(event) => onProviderChange(event.target.value as GatewayProvider)}
-						className="runa-migrated-components-developer-operatorcontrolspanel-13"
+						className="runa-developer-operatorcontrolspanel-13"
 					>
 						{gatewayProviders.map((providerOption) => (
 							<option key={providerOption} value={providerOption}>
@@ -124,18 +120,18 @@ export function OperatorControlsPanel({
 					</select>
 				</label>
 
-				<label className="runa-migrated-components-developer-operatorcontrolspanel-14">
+				<label className="runa-developer-operatorcontrolspanel-14">
 					<span>{uiCopy.developer.model}</span>
 					<input
 						value={model}
 						onChange={(event) => onModelChange(event.target.value)}
 						placeholder={defaultGatewayModels[provider]}
-						className="runa-migrated-components-developer-operatorcontrolspanel-15"
+						className="runa-developer-operatorcontrolspanel-15"
 					/>
 				</label>
 			</div>
 
-			<label className="runa-migrated-components-developer-operatorcontrolspanel-16">
+			<label className="runa-developer-operatorcontrolspanel-16">
 				<input
 					checked={includePresentationBlocks}
 					onChange={(event) => onIncludePresentationBlocksChange(event.target.checked)}
@@ -144,7 +140,7 @@ export function OperatorControlsPanel({
 				<span>{uiCopy.developer.includePresentationBlocks}</span>
 			</label>
 
-			<div className="runa-migrated-components-developer-operatorcontrolspanel-17">
+			<div className="runa-developer-operatorcontrolspanel-17">
 				{uiCopy.developer.localOnlyNote}
 			</div>
 		</section>

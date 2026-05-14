@@ -15,32 +15,32 @@ const promptCards = [
 	{
 		icon: Code2,
 		label: 'Kod incele',
-		prompt: 'Bu kodu kalite, risk ve test eksikleri açısından incele.',
+		prompt: 'Bu kodu kalite, risk ve test eksikleri acisindan incele.',
 	},
 	{
 		icon: Search,
-		label: 'Araştırma',
-		prompt: 'Bu konu hakkında güvenilir kaynaklarla kısa bir araştırma planı hazırla.',
+		label: 'Arastirma',
+		prompt: 'Bu konu hakkinda guvenilir kaynaklarla kisa bir arastirma plani hazirla.',
 	},
 	{
 		icon: FileText,
-		label: 'Doküman',
-		prompt: 'Bu notları daha net, uygulanabilir bir görev dokümanına çevir.',
+		label: 'Dokuman',
+		prompt: 'Bu notlari daha net, uygulanabilir bir gorev dokumanina cevir.',
 	},
 	{
 		icon: MonitorSmartphone,
-		label: 'Masaüstü görev',
-		prompt: 'Bilgisayarımda yapılacak bu işi adımlara ayır ve onay gerektiren yerleri belirt.',
+		label: 'Masaustu gorev',
+		prompt: 'Bilgisayarimda yapilacak bu isi adimlara ayir ve onay gereken yerleri belirt.',
 	},
 	{
 		icon: Wand2,
 		label: 'Dosya analizi',
-		prompt: 'Bu dosyayı özetle, riskleri ve sonraki aksiyonları çıkar.',
+		prompt: 'Bu dosyayi ozetle, riskleri ve sonraki aksiyonlari cikar.',
 	},
 	{
 		icon: Sparkles,
 		label: 'Devam et',
-		prompt: 'Önceki konuşmadan kaldığımız işi toparla ve bir sonraki net adımı öner.',
+		prompt: 'Onceki konusmadan kaldigimiz isi toparla ve bir sonraki net adimi oner.',
 	},
 ] as const;
 
@@ -77,10 +77,10 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 	}
 
 	return (
-		<aside className="runa-onboarding-shell" aria-label="Runa başlangıç">
+		<aside className="runa-onboarding-shell" aria-label="Runa baslangic">
 			<section className="runa-onboarding" aria-live="polite">
-				<div className="runa-onboarding__progress" aria-label={`Başlangıç adımı ${step + 1} / 4`}>
-					{[0, 1, 2, 3].map((item) => (
+				<div className="runa-onboarding__progress" aria-label={`Baslangic adimi ${step + 1} / 3`}>
+					{[0, 1, 2].map((item) => (
 						<span key={item} className={item <= step ? 'is-active' : undefined} />
 					))}
 				</div>
@@ -93,10 +93,10 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 							className="runa-onboarding__mark"
 							aria-label="Runa"
 						/>
-						<h2>Çalışma ortağın hazır.</h2>
+						<h2>Calisma ortagin hazir.</h2>
 						<p>
-							Runa sohbetten başlar, onay isteyen işlerde seni karar noktasına getirir ve kalabalığı
-							azaltır.
+							Runa sohbetten baslar, onay isteyen islerde seni karar noktasina getirir ve kalabaligi
+							azaltir.
 						</p>
 						<div className="runa-onboarding__actions">
 							<button
@@ -104,7 +104,7 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 								className="runa-button runa-button--primary"
 								onClick={() => setStep(1)}
 							>
-								Hadi başlayalım
+								Ileri
 							</button>
 							<button
 								type="button"
@@ -119,9 +119,13 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 
 				{step === 1 ? (
 					<div className="runa-onboarding__page">
-						<h2>Çalışma alanını adlandıralım.</h2>
+						<h2>Calisma ve cihaz modelini sec.</h2>
+						<p>
+							Sohbet ayni kalir; masaustu islemleri sectigin cihazda calisir. Yeni cihazi ayni
+							hesapla giris yaparak eklersin.
+						</p>
 						<label>
-							<span>Çalışma alanı adı</span>
+							<span>Calisma alani adi</span>
 							<input
 								className="runa-input"
 								value={workspaceName}
@@ -131,7 +135,7 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 						<div
 							className="runa-onboarding__segments"
 							role="radiogroup"
-							aria-label="Kullanım amacı"
+							aria-label="Kullanim amaci"
 						>
 							{(['work', 'research', 'personal'] as const).map((item) => (
 								<button
@@ -141,7 +145,7 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 									className={purpose === item ? 'is-active' : undefined}
 									onClick={() => setPurpose(item)}
 								>
-									{item === 'work' ? 'İş' : item === 'research' ? 'Araştırma' : 'Kişisel'}
+									{item === 'work' ? 'Is' : item === 'research' ? 'Arastirma' : 'Kisisel'}
 								</button>
 							))}
 						</div>
@@ -158,7 +162,14 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 								className="runa-button runa-button--primary"
 								onClick={() => setStep(2)}
 							>
-								Devam
+								Ileri
+							</button>
+							<button
+								type="button"
+								className="runa-button runa-button--secondary"
+								onClick={complete}
+							>
+								Atla
 							</button>
 						</div>
 					</div>
@@ -166,40 +177,7 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 
 				{step === 2 ? (
 					<div className="runa-onboarding__page">
-						<h2>{workspaceName.trim() || 'Çalışma alanı'} için bilgisayar bağlantısı opsiyonel.</h2>
-						<p>
-							Masaüstü uygulamasını daha sonra cihazlar sayfasından kurabilirsin. Bağlı olmayan bir
-							cihaz hazır gibi gösterilmez.
-						</p>
-						<div className="runa-onboarding__actions">
-							<button
-								type="button"
-								className="runa-button runa-button--secondary"
-								onClick={() => setStep(1)}
-							>
-								Geri
-							</button>
-							<button
-								type="button"
-								className="runa-button runa-button--secondary"
-								onClick={() => setStep(3)}
-							>
-								Şimdilik atla
-							</button>
-							<button
-								type="button"
-								className="runa-button runa-button--primary"
-								onClick={() => setStep(3)}
-							>
-								İlk prompt'a geç
-							</button>
-						</div>
-					</div>
-				) : null}
-
-				{step === 3 ? (
-					<div className="runa-onboarding__page">
-						<h2>İlk işi seç.</h2>
+						<h2>{workspaceName.trim() || 'Calisma alani'} icin ilk isi sec.</h2>
 						<div className="runa-onboarding__prompt-grid">
 							{promptCards.map((card) => {
 								const Icon = card.icon;
@@ -215,12 +193,19 @@ export function OnboardingWizard({ onSubmitPrompt }: OnboardingWizardProps): Rea
 							<button
 								type="button"
 								className="runa-button runa-button--secondary"
-								onClick={() => setStep(2)}
+								onClick={() => setStep(1)}
 							>
 								Geri
 							</button>
 							<button type="button" className="runa-button runa-button--primary" onClick={complete}>
-								Boş sohbetle başla
+								Bos sohbetle basla
+							</button>
+							<button
+								type="button"
+								className="runa-button runa-button--secondary"
+								onClick={complete}
+							>
+								Atla
 							</button>
 						</div>
 					</div>

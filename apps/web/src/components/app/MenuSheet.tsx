@@ -1,8 +1,9 @@
-﻿import { Bell, HelpCircle, History, Laptop, Settings, SlidersHorizontal, User } from 'lucide-react';
+import { Bell, HelpCircle, History, Laptop, Settings, SlidersHorizontal, User } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { RunaSheet } from '../ui/RunaSheet.js';
+import { useRunaToast } from '../ui/RunaToast.js';
 import styles from './MenuSheet.module.css';
 
 type MenuSheetProps = Readonly<{
@@ -29,9 +30,22 @@ export function MenuSheet({
 	onToggleDeveloperMode,
 }: MenuSheetProps): ReactElement | null {
 	const navigate = useNavigate();
+	const { pushToast } = useRunaToast();
 
 	function closeSheet(): void {
 		onOpenChange(false);
+	}
+
+	function showComingSoon(): void {
+		const messageByAction = {
+			help: 'Yardim ve geri bildirim akisi hazirlaniyor. Bu alan kisa sure icinde aktif olacak.',
+		} as const;
+
+		pushToast({
+			message: messageByAction.help,
+			title: 'Yakinda',
+			tone: 'info',
+		});
 	}
 
 	const actions: readonly MenuAction[] = [
@@ -86,6 +100,7 @@ export function MenuSheet({
 			id: 'notifications',
 			label: 'Bildirimler',
 			onSelect: () => {
+				navigate('/notifications');
 				closeSheet();
 			},
 		},
@@ -94,8 +109,10 @@ export function MenuSheet({
 			id: 'help',
 			label: 'Yardim ve geri bildirim',
 			onSelect: () => {
+				showComingSoon();
 				closeSheet();
 			},
+			suffix: 'Yakinda',
 		},
 	];
 

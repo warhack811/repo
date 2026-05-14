@@ -75,18 +75,13 @@ export function DevicePresencePanel({
 	onRefresh,
 }: DevicePresencePanelProps): ReactElement {
 	return (
-		<div className="runa-migrated-components-desktop-devicepresencepanel-1">
-			<div className="runa-migrated-components-desktop-devicepresencepanel-2">
-				<div className="runa-migrated-components-desktop-devicepresencepanel-3">
-					Bağlı bilgisayar
-				</div>
-				<h2
-					id="online-devices-heading"
-					className="runa-migrated-components-desktop-devicepresencepanel-4"
-				>
+		<div className="runa-desktop-devicepresencepanel-1">
+			<div className="runa-desktop-devicepresencepanel-2">
+				<div className="runa-desktop-devicepresencepanel-3">Bağlı bilgisayar</div>
+				<h2 id="online-devices-heading" className="runa-desktop-devicepresencepanel-4">
 					Bilgisayar bağlantısı
 				</h2>
-				<p className="runa-migrated-components-desktop-devicepresencepanel-5">
+				<p className="runa-desktop-devicepresencepanel-5">
 					Bağlı bilgisayar, masaüstü adımlarını güvenli şekilde ilerletmeni sağlar.
 				</p>
 			</div>
@@ -101,7 +96,7 @@ export function DevicePresencePanel({
 			{isLoading ? (
 				<output
 					aria-busy="true"
-					className="runa-migrated-components-desktop-devicepresencepanel-6 runa-device-skeleton"
+					className="runa-desktop-devicepresencepanel-6 runa-device-skeleton"
 				>
 					<RunaSkeleton variant="text" />
 					<RunaSkeleton variant="rect" />
@@ -109,31 +104,24 @@ export function DevicePresencePanel({
 			) : null}
 
 			{!isLoading && !error && devices.length === 0 ? (
-				<div className="runa-migrated-components-desktop-devicepresencepanel-9">
-					<div className="runa-migrated-components-desktop-devicepresencepanel-10">
-						Bağlı cihaz yok
-					</div>
-					<div className="runa-migrated-components-desktop-devicepresencepanel-11">
+				<div className="runa-desktop-devicepresencepanel-9">
+					<div className="runa-desktop-devicepresencepanel-10">Bağlı cihaz yok</div>
+					<div className="runa-desktop-devicepresencepanel-11">
 						Bilgisayar uygulamasını açınca bağlantı durumu güncellenir.
 					</div>
 				</div>
 			) : null}
 
 			{devices.map((device) => (
-				<article
-					key={device.connection_id}
-					className="runa-migrated-components-desktop-devicepresencepanel-12"
-				>
+				<article key={device.connection_id} className="runa-desktop-devicepresencepanel-12">
 					<div className="runa-device-card__top">
-						<div className="runa-migrated-components-desktop-devicepresencepanel-13">
-							<div className="runa-migrated-components-desktop-devicepresencepanel-14">
-								{getDeviceLabel(device)}
-							</div>
-							<div className="runa-migrated-components-desktop-devicepresencepanel-15">
+						<div className="runa-desktop-devicepresencepanel-13">
+							<div className="runa-desktop-devicepresencepanel-14">{getDeviceLabel(device)}</div>
+							<div className="runa-desktop-devicepresencepanel-15">
 								Son görülme {formatConnectedAt(device.connected_at)}
 							</div>
 						</div>
-						<span className="runa-migrated-components-desktop-devicepresencepanel-16">
+						<span className="runa-desktop-devicepresencepanel-16">
 							{getDeviceStatusLabel(device)}
 						</span>
 					</div>
@@ -147,7 +135,7 @@ export function DevicePresencePanel({
 							))}
 						</div>
 					) : (
-						<div className="runa-migrated-components-desktop-devicepresencepanel-17">
+						<div className="runa-desktop-devicepresencepanel-17">
 							Bu bilgisayar şu anda yalnız bağlantı durumunu paylaşıyor.
 						</div>
 					)}

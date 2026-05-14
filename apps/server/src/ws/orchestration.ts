@@ -4,7 +4,11 @@ import { defaultApprovalStore } from '../persistence/approval-store.js';
 import { handleApprovalResolveMessage } from './approval-handlers.js';
 import { handleInspectionRequestMessage } from './inspection-handlers.js';
 import type { RuntimeWebSocketHandlerOptions } from './orchestration-types.js';
-import { type CancelRunPayload, handleCancelRunMessage, handleRunRequestMessage } from './run-execution.js';
+import {
+	type CancelRunPayload,
+	handleCancelRunMessage,
+	handleRunRequestMessage,
+} from './run-execution.js';
 import {
 	type WebSocketConnection,
 	createRejectedMessage,
@@ -109,4 +113,3 @@ export async function handleWebSocketMessage(
 		);
 	}
 }
-

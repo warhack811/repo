@@ -109,7 +109,7 @@ describe('presentation narration surfaces', () => {
 			presentationRunSurfaces: [],
 		});
 		const completedUpdate = deriveLiveNarrationCompletedUpdate(
-			createCompleted('narration_001', 'package.json dosyasını kontrol ediyorum.', 'call_read'),
+			createCompleted('narration_001', 'package.json dosyasÄ±nÄ± kontrol ediyorum.', 'call_read'),
 			{
 				expandedPastRunIds: deltaUpdate?.expandedPastRunIds ?? new Set(),
 				expectedRunIds: deltaUpdate?.expectedRunIds ?? new Set([runId]),
@@ -124,7 +124,7 @@ describe('presentation narration surfaces', () => {
 		expect(blocks[0]?.payload).toMatchObject({
 			linked_tool_call_id: 'call_read',
 			status: 'completed',
-			text: 'package.json dosyasını kontrol ediyorum.',
+			text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
 		});
 	});
 
@@ -193,7 +193,7 @@ describe('presentation narration surfaces', () => {
 				run_id: runId,
 				sequence_no: 1,
 				status: 'completed',
-				text: 'package.json dosyasını kontrol ediyorum.',
+				text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
 				turn_index: 1,
 			},
 			schema_version: 1,
@@ -224,7 +224,7 @@ describe('presentation narration surfaces', () => {
 		expect(blocks[0]?.payload).toMatchObject({
 			linked_tool_call_id: 'call_read',
 			status: 'completed',
-			text: 'package.json dosyasını kontrol ediyorum.',
+			text: 'package.json dosyasÄ±nÄ± kontrol ediyorum.',
 		});
 	});
 	it('preserves exact payload-based persisted work_narration blocks and their ordering', () => {

@@ -685,9 +685,7 @@ function appendTerminalRuntimeEventsIfNeeded(
 				error_code:
 					snapshot.failure?.error_code ??
 					resolveRuntimeTerminationCode(snapshot.stop_reason) ??
-					(snapshot.current_loop_state === 'CANCELLED'
-						? 'RUN_CANCELLED'
-						: undefined) ??
+					(snapshot.current_loop_state === 'CANCELLED' ? 'RUN_CANCELLED' : undefined) ??
 					(isErrorToolResult(snapshot.tool_result)
 						? snapshot.tool_result.error_code
 						: 'RUN_TERMINATED'),
@@ -3057,4 +3055,3 @@ export async function handleRunRequestMessage(
 		working_directory: workingDirectory,
 	});
 }
-

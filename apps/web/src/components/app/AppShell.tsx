@@ -1,6 +1,6 @@
-﻿import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type { BrandTheme, Theme } from '../../lib/theme.js';
 
 import { applyBrandTheme, applyTheme, storeBrandTheme, storeTheme } from '../../lib/theme.js';
@@ -45,6 +45,11 @@ const pageCopyById: Record<
 		eyebrow: uiCopy.appShell.historyEyebrow,
 		subtitle: uiCopy.appShell.historySubtitle,
 		title: uiCopy.appShell.historyTitle,
+	},
+	notifications: {
+		eyebrow: uiCopy.appShell.notificationsEyebrow,
+		subtitle: uiCopy.appShell.notificationsSubtitle,
+		title: uiCopy.appShell.notificationsTitle,
 	},
 };
 
@@ -223,7 +228,6 @@ function writeAdvancedMode(nextValue: boolean): void {
 }
 
 export function AppShell({ activePage, children }: AppShellProps): ReactElement {
-	const location = useLocation();
 	const navigate = useNavigate();
 	const { closePalette, isOpen, openPalette } = useCommandPalette();
 	const [isAdvancedMode, setIsAdvancedMode] = useState<boolean>(() => readAdvancedMode());
@@ -242,13 +246,9 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 					setIsAdvancedMode(nextValue);
 				},
 				onSetThemePreset: applyThemePreset,
-				onShowNotifications: () => {
-					if (location.pathname !== '/chat') {
-						navigate('/chat');
-					}
-				},
+				onShowNotifications: () => navigate('/notifications'),
 			}),
-		[activePage, isAdvancedMode, location.pathname, navigate],
+		[activePage, isAdvancedMode, navigate],
 	);
 	const commandShortcutLabel = getCommandShortcutLabel();
 
@@ -258,12 +258,12 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 
 	if (activePage === 'chat') {
 		return (
-			<div className="runa-page runa-page--chat-product runa-migrated-components-app-appshell-1">
+			<div className="runa-page runa-page--chat-product runa-app-appshell-1">
 				<SkipToContent />
 				<CommandPaletteProvider openPalette={openPalette}>
 					<main
 						id="main-content"
-						className="runa-app-shell-main runa-app-shell-main--chat runa-route-transition runa-migrated-components-app-appshell-2"
+						className="runa-app-shell-main runa-app-shell-main--chat runa-route-transition runa-app-appshell-2"
 					>
 						{children}
 					</main>
@@ -274,15 +274,15 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 	}
 
 	return (
-		<div className="runa-page runa-page--app-shell runa-migrated-components-app-appshell-3">
+		<div className="runa-page runa-page--app-shell runa-app-appshell-3">
 			<SkipToContent />
-			<div className="runa-shell-frame runa-shell-frame--app runa-migrated-components-app-appshell-4">
-				<header className="runa-card runa-card--hero runa-ambient-panel runa-app-shell-header runa-migrated-components-app-appshell-5">
+			<div className="runa-shell-frame runa-shell-frame--app runa-app-appshell-4">
+				<header className="runa-card runa-card--hero runa-ambient-panel runa-app-shell-header runa-app-appshell-5">
 					<div className="runa-app-shell-header__top">
 						<div className="runa-app-shell-header__copy">
 							<div className="runa-eyebrow">{pageCopy.eyebrow.toUpperCase()}</div>
-							<h1 className="runa-migrated-components-app-appshell-6">{pageCopy.title}</h1>
-							<p className="runa-migrated-components-app-appshell-7">{pageCopy.subtitle}</p>
+							<h1 className="runa-app-appshell-6">{pageCopy.title}</h1>
+							<p className="runa-app-appshell-7">{pageCopy.subtitle}</p>
 						</div>
 						<button
 							type="button"
@@ -303,7 +303,7 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 				<RunaSurface
 					as="main"
 					id="main-content"
-					className="runa-app-shell-main runa-route-transition runa-migrated-components-app-appshell-8"
+					className="runa-app-shell-main runa-route-transition runa-app-appshell-8"
 					tone="plain"
 				>
 					{children}

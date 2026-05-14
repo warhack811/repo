@@ -254,7 +254,7 @@ export function formatAuthErrorMessage(message: string, status?: number): string
 		lowerMessage.includes('invalid login credentials') ||
 		lowerMessage.includes('invalid credentials')
 	) {
-		return 'E-posta veya şifre hatalı. Bilgileri kontrol et; yerel geliştirme yapıyorsan deneme oturumunu da başlatabilirsin.';
+		return 'E-posta veya ÅŸifre hatalÄ±. Bilgileri kontrol et; yerel geliÅŸtirme yapÄ±yorsan deneme oturumunu da baÅŸlatabilirsin.';
 	}
 
 	if (
@@ -268,13 +268,13 @@ export function formatAuthErrorMessage(message: string, status?: number): string
 		lowerMessage.includes('failed to fetch') ||
 		lowerMessage.includes('networkerror')
 	) {
-		return 'Kimlik doğrulama servisine şu an ulaşılamıyor. Biraz sonra tekrar dene; yerel geliştirme yapıyorsan deneme oturumunu başlatabilirsin.';
+		return 'Kimlik doÄŸrulama servisine ÅŸu an ulaÅŸÄ±lamÄ±yor. Biraz sonra tekrar dene; yerel geliÅŸtirme yapÄ±yorsan deneme oturumunu baÅŸlatabilirsin.';
 	}
 
 	if (normalizedMessage.length === 0) {
 		return status
-			? `Kimlik doğrulama isteği ${status} durumuyla başarısız oldu.`
-			: 'Kimlik doğrulama isteği başarısız oldu.';
+			? `Kimlik doÄŸrulama isteÄŸi ${status} durumuyla baÅŸarÄ±sÄ±z oldu.`
+			: 'Kimlik doÄŸrulama isteÄŸi baÅŸarÄ±sÄ±z oldu.';
 	}
 
 	return normalizedMessage;
@@ -404,7 +404,7 @@ export async function loginWithPassword(
 		method: 'POST',
 		pathname: '/auth/login',
 		validate: isAuthPasswordActionResponse,
-		validationErrorMessage: 'Desteklenmeyen login yanıtı.',
+		validationErrorMessage: 'Desteklenmeyen login yanÄ±tÄ±.',
 	});
 
 	return parsed as AuthPasswordActionResponse;
@@ -421,7 +421,7 @@ export async function signupWithPassword(
 		method: 'POST',
 		pathname: '/auth/signup',
 		validate: isAuthPasswordActionResponse,
-		validationErrorMessage: 'Desteklenmeyen signup yanıtı.',
+		validationErrorMessage: 'Desteklenmeyen signup yanÄ±tÄ±.',
 	});
 
 	return parsed as AuthPasswordActionResponse;
@@ -433,7 +433,7 @@ export async function logout(bearerToken?: string): Promise<AuthLogoutResponse> 
 		method: 'POST',
 		pathname: '/auth/logout',
 		validate: isAuthLogoutResponse,
-		validationErrorMessage: 'Desteklenmeyen logout yanıtı.',
+		validationErrorMessage: 'Desteklenmeyen logout yanÄ±tÄ±.',
 	});
 
 	return parsed as AuthLogoutResponse;
@@ -504,7 +504,7 @@ export function consumeOAuthRedirectResult(): OAuthRedirectResult {
 	if (authErrorDescription || authError) {
 		clearWindowHash();
 		return {
-			message: authErrorDescription ?? authError ?? 'OAuth ile giriş başarısız oldu.',
+			message: authErrorDescription ?? authError ?? 'OAuth ile giriÅŸ baÅŸarÄ±sÄ±z oldu.',
 			status: 'error',
 		};
 	}
@@ -541,7 +541,7 @@ export async function fetchAuthContext(
 	const parsed = (await response.json()) as unknown;
 
 	if (!isAuthContextResponse(parsed)) {
-		throw new Error('Desteklenmeyen auth context yanıtı.');
+		throw new Error('Desteklenmeyen auth context yanÄ±tÄ±.');
 	}
 
 	return parsed;

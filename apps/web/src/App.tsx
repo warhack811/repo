@@ -2,6 +2,7 @@ import type { AuthContext } from '@runa/types';
 import { type ReactElement, Suspense, lazy, useCallback, useEffect, useState } from 'react';
 
 import { RunaSkeleton } from './components/ui/RunaSkeleton.js';
+import { RunaToastProvider } from './components/ui/RunaToast.js';
 import { useAuth } from './hooks/useAuth.js';
 import { useVisualViewport } from './hooks/useVisualViewport.js';
 import {
@@ -38,7 +39,7 @@ export type AuthenticatedAppProps = Readonly<{
 function AuthenticatedFallback(): ReactElement {
 	return (
 		<div className="runa-route-fallback" aria-busy="true">
-			<span className="runa-sr-only">Sayfa yükleniyor</span>
+			<span className="runa-sr-only">Sayfa yÃ¼kleniyor</span>
 			<div className="runa-route-fallback__skeleton">
 				<RunaSkeleton variant="text" />
 				<RunaSkeleton variant="rect" />
@@ -95,43 +96,43 @@ export function App(): ReactElement {
 	const isAuthenticatedSurface =
 		(authStatus === 'authenticated' || authStatus === 'service') && authContext !== null;
 
-	if (isAuthenticatedSurface) {
-		return (
-			<Suspense fallback={<AuthenticatedFallback />}>
-				<AuthenticatedApp
+	return (
+		<RunaToastProvider>
+			{isAuthenticatedSurface ? (
+				<Suspense fallback={<AuthenticatedFallback />}>
+					<AuthenticatedApp
+						authContext={authContext}
+						authError={authError}
+						authStatus={authStatus === 'service' ? 'service' : 'authenticated'}
+						bearerToken={bearerToken}
+						brandTheme={brandTheme}
+						hasStoredBearerToken={hasStoredBearerToken}
+						isAuthPending={isAuthPending}
+						onBrandThemeChange={selectBrandTheme}
+						onClearAuthToken={clearAuthToken}
+						onLogout={logout}
+						onRefreshAuthContext={refreshAuthContext}
+						onThemeChange={selectTheme}
+						theme={theme}
+					/>
+				</Suspense>
+			) : (
+				<LoginPage
 					authContext={authContext}
 					authError={authError}
-					authStatus={authStatus === 'service' ? 'service' : 'authenticated'}
-					bearerToken={bearerToken}
-					brandTheme={brandTheme}
+					authNotice={authNotice}
+					authStatus={authStatus === 'bootstrapping' ? 'bootstrapping' : 'anonymous'}
 					hasStoredBearerToken={hasStoredBearerToken}
 					isAuthPending={isAuthPending}
-					onBrandThemeChange={selectBrandTheme}
+					onAuthenticateWithToken={authenticateWithToken}
 					onClearAuthToken={clearAuthToken}
-					onLogout={logout}
+					onLoginWithPassword={loginWithPassword}
+					onStartLocalDevSession={startLocalDevSession}
 					onRefreshAuthContext={refreshAuthContext}
-					onThemeChange={selectTheme}
-					theme={theme}
+					onSignupWithPassword={signupWithPassword}
+					onStartOAuth={startOAuthSignIn}
 				/>
-			</Suspense>
-		);
-	}
-
-	return (
-		<LoginPage
-			authContext={authContext}
-			authError={authError}
-			authNotice={authNotice}
-			authStatus={authStatus === 'bootstrapping' ? 'bootstrapping' : 'anonymous'}
-			hasStoredBearerToken={hasStoredBearerToken}
-			isAuthPending={isAuthPending}
-			onAuthenticateWithToken={authenticateWithToken}
-			onClearAuthToken={clearAuthToken}
-			onLoginWithPassword={loginWithPassword}
-			onStartLocalDevSession={startLocalDevSession}
-			onRefreshAuthContext={refreshAuthContext}
-			onSignupWithPassword={signupWithPassword}
-			onStartOAuth={startOAuthSignIn}
-		/>
+			)}
+		</RunaToastProvider>
 	);
 }

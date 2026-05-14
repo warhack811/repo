@@ -1,6 +1,6 @@
 ﻿# Runa UI Restructure â€” Master Implementation Index
 
-> **Tarih:** 2026-05-13
+> **Tarih:** 2026-05-14 (sync update)
 > **Yetki belgesi:** `docs/design/RUNA-DESIGN-BRIEF.md` v1.1
 > **Stratejik plan:** `docs/design/ui-restructure/FRONTEND-RESTRUCTURING-PLAN.md`
 > **Kapsam:** PR-1 â†’ PR-8, frontend gÃ¶rsel ve mimari yeniden yapÄ±landÄ±rma
@@ -42,18 +42,21 @@ PR-4    PR-5             (paralel)
 **Lineer zorunlu:** PR-1 â†’ PR-2 â†’ PR-3, PR-6 â†’ PR-7 â†’ PR-8.
 **Paralel izinli:** PR-4 ve PR-5 (PR-3 sonrasÄ± baÄŸÄ±msÄ±z modÃ¼ller).
 
-## 3. PR durum matrisi (canlÄ±)
+## 3. PR durum matrisi (canli)
+
+> **Durum notu (2026-05-14):** PR-1..PR-8 kod degisiklikleri main dalina alinmistir (bkz 2dd7ec57, ab36a050, fffb1911).
+> Bu index satiri dokuman olarak senkronize edilmistir.
 
 | PR | Kod adÄ± | Brief | Durum | Branch |
 |---|---|---|---|---|
-| PR-1 | Tema, Tipografi, HafÄ±za Mark | [PR-1-CODEX-BRIEF.md](./PR-1-CODEX-BRIEF.md) | Final tour devam ediyor | `codex/ui-restructure-pr-1-theme-typography-mark` |
-| PR-2 | Layout Shell | [PR-2-CODEX-BRIEF.md](./PR-2-CODEX-BRIEF.md) | HazÄ±r, PR-1 merge sonrasÄ± baÅŸlar | `codex/ui-restructure-pr-2-layout-shell` |
-| PR-3 | Chat Surface | [PR-3-CODEX-BRIEF.md](./PR-3-CODEX-BRIEF.md) | HazÄ±r, PR-2 sonrasÄ± | `codex/ui-restructure-pr-3-chat-surface` |
-| PR-4 | Approval Calm | [PR-4-CODEX-BRIEF.md](./PR-4-CODEX-BRIEF.md) | HazÄ±r, PR-3 sonrasÄ± (paralel) | `codex/ui-restructure-pr-4-approval-calm` |
-| PR-5 | Errors + Server `user_label_tr` | [PR-5-CODEX-BRIEF.md](./PR-5-CODEX-BRIEF.md) | HazÄ±r, PR-3 sonrasÄ± (paralel) | `codex/ui-restructure-pr-5-errors-user-label` |
-| PR-6 | Sheets + Modal + Command Palette | [PR-6-CODEX-BRIEF.md](./PR-6-CODEX-BRIEF.md) | HazÄ±r, PR-4 + PR-5 merge sonrasÄ± | `codex/ui-restructure-pr-6-sheets-palette` |
-| PR-7 | Settings + Advanced View + Stop | [PR-7-CODEX-BRIEF.md](./PR-7-CODEX-BRIEF.md) | HazÄ±r, PR-6 sonrasÄ± | `codex/ui-restructure-pr-7-settings-stop` |
-| PR-8 | A11y + iOS + Polish | [PR-8-CODEX-BRIEF.md](./PR-8-CODEX-BRIEF.md) | HazÄ±r, PR-7 sonrasÄ± | `codex/ui-restructure-pr-8-a11y-polish` |
+| PR-1 | Tema, Tipografi, Hafiza Mark | [PR-1-CODEX-BRIEF.md](./PR-1-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-1-theme-typography-mark` |
+| PR-2 | Layout Shell | [PR-2-CODEX-BRIEF.md](./PR-2-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-2-layout-shell` |
+| PR-3 | Chat Surface | [PR-3-CODEX-BRIEF.md](./PR-3-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-3-chat-surface` |
+| PR-4 | Approval Calm | [PR-4-CODEX-BRIEF.md](./PR-4-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-4-approval-calm` |
+| PR-5 | Errors + Server `user_label_tr` | [PR-5-CODEX-BRIEF.md](./PR-5-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-5-errors-user-label` |
+| PR-6 | Sheets + Modal + Command Palette | [PR-6-CODEX-BRIEF.md](./PR-6-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-6-sheets-palette` |
+| PR-7 | Settings + Advanced View + Stop | [PR-7-CODEX-BRIEF.md](./PR-7-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-7-settings-stop` |
+| PR-8 | A11y + iOS + Polish | [PR-8-CODEX-BRIEF.md](./PR-8-CODEX-BRIEF.md) | Tamamlandi, main'e merge edildi | `codex/ui-restructure-pr-8-a11y-polish` |
 
 ## 4. Branching ve review akÄ±ÅŸÄ±
 
@@ -170,4 +173,5 @@ Bu plan **esnek**. AÅŸaÄŸÄ±daki durumlar plan revizyonu tetikler:
 - **Brief v1.1 â†’ v1.2** â†’ AnlamlÄ± bir karar deÄŸiÅŸtiyse brief gÃ¼ncellenir, ilgili PR brief'leri etkilenirse `references brief v1.2` notu eklenir.
 
 Plan deÄŸiÅŸiklikleri Claude (planlama ortaÄŸÄ±) ile birlikte yapÄ±lÄ±r, Codex tek baÅŸÄ±na index'i deÄŸiÅŸtirmez.
+
 

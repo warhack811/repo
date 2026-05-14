@@ -3,13 +3,13 @@ import type { RenderBlock } from '../../../ws-types.js';
 type ToolResultPayload = Extract<RenderBlock, { type: 'tool_result' }>['payload'];
 
 const errorCopyByCode: Record<string, string> = {
-	INVALID_INPUT: 'girilen değer geçersiz',
-	NETWORK: 'bağlantı sorunu',
-	NOT_FOUND: 'aranan kaynak bulunamadı',
-	PERMISSION_DENIED: 'erişim izni yok',
-	RATE_LIMITED: 'çok hızlı istek atıldı, biraz bekle',
-	TIMEOUT: 'işlem zaman aşımına uğradı',
-	UNAUTHORIZED: 'oturum açman gerekiyor',
+	INVALID_INPUT: 'girilen deÄŸer geÃ§ersiz',
+	NETWORK: 'baÄŸlantÄ± sorunu',
+	NOT_FOUND: 'aranan kaynak bulunamadÄ±',
+	PERMISSION_DENIED: 'eriÅŸim izni yok',
+	RATE_LIMITED: 'Ã§ok hÄ±zlÄ± istek atÄ±ldÄ±, biraz bekle',
+	TIMEOUT: 'iÅŸlem zaman aÅŸÄ±mÄ±na uÄŸradÄ±',
+	UNAUTHORIZED: 'oturum aÃ§man gerekiyor',
 };
 
 export function getFriendlyErrorMessage(payload: ToolResultPayload): string {
