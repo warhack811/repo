@@ -164,3 +164,10 @@
 	transform: none;
 	width: 100%;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

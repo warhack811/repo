@@ -56,3 +56,10 @@
 	font-size: 14px;
 	padding: 8px 10px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

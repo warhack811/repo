@@ -214,3 +214,10 @@
 		max-width: none;
 	}
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

@@ -18,6 +18,7 @@ export { RunaSheet } from './RunaSheet.js';
 export type { RunaSheetProps, RunaSheetSide } from './RunaSheet.js';
 export { RunaSkeleton } from './RunaSkeleton.js';
 export type { RunaSkeletonProps, RunaSkeletonVariant } from './RunaSkeleton.js';
+export { SkipToContent } from './SkipToContent.js';
 export { RunaSpinner } from './RunaSpinner.js';
 export type { RunaSpinnerProps, RunaSpinnerSize } from './RunaSpinner.js';
 export { RunaSurface } from './RunaSurface.js';

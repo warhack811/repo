@@ -121,10 +121,10 @@ pre {
 	color: var(--ink-1);
 }
 
-:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 3px;
-	box-shadow: none;
+*:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+	outline-offset: var(--focus-ring-offset);
 }
 
 @media (prefers-reduced-motion: reduce) {

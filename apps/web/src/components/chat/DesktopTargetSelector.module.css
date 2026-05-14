@@ -89,3 +89,10 @@
 .retryButton {
 	flex: 0 0 auto;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

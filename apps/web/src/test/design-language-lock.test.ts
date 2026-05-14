@@ -18,6 +18,10 @@ const removedRightRailPath = join(webSrcRoot, 'components', 'chat', `Work${'Insi
 const chatLayoutPath = join(webSrcRoot, 'components', 'chat', 'ChatLayout.tsx');
 const appShellPath = join(webSrcRoot, 'components', 'app', 'AppShell.tsx');
 const componentsCssPath = join(stylesRoot, 'components.css');
+const appPath = join(webSrcRoot, 'App.tsx');
+const uiIndexPath = join(webSrcRoot, 'components', 'ui', 'index.ts');
+const skipToContentPath = join(webSrcRoot, 'components', 'ui', 'SkipToContent.tsx');
+const useVisualViewportPath = join(webSrcRoot, 'hooks', 'useVisualViewport.ts');
 
 function collectFiles(dir: string, extension: string): string[] {
 	const entries = readdirSync(dir, { withFileTypes: true });
@@ -63,10 +67,15 @@ describe('design language lock', () => {
 		const hafizaMark = readFileSync(hafizaMarkPath, 'utf8');
 		const emptyState = readFileSync(emptyStatePath, 'utf8');
 		const designTokensSource = readFileSync(designTokensPath, 'utf8');
+		const appSource = readFileSync(appPath, 'utf8');
+		const skipToContent = readFileSync(skipToContentPath, 'utf8');
+		const uiIndex = readFileSync(uiIndexPath, 'utf8');
+		const visualViewportHook = readFileSync(useVisualViewportPath, 'utf8');
 
 		expect(tokens).toMatch(/--surface-1:\s*#14110d;/i);
 		expect(tokens).toMatch(/--accent:\s*#e0805c;/i);
 		expect(tokens).toMatch(/--ink-3:\s*#9a8c76;/i);
+		expect(tokens).toMatch(/--focus-ring:\s*0 0 0 2px var\(--accent\);/i);
 		expect(fonts).toContain('--font-serif: "Instrument Serif"');
 
 		expect(hafizaMark).toContain("export type HafizaMarkWeight = 'micro' | 'regular' | 'bold'");
@@ -78,6 +87,10 @@ describe('design language lock', () => {
 
 		expect(emptyState).toContain("import { HafizaMark } from '../ui/HafizaMark.js'");
 		expect(emptyState).toContain('<HafizaMark');
+		expect(visualViewportHook).toContain('export function useVisualViewport(): void');
+		expect(appSource).toContain('useVisualViewport();');
+		expect(skipToContent).toContain('href="#main-content"');
+		expect(uiIndex).toContain("export { SkipToContent } from './SkipToContent.js'");
 
 		expect(designTokensSource).toMatch(/fast:\s*'var\(--duration-fast\)'/);
 		expect(designTokensSource).toMatch(/normal:\s*'var\(--duration-normal\)'/);
@@ -147,5 +160,15 @@ describe('design language lock', () => {
 		}
 
 		expect(violations).toEqual([]);
+	});
+
+	it('requires reduced-motion media query in every css module file', () => {
+		const moduleCssFiles = collectFiles(webSrcRoot, '.module.css');
+		const missingFiles = moduleCssFiles.filter((filePath) => {
+			const content = readFileSync(filePath, 'utf8');
+			return !/@media\s*\(prefers-reduced-motion:\s*reduce\)/u.test(content);
+		});
+
+		expect(missingFiles).toEqual([]);
 	});
 });

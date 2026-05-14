@@ -5,3 +5,10 @@
 	stroke-width: 2;
 	vertical-align: middle;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.reducedMotionOptIn {
+		animation: none !important;
+		transition: none !important;
+	}
+}

@@ -15,6 +15,7 @@ import { CommandPaletteProvider } from '../command/CommandPaletteContext.js';
 import type { CommandPaletteCommand } from '../command/command-palette-utils.js';
 import { useCommandPalette } from '../command/useCommandPalette.js';
 import { RunaSurface } from '../ui/RunaSurface.js';
+import { SkipToContent } from '../ui/SkipToContent.js';
 import { AppNav, type AuthenticatedPageId } from './AppNav.js';
 
 const pageCopyById: Record<
@@ -258,9 +259,10 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 	if (activePage === 'chat') {
 		return (
 			<div className="runa-page runa-page--chat-product runa-migrated-components-app-appshell-1">
+				<SkipToContent />
 				<CommandPaletteProvider openPalette={openPalette}>
 					<main
-						id="authenticated-app-content"
+						id="main-content"
 						className="runa-app-shell-main runa-app-shell-main--chat runa-route-transition runa-migrated-components-app-appshell-2"
 					>
 						{children}
@@ -273,6 +275,7 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 
 	return (
 		<div className="runa-page runa-page--app-shell runa-migrated-components-app-appshell-3">
+			<SkipToContent />
 			<div className="runa-shell-frame runa-shell-frame--app runa-migrated-components-app-appshell-4">
 				<header className="runa-card runa-card--hero runa-ambient-panel runa-app-shell-header runa-migrated-components-app-appshell-5">
 					<div className="runa-app-shell-header__top">
@@ -299,7 +302,7 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 
 				<RunaSurface
 					as="main"
-					id="authenticated-app-content"
+					id="main-content"
 					className="runa-app-shell-main runa-route-transition runa-migrated-components-app-appshell-8"
 					tone="plain"
 				>

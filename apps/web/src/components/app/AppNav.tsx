@@ -65,7 +65,7 @@ export function AppNav({ activePage, variant = 'tiles' }: AppNavProps): ReactEle
 						<NavLink
 							key={item.id}
 							to={item.to}
-							aria-controls="authenticated-app-content"
+							aria-controls="main-content"
 							aria-label={`${item.label}. ${item.description}`}
 							className={`runa-app-nav__item${
 								isActive ? ' runa-app-nav__item--active' : ''
