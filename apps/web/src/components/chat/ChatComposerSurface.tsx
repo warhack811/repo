@@ -1,7 +1,7 @@
 import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import { ChevronRight, Paperclip, SendHorizontal, SlidersHorizontal, Square } from 'lucide-react';
 import type { FormEvent, KeyboardEvent, ReactElement, ReactNode } from 'react';
-import { useId, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useChatStoreSlice } from '../../hooks/useChatStoreSlice.js';
 import { uiCopy } from '../../localization/copy.js';
 import type { ChatStore } from '../../stores/chat-store.js';
@@ -20,6 +20,8 @@ type ChatComposerSurfaceProps = Readonly<{
 	attachmentUploadError: string | null;
 	attachments: readonly ModelAttachment[];
 	canReadLatestResponse: boolean;
+	composerFocusRequestId?: number;
+	composerPrepareNotice?: string | null;
 	connectionStatus: string;
 	desktopDeviceError: string | null;
 	desktopDevices: readonly DesktopDevicePresenceSnapshot[];
@@ -90,6 +92,8 @@ export function ChatComposerSurface({
 	attachmentUploadError,
 	attachments,
 	canReadLatestResponse,
+	composerFocusRequestId,
+	composerPrepareNotice,
 	connectionStatus,
 	desktopDeviceError,
 	desktopDevices,
@@ -126,6 +130,19 @@ export function ChatComposerSurface({
 }: ChatComposerSurfaceProps): ReactElement {
 	const promptTextareaId = useId();
 	const moreDetailsRef = useRef<HTMLDetailsElement | null>(null);
+
+	useEffect(() => {
+		if (composerFocusRequestId === undefined) {
+			return;
+		}
+
+		const textarea = document.getElementById(promptTextareaId);
+
+		if (textarea instanceof HTMLTextAreaElement) {
+			textarea.focus();
+			textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+		}
+	}, [composerFocusRequestId, promptTextareaId]);
 	const currentStreamingRunId = useChatStoreSlice(
 		store,
 		(state) => state.presentation.currentStreamingRunId,
@@ -371,6 +388,11 @@ export function ChatComposerSurface({
 				) : null}
 				<div className={`runa-chat-composer-status ${styles['status']}`}>{statusLabel}</div>
 			</form>
+			{composerPrepareNotice ? (
+				<output aria-live="polite" className="runa-subtle-copy">
+					{composerPrepareNotice}
+				</output>
+			) : null}
 			{emptySuggestions}
 		</section>
 	);

@@ -489,6 +489,102 @@ describe('activity text encoding guard', () => {
 	});
 });
 
+describe('PR-19 message actions lock', () => {
+	const pr19Files = [
+		join(webSrcRoot, 'components', 'chat', 'messageActions.ts'),
+		join(webSrcRoot, 'components', 'chat', 'MessageActionBar.tsx'),
+		join(webSrcRoot, 'components', 'chat', 'MessageActionBar.module.css'),
+		join(webSrcRoot, 'components', 'chat', 'PersistedTranscript.tsx'),
+		join(webSrcRoot, 'components', 'chat', 'ChatComposerSurface.tsx'),
+	];
+
+	it('PR-19 files are UTF-8 without BOM', () => {
+		const violations: string[] = [];
+
+		for (const filePath of pr19Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(`${filePath}`);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-19 files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of pr19Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-19 files do not contain forbidden normal-surface technical strings', () => {
+		const forbidden = ['metadata', 'protocol', 'backend', 'trace_id', 'run_id'];
+		const violations: string[] = [];
+
+		for (const filePath of pr19Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			for (const term of forbidden) {
+				const regex = new RegExp(`(?<!['"\`])(?:${term})(?!\\w)`, 'g');
+				if (regex.test(source)) {
+					violations.push(`${filePath} contains "${term}"`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('MessageActionBar.module.css uses design tokens, no hardcoded hex', () => {
+		const cssPath = join(webSrcRoot, 'components', 'chat', 'MessageActionBar.module.css');
+
+		if (!existsSync(cssPath)) {
+			return;
+		}
+
+		const source = readFileSync(cssPath, 'utf8');
+		const hexPattern = /#[0-9A-Fa-f]{3,8}/g;
+		const hexMatches = source.match(hexPattern) ?? [];
+		expect(hexMatches).toEqual([]);
+	});
+
+	it('ChatComposerSurface.tsx has composerFocusRequestId and composerPrepareNotice props', () => {
+		const src = readFileSync(chatComposerSurfacePath, 'utf8');
+		expect(src).toContain('composerFocusRequestId');
+		expect(src).toContain('composerPrepareNotice');
+	});
+
+	it('PersistedTranscript.tsx has isRunning and onPreparePrompt props', () => {
+		const src = readFileSync(persistedTranscriptPath, 'utf8');
+		expect(src).toContain('isRunning');
+		expect(src).toContain('onPreparePrompt');
+	});
+});
+
 describe('streamdown text encoding guard', () => {
 	const streamdownFiles = [
 		streamdownMessagePath,

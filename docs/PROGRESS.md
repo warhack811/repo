@@ -844,4 +844,34 @@
 - `pnpm.cmd --filter @runa/web build` PASS
 - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-17-empty-state-smoke.spec.ts --config playwright.config.ts --workers=1` PASS (2 test — gercek EmptyState fixture ile)
 
+### TASK-UI-RESTRUCTURE-PR-19-MESSAGE-ACTIONS-AND-RETRY-LOOP - 16 Mayis 2026
+
+- Base: `0c7faf60223a858ebf8c1efb60da67ae2c6f61a0`
+- Branch: `codex/pr-19-message-actions-and-retry-loop`
+- Hedef: Transcript uzerinde mesaj kopyalama, user prompt'u composer'a tasima (edit), son istegi tekrar denemeye hazirlama (retry-prepare). Backend/protocol degisikligi yok, otomatik submit yok, history mutation yok.
+- Uygulama:
+  - `messageActions.ts` — pure helper/model: `deriveMessageActionModel`, `getPreviousUserPrompt`, `getLatestAssistantMessageId`, `getLatestUserMessageId`
+  - `MessageActionBar.tsx` + `MessageActionBar.module.css` — action bar component: Kopyala (clipboard + success/error state), Duzenle (sadece user), Tekrar dene (latest assistant/user, sadece idle state'te)
+  - `PersistedTranscript.tsx` — her message altinda action bar render eder; `isRunning` ve `onPreparePrompt` prop'lari eklendi
+  - `CurrentRunSurface.tsx` — `isRunning` ve `onPreparePrompt` gecirir
+  - `ChatComposerSurface.tsx` — `composerFocusRequestId` degisince textarea focus + caret sona; `composerPrepareNotice` ile `aria-live="polite"` bildirim
+  - `ChatPage.tsx` — `handlePreparePrompt` handler: setPrompt + focus + notice; `isRunInProgress || isSubmitting` running state olarak gecirilir
+- Auto-submit neden kapsam disi:
+  - `useChatRuntime.submitRunRequest` `FormEvent` tabanlidir ve conversation history duplication riski tasir. Otomatik retry icin frontend runtime submit API'si ayrica tasarlanmalidir.
+- Composer focus/notice:
+  - `composerFocusRequestId` state counter degisince textarea focus alir, caret sona tasinir.
+  - `composerPrepareNotice` composer altinda `output[aria-live="polite"]` olarak gosterilir.
+- Running state retry guard:
+  - `isRunInProgress || isSubmitting` true iken retry action'lari gizlenir; copy/edit calisabilir.
+- Mobile/overflow:
+  - Action bar `flex-wrap: wrap` ile 320/390'da tasmaz; button min-height 32px mobile'da.
+  - Playwright smoke 320/390 viewport'ta horizontal overflow assert eder.
+- Test:
+  - Yeni unit: `messageActions.test.ts` (11 test), `MessageActionBar.test.tsx` (6 test), `PersistedTranscript.test.tsx` (7 test), `ChatComposerSurface.test.tsx` (4 test), `CurrentRunSurface.test.tsx` (2 test)
+  - Guncellenen lock: `design-language-lock.test.ts` PR-19 BOM/mojibake/forbidden technical string/CSS token/Prop varligi assert'leri
+  - Visual smoke: `ui-overhaul-19-message-actions-smoke.{spec.ts,fixture.tsx,html}` — 2 viewport + desktop running-state dogrulamasi
+- Kalan risk:
+  - Bu PR otomatik regenerate yapmaz; onceki prompt'u composer'a tasir ve kullanici gonderimi bilincli tamamlar. Otomatik retry icin frontend runtime submit API'si ayrica tasarlanmalidir.
+  - Unsent prompt conflict confirmation bu PR'da yok; kullanici mevcut prompt'u kaybetmeden yeni prompt tasinir. Kullanici farkindaligi composerPrepareNotice ile saglanir.
+
 

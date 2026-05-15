@@ -16,7 +16,13 @@ type CurrentRunSurfaceProps = Readonly<{
 	currentRunId: string | undefined;
 	emptyStateContent: ReactNode;
 	isHistoryLoading?: boolean;
+	isRunning?: boolean;
 	store: ChatStore;
+	onPreparePrompt?: (input: {
+		readonly prompt: string;
+		readonly reason: 'edit' | 'retry';
+		readonly sourceMessageId: string;
+	}) => void;
 }>;
 
 export function CurrentRunSurface({
@@ -26,7 +32,9 @@ export function CurrentRunSurface({
 	currentRunId,
 	emptyStateContent,
 	isHistoryLoading = false,
+	isRunning = false,
 	store,
+	onPreparePrompt,
 }: CurrentRunSurfaceProps): ReactElement | null {
 	const { runId: currentStreamingRunId, text: currentStreamingText } = useStreamingMessage(store);
 	const isBusy = currentStreamingText.trim().length > 0 || currentPresentationContent !== null;
@@ -56,6 +64,8 @@ export function CurrentRunSurface({
 					<PersistedTranscript
 						activeConversationId={activeConversationId}
 						activeConversationMessages={activeConversationMessages}
+						isRunning={isRunning}
+						onPreparePrompt={onPreparePrompt}
 					/>
 				) : null}
 				<StreamingMessageSurface
