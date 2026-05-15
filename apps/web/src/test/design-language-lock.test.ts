@@ -50,6 +50,48 @@ const chatComposerSurfacePath = join(webSrcRoot, 'components', 'chat', 'ChatComp
 const settingsPagePath = join(webSrcRoot, 'pages', 'SettingsPage.tsx');
 const themePickerPath = join(webSrcRoot, 'components', 'settings', 'ThemePicker.tsx');
 const routeStylesPath = join(webSrcRoot, 'styles', 'routes');
+const activityTerminalDetailsPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'activity',
+	'TerminalDetails.tsx',
+);
+const activityRunActivityRowPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'activity',
+	'RunActivityRow.tsx',
+);
+const activityRunActivityFeedPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'activity',
+	'RunActivityFeed.tsx',
+);
+const activityApprovalActivityRowPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'activity',
+	'ApprovalActivityRow.tsx',
+);
+const activityRunActivityAdapterPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'activity',
+	'runActivityAdapter.ts',
+);
+const activityTerminalOutputPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'activity',
+	'terminalOutput.ts',
+);
 
 function collectFiles(dir: string, extension: string): string[] {
 	const entries = readdirSync(dir, { withFileTypes: true });
@@ -410,5 +452,31 @@ describe('Settings IA lock', () => {
 		for (const tab of ['appearance', 'conversation', 'notifications', 'privacy', 'advanced']) {
 			expect(src).toContain(`'${tab}'`);
 		}
+	});
+});
+
+describe('activity text encoding guard', () => {
+	it('activity components do not contain mojibake text', () => {
+		const activityFiles = [
+			activityTerminalDetailsPath,
+			activityRunActivityRowPath,
+			activityRunActivityFeedPath,
+			activityApprovalActivityRowPath,
+			activityRunActivityAdapterPath,
+			activityTerminalOutputPath,
+		];
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of activityFiles) {
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
 	});
 });

@@ -9,6 +9,18 @@ type RunActivityRowProps = Readonly<{
 	row: Extract<RunActivityRowModel, { kind: 'timeline' | 'tool' }>;
 }>;
 
+function hasToolDetails(row: Extract<RunActivityRowModel, { kind: 'tool' }>): boolean {
+	return Boolean(
+		row.command ||
+			row.preview ||
+			row.stdout ||
+			row.stderr ||
+			row.exitCode !== undefined ||
+			row.durationMs !== undefined ||
+			row.developerDetail,
+	);
+}
+
 function getStatusLabel(status: RunActivityRowModel['status']): string {
 	switch (status) {
 		case 'running':
@@ -34,7 +46,7 @@ function getStatusLabel(status: RunActivityRowModel['status']): string {
 
 export function RunActivityRow({ row }: RunActivityRowProps): ReactElement {
 	const [open, setOpen] = useState(false);
-	const hasDetails = row.kind === 'tool' || Boolean(row.developerDetail);
+	const hasDetails = row.kind === 'tool' ? hasToolDetails(row) : Boolean(row.developerDetail);
 
 	return (
 		<li className={styles['row']} data-activity-kind={row.kind} data-activity-status={row.status}>

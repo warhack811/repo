@@ -196,4 +196,93 @@ describe('runActivityAdapter', () => {
 		expect(row.kind).toBe('timeline');
 		expect(row.developerDetail).toBeUndefined();
 	});
+
+	it('maps typed result_preview summary into preview field', () => {
+		const block: Extract<RenderBlock, { type: 'tool_result' }> = {
+			created_at: createdAt,
+			id: 'tool:preview',
+			payload: {
+				call_id: 'call_preview',
+				result_preview: { kind: 'object', summary_text: 'Object{items:3}' },
+				status: 'success',
+				summary: 'file.read completed successfully.',
+				tool_name: 'file.read',
+			},
+			schema_version: 1,
+			type: 'tool_result',
+		};
+
+		const row = adaptToolResultBlock(block, false);
+		if (row.kind !== 'tool') {
+			throw new Error('Expected tool row.');
+		}
+
+		expect(row.preview).toBe('Object{items:3}');
+	});
+
+	it('does not duplicate preview when summary text already matches', () => {
+		const block: Extract<RenderBlock, { type: 'tool_result' }> = {
+			created_at: createdAt,
+			id: 'tool:preview-dedup',
+			payload: {
+				call_id: 'call_preview_dedup',
+				result_preview: { kind: 'string', summary_text: 'Aynı özet metni' },
+				status: 'success',
+				summary: 'Aynı özet metni',
+				tool_name: 'file.read',
+			},
+			schema_version: 1,
+			type: 'tool_result',
+		};
+
+		const row = adaptToolResultBlock(block, false);
+		if (row.kind !== 'tool') {
+			throw new Error('Expected tool row.');
+		}
+
+		expect(row.preview).toBeUndefined();
+	});
+
+	it('keeps extended stdout/stderr/command fields and hides developer detail in non-dev mode', () => {
+		const payload = {
+			call_id: 'call_extended',
+			command: 'npm run lint',
+			command_line: 'npm run lint -- --fix',
+			duration_ms: 1200,
+			exit_code: 0,
+			status: 'success',
+			stderr: 'warn line',
+			stdout: 'ok line',
+			summary: 'shell.exec completed successfully.',
+			tool_name: 'shell.exec',
+		} as Extract<RenderBlock, { type: 'tool_result' }>['payload'] & {
+			command: string;
+			command_line: string;
+			duration_ms: number;
+			exit_code: number;
+			stderr: string;
+			stdout: string;
+		};
+
+		const row = adaptToolResultBlock(
+			{
+				created_at: createdAt,
+				id: 'tool:extended',
+				payload,
+				schema_version: 1,
+				type: 'tool_result',
+			},
+			false,
+		);
+		if (row.kind !== 'tool') {
+			throw new Error('Expected tool row.');
+		}
+
+		expect(row.command).toBe('npm run lint');
+		expect(row.stdout).toBe('ok line');
+		expect(row.stderr).toBe('warn line');
+		expect(row.exitCode).toBe(0);
+		expect(row.durationMs).toBe(1200);
+		expect(row.developerDetail).toBeUndefined();
+	});
 });

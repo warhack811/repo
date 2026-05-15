@@ -81,6 +81,11 @@
       "ok": true
     },
     {
+      "label": "details toggle shows preview/output section",
+      "ok": true,
+      "value": 1
+    },
+    {
       "label": "details toggle keeps raw technical ids hidden in non-dev mode",
       "ok": true
     },
@@ -101,7 +106,7 @@
     }
   ],
   "failed_checks": [],
-  "generated_at": "2026-05-15T13:20:55.658Z",
+  "generated_at": "2026-05-15T15:36:05.290Z",
   "shots": [
     "desktop-1440-01-approval-pending.png",
     "desktop-1920-02-approval-pending.png",

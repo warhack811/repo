@@ -41,6 +41,40 @@
 - Acik risk:
   - Tool output tarafinda buyuk bir redaction utility henuz eklenmedi; risk azaltimi icin terminal/raw detaylar varsayilan kapali tutuluyor ve non-dev smoke assert'iyle dogrulaniyor.
 
+### TASK-UI-RESTRUCTURE-PR-15-TERMINAL-DETAIL-OUTPUT-POLISH - 15 Mayis 2026
+
+- Kapsam: PR-14 activity feed sistemi korunarak tool terminal detayinin okunabilirlik, truncation, targeted redaction, preview, copy UX ve mobile overflow davranislari iyilestirildi; backend schema/protocol degistirilmedi.
+- Uygulama:
+  - Yeni utility seam eklendi: `apps/web/src/components/chat/activity/terminalOutput.ts`.
+    - `redactTerminalText`: `access_token`, `refresh_token`, `ws_ticket`, `Authorization: Bearer`, JWT-like ve `sk-/gsk_` key patternleri presentation katmaninda maskeleniyor.
+    - `formatTerminalOutputSection`: CRLF normalize + redaction + line/char truncation + metadata (`truncated`, `originalLineCount`, `visibleLineCount`).
+    - `formatDurationLabel`: `ms` / `yaklasik X.X sn` formatlama.
+  - `runActivityAdapter.ts` typed `result_preview.summary_text` alanini tool row `preview` alanina tasiyor; `summary`/`detail` ile ayniysa duplicate etmiyor.
+  - `TerminalDetails.tsx` section bazli render modeline tasindi: `Komut`, `Komut bilgisi`, `Sonuc onizlemesi`, `stdout`, `stderr` yalniz doluysa gosteriliyor.
+  - `stdout/stderr/preview` icin truncation notu ve section bazli `Tamamini goster` / `Kisalt` davranisi eklendi.
+  - Komut copy butonu yalniz komut varsa render ediliyor; `Kopyalandi` / `Kopyalanamadi` state'i 1 saniyede idle'a donuyor.
+  - Teknik alanlarin tamami bossa terminal detayinda acik empty state mesaji gosteriliyor: `Bu arac icin gosterilecek teknik cikti yok.`
+  - `RunActivityRow.tsx` detail toggle artik yalniz anlamli detay varsa render ediliyor; bos tool row icin anlamsiz toggle uretilmiyor.
+  - `RunActivityFeed.module.css` terminal detay odakli minimal token-tabanli siniflarla genisletildi (`terminalEmpty`, `terminalSectionHeader`, `terminalTruncationNote`, `terminalShowMore`, `data-terminal-kind=\"stderr\"`, `data-terminal-truncated=\"true\"`).
+  - PR-14 visual smoke kontrati terminal detail davranisina gore guncellendi: copy butonu komut varsa zorunlu, yoksa beklenmez; detail acildiginda output/preview section varligi assert ediliyor.
+- Test:
+  - Yeni unit/component testleri:
+    - `apps/web/src/components/chat/activity/terminalOutput.test.ts`
+    - `apps/web/src/components/chat/activity/RunActivityRow.test.tsx`
+  - Guncellenen testler:
+    - `apps/web/src/components/chat/activity/runActivityAdapter.test.ts`
+    - `apps/web/tests/visual/ui-overhaul-07-3-smoke.spec.ts`
+  - Komut sonuclari:
+    - `pnpm.cmd --filter @runa/web lint` PASS
+    - `pnpm.cmd --filter @runa/web typecheck` PASS
+    - `pnpm.cmd --filter @runa/web test` PASS (`44` dosya / `177` test PASS, `1` skipped)
+    - `pnpm.cmd --filter @runa/web build` PASS
+    - `pnpm.cmd --filter @runa/web test -- src/components/chat/activity/terminalOutput.test.ts src/components/chat/activity/runActivityAdapter.test.ts src/components/chat/blocks/BlockRenderer.test.tsx src/test/design-language-lock.test.ts src/pages/OperatorDeveloperIsolation.test.tsx` PASS
+    - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-07-3-smoke.spec.ts --config playwright.config.ts --workers=1` PASS (`2` test)
+- Kalan risk:
+  - Terminal presentation layer icin targeted redaction eklendi; server-side secret prevention ayri guvenlik katmani olarak kalir.
+  - Client-side redaction presentation odaklidir; upstream tool/server output policy enforcement ihtiyacini ortadan kaldirmaz.
+
 ### TASK-UI-RESTRUCTURE-PR-3-CHAT-SURFACE - 14 Mayis 2026
 
 - Kapsam: Chat transcript ritmi, day divider akisi, tool-result yuzeyi ve tekrarli run panel yogunlugu azaltma hedefleri.
