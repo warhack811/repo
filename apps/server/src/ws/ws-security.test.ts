@@ -69,6 +69,23 @@ describe('ws security policy', () => {
 		).not.toThrow();
 	});
 
+	it('allows loopback frontend origins in local development even when the websocket host differs', () => {
+		expect(() =>
+			validateWebSocketOrigin(
+				{
+					headers: {
+						host: '127.0.0.1:3000',
+						origin: 'http://localhost:5173',
+					},
+				},
+				{
+					allow_query_access_token: false,
+					enforce_secure_transport_in_production: false,
+				},
+			),
+		).not.toThrow();
+	});
+
 	it('keeps query access token disabled by default', () => {
 		expect(
 			resolveWebSocketSecurityConfig({

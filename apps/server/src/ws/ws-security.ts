@@ -47,6 +47,10 @@ function isLoopbackHost(host: string): boolean {
 	);
 }
 
+function isLoopbackOrigin(origin: URL): boolean {
+	return isLoopbackHost(origin.hostname);
+}
+
 function normalizeHostHeader(hostHeader: string): string {
 	const trimmedHost = hostHeader.trim();
 
@@ -98,6 +102,20 @@ function resolveAllowedOriginsForRequest(
 		return config.allowed_origins;
 	}
 
+	const originHeader = normalizeHeaderValue(request.headers.origin)?.trim();
+
+	if (originHeader) {
+		try {
+			const parsedOrigin = new URL(originHeader);
+
+			if (isLoopbackOrigin(parsedOrigin)) {
+				return [parsedOrigin.origin];
+			}
+		} catch {
+			// Handled by validateWebSocketOrigin when origin parsing is required.
+		}
+	}
+
 	const hostHeader = normalizeHeaderValue(request.headers.host);
 
 	if (!hostHeader) {
@@ -133,10 +151,7 @@ export function validateWebSocketOrigin(
 	const allowedOrigins = resolveAllowedOriginsForRequest(request, config);
 
 	if (!allowedOrigins.includes(parsedOrigin.origin)) {
-		throw new SupabaseAuthError(
-			'SUPABASE_AUTH_INVALID_TOKEN',
-			'WebSocket origin is not allowed.',
-		);
+		throw new SupabaseAuthError('SUPABASE_AUTH_INVALID_TOKEN', 'WebSocket origin is not allowed.');
 	}
 }
 
