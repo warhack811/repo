@@ -1,7 +1,7 @@
 import type { AuthContext } from '@runa/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { AppNav } from '../components/app/AppNav.js';
 import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
@@ -182,15 +182,22 @@ describe('copy voice pass', () => {
 	});
 
 	it('keeps normal user surfaces in one Turkish product voice', () => {
-		const markup = renderNormalSurfaces();
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
 
-		expect(markup).not.toContain('Neyi ilerletmek istiyorsun?');
-		expect(markup).toContain('Günaydın');
-		expect(markup).toContain('Kod yaz veya gözden geçir');
-		expect(markup).toContain('Bağlı cihaz yok');
+		try {
+			const markup = renderNormalSurfaces();
 
-		for (const phrase of forbiddenUserCopy) {
-			expect(markup).not.toContain(phrase);
+			expect(markup).not.toContain('Neyi ilerletmek istiyorsun?');
+			expect(markup).toContain('Günaydın');
+			expect(markup).toContain('Kod yaz veya gözden geçir');
+			expect(markup).toContain('Bağlı cihaz yok');
+
+			for (const phrase of forbiddenUserCopy) {
+				expect(markup).not.toContain(phrase);
+			}
+		} finally {
+			vi.useRealTimers();
 		}
 	});
 });
