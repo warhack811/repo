@@ -109,6 +109,7 @@ describe('runActivityAdapter', () => {
 		expect(row.canResolve).toBe(true);
 		expect(row.title).toBe('İzin gerekiyor');
 		expect(row.targetLabel).toContain('apps/web/src/main.ts');
+		expect(row.summary).toBeUndefined();
 	});
 
 	it('maps resolved approval states into compact rows', () => {
@@ -140,6 +141,31 @@ describe('runActivityAdapter', () => {
 		expect(adaptApprovalBlock(approved, false, false).title).toBe('İzin verildi');
 		expect(adaptApprovalBlock(rejected, false, false).title).toBe('Reddedildi');
 		expect(adaptApprovalBlock(expired, false, false).title).toBe('Süresi doldu');
+	});
+
+	it('keeps approval summary only in developer mode', () => {
+		const block: Extract<RenderBlock, { type: 'approval_block' }> = {
+			created_at: createdAt,
+			id: 'approval:developer-summary',
+			payload: {
+				action_kind: 'tool_execution',
+				approval_id: 'approval_summary',
+				status: 'pending',
+				summary: 'Approval required for shell.exec',
+				title: 'Approval required',
+				tool_name: 'shell.exec',
+			},
+			schema_version: 1,
+			type: 'approval_block',
+		};
+
+		const nonDeveloperRow = adaptApprovalBlock(block, false, true);
+		const developerRow = adaptApprovalBlock(block, true, true);
+		if (nonDeveloperRow.kind !== 'approval' || developerRow.kind !== 'approval') {
+			throw new Error('Expected approval rows.');
+		}
+		expect(nonDeveloperRow.summary).toBeUndefined();
+		expect(developerRow.summary).toContain('Approval required');
 	});
 
 	it('keeps technical fields hidden when developer mode is disabled', () => {

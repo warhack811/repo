@@ -25,18 +25,21 @@
 - Test:
   - Yeni unit: `apps/web/src/components/chat/activity/runActivityAdapter.test.ts`
   - Guncellenen render/lock testleri: `apps/web/src/components/chat/blocks/BlockRenderer.test.tsx`, `apps/web/src/test/design-language-lock.test.ts`
+  - Guncellenen visual smoke: `apps/web/tests/visual/ui-overhaul-07-3-smoke.spec.ts` (activity feed locator/semantik + pending/resolved/mobile/details/non-dev leakage contract)
   - Komut sonuclari:
     - `pnpm.cmd --filter @runa/web lint` PASS
     - `pnpm.cmd --filter @runa/web typecheck` PASS
-    - `pnpm.cmd --filter @runa/web test` PASS (`42` dosya / `158` test PASS, `1` skipped)
+    - `pnpm.cmd --filter @runa/web test` PASS (`42` dosya / `160` test PASS, `1` skipped)
     - `pnpm.cmd --filter @runa/web build` PASS
     - `pnpm.cmd --filter @runa/web test -- src/components/chat/activity/runActivityAdapter.test.ts src/components/chat/blocks/BlockRenderer.test.tsx src/test/design-language-lock.test.ts src/pages/OperatorDeveloperIsolation.test.tsx` PASS
 - Manual smoke:
-  - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-07-3-smoke.spec.ts --config playwright.config.ts --workers=1` FAIL
-  - Neden: spec eski approval fixture metnine (`guven karari`) sabit; PR-14 ile approval satiri dili degistigi icin locator bulamadi.
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-07-3-smoke.spec.ts --config playwright.config.ts --workers=1` PASS (`2` test)
+  - Pending approval satiri yeni contract ile dogrulandi: activity-feed list aria (`Calisma etkinlik akisi`), `data-activity-kind="approval"`, `Izin gerekiyor`, target chip, `Reddet` + `Onayla|Yine de devam et`.
+  - Approved/resolved contract dogrulandi: `Izin verildi`, pending CTA'lar geri gelmiyor, tool/result akis satirlari devam ediyor.
+  - Mobile 390/320 contract dogrulandi: horizontal overflow yok, approval CTA'lari composer/bottom nav altinda kalmiyor, row viewport'a sigiyor.
+  - Detail behavior dogrulandi: en az bir activity row'da `Ayrintilar` toggle aciliyor, detay alani gorunuyor ve non-dev modda raw `call_` / raw tool id sizmiyor.
 - Acik risk:
-  - Tool output tarafinda ek redaction utility eklenmedi; risk azaltimi icin teknik detaylar varsayilan kapali tutuldu.
-  - Activity feed icin yeni browser smoke fixture'lari ayrica guncellenmeli (eski approval metin lock'u ile cakisma var).
+  - Tool output tarafinda buyuk bir redaction utility henuz eklenmedi; risk azaltimi icin terminal/raw detaylar varsayilan kapali tutuluyor ve non-dev smoke assert'iyle dogrulaniyor.
 
 ### TASK-UI-RESTRUCTURE-PR-3-CHAT-SURFACE - 14 Mayis 2026
 

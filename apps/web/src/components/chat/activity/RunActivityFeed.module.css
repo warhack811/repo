@@ -211,12 +211,22 @@
 		padding: 10px;
 	}
 
+	.row[data-activity-kind="approval"][data-activity-status="pending"] {
+		margin-bottom: calc(112px + var(--safe-area-bottom, 0px));
+		scroll-margin-bottom: calc(240px + var(--safe-area-bottom, 0px));
+	}
+
 	.rowToggle {
 		margin-left: 0;
 	}
 
 	.approvalActions {
 		grid-template-columns: 1fr;
+		position: sticky;
+		bottom: calc(92px + var(--safe-area-bottom, 0px));
+		z-index: 2;
+		padding-top: 8px;
+		background: var(--surface-3);
 	}
 }
 

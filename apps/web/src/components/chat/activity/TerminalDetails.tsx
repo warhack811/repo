@@ -26,7 +26,7 @@ function TerminalPane({
 }
 
 export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
-	const [copied, setCopied] = useState(false);
+	const [copyState, setCopyState] = useState<'copied' | 'failed' | 'idle'>('idle');
 	const copyDisabled = !row.command;
 	const terminalMeta = useMemo(() => {
 		const parts: string[] = [];
@@ -50,14 +50,23 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 						if (!row.command || !globalThis.navigator?.clipboard?.writeText) {
 							return;
 						}
-						await globalThis.navigator.clipboard.writeText(row.command);
-						setCopied(true);
-						globalThis.setTimeout(() => setCopied(false), 1000);
+						try {
+							await globalThis.navigator.clipboard.writeText(row.command);
+							setCopyState('copied');
+						} catch {
+							setCopyState('failed');
+						} finally {
+							globalThis.setTimeout(() => setCopyState('idle'), 1000);
+						}
 					}}
 					variant="secondary"
 				>
 					<Copy aria-hidden size={14} />
-					{copied ? 'Kopyalandı' : 'Komutu kopyala'}
+					{copyState === 'copied'
+						? 'Kopyalandı'
+						: copyState === 'failed'
+							? 'Kopyalanamadı'
+							: 'Komutu kopyala'}
 				</RunaButton>
 			</div>
 			{terminalMeta.length > 0 ? (

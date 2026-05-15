@@ -335,11 +335,7 @@ export function adaptApprovalBlock(
 		block.payload.status === 'pending'
 			? 'İzin gerekiyor'
 			: getApprovalResolvedTitle(block.payload.status);
-	const detail =
-		block.payload.user_summary_tr ??
-		getApprovalActionSummary(block) ??
-		formatWorkDetail(block.payload.summary) ??
-		block.payload.summary;
+	const detail = block.payload.user_summary_tr ?? getApprovalActionSummary(block);
 	const targetLabel = getApprovalTargetLabel(block);
 	const developerDetail = isDeveloperMode
 		? [
@@ -360,7 +356,9 @@ export function adaptApprovalBlock(
 		riskLabel: getApprovalRiskLabel(riskLevel),
 		riskLevel,
 		status: block.payload.status,
-		summary: block.payload.summary,
+		summary: isDeveloperMode
+			? (formatWorkDetail(block.payload.summary) ?? block.payload.summary)
+			: undefined,
 		targetLabel,
 		title,
 		toolName: block.payload.tool_name,

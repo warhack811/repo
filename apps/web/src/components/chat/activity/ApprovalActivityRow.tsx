@@ -33,11 +33,7 @@ export function ApprovalActivityRow({
 	const [open, setOpen] = useState(false);
 	const isPending = row.status === 'pending';
 	const canResolve = isPending && row.canResolve && Boolean(onResolveApproval);
-	const hasDetails =
-		Boolean(row.detail) ||
-		Boolean(row.summary) ||
-		Boolean(row.targetLabel) ||
-		Boolean(row.developerDetail);
+	const hasDetails = Boolean(row.summary) || Boolean(row.developerDetail);
 
 	return (
 		<li

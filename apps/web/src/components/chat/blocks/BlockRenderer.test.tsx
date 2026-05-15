@@ -339,6 +339,38 @@ describe('BlockRenderer', () => {
 		expect(developerMarkup).toContain('Ayrıntılar');
 	});
 
+	it('keeps terminal details collapsed by default in non-developer mode', () => {
+		const toolPayload = {
+			call_id: 'call_terminal_hidden',
+			command: 'npm run secret-task',
+			status: 'success',
+			stderr: 'stderr trace',
+			stdout: 'stdout trace',
+			summary: 'shell.exec completed successfully.',
+			tool_name: 'shell.exec',
+			user_label_tr: 'Komut çalıştırma',
+		} as Extract<RenderBlock, { type: 'tool_result' }>['payload'] & {
+			command: string;
+			stderr: string;
+			stdout: string;
+		};
+
+		const toolBlock: RenderBlock = {
+			created_at: createdAt,
+			id: 'tool:block:terminal',
+			payload: toolPayload,
+			schema_version: 1,
+			type: 'tool_result',
+		};
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={toolBlock} />);
+		expect(markup).toContain('Ayrıntılar');
+		expect(markup).not.toContain('npm run secret-task');
+		expect(markup).not.toContain('stdout trace');
+		expect(markup).not.toContain('stderr trace');
+		expect(markup).not.toContain('call_terminal_hidden');
+	});
+
 	it('renders work narration without exposing technical identifiers', () => {
 		const narrationBlock = sampleBlocks.find((block) => block.type === 'work_narration');
 
