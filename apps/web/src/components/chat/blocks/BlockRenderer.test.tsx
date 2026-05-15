@@ -2,7 +2,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { uiCopy } from '../../../localization/copy.js';
 import { BlockRenderer } from './BlockRenderer.js';
 
 const createdAt = '2026-04-25T12:00:00.000Z';
@@ -312,7 +311,7 @@ describe('BlockRenderer', () => {
 		expect(BlockRenderer({ block: statusBlock })).toEqual(null);
 		expect(BlockRenderer({ block: traceBlock })).toEqual(null);
 		expect(renderToStaticMarkup(<BlockRenderer block={timelineBlock} />)).toContain(
-			'Canlı çalışma notları',
+			'Çalışma etkinlikleri',
 		);
 		expect(BlockRenderer({ block: workspaceBlock })).toEqual(null);
 	});
@@ -329,7 +328,7 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={toolBlock} isDeveloperMode />,
 		);
 
-		expect(markup).toContain('<details');
+		expect(markup).toContain('data-activity-kind="tool"');
 		expect(markup).toContain('Dosya okuma');
 		expect(markup).toContain('Dosya okuma tamamlandı.');
 		expect(markup).not.toContain('İşlem sonucu');
@@ -337,8 +336,39 @@ describe('BlockRenderer', () => {
 		expect(markup).not.toContain('file.read');
 		expect(markup).not.toContain('call_renderer');
 		expect(markup).not.toContain('Object{ok}');
-		expect(developerMarkup).toContain('file.read');
-		expect(developerMarkup).toContain('call_renderer');
+		expect(developerMarkup).toContain('Ayrıntılar');
+	});
+
+	it('keeps terminal details collapsed by default in non-developer mode', () => {
+		const toolPayload = {
+			call_id: 'call_terminal_hidden',
+			command: 'npm run secret-task',
+			status: 'success',
+			stderr: 'stderr trace',
+			stdout: 'stdout trace',
+			summary: 'shell.exec completed successfully.',
+			tool_name: 'shell.exec',
+			user_label_tr: 'Komut çalıştırma',
+		} as Extract<RenderBlock, { type: 'tool_result' }>['payload'] & {
+			command: string;
+			stderr: string;
+			stdout: string;
+		};
+
+		const toolBlock: RenderBlock = {
+			created_at: createdAt,
+			id: 'tool:block:terminal',
+			payload: toolPayload,
+			schema_version: 1,
+			type: 'tool_result',
+		};
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={toolBlock} />);
+		expect(markup).toContain('Ayrıntılar');
+		expect(markup).not.toContain('npm run secret-task');
+		expect(markup).not.toContain('stdout trace');
+		expect(markup).not.toContain('stderr trace');
+		expect(markup).not.toContain('call_terminal_hidden');
 	});
 
 	it('renders work narration without exposing technical identifiers', () => {
@@ -439,11 +469,11 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={approvalBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Dosyaya yazma isteği');
+		expect(markup).toContain('İzin gerekiyor');
+		expect(markup).toContain('Dosyaya yazma izni gerekiyor.');
 		expect(markup).toContain('Dosya yazma');
 		expect(markup).toContain('Onayla');
 		expect(markup).toContain('Reddet');
-		expect(markup).not.toContain('Ayrıntılar');
 		expect(markup).not.toContain('file.write');
 		expect(markup).not.toContain('Approval required');
 		expect(markup).not.toContain('Approve file write.');
@@ -451,7 +481,7 @@ describe('BlockRenderer', () => {
 		const developerMarkup = renderToStaticMarkup(
 			<BlockRenderer block={approvalBlock} isDeveloperMode onResolveApproval={() => undefined} />,
 		);
-		expect(developerMarkup).toContain(uiCopy.approval.details);
+		expect(developerMarkup).toContain('Ayrıntılar');
 	});
 
 	it('keeps desktop approval targets user-facing in normal mode', () => {
@@ -478,7 +508,7 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={clipboardReadBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Pano okuma isteği');
+		expect(markup).toContain('Pano okuma izni gerekiyor.');
 		expect(markup).toContain('Pano okuma');
 		expect(markup).not.toContain('desktop.clipboard.read');
 		expect(markup).not.toContain('Allow desktop.clipboard.read');
@@ -507,9 +537,8 @@ describe('BlockRenderer', () => {
 			<BlockRenderer block={keypressBlock} onResolveApproval={() => undefined} />,
 		);
 
-		expect(markup).toContain('Klavye kısayolu isteği');
+		expect(markup).toContain('Masaüstü kısayolu çalıştırma izni gerekiyor.');
 		expect(markup).toContain('Klavye kısayolu');
-		expect(markup).not.toContain('Araç çalıştırma isteği');
 		expect(markup).not.toContain('desktop.keypress');
 	});
 
@@ -524,7 +553,7 @@ describe('BlockRenderer', () => {
 
 		expect(markup).not.toContain('Onayla</button>');
 		expect(markup).not.toContain('Reddet</button>');
-		expect(markup).toContain('aria-busy="false"');
+		expect(markup).toContain('İzin gerekiyor');
 	});
 
 	it('announces resolved approval state without pending actions', () => {

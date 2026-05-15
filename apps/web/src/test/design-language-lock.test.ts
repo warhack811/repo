@@ -37,6 +37,13 @@ const runTimelineBlockPath = join(
 	'blocks',
 	'RunTimelineBlock.tsx',
 );
+const runActivityAdapterPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'activity',
+	'runActivityAdapter.ts',
+);
 const chatHeaderPath = join(webSrcRoot, 'components', 'chat', 'ChatHeader.tsx');
 const chatPagePath = join(webSrcRoot, 'pages', 'ChatPage.tsx');
 const chatComposerSurfacePath = join(webSrcRoot, 'components', 'chat', 'ChatComposerSurface.tsx');
@@ -297,9 +304,10 @@ describe('PR-3 chat surface lock', () => {
 		expect(src).not.toMatch(/currentRunProgressPanel\s*[:?]/);
 	});
 
-	it('ToolResultBlock user-facing modda toolLine details kullaniyor', () => {
+	it('ToolResultBlock user-facing modda activity feed adapter kullaniyor', () => {
 		const src = readFileSync(toolResultBlockPath, 'utf8');
-		expect(src).toMatch(/toolLine/);
+		expect(src).toMatch(/RunActivityFeed/);
+		expect(src).toMatch(/adaptToolResultBlock/);
 		expect(src).not.toMatch(/['"]Islem sonucu['"]/);
 	});
 
@@ -328,12 +336,12 @@ describe('PR-4 approval calm lock', () => {
 
 describe('PR-5 user_label_tr lock', () => {
 	it('Frontend tool result renderinde user_label_tr okunuyor', () => {
-		const src = readFileSync(toolResultBlockPath, 'utf8');
+		const src = readFileSync(runActivityAdapterPath, 'utf8');
 		expect(src).toMatch(/user_label_tr/);
 	});
 
 	it('RunTimelineBlock user_label_tr fallback kullaniyor', () => {
-		const src = readFileSync(runTimelineBlockPath, 'utf8');
+		const src = readFileSync(runActivityAdapterPath, 'utf8');
 		expect(src).toMatch(/user_label_tr\s*\?\?/);
 	});
 });

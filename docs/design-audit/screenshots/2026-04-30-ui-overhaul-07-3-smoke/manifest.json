@@ -1,12 +1,13 @@
 {
   "checks": [
     {
-      "label": "desktop-1440-01-approval-pending.png carries trust-first heading",
+      "label": "desktop-1440-01-approval-pending.png hides non-dev raw approval fields",
       "ok": true
     },
     {
-      "label": "desktop-1440-01-approval-pending.png shows target context",
-      "ok": true
+      "label": "desktop-1440-01-approval-pending.png row fits viewport",
+      "ok": true,
+      "value": "528:680"
     },
     {
       "label": "desktop-1440-01-approval-pending.png horizontal overflow",
@@ -14,12 +15,13 @@
       "value": 1440
     },
     {
-      "label": "desktop-1920-02-approval-pending.png carries trust-first heading",
+      "label": "desktop-1920-02-approval-pending.png hides non-dev raw approval fields",
       "ok": true
     },
     {
-      "label": "desktop-1920-02-approval-pending.png shows target context",
-      "ok": true
+      "label": "desktop-1920-02-approval-pending.png row fits viewport",
+      "ok": true,
+      "value": "768:680"
     },
     {
       "label": "desktop-1920-02-approval-pending.png horizontal overflow",
@@ -27,12 +29,13 @@
       "value": 1920
     },
     {
-      "label": "mobile-390-03-approval-pending.png carries trust-first heading",
+      "label": "mobile-390-03-approval-pending.png hides non-dev raw approval fields",
       "ok": true
     },
     {
-      "label": "mobile-390-03-approval-pending.png shows target context",
-      "ok": true
+      "label": "mobile-390-03-approval-pending.png row fits viewport",
+      "ok": true,
+      "value": "12:366"
     },
     {
       "label": "mobile-390-03-approval-pending.png approval buttons visible",
@@ -48,12 +51,13 @@
       "value": 390
     },
     {
-      "label": "mobile-320-04-approval-pending.png carries trust-first heading",
+      "label": "mobile-320-04-approval-pending.png hides non-dev raw approval fields",
       "ok": true
     },
     {
-      "label": "mobile-320-04-approval-pending.png shows target context",
-      "ok": true
+      "label": "mobile-320-04-approval-pending.png row fits viewport",
+      "ok": true,
+      "value": "12:296"
     },
     {
       "label": "mobile-320-04-approval-pending.png approval buttons visible",
@@ -69,11 +73,15 @@
       "value": 320
     },
     {
-      "label": "desktop approved state removes repeat approve action",
+      "label": "desktop approved state removes pending CTAs",
       "ok": true
     },
     {
-      "label": "desktop completed flow shows approved tool result",
+      "label": "desktop continued flow shows tool/result activity",
+      "ok": true
+    },
+    {
+      "label": "details toggle keeps raw technical ids hidden in non-dev mode",
       "ok": true
     },
     {
@@ -90,40 +98,10 @@
       "label": "mobile rejected state horizontal overflow",
       "ok": true,
       "value": 390
-    },
-    {
-      "label": "desktop empty regression suggestion cards remain bounded",
-      "ok": true,
-      "value": 4
-    },
-    {
-      "label": "desktop empty regression work panel remains minimal",
-      "ok": true,
-      "value": 0
-    },
-    {
-      "label": "desktop empty regression horizontal overflow",
-      "ok": true,
-      "value": 1440
-    },
-    {
-      "label": "mobile empty regression suggestion cards remain bounded",
-      "ok": true,
-      "value": 4
-    },
-    {
-      "label": "mobile empty regression work panel remains minimal",
-      "ok": true,
-      "value": 0
-    },
-    {
-      "label": "mobile empty regression horizontal overflow",
-      "ok": true,
-      "value": 390
     }
   ],
   "failed_checks": [],
-  "generated_at": "2026-05-10T01:38:26.852Z",
+  "generated_at": "2026-05-15T13:20:55.658Z",
   "shots": [
     "desktop-1440-01-approval-pending.png",
     "desktop-1920-02-approval-pending.png",

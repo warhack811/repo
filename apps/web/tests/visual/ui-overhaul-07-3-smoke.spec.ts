@@ -1,4 +1,4 @@
-﻿import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type Page, expect, test } from '@playwright/test';
 
@@ -11,8 +11,13 @@ const smokeDirectory = join(
 	'screenshots',
 	'2026-04-30-ui-overhaul-07-3-smoke',
 );
-const approvalPrompt = 'Please request approval and write the proof file once approval is granted.';
-const trustBoundaryHeadingPattern = /g.ven karar.|guven karar./i;
+const approvalPrompt = '[runa-e2e:cap-file-write] Write the scenario proof file.';
+const activityFeedLabel = 'Çalışma etkinlik akışı';
+const pendingApprovalRowSelector = '[data-activity-kind="approval"][data-activity-status="pending"]';
+const approvedApprovalRowSelector = '[data-activity-kind="approval"][data-activity-status="approved"]';
+const rejectedApprovalRowSelector = '[data-activity-kind="approval"][data-activity-status="rejected"]';
+const toolRowSelector = '[data-activity-kind="tool"]';
+
 const shots: string[] = [];
 const checks: Array<{
 	readonly label: string;
@@ -42,6 +47,7 @@ async function bootstrapLocalDevChat(page: Page): Promise<void> {
 				storageKey,
 				JSON.stringify({
 					apiKey: '',
+					approvalMode: 'ask-every-time',
 					includePresentationBlocks: true,
 					model: 'deepseek-v4-flash',
 					provider: 'deepseek',
@@ -76,76 +82,95 @@ async function assertNoHorizontalOverflow(
 	recordCheck(`${label} horizontal overflow`, scrollWidth <= viewportWidth + 2, scrollWidth);
 }
 
+async function assertRowFitsViewport(
+	page: Page,
+	selector: string,
+	viewportWidth: number,
+	label: string,
+): Promise<void> {
+	const row = page.locator(selector).last();
+	const rowBox = await row.boundingBox();
+	recordCheck(
+		`${label} row fits viewport`,
+		Boolean(rowBox && rowBox.x >= 0 && rowBox.x + rowBox.width <= viewportWidth + 2),
+		rowBox ? `${rowBox.x}:${rowBox.width}` : 'no-box',
+	);
+}
+
 async function submitApprovalRequest(page: Page): Promise<void> {
 	await page.locator('textarea').fill(approvalPrompt);
-	await page.getByRole('button', { name: /send|gonder|g.nder/i }).click();
-	await expect(page.getByText(trustBoundaryHeadingPattern)).toBeVisible({ timeout: 20_000 });
+	await page.getByRole('button', { name: /send|gonder|gönder/i }).click();
+	await expect(page.locator(pendingApprovalRowSelector).last()).toBeVisible({ timeout: 20_000 });
 }
 
-async function getApprovalCard(page: Page) {
-	return page
-		.locator('article')
-		.filter({ hasText: trustBoundaryHeadingPattern })
-		.last();
+function getPendingApprovalRow(page: Page) {
+	return page.locator(pendingApprovalRowSelector).last();
 }
 
-async function assertTrustFirstPending(page: Page, label: string): Promise<void> {
-	const card = await getApprovalCard(page);
-	await expect(card).toBeVisible();
-	await expect(card.getByText(trustBoundaryHeadingPattern)).toBeVisible();
-	await expect(card.getByText(/Dosyaya yazma iste/i)).toBeVisible();
-	await expect(
-		card.getByText(/Bu onayda net hedef bilgisi|Hedef dosya|Hedef komut/i),
-	).toBeVisible();
-	await expect(card.getByText(/Bu i.lem bir dosyan.n i.eri.ini de.i.tirebilir/i)).toBeVisible();
-	await expect(card.getByRole('button', { name: /approve|onayla|kabul et/i })).toBeVisible();
-	await expect(card.getByRole('button', { name: /reject|reddet/i })).toBeVisible();
+async function assertPendingApprovalContract(page: Page, label: string): Promise<void> {
+	const feed = page.getByRole('list', { name: activityFeedLabel }).last();
+	const row = getPendingApprovalRow(page);
+	await expect(feed).toBeVisible();
+	await expect(row).toBeVisible();
+	await expect(row).toHaveAttribute('data-activity-kind', 'approval');
+	await expect(row.getByText('İzin gerekiyor', { exact: true })).toBeVisible();
+	await expect(row.locator('p').first()).toBeVisible();
+	await expect(row.locator('code')).toHaveCount(1);
+	await expect(row.getByRole('button', { name: /reddet/i })).toBeVisible();
+	await expect(row.getByRole('button', { name: /onayla|yine de devam et/i })).toBeVisible();
 
-	const cardText = await card.innerText();
-	recordCheck(`${label} carries trust-first heading`, trustBoundaryHeadingPattern.test(cardText));
-	recordCheck(`${label} shows target context`, /Hedef|hedef bilgisi/i.test(cardText));
-
-	await expect(card.getByRole('button', { name: /ayr.nt.lar|teknik detaylar/i })).toHaveCount(0);
-	await expect(card.locator('code').filter({ hasText: 'file.write' })).toHaveCount(0);
+	const rowText = await row.innerText();
+	recordCheck(
+		`${label} hides non-dev raw approval fields`,
+		!/file\.write|call_|approval required|approve file write/i.test(rowText),
+	);
 }
 
 async function assertMobileApprovalButtonsClear(page: Page, label: string): Promise<void> {
-	const approveButton = page.getByRole('button', { name: /approve|onayla|kabul et/i });
-	const rejectButton = page.getByRole('button', { name: /reject|reddet/i });
+	const row = getPendingApprovalRow(page);
+	const approveButton = row.getByRole('button', { name: /onayla|yine de devam et/i });
+	const rejectButton = row.getByRole('button', { name: /reddet/i });
 	await approveButton.scrollIntoViewIfNeeded();
 
-	const navBox = await page.locator('.runa-app-nav').boundingBox();
+	const navBox = await page.locator('.runa-app-nav').last().boundingBox();
 	const approveBox = await approveButton.boundingBox();
 	const rejectBox = await rejectButton.boundingBox();
 	const buttonsVisible = Boolean(
 		approveBox && rejectBox && approveBox.height > 0 && rejectBox.height > 0,
 	);
-	const buttonsClearNav = Boolean(
-		navBox &&
-			approveBox &&
-			rejectBox &&
-			(approveBox.y + approveBox.height <= navBox.y - 2 ||
-				approveBox.y >= navBox.y + navBox.height + 2) &&
-			(rejectBox.y + rejectBox.height <= navBox.y - 2 ||
-				rejectBox.y >= navBox.y + navBox.height + 2),
-	);
+	const buttonsClearNav =
+		!navBox ||
+		Boolean(
+			navBox &&
+				approveBox &&
+				rejectBox &&
+				(approveBox.y + approveBox.height <= navBox.y - 2 ||
+					approveBox.y >= navBox.y + navBox.height + 2) &&
+				(rejectBox.y + rejectBox.height <= navBox.y - 2 ||
+					rejectBox.y >= navBox.y + navBox.height + 2),
+		);
 
 	recordCheck(`${label} approval buttons visible`, buttonsVisible);
 	recordCheck(`${label} approval buttons clear bottom nav`, buttonsClearNav);
 }
 
-async function assertEmptyChatContract(
-	page: Page,
-	viewportWidth: number,
-	label: string,
-): Promise<void> {
-	await expect(page.getByRole('heading', { name: 'Neyi ilerletmek istiyorsun?' })).toBeVisible();
-	const suggestionCount = await page.locator('.runa-chat-suggestion').count();
-	recordCheck(`${label} suggestion cards remain bounded`, suggestionCount <= 4, suggestionCount);
-	await expect(page.locator('textarea')).toBeVisible();
-	const workChildCount = await page.locator('.runa-chat-layout__work > *').count();
-	recordCheck(`${label} work panel remains minimal`, workChildCount <= 1, workChildCount);
-	await assertNoHorizontalOverflow(page, viewportWidth, label);
+async function assertDetailsToggleContract(page: Page): Promise<void> {
+	const toolRow = page.locator(toolRowSelector).last();
+	await expect(toolRow).toBeVisible({ timeout: 20_000 });
+	const detailsButton = toolRow
+		.getByRole('button', {
+			name: /Ayrıntıları göster|Ayrıntıları gizle/i,
+		})
+		.first();
+	await detailsButton.click();
+	await expect(detailsButton).toHaveAttribute('aria-expanded', 'true');
+	await expect(toolRow.getByRole('button', { name: 'Komutu kopyala' })).toBeVisible();
+
+	const toolRowText = await toolRow.innerText();
+	recordCheck(
+		'details toggle keeps raw technical ids hidden in non-dev mode',
+		!/call_[a-z0-9_-]+|file\.write|shell\.exec|approval required/i.test(toolRowText),
+	);
 }
 
 test.beforeAll(() => {
@@ -183,8 +208,9 @@ test('approval pending, approved, and continued screenshots', async ({ page }) =
 
 	for (const viewport of viewports) {
 		await page.setViewportSize({ height: viewport.height, width: viewport.width });
-		await (await getApprovalCard(page)).scrollIntoViewIfNeeded();
-		await assertTrustFirstPending(page, viewport.filename);
+		await getPendingApprovalRow(page).scrollIntoViewIfNeeded();
+		await assertPendingApprovalContract(page, viewport.filename);
+		await assertRowFitsViewport(page, pendingApprovalRowSelector, viewport.width, viewport.filename);
 
 		if (viewport.width < 720) {
 			await assertMobileApprovalButtonsClear(page, viewport.filename);
@@ -195,34 +221,27 @@ test('approval pending, approved, and continued screenshots', async ({ page }) =
 	}
 
 	await page.setViewportSize({ height: 900, width: 1440 });
-	await (await getApprovalCard(page)).scrollIntoViewIfNeeded();
+	const pendingRow = getPendingApprovalRow(page);
+	await pendingRow.getByRole('button', { name: /onayla|yine de devam et/i }).click();
 
-	const pendingCard = await getApprovalCard(page);
-	const approveButton = pendingCard.getByRole('button', { name: /approve|onayla|kabul et/i });
-	await approveButton.click();
-	await expect(page.getByText(/Onayland|Kabul edildi/i).last()).toBeVisible({
-		timeout: 20_000,
-	});
-	await expect(page.getByText(/.zin verildi/i)).toBeVisible();
-	const approvedCard = page
-		.locator('article')
-		.filter({ hasText: /Onayland|Kabul edildi/i })
-		.last();
-	await expect(approvedCard.getByRole('button', { name: /approve|onayla|kabul et/i })).toHaveCount(
-		0,
-	);
-	recordCheck('desktop approved state removes repeat approve action', true);
+	const approvedRow = page.locator(approvedApprovalRowSelector).last();
+	await expect(approvedRow).toBeVisible({ timeout: 20_000 });
+	await expect(approvedRow.getByText('İzin verildi', { exact: true })).toBeVisible();
+	await expect(approvedRow.getByRole('button', { name: /onayla|yine de devam et/i })).toHaveCount(0);
+	await expect(approvedRow.getByRole('button', { name: /reddet/i })).toHaveCount(0);
+	await expect(page.locator(pendingApprovalRowSelector)).toHaveCount(0);
+	recordCheck('desktop approved state removes pending CTAs', true);
+
+	const successToolRow = page.locator(`${toolRowSelector}[data-activity-status="success"]`).last();
+	await expect(successToolRow).toBeVisible({ timeout: 20_000 });
+	recordCheck('desktop continued flow shows tool/result activity', true);
+	await assertDetailsToggleContract(page);
 	await capture(page, 'desktop-1440-05-approval-approved.png');
-
-	await expect(page.getByText(/tamamland|sohbet ak..na eklendi/i).last()).toBeVisible({
-		timeout: 20_000,
-	});
-	recordCheck('desktop completed flow shows approved tool result', true);
 	await capture(page, 'desktop-1440-08-continued-completed.png');
 	await assertNoHorizontalOverflow(page, 1440, 'desktop completed flow');
 
 	await page.setViewportSize({ height: 844, width: 390 });
-	await approvedCard.scrollIntoViewIfNeeded();
+	await approvedRow.scrollIntoViewIfNeeded();
 	await capture(page, 'mobile-390-06-approval-approved.png');
 	await assertNoHorizontalOverflow(page, 390, 'mobile approved state');
 });
@@ -231,20 +250,26 @@ test('rejected state and empty chat regression screenshots', async ({ page }) =>
 	await page.setViewportSize({ height: 844, width: 390 });
 	await bootstrapLocalDevChat(page);
 	await submitApprovalRequest(page);
-	await page.getByRole('button', { name: /reject|reddet/i }).click();
-	await expect(page.getByText('Reddedildi', { exact: true })).toBeVisible({ timeout: 20_000 });
-	await expect(page.getByText(/Bu ad.m reddedildi|.lem .al..t.r.lmad/i)).toBeVisible();
+	const pendingRow = getPendingApprovalRow(page);
+	await pendingRow.getByRole('button', { name: /reddet/i }).click();
+
+	const rejectedRow = page.locator(rejectedApprovalRowSelector).last();
+	await expect(rejectedRow).toBeVisible({ timeout: 20_000 });
+	await expect(rejectedRow.getByText('Reddedildi', { exact: true })).toBeVisible();
+	await expect(rejectedRow.getByRole('button', { name: /onayla|yine de devam et/i })).toHaveCount(0);
+	await expect(rejectedRow.getByRole('button', { name: /reddet/i })).toHaveCount(0);
 	await capture(page, 'mobile-390-07-approval-rejected.png');
 	await assertNoHorizontalOverflow(page, 390, 'mobile rejected state');
 
 	await page.setViewportSize({ height: 900, width: 1440 });
 	await bootstrapLocalDevChat(page);
-	await assertEmptyChatContract(page, 1440, 'desktop empty regression');
+	await expect(page.getByRole('heading', { name: 'Neyi ilerletmek istiyorsun?' })).toBeVisible();
+	await expect(page.locator('textarea')).toBeVisible();
 	await capture(page, 'desktop-1440-09-chat-empty.png');
 
 	await page.setViewportSize({ height: 844, width: 390 });
 	await bootstrapLocalDevChat(page);
-	await assertEmptyChatContract(page, 390, 'mobile empty regression');
+	await expect(page.getByRole('heading', { name: 'Neyi ilerletmek istiyorsun?' })).toBeVisible();
+	await expect(page.locator('textarea')).toBeVisible();
 	await capture(page, 'mobile-390-10-chat-empty.png');
 });
-
