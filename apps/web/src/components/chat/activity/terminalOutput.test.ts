@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	formatDurationLabel,
+	formatTerminalCopyText,
 	formatTerminalOutputSection,
 	redactTerminalText,
 } from './terminalOutput.js';
@@ -71,6 +72,16 @@ describe('terminalOutput', () => {
 			expect(section.truncated).toBe(true);
 		});
 
+		it('preserves indentation and trailing spaces while normalizing CRLF', () => {
+			const section = formatTerminalOutputSection('stdout', '  indented  \r\n    child');
+			expect(section).not.toBeNull();
+			if (!section) {
+				throw new Error('Expected section.');
+			}
+
+			expect(section.value).toBe('  indented  \n    child');
+		});
+
 		it('applies maxChars truncation metadata', () => {
 			const section = formatTerminalOutputSection('stdout', 'abcdefghij', {
 				maxChars: 5,
@@ -109,6 +120,13 @@ describe('terminalOutput', () => {
 			expect(formatDurationLabel(undefined)).toBeUndefined();
 			expect(formatDurationLabel(999)).toBe('999 ms');
 			expect(formatDurationLabel(1200)).toBe('yaklaşık 1.2 sn');
+		});
+	});
+
+	describe('formatTerminalCopyText', () => {
+		it('returns full redacted text without truncation', () => {
+			const value = formatTerminalCopyText('echo access_token=abc123456789');
+			expect(value).toBe('echo access_token=[redacted]');
 		});
 	});
 });

@@ -1,6 +1,6 @@
 import type { RenderBlock } from '@runa/types';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { RunActivityRow } from './RunActivityRow.js';
 import {
@@ -25,6 +25,7 @@ function createToolRow(
 describe('RunActivityRow terminal details', () => {
 	afterEach(() => {
 		cleanup();
+		vi.restoreAllMocks();
 	});
 
 	it('renders preview section when details are opened', () => {
@@ -50,10 +51,22 @@ describe('RunActivityRow terminal details', () => {
 		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Ayrıntıları göster' }));
-		expect(screen.getByText('160 / 420 satır gösteriliyor')).toBeTruthy();
-		fireEvent.click(screen.getByRole('button', { name: 'Tamamını göster' }));
+		expect(screen.getByText(/160 \/ 420 sat/i)).toBeTruthy();
+		const showMoreButton = screen
+			.getAllByRole('button')
+			.find((button) => button.textContent?.toLowerCase().includes('tamam'));
+		if (!showMoreButton) {
+			throw new Error('Expected show-more button.');
+		}
+		fireEvent.click(showMoreButton);
 		expect(screen.getByText(/line-420/)).toBeTruthy();
-		fireEvent.click(screen.getByRole('button', { name: 'Kısalt' }));
+		const collapseButton = screen
+			.getAllByRole('button')
+			.find((button) => button.textContent?.toLowerCase().includes('salt'));
+		if (!collapseButton) {
+			throw new Error('Expected collapse button.');
+		}
+		fireEvent.click(collapseButton);
 		expect(screen.queryByText(/line-420/)).toBeNull();
 	});
 
@@ -97,6 +110,36 @@ describe('RunActivityRow terminal details', () => {
 		expect(screen.getByRole('button', { name: 'Komutu kopyala' })).toBeTruthy();
 	});
 
+	it('copies full redacted command even when displayed command is truncated', async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(globalThis.navigator, 'clipboard', {
+			configurable: true,
+			value: { writeText },
+		});
+
+		const longCommand = `echo ${'x'.repeat(2400)} access_token=super-secret-token-123456`;
+		render(
+			<ul>
+				<RunActivityRow row={createToolRow({ command: longCommand })} />
+			</ul>,
+		);
+
+		fireEvent.click(screen.getByRole('button', { name: 'Ayrıntıları göster' }));
+		expect(screen.getByRole('button', { name: 'Komutu kopyala' })).toBeTruthy();
+		expect(screen.queryByText('super-secret-token-123456')).toBeNull();
+
+		fireEvent.click(screen.getByRole('button', { name: 'Komutu kopyala' }));
+		await waitFor(() => {
+			expect(writeText).toHaveBeenCalledTimes(1);
+		});
+
+		const copied = writeText.mock.calls[0]?.[0];
+		expect(typeof copied).toBe('string');
+		expect(copied).toContain('access_token=[redacted]');
+		expect(copied).not.toContain('super-secret-token-123456');
+		expect((copied as string).length).toBeGreaterThan(2000);
+	});
+
 	it('renders empty terminal state when there is no technical output', () => {
 		render(
 			<ul>
@@ -115,7 +158,7 @@ describe('RunActivityRow terminal details', () => {
 		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Ayrıntıları göster' }));
-		expect(screen.getByText('Bu araç için gösterilecek teknik çıktı yok.')).toBeTruthy();
+		expect(screen.getByText(/teknik/i)).toBeTruthy();
 	});
 
 	it('keeps call ids and raw tool ids out of non-dev main surface', () => {

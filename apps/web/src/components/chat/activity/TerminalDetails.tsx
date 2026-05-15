@@ -1,4 +1,4 @@
-import { Copy } from 'lucide-react';
+﻿import { Copy } from 'lucide-react';
 import { type ReactElement, useMemo, useState } from 'react';
 
 import { RunaButton } from '../../ui/RunaButton.js';
@@ -7,6 +7,7 @@ import type { RunActivityRow } from './runActivityAdapter.js';
 import {
 	type TerminalOutputSection,
 	formatDurationLabel,
+	formatTerminalCopyText,
 	formatTerminalOutputSection,
 } from './terminalOutput.js';
 
@@ -50,10 +51,10 @@ function getTruncationNote(section: TerminalOutputSection): string | undefined {
 	}
 
 	if (section.visibleLineCount < section.originalLineCount) {
-		return `${section.visibleLineCount} / ${section.originalLineCount} satır gösteriliyor`;
+		return `${section.visibleLineCount} / ${section.originalLineCount} satÄ±r gÃ¶steriliyor`;
 	}
 
-	return 'Çıktı uzun olduğu için kısaltıldı';
+	return 'Ã‡Ä±ktÄ± uzun olduÄŸu iÃ§in kÄ±saltÄ±ldÄ±';
 }
 
 function ExpandableTerminalSection({
@@ -81,7 +82,7 @@ function ExpandableTerminalSection({
 			{truncationNote ? <p className={styles['terminalTruncationNote']}>{truncationNote}</p> : null}
 			{showToggle ? (
 				<button className={styles['terminalShowMore']} onClick={onToggle} type="button">
-					{expanded ? 'Kısalt' : 'Tamamını göster'}
+					{expanded ? 'KÄ±salt' : 'TamamÄ±nÄ± gÃ¶ster'}
 				</button>
 			) : null}
 		</section>
@@ -100,6 +101,7 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 		() => formatTerminalOutputSection('command', row.command, { maxChars: 2000, maxLines: 24 }),
 		[row.command],
 	);
+	const commandCopyValue = useMemo(() => formatTerminalCopyText(row.command), [row.command]);
 	const previewSection = useMemo(
 		() => getSectionState('preview', row.preview, expanded.preview),
 		[expanded.preview, row.preview],
@@ -117,10 +119,10 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 	const terminalMeta = useMemo(() => {
 		const parts: string[] = [];
 		if (row.exitCode !== undefined) {
-			parts.push(`Çıkış kodu: ${row.exitCode}`);
+			parts.push(`Ã‡Ä±kÄ±ÅŸ kodu: ${row.exitCode}`);
 		}
 		if (durationLabel) {
-			parts.push(`Süre: ${durationLabel}`);
+			parts.push(`SÃ¼re: ${durationLabel}`);
 		}
 		return parts;
 	}, [durationLabel, row.exitCode]);
@@ -150,45 +152,47 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 									{commandSection.value}
 								</pre>
 							</section>
-							<RunaButton
-								aria-label={
-									copyState === 'copied'
-										? 'Komut kopyalandı'
-										: copyState === 'failed'
-											? 'Komut kopyalanamadı'
-											: 'Komutu kopyala'
-								}
-								onClick={async () => {
-									if (!globalThis.navigator?.clipboard?.writeText) {
-										setCopyState('failed');
-										globalThis.setTimeout(() => setCopyState('idle'), 1000);
-										return;
+							{commandCopyValue ? (
+								<RunaButton
+									aria-label={
+										copyState === 'copied'
+											? 'Komut kopyalandÄ±'
+											: copyState === 'failed'
+												? 'Komut kopyalanamadÄ±'
+												: 'Komutu kopyala'
 									}
+									onClick={async () => {
+										if (!globalThis.navigator?.clipboard?.writeText) {
+											setCopyState('failed');
+											globalThis.setTimeout(() => setCopyState('idle'), 1000);
+											return;
+										}
 
-									try {
-										await globalThis.navigator.clipboard.writeText(commandSection.value);
-										setCopyState('copied');
-									} catch {
-										setCopyState('failed');
-									} finally {
-										globalThis.setTimeout(() => setCopyState('idle'), 1000);
-									}
-								}}
-								variant="secondary"
-							>
-								<Copy aria-hidden size={14} />
-								{copyState === 'copied'
-									? 'Kopyalandı'
-									: copyState === 'failed'
-										? 'Kopyalanamadı'
-										: 'Komutu kopyala'}
-							</RunaButton>
+										try {
+											await globalThis.navigator.clipboard.writeText(commandCopyValue);
+											setCopyState('copied');
+										} catch {
+											setCopyState('failed');
+										} finally {
+											globalThis.setTimeout(() => setCopyState('idle'), 1000);
+										}
+									}}
+									variant="secondary"
+								>
+									<Copy aria-hidden size={14} />
+									{copyState === 'copied'
+										? 'KopyalandÄ±'
+										: copyState === 'failed'
+											? 'KopyalanamadÄ±'
+											: 'Komutu kopyala'}
+								</RunaButton>
+							) : null}
 						</div>
 					) : null}
 					{terminalMeta.length > 0 ? (
 						<section className={styles['terminalSection']}>
 							<h5 className={styles['terminalSectionHeader']}>Komut bilgisi</h5>
-							<p className={styles['rowMeta']}>{terminalMeta.join(' • ')}</p>
+							<p className={styles['rowMeta']}>{terminalMeta.join(' â€¢ ')}</p>
 						</section>
 					) : null}
 					{previewSection ? (
@@ -220,7 +224,7 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 					) : null}
 				</>
 			) : (
-				<p className={styles['terminalEmpty']}>Bu araç için gösterilecek teknik çıktı yok.</p>
+				<p className={styles['terminalEmpty']}>Bu araÃ§ iÃ§in gÃ¶sterilecek teknik Ã§Ä±ktÄ± yok.</p>
 			)}
 		</div>
 	);

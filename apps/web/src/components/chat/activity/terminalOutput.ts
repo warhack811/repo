@@ -73,8 +73,8 @@ export function formatTerminalOutputSection(
 		return null;
 	}
 
-	const normalized = normalizeNewlines(input).trim();
-	if (normalized.length === 0) {
+	const normalized = normalizeNewlines(input);
+	if (normalized.trim().length === 0) {
 		return null;
 	}
 
@@ -102,6 +102,19 @@ export function formatTerminalOutputSection(
 		value: visible,
 		visibleLineCount,
 	};
+}
+
+export function formatTerminalCopyText(input: string | undefined): string | undefined {
+	if (typeof input !== 'string') {
+		return undefined;
+	}
+
+	const normalized = normalizeNewlines(input);
+	if (normalized.trim().length === 0) {
+		return undefined;
+	}
+
+	return redactTerminalText(normalized);
 }
 
 export function formatDurationLabel(durationMs: number | undefined): string | undefined {
