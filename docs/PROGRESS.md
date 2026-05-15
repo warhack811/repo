@@ -13,6 +13,31 @@
 - **Odak:** UI restructure kapandi; sirada provider/runtime baseline genisletmesi ve plan-disi UI bosluklari (empty state personalization, markdown rendering).
 - **Son Onemli Olay:** 2026-05-14 tarihinde "UI Restructure PR-1..PR-12" sureci kapatildi; tasarim dili `docs/RUNA-DESIGN-LANGUAGE.md` icinde tek otoriteye kilitlendi, design-language lock test PR-1..9 + Settings IA + PR-11 memo discipline kurallarini kapsayacak sekilde genisletildi, Lighthouse + screen reader + dead-css kanitlari arsivlendi.
 
+### TASK-UI-RESTRUCTURE-PR-14-RUN-ACTIVITY-FEED-INLINE-APPROVAL - 15 Mayis 2026
+
+- Kapsam: `run_timeline_block`, `tool_result`, `approval_block` yuzeyleri ortak activity feed diline tasindi; backend contract/protocol degistirilmedi.
+- Uygulama:
+  - Yeni activity seam eklendi: `apps/web/src/components/chat/activity/RunActivityFeed.tsx`, `RunActivityRow.tsx`, `TerminalDetails.tsx`, `ApprovalActivityRow.tsx`, `runActivityAdapter.ts`, `RunActivityFeed.module.css`.
+  - `RunTimelineBlock.tsx`, `ToolResultBlock.tsx`, `ApprovalBlock.tsx` yeni adapter + feed katmanina baglandi.
+  - Tool satirlari varsayilan kapali detay (Ayrintilar) ile render ediliyor; terminal detay paneli `stdout/stderr/exit code/duration/command` alanlarini varsa acilir alanda gosteriyor.
+  - Approval artik feed icinde inline risk satiri olarak geliyor; pending durumda `Reddet/Onayla`, resolved durumda kompakt durum satiri (`Izin verildi/Reddedildi/Suresi doldu/Vazgecildi`) gorunuyor.
+  - Developer mode teknik alanlari ana satira tasimadan acilir detay altinda koruyor; non-dev modda `call_id`, `tool_name`, raw id/payload gizli.
+- Test:
+  - Yeni unit: `apps/web/src/components/chat/activity/runActivityAdapter.test.ts`
+  - Guncellenen render/lock testleri: `apps/web/src/components/chat/blocks/BlockRenderer.test.tsx`, `apps/web/src/test/design-language-lock.test.ts`
+  - Komut sonuclari:
+    - `pnpm.cmd --filter @runa/web lint` PASS
+    - `pnpm.cmd --filter @runa/web typecheck` PASS
+    - `pnpm.cmd --filter @runa/web test` PASS (`42` dosya / `158` test PASS, `1` skipped)
+    - `pnpm.cmd --filter @runa/web build` PASS
+    - `pnpm.cmd --filter @runa/web test -- src/components/chat/activity/runActivityAdapter.test.ts src/components/chat/blocks/BlockRenderer.test.tsx src/test/design-language-lock.test.ts src/pages/OperatorDeveloperIsolation.test.tsx` PASS
+- Manual smoke:
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-07-3-smoke.spec.ts --config playwright.config.ts --workers=1` FAIL
+  - Neden: spec eski approval fixture metnine (`guven karari`) sabit; PR-14 ile approval satiri dili degistigi icin locator bulamadi.
+- Acik risk:
+  - Tool output tarafinda ek redaction utility eklenmedi; risk azaltimi icin teknik detaylar varsayilan kapali tutuldu.
+  - Activity feed icin yeni browser smoke fixture'lari ayrica guncellenmeli (eski approval metin lock'u ile cakisma var).
+
 ### TASK-UI-RESTRUCTURE-PR-3-CHAT-SURFACE - 14 Mayis 2026
 
 - Kapsam: Chat transcript ritmi, day divider akisi, tool-result yuzeyi ve tekrarli run panel yogunlugu azaltma hedefleri.
