@@ -13,6 +13,20 @@
 - **Odak:** UI restructure kapandi; sirada provider/runtime baseline genisletmesi ve plan-disi UI bosluklari (empty state personalization, markdown rendering).
 - **Son Onemli Olay:** 2026-05-14 tarihinde "UI Restructure PR-1..PR-12" sureci kapatildi; tasarim dili `docs/RUNA-DESIGN-LANGUAGE.md` icinde tek otoriteye kilitlendi, design-language lock test PR-1..9 + Settings IA + PR-11 memo discipline kurallarini kapsayacak sekilde genisletildi, Lighthouse + screen reader + dead-css kanitlari arsivlendi.
 
+### TASK-UI-RESTRUCTURE-PR-18-FRESH-COMPETITOR-QUALITY-AUDIT - 15 Mayis 2026
+
+- Base: `e02c542b4a2e0111fddf17443a2582678f7a1eab`
+- Audit-only PR.
+- Added `docs/design/ui-restructure/PR-18-FRESH-COMPETITOR-QUALITY-AUDIT.md`.
+- No product code changes.
+- Validation:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/server typecheck` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (`46` dosya, `279` test PASS, `1` skipped)
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-17-empty-state-smoke.spec.ts --config playwright.config.ts --workers=1` PASS (`2` test)
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-16-markdown-rendering-smoke.spec.ts --config playwright.config.ts --workers=1` ilk deneme FAIL (`Port 4173 is already in use`), rerun PASS (`2` test)
+- Next recommended PR: `PR-19-MESSAGE-ACTIONS-AND-RETRY-LOOP`
+
 ### TASK-UI-RESTRUCTURE-PR-14-RUN-ACTIVITY-FEED-INLINE-APPROVAL - 15 Mayis 2026
 
 - Kapsam: `run_timeline_block`, `tool_result`, `approval_block` yuzeyleri ortak activity feed diline tasindi; backend contract/protocol degistirilmedi.
