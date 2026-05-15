@@ -51,22 +51,12 @@ describe('RunActivityRow terminal details', () => {
 		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Ayrıntıları göster' }));
-		expect(screen.getByText(/160 \/ 420 sat/i)).toBeTruthy();
-		const showMoreButton = screen
-			.getAllByRole('button')
-			.find((button) => button.textContent?.toLowerCase().includes('tamam'));
-		if (!showMoreButton) {
-			throw new Error('Expected show-more button.');
-		}
-		fireEvent.click(showMoreButton);
+		expect(screen.getByText(/160 \/ 420 satır gösteriliyor/i)).toBeTruthy();
+
+		fireEvent.click(screen.getByRole('button', { name: 'Tamamını göster' }));
 		expect(screen.getByText(/line-420/)).toBeTruthy();
-		const collapseButton = screen
-			.getAllByRole('button')
-			.find((button) => button.textContent?.toLowerCase().includes('salt'));
-		if (!collapseButton) {
-			throw new Error('Expected collapse button.');
-		}
-		fireEvent.click(collapseButton);
+
+		fireEvent.click(screen.getByRole('button', { name: 'Kısalt' }));
 		expect(screen.queryByText(/line-420/)).toBeNull();
 	});
 
@@ -107,6 +97,7 @@ describe('RunActivityRow terminal details', () => {
 		if (toggle.getAttribute('aria-expanded') !== 'true') {
 			fireEvent.click(toggle);
 		}
+
 		expect(screen.getByRole('button', { name: 'Komutu kopyala' })).toBeTruthy();
 	});
 
@@ -132,6 +123,7 @@ describe('RunActivityRow terminal details', () => {
 		await waitFor(() => {
 			expect(writeText).toHaveBeenCalledTimes(1);
 		});
+		expect(screen.getByText('Kopyalandı')).toBeTruthy();
 
 		const copied = writeText.mock.calls[0]?.[0];
 		expect(typeof copied).toBe('string');
@@ -158,7 +150,7 @@ describe('RunActivityRow terminal details', () => {
 		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Ayrıntıları göster' }));
-		expect(screen.getByText(/teknik/i)).toBeTruthy();
+		expect(screen.getByText('Bu araç için gösterilecek teknik çıktı yok.')).toBeTruthy();
 	});
 
 	it('keeps call ids and raw tool ids out of non-dev main surface', () => {

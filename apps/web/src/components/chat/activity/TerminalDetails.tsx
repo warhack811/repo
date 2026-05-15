@@ -1,4 +1,4 @@
-﻿import { Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { type ReactElement, useMemo, useState } from 'react';
 
 import { RunaButton } from '../../ui/RunaButton.js';
@@ -51,10 +51,10 @@ function getTruncationNote(section: TerminalOutputSection): string | undefined {
 	}
 
 	if (section.visibleLineCount < section.originalLineCount) {
-		return `${section.visibleLineCount} / ${section.originalLineCount} satÄ±r gÃ¶steriliyor`;
+		return `${section.visibleLineCount} / ${section.originalLineCount} satır gösteriliyor`;
 	}
 
-	return 'Ã‡Ä±ktÄ± uzun olduÄŸu iÃ§in kÄ±saltÄ±ldÄ±';
+	return 'Çıktı uzun olduğu için kısaltıldı';
 }
 
 function ExpandableTerminalSection({
@@ -82,7 +82,7 @@ function ExpandableTerminalSection({
 			{truncationNote ? <p className={styles['terminalTruncationNote']}>{truncationNote}</p> : null}
 			{showToggle ? (
 				<button className={styles['terminalShowMore']} onClick={onToggle} type="button">
-					{expanded ? 'KÄ±salt' : 'TamamÄ±nÄ± gÃ¶ster'}
+					{expanded ? 'Kısalt' : 'Tamamını göster'}
 				</button>
 			) : null}
 		</section>
@@ -119,10 +119,10 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 	const terminalMeta = useMemo(() => {
 		const parts: string[] = [];
 		if (row.exitCode !== undefined) {
-			parts.push(`Ã‡Ä±kÄ±ÅŸ kodu: ${row.exitCode}`);
+			parts.push(`Çıkış kodu: ${row.exitCode}`);
 		}
 		if (durationLabel) {
-			parts.push(`SÃ¼re: ${durationLabel}`);
+			parts.push(`Süre: ${durationLabel}`);
 		}
 		return parts;
 	}, [durationLabel, row.exitCode]);
@@ -156,9 +156,9 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 								<RunaButton
 									aria-label={
 										copyState === 'copied'
-											? 'Komut kopyalandÄ±'
+											? 'Komut kopyalandı'
 											: copyState === 'failed'
-												? 'Komut kopyalanamadÄ±'
+												? 'Komut kopyalanamadı'
 												: 'Komutu kopyala'
 									}
 									onClick={async () => {
@@ -181,9 +181,9 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 								>
 									<Copy aria-hidden size={14} />
 									{copyState === 'copied'
-										? 'KopyalandÄ±'
+										? 'Kopyalandı'
 										: copyState === 'failed'
-											? 'KopyalanamadÄ±'
+											? 'Kopyalanamadı'
 											: 'Komutu kopyala'}
 								</RunaButton>
 							) : null}
@@ -192,7 +192,7 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 					{terminalMeta.length > 0 ? (
 						<section className={styles['terminalSection']}>
 							<h5 className={styles['terminalSectionHeader']}>Komut bilgisi</h5>
-							<p className={styles['rowMeta']}>{terminalMeta.join(' â€¢ ')}</p>
+							<p className={styles['rowMeta']}>{terminalMeta.join(' • ')}</p>
 						</section>
 					) : null}
 					{previewSection ? (
@@ -224,7 +224,7 @@ export function TerminalDetails({ row }: TerminalDetailsProps): ReactElement {
 					) : null}
 				</>
 			) : (
-				<p className={styles['terminalEmpty']}>Bu araÃ§ iÃ§in gÃ¶sterilecek teknik Ã§Ä±ktÄ± yok.</p>
+				<p className={styles['terminalEmpty']}>Bu araç için gösterilecek teknik çıktı yok.</p>
 			)}
 		</div>
 	);
