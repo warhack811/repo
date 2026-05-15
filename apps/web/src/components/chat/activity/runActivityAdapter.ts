@@ -46,6 +46,7 @@ export type RunActivityRow =
 			readonly developerDetail?: ReactNode;
 			readonly durationMs?: number;
 			readonly exitCode?: number | string;
+			readonly preview?: string;
 			readonly stderr?: string;
 			readonly stdout?: string;
 			readonly toolName?: string;
@@ -94,6 +95,15 @@ function asExitCode(value: unknown): number | string | undefined {
 
 function asDurationMs(value: unknown): number | undefined {
 	return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function normalizeComparableText(value: string | undefined): string | undefined {
+	if (typeof value !== 'string') {
+		return undefined;
+	}
+
+	const normalized = value.trim().toLowerCase();
+	return normalized.length > 0 ? normalized : undefined;
 }
 
 function mapTimelineStatus(item: TimelineBlock['payload']['items'][number]): RunActivityStatus {
@@ -305,6 +315,15 @@ export function adaptToolResultBlock(
 	const stderr = asText(technicalPayload.stderr);
 	const exitCode = asExitCode(technicalPayload.exit_code);
 	const durationMs = asDurationMs(technicalPayload.duration_ms);
+	const rawPreview = asText(block.payload.result_preview?.summary_text);
+	const normalizedPreview = normalizeComparableText(rawPreview);
+	const normalizedSummary = normalizeComparableText(block.payload.summary);
+	const normalizedDetail = normalizeComparableText(detail);
+	const preview =
+		normalizedPreview &&
+		(normalizedPreview === normalizedSummary || normalizedPreview === normalizedDetail)
+			? undefined
+			: rawPreview;
 	const developerDetail = isDeveloperMode
 		? [`Araç: ${block.payload.tool_name}`, `Çağrı: ${block.payload.call_id}`].join('\n')
 		: undefined;
@@ -317,6 +336,7 @@ export function adaptToolResultBlock(
 		exitCode,
 		id: block.id,
 		kind: 'tool',
+		preview,
 		status,
 		stderr,
 		stdout,

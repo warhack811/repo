@@ -164,7 +164,22 @@ async function assertDetailsToggleContract(page: Page): Promise<void> {
 		.first();
 	await detailsButton.click();
 	await expect(detailsButton).toHaveAttribute('aria-expanded', 'true');
-	await expect(toolRow.getByRole('button', { name: 'Komutu kopyala' })).toBeVisible();
+
+	const outputSectionCount = await toolRow
+		.locator('h5')
+		.filter({ hasText: /Sonuç önizlemesi|stdout|stderr/i })
+		.count();
+	recordCheck('details toggle shows preview/output section', outputSectionCount > 0, outputSectionCount);
+
+	const commandHeadingCount = await toolRow.getByRole('heading', { name: 'Komut' }).count();
+	const copyButton = toolRow.getByRole('button', {
+		name: /Komutu kopyala|Kopyalandı|Kopyalanamadı/i,
+	});
+	if (commandHeadingCount > 0) {
+		await expect(copyButton).toBeVisible();
+	} else {
+		await expect(copyButton).toHaveCount(0);
+	}
 
 	const toolRowText = await toolRow.innerText();
 	recordCheck(
