@@ -13,7 +13,7 @@ export function MermaidBlock({ code }: MermaidBlockProps) {
 	}
 
 	return (
-		<Suspense fallback={<div className="diagram-skeleton">Loading diagram...</div>}>
+		<Suspense fallback={<div className="diagram-skeleton">Diyagram yükleniyor...</div>}>
 			<MermaidRenderer code={code} />
 		</Suspense>
 	);

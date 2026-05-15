@@ -93,6 +93,12 @@ const activityTerminalOutputPath = join(
 	'terminalOutput.ts',
 );
 
+const streamdownMessagePath = join(webSrcRoot, 'lib', 'streamdown', 'StreamdownMessage.tsx');
+const streamdownCodeBlockPath = join(webSrcRoot, 'lib', 'streamdown', 'CodeBlock.tsx');
+const streamdownMermaidBlockPath = join(webSrcRoot, 'lib', 'streamdown', 'MermaidBlock.tsx');
+const streamdownMermaidRendererPath = join(webSrcRoot, 'lib', 'streamdown', 'MermaidRenderer.tsx');
+const streamdownMarkdownLinksPath = join(webSrcRoot, 'lib', 'streamdown', 'markdownLinks.ts');
+
 function collectFiles(dir: string, extension: string): string[] {
 	const entries = readdirSync(dir, { withFileTypes: true });
 	const files: string[] = [];
@@ -469,6 +475,31 @@ describe('activity text encoding guard', () => {
 		const violations: string[] = [];
 
 		for (const filePath of activityFiles) {
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+});
+
+describe('streamdown text encoding guard', () => {
+	it('streamdown files do not contain mojibake text', () => {
+		const streamdownFiles = [
+			streamdownMessagePath,
+			streamdownCodeBlockPath,
+			streamdownMermaidBlockPath,
+			streamdownMermaidRendererPath,
+			streamdownMarkdownLinksPath,
+		];
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of streamdownFiles) {
 			const source = readFileSync(filePath, 'utf8');
 			for (const pattern of mojibakePatterns) {
 				if (source.includes(pattern)) {

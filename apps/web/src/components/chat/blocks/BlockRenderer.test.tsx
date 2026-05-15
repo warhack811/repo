@@ -10,7 +10,21 @@ const sampleBlocks: readonly RenderBlock[] = [
 	{
 		created_at: createdAt,
 		id: 'text:block',
-		payload: { text: 'Hello **Runa**' },
+		payload: { text: '# Başlık\n**Runa** paragrafı.\n\n- liste 1\n- liste 2' },
+		schema_version: 1,
+		type: 'text',
+	},
+	{
+		created_at: createdAt,
+		id: 'text:block:link',
+		payload: { text: '[güvenli](https://example.com) [zararlı](javascript:alert(1))' },
+		schema_version: 1,
+		type: 'text',
+	},
+	{
+		created_at: createdAt,
+		id: 'text:block:code',
+		payload: { text: 'Bu `inline` kod ve ```ts\nconst a = 1;\n```' },
 		schema_version: 1,
 		type: 'text',
 	},
@@ -286,6 +300,65 @@ describe('BlockRenderer', () => {
 			expect(markup.length).toBeGreaterThan(0);
 			expect(markup).not.toContain('Unsupported block');
 		}
+	});
+
+	it('renders text block markdown as semantic HTML', () => {
+		const textBlock = sampleBlocks.find((block) => block.id === 'text:block');
+
+		if (!textBlock) {
+			throw new Error('Expected text fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={textBlock} />);
+
+		expect(markup).toContain('runa-markdown');
+		expect(markup).toContain('data-level="1"');
+		expect(markup).toContain('runa-markdown__list');
+	});
+
+	it('does not render raw markdown syntax in text blocks', () => {
+		const textBlock = sampleBlocks.find((block) => block.id === 'text:block');
+
+		if (!textBlock) {
+			throw new Error('Expected text fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={textBlock} />);
+
+		expect(markup).not.toContain('# Başlık');
+		expect(markup).toContain('Başlık');
+		expect(markup).not.toContain('**Runa**');
+		expect(markup).toContain('Runa');
+	});
+
+	it('renders safe links and blocks unsafe links in text blocks', () => {
+		const linkBlock = sampleBlocks.find((block) => block.id === 'text:block:link');
+
+		if (!linkBlock) {
+			throw new Error('Expected text link fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={linkBlock} />);
+
+		expect(markup).toContain('target="_blank"');
+		expect(markup).toContain('noopener');
+		expect(markup).toContain('noreferrer');
+		expect(markup).not.toContain('href="javascript:');
+		expect(markup).toContain('güvenli');
+		expect(markup).toContain('zararlı');
+	});
+
+	it('renders inline code and fenced code blocks in text blocks', () => {
+		const codeBlock = sampleBlocks.find((block) => block.id === 'text:block:code');
+
+		if (!codeBlock) {
+			throw new Error('Expected text code fixture block.');
+		}
+
+		const markup = renderToStaticMarkup(<BlockRenderer block={codeBlock} />);
+
+		expect(markup).toContain('runa-markdown__inline-code');
+		expect(markup).toContain('runa-code-block');
 	});
 
 	it('keeps raw runtime/debug blocks out of the default chat surface', () => {
