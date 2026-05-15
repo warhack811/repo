@@ -109,6 +109,22 @@ describe('MessageActionBar', () => {
 		expect(container.innerHTML).toBe('');
 	});
 
+	it('handles clipboard unavailable gracefully', async () => {
+		const originalClipboard = navigator.clipboard;
+		Object.assign(navigator, { clipboard: undefined });
+
+		const message = makeMessage({ role: 'user' });
+		const model = makeModel({ canCopy: true, copyText: 'hello' });
+		render(<MessageActionBar actionModel={model} message={message} onPreparePrompt={vi.fn()} />);
+
+		fireEvent.click(screen.getByText('Kopyala'));
+		await vi.waitFor(() => {
+			expect(screen.getByText('Kopyalanamadı')).toBeTruthy();
+		});
+
+		Object.assign(navigator, { clipboard: originalClipboard });
+	});
+
 	it('does not contain forbidden technical strings', () => {
 		const message = makeMessage({
 			role: 'user',

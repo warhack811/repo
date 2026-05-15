@@ -69,13 +69,10 @@ for (const viewport of viewports) {
 
 test('message actions smoke at desktop with isRunning=true', async ({ page }) => {
 	await page.setViewportSize({ height: 900, width: 1440 });
-	await page.goto('/tests/visual/ui-overhaul-19-message-actions-smoke.html');
+	await page.goto('/tests/visual/ui-overhaul-19-message-actions-smoke.html?running=1');
 
-	// In the default fixture, retry is visible
-	await expect(page.getByText('Tekrar dene').first()).toBeVisible();
-
-	// We can't dynamically set isRunning without rerendering, so we verify
-	// the fixture renders correctly with actions
+	// Running state: retry hidden, copy and edit visible
+	await expect(page.getByText('Tekrar dene')).toHaveCount(0);
 	await expect(page.getByText('Kopyala').first()).toBeVisible();
 	await expect(page.getByText('Düzenle').first()).toBeVisible();
 
@@ -87,4 +84,7 @@ test('message actions smoke at desktop with isRunning=true', async ({ page }) =>
 	for (const pattern of mojibakePatterns) {
 		expect(bodyText, `desktop mojibake pattern: "${pattern}"`).not.toContain(pattern);
 	}
+
+	// Horizontal overflow
+	await assertNoHorizontalOverflow(page, 1440, 'desktop');
 });

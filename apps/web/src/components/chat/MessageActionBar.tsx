@@ -33,8 +33,18 @@ export function MessageActionBar({
 			return;
 		}
 
-		navigator.clipboard
-			.writeText(actionModel.copyText)
+		const writeText = navigator.clipboard?.writeText;
+
+		if (!writeText) {
+			setCopyState('error');
+			setTimeout(() => {
+				setCopyState('idle');
+			}, 1000);
+			return;
+		}
+
+		writeText
+			.call(navigator.clipboard, actionModel.copyText)
 			.then(() => {
 				setCopyState('success');
 				setTimeout(() => {

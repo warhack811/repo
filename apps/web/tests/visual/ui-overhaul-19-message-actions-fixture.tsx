@@ -41,6 +41,8 @@ const MESSAGES = [
 
 function Fixture() {
 	const [preparedPrompt, setPreparedPrompt] = useState('');
+	const params = new URLSearchParams(window.location.search);
+	const isRunning = params.get('running') === '1';
 
 	return (
 		<main className="runa-page runa-page--chat-product">
@@ -48,6 +50,7 @@ function Fixture() {
 				<PersistedTranscript
 					activeConversationId="conv-1"
 					activeConversationMessages={MESSAGES}
+					isRunning={isRunning}
 					onPreparePrompt={(input) => {
 						setPreparedPrompt(input.prompt);
 					}}
