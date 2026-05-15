@@ -28,14 +28,25 @@ describe('EmptyState greeting and lead', () => {
 
 describe('EmptyState context', () => {
 	it('shows project context as basename, not full path', () => {
-		renderEmptyState({ workingDirectory: 'D:\\ai\\Runa' });
+		const { container } = renderEmptyState({ workingDirectory: 'D:\\ai\\Runa' });
 		expect(screen.getByText('Proje: Runa')).toBeTruthy();
-		expect(screen.queryByText('D:\\ai\\Runa')).toBeNull();
+		expect(container.textContent).not.toContain('D:\\ai\\Runa');
+		expect(container.textContent).not.toContain('D:\\ai\\Runa');
 	});
 
 	it('shows device chip when device label is provided', () => {
 		renderEmptyState({ activeDeviceLabel: "Muhammet'in bilgisayarı" });
 		expect(screen.getByText('Cihaz hazır')).toBeTruthy();
+	});
+
+	it('does not show device chip for empty device label', () => {
+		const { container } = renderEmptyState({ activeDeviceLabel: '' });
+		expect(container.textContent).not.toContain('Cihaz hazır');
+	});
+
+	it('does not show device chip for whitespace device label', () => {
+		const { container } = renderEmptyState({ activeDeviceLabel: '   ' });
+		expect(container.textContent).not.toContain('Cihaz hazır');
 	});
 
 	it('shows conversation chip when count > 0', () => {
@@ -44,15 +55,20 @@ describe('EmptyState context', () => {
 	});
 
 	it('does not show conversation chip when count is 0', () => {
-		renderEmptyState({ conversationCount: 0 });
-		expect(screen.queryByText('0 konuşma')).toBeNull();
+		const { container } = renderEmptyState({ conversationCount: 0 });
+		expect(container.textContent).not.toContain('0 konuşma');
+	});
+
+	it('does not show conversation chip for negative count', () => {
+		const { container } = renderEmptyState({ conversationCount: -1 });
+		expect(container.textContent).not.toContain('-1 konuşma');
 	});
 
 	it('shows no chips when no context', () => {
-		renderEmptyState({});
-		expect(screen.queryByText(/Proje:/)).toBeNull();
-		expect(screen.queryByText('Cihaz hazır')).toBeNull();
-		expect(screen.queryByText(/konuşma/)).toBeNull();
+		const { container } = renderEmptyState({});
+		expect(container.textContent).not.toContain('Proje:');
+		expect(container.textContent).not.toContain('Cihaz hazır');
+		expect(container.textContent).not.toContain('konuşma');
 	});
 });
 
@@ -109,9 +125,9 @@ describe('EmptyState forbidden technical strings', () => {
 	];
 
 	for (const term of forbidden) {
-		it(`does not contain "${term}"`, () => {
-			renderEmptyState();
-			expect(screen.queryByText(term)).toBeNull();
+		it(`does not contain "${term}" in rendered output`, () => {
+			const { container } = renderEmptyState();
+			expect(container.textContent).not.toContain(term);
 		});
 	}
 });
@@ -120,9 +136,9 @@ describe('EmptyState mojibake absence', () => {
 	const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
 
 	for (const pattern of mojibakePatterns) {
-		it(`does not contain mojibake "${pattern}"`, () => {
-			renderEmptyState();
-			expect(screen.queryByText(pattern)).toBeNull();
+		it(`does not contain mojibake "${pattern}" in rendered output`, () => {
+			const { container } = renderEmptyState();
+			expect(container.textContent).not.toContain(pattern);
 		});
 	}
 });

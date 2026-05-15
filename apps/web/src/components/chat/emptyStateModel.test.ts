@@ -59,6 +59,22 @@ describe('getProjectNameFromWorkingDirectory', () => {
 	it('returns null for path with segment > 128 chars', () => {
 		expect(getProjectNameFromWorkingDirectory(`/a/${'b'.repeat(129)}`)).toBeNull();
 	});
+
+	it('returns null for drive root D:\\', () => {
+		expect(getProjectNameFromWorkingDirectory('D:\\')).toBeNull();
+	});
+
+	it('returns null for drive root C:/', () => {
+		expect(getProjectNameFromWorkingDirectory('C:/')).toBeNull();
+	});
+
+	it('returns null for root /', () => {
+		expect(getProjectNameFromWorkingDirectory('/')).toBeNull();
+	});
+
+	it('returns null for multiple slashes', () => {
+		expect(getProjectNameFromWorkingDirectory('////')).toBeNull();
+	});
 });
 
 describe('deriveEmptyStateModel', () => {
@@ -85,6 +101,22 @@ describe('deriveEmptyStateModel', () => {
 			activeDeviceLabel: "Muhammet'in bilgisayarı",
 		});
 		expect(model.contextLine).toBe('Masaüstü cihazın hazır.');
+	});
+
+	it('ignores empty device label', () => {
+		const model = deriveEmptyStateModel({
+			activeDeviceLabel: '',
+		});
+		expect(model.contextLine).toBeNull();
+		expect(model.contextChips).not.toContain('Cihaz hazır');
+	});
+
+	it('ignores whitespace-only device label', () => {
+		const model = deriveEmptyStateModel({
+			activeDeviceLabel: '   ',
+		});
+		expect(model.contextLine).toBeNull();
+		expect(model.contextChips).not.toContain('Cihaz hazır');
 	});
 
 	it('sets contextLine with both project and device', () => {

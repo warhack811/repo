@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const webSrcRoot = join(repoRoot, 'apps', 'web', 'src');
+const webRoot = join(repoRoot, 'apps', 'web');
 const stylesRoot = join(webSrcRoot, 'styles');
 const tokensPath = join(stylesRoot, 'tokens.css');
 const fontsPath = join(stylesRoot, 'fonts.css');
@@ -528,11 +529,19 @@ describe('streamdown text encoding guard', () => {
 	});
 
 	it('empty state files do not contain mojibake text', () => {
-		const emptyStateFiles = [emptyStatePath, emptyStateModelPath];
+		const emptyStateFiles = [
+			emptyStatePath,
+			emptyStateModelPath,
+			join(webRoot, 'tests', 'visual', 'ui-overhaul-17-empty-state-fixture.tsx'),
+		];
 		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
 		const violations: string[] = [];
 
 		for (const filePath of emptyStateFiles) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
 			const source = readFileSync(filePath, 'utf8');
 			for (const pattern of mojibakePatterns) {
 				if (source.includes(pattern)) {
@@ -578,6 +587,11 @@ describe('streamdown text encoding guard', () => {
 			join(webSrcRoot, 'components', 'chat', 'blocks', 'BlockRenderer.test.tsx'),
 			componentsCssPath,
 			emptyStatePath,
+			emptyStateModelPath,
+			join(webSrcRoot, 'components', 'chat', 'emptyStateModel.test.ts'),
+			join(webSrcRoot, 'components', 'chat', 'EmptyState.test.tsx'),
+			join(webRoot, 'tests', 'visual', 'ui-overhaul-17-empty-state-fixture.tsx'),
+			join(webRoot, 'tests', 'visual', 'ui-overhaul-17-empty-state-smoke.html'),
 		];
 		const violations: string[] = [];
 

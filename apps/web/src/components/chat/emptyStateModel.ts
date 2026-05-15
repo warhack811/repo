@@ -99,6 +99,11 @@ export function getProjectNameFromWorkingDirectory(
 		return null;
 	}
 
+	// Root paths and drive roots (D:, C: etc.) should not be shown as project names
+	if (/^[a-zA-Z]:$/u.test(lastSegment)) {
+		return null;
+	}
+
 	return lastSegment;
 }
 
@@ -146,7 +151,9 @@ function buildContextChips(
 export function deriveEmptyStateModel(context?: EmptyStateContext): EmptyStateModel {
 	const now = context?.now;
 	const workingDirectory = context?.workingDirectory;
-	const deviceLabel = context?.activeDeviceLabel ?? null;
+	const rawLabel = context?.activeDeviceLabel;
+	const deviceLabel =
+		rawLabel && typeof rawLabel === 'string' && rawLabel.trim().length > 0 ? rawLabel.trim() : null;
 	const conversationCount = context?.conversationCount ?? 0;
 
 	const projectName = getProjectNameFromWorkingDirectory(workingDirectory);

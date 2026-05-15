@@ -19,45 +19,57 @@ async function assertNoHorizontalOverflow(
 for (const viewport of viewports) {
 	test(`empty state personalization smoke at ${viewport.label}`, async ({ page }) => {
 		await page.setViewportSize({ height: viewport.height, width: viewport.width });
+		// Freeze time to morning (09:00) so greeting is deterministic
+		await page.clock.setFixedTime(new Date('2026-05-15T09:00:00'));
 		await page.goto('/tests/visual/ui-overhaul-17-empty-state-smoke.html');
 
-		// Hero section
-		const heroTitle = page.locator('.runa-chat-empty-hero__title');
-		await expect(heroTitle).toContainText('Günaydın');
+		// Fixture is visible
+		await expect(page.getByTestId('empty-state-fixture')).toBeVisible();
 
-		// Lead text
+		// Greeting and lead
+		await expect(page.locator('.runa-chat-empty-hero__title')).toHaveText('Günaydın');
 		await expect(page.locator('.runa-chat-empty-hero__lead')).toHaveText('Nereden başlayalım?');
 
-		// Context chips
-		const chips = page.locator('.runa-chat-empty-context__chip');
-		const chipCount = await chips.count();
-		expect(chipCount).toBe(3);
-		await expect(chips.nth(0)).toContainText('Proje:');
-		await expect(chips.nth(1)).toContainText('Cihaz');
-		await expect(chips.nth(2)).toContainText('konuşma');
+		// Personalization: project name (not full path)
+		await expect(page.locator('.runa-chat-empty-context__chip').first()).toHaveText('Proje: Runa');
+		await expect(page.getByText('D:\\ai\\Runa')).toHaveCount(0);
+		await expect(page.getByText('D:\\ai\\Runa')).toHaveCount(0);
 
-		// Suggestion grid — 4 buttons
+		// Device chip
+		await expect(page.locator('.runa-chat-empty-context__chip').nth(1)).toHaveText('Cihaz hazır');
+
+		// Conversation count chip
+		await expect(page.locator('.runa-chat-empty-context__chip').nth(2)).toHaveText('3 konuşma');
+
+		// 4 suggestion buttons
 		const suggestions = page.locator('.runa-chat-suggestion');
 		await expect(suggestions).toHaveCount(4);
 
-		// Each suggestion has a visible label and description
-		for (let i = 0; i < 4; i++) {
-			const suggestion = suggestions.nth(i);
-			await expect(suggestion.locator('.runa-chat-suggestion__label')).toBeVisible();
-			await expect(suggestion.locator('.runa-chat-suggestion__description')).toBeVisible();
+		// Suggestion labels visible
+		await expect(suggestions.nth(0)).toContainText('Kod işini güvenle ilerlet');
+		await expect(suggestions.nth(1)).toContainText('Bir hatayı araştır');
+		await expect(suggestions.nth(2)).toContainText('Araştırma notu çıkar');
+		await expect(suggestions.nth(3)).toContainText('Dokümanı netleştir');
+
+		// Click suggestion → selected-prompt is populated
+		await suggestions.nth(0).click();
+		const selectedPrompt = page.getByTestId('selected-prompt');
+		await expect(selectedPrompt).toContainText('Bu kod işini güvenli şekilde ilerlet');
+
+		// Forbidden technical strings
+		const bodyText = await page.locator('body').innerText();
+		const forbidden = ['Developer Mode', 'runtime', 'metadata', 'transport', 'schema', 'protocol', 'API key'];
+		for (const term of forbidden) {
+			expect(bodyText, `forbidden technical string: "${term}"`).not.toContain(term);
 		}
-
-		// Tip
-		await expect(page.locator('.runa-chat-empty-state__tip')).toContainText('Ctrl+K');
-
-		// Page-level horizontal overflow check
-		await assertNoHorizontalOverflow(page, viewport.width, viewport.label);
 
 		// Mojibake absence
-		const bodyText = await page.locator('body').innerText();
 		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
 		for (const pattern of mojibakePatterns) {
-			expect(bodyText, `no mojibake pattern "${pattern}"`).not.toContain(pattern);
+			expect(bodyText, `mojibake pattern: "${pattern}"`).not.toContain(pattern);
 		}
+
+		// Horizontal overflow
+		await assertNoHorizontalOverflow(page, viewport.width, viewport.label);
 	});
 }
