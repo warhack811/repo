@@ -1,6 +1,6 @@
 import type { UploadAttachmentResponse } from '@runa/types';
 import type { ChangeEvent, ReactElement, ReactNode } from 'react';
-import { useId, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { ModelAttachment } from '../../ws-types.js';
 import styles from './FileUploadButton.module.css';
@@ -150,9 +150,9 @@ export function FileUploadButton({
 	onAttachmentUploaded,
 	onUploadStateChange,
 }: FileUploadButtonProps): ReactElement {
-	const inputId = useId();
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
+	const isDisabled = disabled || isUploading;
 
 	async function handleFileSelection(event: ChangeEvent<HTMLInputElement>): Promise<void> {
 		const file = event.target.files?.[0];
@@ -233,26 +233,28 @@ export function FileUploadButton({
 			<input
 				ref={inputRef}
 				accept={UPLOAD_ACCEPT}
-				disabled={disabled || isUploading}
-				id={inputId}
+				disabled={isDisabled}
 				onChange={(event) => {
 					void handleFileSelection(event);
 				}}
 				className={styles['input']}
 				type="file"
 			/>
-			<label
-				aria-disabled={disabled || isUploading}
+			<button
 				aria-label={isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
-				htmlFor={inputId}
 				className={styles['label']}
+				disabled={isDisabled}
+				onClick={() => {
+					inputRef.current?.click();
+				}}
+				type="button"
 				title={isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
 			>
 				{icon}
 				<span className="runa-chat-visually-hidden">
 					{isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
 				</span>
-			</label>
+			</button>
 		</>
 	);
 }

@@ -177,16 +177,18 @@ export function ChatComposerSurface({
 			aria-label={showEmptyIntro ? undefined : 'Mesaj yaz'}
 			aria-labelledby={showEmptyIntro ? 'chat-composer-heading' : undefined}
 		>
-			<div className={`runa-chat-composer-surface__intro ${styles['intro']}`}>
-				<div className={styles['eyebrow']}>Sohbet</div>
-				<h2 id="chat-composer-heading" className={styles['title']}>
-					Neyi ilerletmek istiyorsun?
-				</h2>
-				<div className="runa-subtle-copy">
-					Bugün ne yapmak istersin? Kısa yazabilirsin; kaynak, dosya ve onay gereken adımlar
-					birlikte toparlanır.
+			{showEmptyIntro ? (
+				<div className={`runa-chat-composer-surface__intro ${styles['intro']}`}>
+					<div className={styles['eyebrow']}>Sohbet</div>
+					<h2 id="chat-composer-heading" className={styles['title']}>
+						Neyi ilerletmek istiyorsun?
+					</h2>
+					<div className="runa-subtle-copy">
+						Bugün ne yapmak istersin? Kısa yazabilirsin; kaynak, dosya ve onay gereken adımlar
+						birlikte toparlanır.
+					</div>
 				</div>
-			</div>
+			) : null}
 
 			{showDeveloperControls && !apiKey.trim() && isRuntimeConfigReady ? (
 				<div className={`runa-alert runa-alert--warning ${styles['alert']}`}>
