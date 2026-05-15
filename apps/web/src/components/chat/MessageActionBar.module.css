@@ -1,8 +1,11 @@
 .root {
+	border: 0;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 4px;
-	margin-top: 4px;
+	margin: 4px 0 0;
+	min-inline-size: 0;
+	padding: 0;
 }
 
 .actionButton {

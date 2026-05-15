@@ -109,6 +109,25 @@ describe('MessageActionBar', () => {
 		expect(container.innerHTML).toBe('');
 	});
 
+	it('preserves hook order across conditional render', () => {
+		const message = makeMessage({ role: 'user' });
+		const { container, rerender } = render(
+			<MessageActionBar actionModel={makeModel()} message={message} onPreparePrompt={vi.fn()} />,
+		);
+
+		expect(container.innerHTML).toBe('');
+
+		rerender(
+			<MessageActionBar
+				actionModel={makeModel({ canCopy: true, copyText: 'hello' })}
+				message={message}
+				onPreparePrompt={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getByText('Kopyala')).toBeTruthy();
+	});
+
 	it('handles clipboard unavailable gracefully', async () => {
 		const originalClipboard = navigator.clipboard;
 		Object.assign(navigator, { clipboard: undefined });

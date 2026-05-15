@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { ReactElement } from 'react';
 
 import type { ConversationMessage } from '../../hooks/useConversations.js';
@@ -28,7 +28,7 @@ export function MessageActionBar({
 		return null;
 	}
 
-	const handleCopy = useCallback(() => {
+	function handleCopy() {
 		if (!actionModel.copyText || copyState !== 'idle') {
 			return;
 		}
@@ -57,7 +57,7 @@ export function MessageActionBar({
 					setCopyState('idle');
 				}, 1000);
 			});
-	}, [actionModel.copyText, copyState]);
+	}
 
 	return (
 		<fieldset className={styles['root']} aria-label="Mesaj aksiyonları">
