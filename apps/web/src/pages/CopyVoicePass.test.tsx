@@ -184,7 +184,8 @@ describe('copy voice pass', () => {
 	it('keeps normal user surfaces in one Turkish product voice', () => {
 		const markup = renderNormalSurfaces();
 
-		expect(markup).toContain('Neyi ilerletmek istiyorsun?');
+		expect(markup).not.toContain('Neyi ilerletmek istiyorsun?');
+		expect(markup).toContain('Günaydın');
 		expect(markup).toContain('Kod yaz veya gözden geçir');
 		expect(markup).toContain('Bağlı cihaz yok');
 
