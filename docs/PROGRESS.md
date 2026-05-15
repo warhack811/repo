@@ -807,3 +807,27 @@
   - Kod ve local/package smoke seviyesinde kalan kritik risk gorulmedi.
   - Gercek staging/production credential ile `smoke:live-auth` yeniden kosulmadan canli ortam kaniti tamamlanmis sayilmaz (operasyonel/environment blocker).
 
+### PR-17: Empty state personalization (15 Mayis 2026)
+
+**Amac:** Empty chat durumunu mevcut client-side baglam (workingDirectory basename, device label, conversation count) ile kisisellestirerek daha baglamli ve yardimci hale getirmek.
+
+**Degisiklikler:**
+- **Yeni model:** `emptyStateModel.ts` — `deriveEmptyStateModel()` pure fonksiyonu ve `getGreeting()`, `getProjectNameFromWorkingDirectory()` helper'lari. Model `contextLine`, `contextChips`, `suggestions` (4 adet: code, review, research, document) ve `lead` (`Nereden baslayalim?`) doner. Edge-case'ler: drive root (D:\ -> null), empty/whitespace device label -> null.
+- **EmptyState.tsx:** Yeni props (`workingDirectory`, `activeDeviceLabel`, `conversationCount`). Personalization chips (proje adi, cihaz hazir, konusma sayisi) ile suggestion grid (icon + label + description). `aria-label` butonlarda. BOM kaldirildi.
+- **ChatPage.tsx:** Mevcut runtime/devices/conversations verisi EmptyState'e prop olarak gecirildi.
+- **CSS:** Sadece `components.css` icinde yeni class'lar: `.runa-chat-empty-hero__context`, `.runa-chat-empty-context`/`__chip`, `.runa-chat-suggestion__copy`/`__label`/`__description`. `primitives.css` kapsam disi tutuldu.
+- **Testler:**
+  - `emptyStateModel.test.ts`: 31 test — model unit + edge-case (root path, empty device).
+  - `EmptyState.test.tsx`: 27 test — component render, context, suggestions, `container.textContent` ile forbidden/mojibake taramasi, tam path leak, empty/negative edge-case.
+  - `ChatFirstShell.test.tsx`, `CopyVoicePass.test.tsx`: assertion guncellendi.
+  - `design-language-lock.test.ts`: empty state BOM, mojibake, forbidden technical strings, CSS contract guard'lari genisletildi; fixture dosyalari da BOM guard kapsaminda.
+- **Visual smoke:** Gercek React `EmptyState` component'ini render eden TSX fixture + Playwright spec. Dogrulamalar: greeting, lead, project chip (tam path leak yok), device chip, conversation chip, 4 suggestion label, click callback ile `selected-prompt` dolmasi, forbidden technical strings, mojibake, horizontal overflow (390/320px).
+
+**Sonuclar:**
+- `pnpm.cmd --filter @runa/web lint` PASS
+- `pnpm.cmd --filter @runa/web typecheck` PASS
+- `pnpm.cmd --filter @runa/web test` PASS (46 dosya / 279 test PASS, 1 skipped)
+- `pnpm.cmd --filter @runa/web build` PASS
+- `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-17-empty-state-smoke.spec.ts --config playwright.config.ts --workers=1` PASS (2 test — gercek EmptyState fixture ile)
+
+

@@ -9,12 +9,14 @@ import { describe, expect, it } from 'vitest';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const webSrcRoot = join(repoRoot, 'apps', 'web', 'src');
+const webRoot = join(repoRoot, 'apps', 'web');
 const stylesRoot = join(webSrcRoot, 'styles');
 const tokensPath = join(stylesRoot, 'tokens.css');
 const fontsPath = join(stylesRoot, 'fonts.css');
 const designTokensPath = join(webSrcRoot, 'lib', 'design-tokens.ts');
 const hafizaMarkPath = join(webSrcRoot, 'components', 'ui', 'HafizaMark.tsx');
 const emptyStatePath = join(webSrcRoot, 'components', 'chat', 'EmptyState.tsx');
+const emptyStateModelPath = join(webSrcRoot, 'components', 'chat', 'emptyStateModel.ts');
 const removedRightRailPath = join(webSrcRoot, 'components', 'chat', `Work${'Insight'}Panel.tsx`);
 const chatLayoutPath = join(webSrcRoot, 'components', 'chat', 'ChatLayout.tsx');
 const appShellPath = join(webSrcRoot, 'components', 'app', 'AppShell.tsx');
@@ -526,6 +528,54 @@ describe('streamdown text encoding guard', () => {
 		expect(violations).toEqual([]);
 	});
 
+	it('empty state files do not contain mojibake text', () => {
+		const emptyStateFiles = [
+			emptyStatePath,
+			emptyStateModelPath,
+			join(webRoot, 'tests', 'visual', 'ui-overhaul-17-empty-state-fixture.tsx'),
+		];
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of emptyStateFiles) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('empty state normal copy has no forbidden technical strings', () => {
+		const forbidden = [
+			'Developer Mode',
+			'runtime',
+			'metadata',
+			'transport',
+			'schema',
+			'protocol',
+			'API key',
+		];
+		const source = readFileSync(emptyStatePath, 'utf8');
+		for (const term of forbidden) {
+			expect(source, `forbidden term in EmptyState.tsx: "${term}"`).not.toContain(term);
+		}
+	});
+
+	it('components.css contains empty state contract classes', () => {
+		const css = readFileSync(componentsCssPath, 'utf8');
+		expect(css).toContain('.runa-chat-empty-hero__context');
+		expect(css).toContain('.runa-chat-empty-context__chip');
+		expect(css).toContain('.runa-chat-suggestion__description');
+	});
+
 	it('streamdown files and related files are UTF-8 without BOM', () => {
 		const bomFiles = [
 			streamdownMessagePath,
@@ -536,6 +586,12 @@ describe('streamdown text encoding guard', () => {
 			join(webSrcRoot, 'lib', 'streamdown', 'StreamdownMessage.test.tsx'),
 			join(webSrcRoot, 'components', 'chat', 'blocks', 'BlockRenderer.test.tsx'),
 			componentsCssPath,
+			emptyStatePath,
+			emptyStateModelPath,
+			join(webSrcRoot, 'components', 'chat', 'emptyStateModel.test.ts'),
+			join(webSrcRoot, 'components', 'chat', 'EmptyState.test.tsx'),
+			join(webRoot, 'tests', 'visual', 'ui-overhaul-17-empty-state-fixture.tsx'),
+			join(webRoot, 'tests', 'visual', 'ui-overhaul-17-empty-state-smoke.html'),
 		];
 		const violations: string[] = [];
 

@@ -1061,6 +1061,29 @@ pre {
 	margin: 0;
 }
 
+.runa-chat-empty-hero__context {
+	color: var(--ink-2);
+	font-size: 14px;
+	margin: 0;
+}
+
+.runa-chat-empty-context {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.runa-chat-empty-context__chip {
+	background: color-mix(in srgb, var(--ink-1) 8%, transparent);
+	border-radius: var(--radius-input);
+	color: var(--ink-2);
+	font-size: 12px;
+	font-weight: 600;
+	padding: 3px 9px;
+	white-space: nowrap;
+	line-height: 1.5;
+}
+
 .runa-chat-empty-state__copy {
 	display: grid;
 	gap: 8px;
@@ -1110,14 +1133,21 @@ pre {
 	margin-top: 2px;
 }
 
-.runa-chat-suggestion span {
+.runa-chat-suggestion__copy {
 	display: grid;
-	gap: 5px;
+	gap: 4px;
+	min-width: 0;
 }
 
-.runa-chat-suggestion strong {
+.runa-chat-suggestion__label {
 	color: var(--ink-1);
 	font-size: 14px;
+}
+
+.runa-chat-suggestion__description {
+	color: var(--ink-2);
+	font-size: 12px;
+	line-height: 1.4;
 }
 
 .runa-chat-suggestion:hover {
