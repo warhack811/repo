@@ -190,7 +190,7 @@ describe('copy voice pass', () => {
 
 			expect(markup).not.toContain('Neyi ilerletmek istiyorsun?');
 			expect(markup).toContain('Günaydın');
-			expect(markup).toContain('Kod yaz veya gözden geçir');
+			expect(markup).toContain('Kod işini güvenle ilerlet');
 			expect(markup).toContain('Bağlı cihaz yok');
 
 			for (const phrase of forbiddenUserCopy) {

@@ -247,7 +247,12 @@ export function ChatPage({
 	) : null;
 
 	const emptyRunTimelineContent = (
-		<EmptyState onSubmitSuggestion={(suggestionPrompt) => setPrompt(suggestionPrompt)} />
+		<EmptyState
+			activeDeviceLabel={selectedDesktopDevice ? activeDesktopDeviceLabel : null}
+			conversationCount={conversationList.length}
+			onSubmitSuggestion={(suggestionPrompt) => setPrompt(suggestionPrompt)}
+			workingDirectory={workingDirectory}
+		/>
 	);
 
 	useEffect(() => {

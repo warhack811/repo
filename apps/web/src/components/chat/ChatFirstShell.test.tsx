@@ -30,11 +30,10 @@ describe('chat-first shell pieces', () => {
 	it('renders honest first-impression suggestions', () => {
 		const markup = renderToStaticMarkup(<EmptyState onSubmitSuggestion={() => undefined} />);
 
-		expect(markup).toContain('Kod yaz veya gözden geçir');
-		expect(markup).toContain('Araştır ve özetle');
-		expect(markup).toContain('Doküman hazırla');
-		expect(markup).not.toContain('Bir dosyayı analiz et');
-		expect(markup).toContain('Ctrl+K ile komut paleti açılır');
+		expect(markup).toContain('Kod işini güvenle ilerlet');
+		expect(markup).toContain('Araştırma notu çıkar');
+		expect(markup).toContain('Dokümanı netleştir');
+		expect(markup).toContain('İpucu: Ctrl+K ile komut paleti açılır.');
 		expect(markup).not.toContain('operator');
 		expect(markup).not.toContain('Masaüstü hedefi');
 		expect(markup).not.toContain('burada görünür');
