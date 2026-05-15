@@ -93,6 +93,12 @@ const activityTerminalOutputPath = join(
 	'terminalOutput.ts',
 );
 
+const streamdownMessagePath = join(webSrcRoot, 'lib', 'streamdown', 'StreamdownMessage.tsx');
+const streamdownCodeBlockPath = join(webSrcRoot, 'lib', 'streamdown', 'CodeBlock.tsx');
+const streamdownMermaidBlockPath = join(webSrcRoot, 'lib', 'streamdown', 'MermaidBlock.tsx');
+const streamdownMermaidRendererPath = join(webSrcRoot, 'lib', 'streamdown', 'MermaidRenderer.tsx');
+const streamdownMarkdownLinksPath = join(webSrcRoot, 'lib', 'streamdown', 'markdownLinks.ts');
+
 function collectFiles(dir: string, extension: string): string[] {
 	const entries = readdirSync(dir, { withFileTypes: true });
 	const files: string[] = [];
@@ -474,6 +480,73 @@ describe('activity text encoding guard', () => {
 				if (source.includes(pattern)) {
 					violations.push(`${filePath} includes ${pattern}`);
 				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+});
+
+describe('streamdown text encoding guard', () => {
+	const streamdownFiles = [
+		streamdownMessagePath,
+		streamdownCodeBlockPath,
+		streamdownMermaidBlockPath,
+		streamdownMermaidRendererPath,
+		streamdownMarkdownLinksPath,
+	];
+
+	it('streamdown files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of streamdownFiles) {
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('streamdown files and markdown CSS have no stray ampersand nesting selector', () => {
+		const checkFiles = [...streamdownFiles, componentsCssPath];
+		const violations: string[] = [];
+
+		for (const filePath of checkFiles) {
+			const source = readFileSync(filePath, 'utf8');
+			if (source.includes('.runa-markdown__list &')) {
+				violations.push(`${filePath}`);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('streamdown files and related files are UTF-8 without BOM', () => {
+		const bomFiles = [
+			streamdownMessagePath,
+			streamdownCodeBlockPath,
+			streamdownMermaidBlockPath,
+			streamdownMermaidRendererPath,
+			streamdownMarkdownLinksPath,
+			join(webSrcRoot, 'lib', 'streamdown', 'StreamdownMessage.test.tsx'),
+			join(webSrcRoot, 'components', 'chat', 'blocks', 'BlockRenderer.test.tsx'),
+			componentsCssPath,
+		];
+		const violations: string[] = [];
+
+		for (const filePath of bomFiles) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(`${filePath}`);
 			}
 		}
 

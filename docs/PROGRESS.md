@@ -724,6 +724,32 @@
 - Kritik bulgu basliklari: run bilgisi tekrarli render yuzeyleri, teknik/debug dilin user-facing akis riskleri, card-in-card yogunlugu ureten CSS module seams, mobile sticky/fixed katmanlar arasinda overlap riski.
 - Sonuc: Yalniz plan/audit tamamlandi; implementasyon degisikligi yapilmadi.
 
+### PR-16-MARKDOWN-RENDERING-POLISH - 15 Mayis 2026
+
+- Hedef: Markdown renderer'i sifirdan yazmadan, mevcut `TextBlock -> StreamdownMessage -> Streamdown` pipeline'ini koruyarak chat mesajlarindaki markdown gorunumunu semantic class contract, link security, mobile overflow ve test kapsamiyla guclendirmek.
+- Degisiklikler:
+  - `StreamdownMessage.tsx`:
+    - Root container'a default `runa-markdown` class'i eklendi; `className` prop ile birlestiriliyor.
+    - Components map genisletildi: `p`, `h1`/`h2`/`h3`, `ul`/`ol`/`li`, `blockquote`, `a`, `table`/`thead`/`tbody`/`tr`/`th`/`td`, `hr` override'lari eklendi.
+    - Her ogede Runa class contract kullaniliyor (`runa-markdown__paragraph`, `runa-markdown__heading`, `runa-markdown__list`, `runa-markdown__list-item`, `runa-markdown__blockquote`, `runa-markdown__link`, `runa-markdown__table-wrap`, `runa-markdown__table`, `runa-markdown__inline-code`, `runa-markdown__rule`).
+    - Heading `data-level` ve list `data-list-kind` attribute'lari eklendi.
+    - Link security: `getSafeHref` / `isExternalHref` helper'lari ile `javascript:`, `data:`, `vbscript:` bloklaniyor; external linklerde `target="_blank"` ve `rel="noreferrer noopener"` ekleniyor.
+    - Inline code override `runa-markdown__inline-code` class'i ile guclendirildi.
+  - `markdownLinks.ts`: Yeni dosya — unsafe protocol denylist, `getSafeHref`, `isExternalHref`.
+  - `MermaidBlock.tsx` / `MermaidRenderer.tsx`: User-facing metinler Turkcelestirildi (`Diyagram yukleniyor...`, `Diyagram render edilemedi.`); `securityLevel: 'strict'` korunuyor.
+  - `components.css`: Markdown class ailesi (.blockquote, .rule, .list-item, .diagram-skeleton, .mermaid-diagram, .mermaid-fallback) eklendi; heading size varyantlari (h1=20px, h2=16px, h3=14px) ve inline-code pilI olmayan inline gorunum.
+- Sozlesme korunanlar: Mevcut `CodeBlock` copy/highlight, Mermaid lazy loading, Shiki `dangerouslySetInnerHTML` izolasyonu, `streaming`/`static` mode prop'u, CJK/math plugin'leri.
+- Kapsam disi: yeni dependency, backend contract degisikligi, Streamdown library degisikligi, activity/approval/terminal mimari degisikligi.
+- Yeni test dosyasi: `StreamdownMessage.test.tsx` (22 test — semantic render, inline/fenced code, table, link security, mojibake, root class).
+- Varolan test genisletmesi: `BlockRenderer.test.tsx` — text block semantic HTML, raw markdown syntax gorunmezligi, safe/unsafe link, inline+fenced code.
+- Mojibake guard: `design-language-lock.test.ts` streamdown dosyalarini da kapsayacak sekilde genisletildi.
+- Dogrulama:
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web test` PASS (44 dosya, 207 test)
+  - `pnpm.cmd --filter @runa/web build` PASS
+- Kalan risk: Mevcut smoke spec markdown rendering icin ozel fixture icermiyor; terminal detail/output goruntusu bu PR'a dahil degil. Markdown visual regression takibi ayri smoke/gorsel PR ile eklenebilir.
+
 ### TASK-WS-AUTH-TRANSPORT-HARDENING-01 - 14 Mayis 2026
 
 - Kapsam: WebSocket auth transport hardening tamamlandi; hedef sadece warning temizligi degil, gercek bearer/Supabase JWT'nin URL query, browser/network URL ve log yuzeylerinden kaldirilmasiydi.
@@ -757,6 +783,26 @@
   - `pnpm.cmd --filter @runa/desktop-agent smoke:live-auth` BLOCKED (beklenen: canli environment credential eksik; summary'de `missing_env` ve `status=blocked` acik)
 - Deprecated/backward-compat notu:
   - Legacy query-token yolu sadece explicit flag ile acilabilir, default kapali ve deprecated.
+### PR-16: Markdown rendering polish (15 Mayis 2026)
+
+**Amac:** Markdown rendering kalitesi, link guvenligi, CSS duzgunlugu, encoding dogrulugu ve visual coverage.
+
+**Degisiklikler:**
+- **Link safety:** `getSafeHref()` allowlist mantigina gecti (`http:`, `https:`, `mailto:` allowed; `javascript:`, `data:`, `vbscript:`, `file:`, `ftp:`, `chrome:` ve unknown absolute protocol'ler blocked). Protocol-relative URL'ler (`//...`) external kabul edilir. `isExternalHref()` protocol-relative destekler. Attribute sirasi guvenceye alindi (`...props` once, sanitized `target/rel/href/className` sonra).
+- **CSS:** Stray `.runa-markdown__list &` nesting selector kaldirildi (dead selector; zaten `.runa-markdown__list .runa-markdown__list` ile karsilaniyor).
+- **BOM fix:** `BlockRenderer.test.tsx`'ten UTF-8 BOM (`U+FEFF`) kaldirildi.
+- **Guard testler:** `design-language-lock.test.ts`'e stray `&` selector guard'i ve UTF-8 BOM guard'i eklendi. Mojibake guard kapsami korunuyor.
+- **Visual smoke:** Yeni Playwright spec (`ui-overhaul-16-markdown-rendering-smoke`) — heading, list, blockquote, inline code, table, code block, external link, mojibake, page-level horizontal overflow (390/320px) dogrulaniyor.
+- **Streamdown fenced code riski:** Valid mixed markdown (inline + fenced) icin test eklendi, raw backtick leak yok. Invalid same-line fence normalization kapsam disi.
+
+**Sonuclar:**
+- `pnpm.cmd --filter @runa/web lint` PASS
+- `pnpm.cmd --filter @runa/web typecheck` PASS
+- `pnpm.cmd --filter @runa/web test` PASS (`44` dosya / `217` test / `1` skipped)
+- `pnpm.cmd --filter @runa/web build` PASS
+- `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-16-markdown-rendering-smoke.spec.ts` PASS (`2` test)
+- Yeni smoke artefact degisikligi olusmadi (screenshot/manifest yok).
+
 - Kalan risk:
   - Kod ve local/package smoke seviyesinde kalan kritik risk gorulmedi.
   - Gercek staging/production credential ile `smoke:live-auth` yeniden kosulmadan canli ortam kaniti tamamlanmis sayilmaz (operasyonel/environment blocker).

@@ -61,14 +61,14 @@ export default function MermaidRenderer({ code }: MermaidRendererProps) {
 	if (error) {
 		return (
 			<div className="mermaid-fallback">
-				<p>diagram render edilemedi</p>
+				<p>Diyagram render edilemedi.</p>
 				<CodeBlock code={code} language="mermaid" />
 			</div>
 		);
 	}
 
 	if (!svg) {
-		return <div className="diagram-skeleton">Loading diagram...</div>;
+		return <div className="diagram-skeleton">Diyagram yükleniyor...</div>;
 	}
 
 	// Mermaid returns an SVG string after parsing; keeping injection local lets us audit one renderer.

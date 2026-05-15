@@ -66,7 +66,7 @@ describe('message rendering fixtures', () => {
 			</>,
 		);
 
-		expect(screen.getByText(/Loading diagram/i)).toBeTruthy();
+		expect(screen.getByText(/Diyagram yükleniyor/i)).toBeTruthy();
 		expect(screen.getByText(/Bir/)).toBeTruthy();
 	});
 
