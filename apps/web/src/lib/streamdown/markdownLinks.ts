@@ -1,17 +1,21 @@
-const UNSAFE_PROTOCOLS = ['javascript:', 'data:', 'vbscript:'];
-const EXTERNAL_PROTOCOLS = ['http:', 'https:'];
+const ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
+const BLOCKED_PROTOCOLS = ['javascript:', 'data:', 'vbscript:', 'file:', 'ftp:', 'chrome:'];
 
-function isProtocolUnsafe(protocol: string): boolean {
-	return UNSAFE_PROTOCOLS.includes(protocol);
+function getProtocol(href: string): string | null {
+	try {
+		return new URL(href).protocol;
+	} catch {
+		return null;
+	}
 }
 
 export function isExternalHref(href: string): boolean {
-	try {
-		const url = new URL(href);
-		return EXTERNAL_PROTOCOLS.includes(url.protocol);
-	} catch {
-		return false;
+	if (href.startsWith('//')) {
+		return true;
 	}
+
+	const protocol = getProtocol(href);
+	return protocol === 'http:' || protocol === 'https:';
 }
 
 export function getSafeHref(href: unknown): string | undefined {
@@ -24,20 +28,33 @@ export function getSafeHref(href: unknown): string | undefined {
 		return undefined;
 	}
 
-	try {
-		const url = new URL(trimmed);
-		if (isProtocolUnsafe(url.protocol)) {
-			return undefined;
-		}
-	} catch {
-		if (trimmed.startsWith('#') || trimmed.startsWith('/')) {
+	const protocol = getProtocol(trimmed);
+
+	if (protocol) {
+		if (ALLOWED_PROTOCOLS.includes(protocol)) {
 			return trimmed;
 		}
-		for (const protocol of UNSAFE_PROTOCOLS) {
-			if (trimmed.toLowerCase().startsWith(protocol)) {
-				return undefined;
-			}
+
+		return undefined;
+	}
+
+	if (trimmed.startsWith('//')) {
+		return trimmed;
+	}
+
+	if (trimmed.startsWith('/') || trimmed.startsWith('#')) {
+		return trimmed;
+	}
+
+	const lower = trimmed.toLowerCase();
+	for (const blocked of BLOCKED_PROTOCOLS) {
+		if (lower.startsWith(blocked)) {
+			return undefined;
 		}
+	}
+
+	if (/^[a-z][a-z0-9.+-]*:\/\//i.test(trimmed)) {
+		return undefined;
 	}
 
 	return trimmed;

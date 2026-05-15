@@ -80,6 +80,13 @@ describe('StreamdownMessage fenced code block', () => {
 		const html = render('```mermaid\nflowchart LR\n  A-->B\n```');
 		expect(html).toContain('Diyagram yükleniyor...');
 	});
+
+	it('valid mixed markdown: inline code and fenced code coexist without leak', () => {
+		const html = render('Bu bir `inline` kod örneği.\n\n```ts\nconst a = 1;\n```');
+		expect(html).toContain('class="runa-markdown__inline-code"');
+		expect(html).toContain('runa-code-block');
+		expect(html).not.toContain('```');
+	});
 });
 
 describe('StreamdownMessage table', () => {
@@ -108,9 +115,27 @@ describe('StreamdownMessage links', () => {
 		expect(html).toContain('örnek');
 	});
 
+	it('protocol-relative URL normalized by Streamdown to relative path', () => {
+		const html = render('[proto-rel](//example.com/path)');
+		expect(html).toContain('href="/path"');
+		expect(html).not.toContain('target="_blank"');
+	});
+
 	it('renders relative link without blank target', () => {
 		const html = render('[göreceli](/sayfa)');
 		expect(html).toContain('href="/sayfa"');
+		expect(html).not.toContain('target="_blank"');
+	});
+
+	it('renders anchor link without blank target', () => {
+		const html = render('[anchor](#section)');
+		expect(html).toContain('href="#section"');
+		expect(html).not.toContain('target="_blank"');
+	});
+
+	it('renders mailto link', () => {
+		const html = render('[email](mailto:test@example.com)');
+		expect(html).toContain('href="mailto:test@example.com"');
 	});
 
 	it('does not render javascript: href as clickable link', () => {
@@ -125,9 +150,34 @@ describe('StreamdownMessage links', () => {
 		expect(html).not.toContain('href="data:');
 	});
 
-	it('renders mailto link', () => {
-		const html = render('[email](mailto:test@example.com)');
-		expect(html).toContain('href="mailto:test@example.com"');
+	it('does not render vbscript: href as clickable link', () => {
+		const html = render('[vb](vbscript:msgbox(1))');
+		expect(html).not.toContain('href="vbscript:');
+		expect(html).toContain('vb');
+	});
+
+	it('does not render file: protocol as clickable link', () => {
+		const html = render('[file-link](file:///etc/passwd)');
+		expect(html).not.toContain('href="file:');
+		expect(html).toContain('file-link');
+	});
+
+	it('does not render ftp: protocol as clickable link', () => {
+		const html = render('[ftp-link](ftp://example.com/file)');
+		expect(html).not.toContain('href="ftp:');
+		expect(html).toContain('ftp-link');
+	});
+
+	it('does not render chrome: protocol as clickable link', () => {
+		const html = render('[chrome-link](chrome://settings)');
+		expect(html).not.toContain('href="chrome:');
+		expect(html).toContain('chrome-link');
+	});
+
+	it('unsafe link text remains visible', () => {
+		const html = render('[tehlikeli](javascript:alert(1))');
+		expect(html).toContain('tehlikeli');
+		expect(html).not.toContain('href=');
 	});
 });
 

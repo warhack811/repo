@@ -783,6 +783,26 @@
   - `pnpm.cmd --filter @runa/desktop-agent smoke:live-auth` BLOCKED (beklenen: canli environment credential eksik; summary'de `missing_env` ve `status=blocked` acik)
 - Deprecated/backward-compat notu:
   - Legacy query-token yolu sadece explicit flag ile acilabilir, default kapali ve deprecated.
+### PR-16: Markdown rendering polish (15 Mayis 2026)
+
+**Amac:** Markdown rendering kalitesi, link guvenligi, CSS duzgunlugu, encoding dogrulugu ve visual coverage.
+
+**Degisiklikler:**
+- **Link safety:** `getSafeHref()` allowlist mantigina gecti (`http:`, `https:`, `mailto:` allowed; `javascript:`, `data:`, `vbscript:`, `file:`, `ftp:`, `chrome:` ve unknown absolute protocol'ler blocked). Protocol-relative URL'ler (`//...`) external kabul edilir. `isExternalHref()` protocol-relative destekler. Attribute sirasi guvenceye alindi (`...props` once, sanitized `target/rel/href/className` sonra).
+- **CSS:** Stray `.runa-markdown__list &` nesting selector kaldirildi (dead selector; zaten `.runa-markdown__list .runa-markdown__list` ile karsilaniyor).
+- **BOM fix:** `BlockRenderer.test.tsx`'ten UTF-8 BOM (`U+FEFF`) kaldirildi.
+- **Guard testler:** `design-language-lock.test.ts`'e stray `&` selector guard'i ve UTF-8 BOM guard'i eklendi. Mojibake guard kapsami korunuyor.
+- **Visual smoke:** Yeni Playwright spec (`ui-overhaul-16-markdown-rendering-smoke`) — heading, list, blockquote, inline code, table, code block, external link, mojibake, page-level horizontal overflow (390/320px) dogrulaniyor.
+- **Streamdown fenced code riski:** Valid mixed markdown (inline + fenced) icin test eklendi, raw backtick leak yok. Invalid same-line fence normalization kapsam disi.
+
+**Sonuclar:**
+- `pnpm.cmd --filter @runa/web lint` PASS
+- `pnpm.cmd --filter @runa/web typecheck` PASS
+- `pnpm.cmd --filter @runa/web test` PASS (`44` dosya / `217` test / `1` skipped)
+- `pnpm.cmd --filter @runa/web build` PASS
+- `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-16-markdown-rendering-smoke.spec.ts` PASS (`2` test)
+- Yeni smoke artefact degisikligi olusmadi (screenshot/manifest yok).
+
 - Kalan risk:
   - Kod ve local/package smoke seviyesinde kalan kritik risk gorulmedi.
   - Gercek staging/production credential ile `smoke:live-auth` yeniden kosulmadan canli ortam kaniti tamamlanmis sayilmaz (operasyonel/environment blocker).

@@ -1251,10 +1251,6 @@ pre {
 	line-height: 1.6;
 }
 
-.runa-markdown__list & {
-	margin-top: 4px;
-}
-
 .runa-markdown__list .runa-markdown__list {
 	margin-top: 4px;
 	padding-left: 1rem;

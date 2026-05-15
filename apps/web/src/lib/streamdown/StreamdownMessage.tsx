@@ -23,7 +23,13 @@ function cx(...classes: Array<string | undefined | null | false>): string {
 const math = createMathPlugin({ singleDollarTextMath: true });
 const streamdownPlugins = { cjk, math };
 
-function LinkComponent({ children, href: rawHref, ...props }: ComponentProps<'a'>) {
+function LinkComponent({
+	children,
+	href: rawHref,
+	target: _target,
+	rel: _rel,
+	...props
+}: ComponentProps<'a'>) {
 	const href = getSafeHref(rawHref);
 
 	if (!href) {
@@ -37,11 +43,11 @@ function LinkComponent({ children, href: rawHref, ...props }: ComponentProps<'a'
 	if (isExternalHref(href)) {
 		return (
 			<a
-				className="runa-markdown__link"
+				{...props}
+				className={cx('runa-markdown__link', props.className)}
 				href={href}
 				rel="noreferrer noopener"
 				target="_blank"
-				{...props}
 			>
 				{children}
 			</a>
@@ -49,7 +55,7 @@ function LinkComponent({ children, href: rawHref, ...props }: ComponentProps<'a'
 	}
 
 	return (
-		<a className="runa-markdown__link" href={href} {...props}>
+		<a {...props} className={cx('runa-markdown__link', props.className)} href={href}>
 			{children}
 		</a>
 	);
