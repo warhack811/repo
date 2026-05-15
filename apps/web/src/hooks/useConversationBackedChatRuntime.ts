@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 
 import { useChatRuntime } from './useChatRuntime.js';
+import { useChatStoreSlice } from './useChatStoreSlice.js';
 import { useConversations } from './useConversations.js';
 
 export function useConversationBackedChatRuntime(
@@ -40,13 +41,17 @@ export function useConversationBackedChatRuntime(
 
 	const { activeConversationRunSurfaces } = conversations;
 	const { store } = runtime;
+	const currentStreamingRunId = useChatStoreSlice(
+		store,
+		(state) => state.presentation.currentStreamingRunId,
+	);
 
 	useEffect(() => {
 		if (
 			conversations.activeConversationId !== null ||
 			activeConversationRunSurfaces.length > 0 ||
 			runtime.isSubmitting ||
-			runtime.currentStreamingRunId !== null
+			currentStreamingRunId !== null
 		) {
 			return;
 		}
@@ -55,7 +60,7 @@ export function useConversationBackedChatRuntime(
 	}, [
 		activeConversationRunSurfaces.length,
 		conversations.activeConversationId,
-		runtime.currentStreamingRunId,
+		currentStreamingRunId,
 		runtime.isSubmitting,
 		runtime.resetRunState,
 	]);

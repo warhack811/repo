@@ -2,7 +2,9 @@ import type { DesktopDevicePresenceSnapshot } from '@runa/types';
 import { ChevronRight, Paperclip, SendHorizontal, SlidersHorizontal, Square } from 'lucide-react';
 import type { FormEvent, KeyboardEvent, ReactElement, ReactNode } from 'react';
 import { useId, useRef } from 'react';
+import { useChatStoreSlice } from '../../hooks/useChatStoreSlice.js';
 import { uiCopy } from '../../localization/copy.js';
+import type { ChatStore } from '../../stores/chat-store.js';
 import type { ModelAttachment } from '../../ws-types.js';
 import { RunaButton } from '../ui/RunaButton.js';
 import { RunaCard } from '../ui/RunaCard.js';
@@ -19,7 +21,6 @@ type ChatComposerSurfaceProps = Readonly<{
 	attachments: readonly ModelAttachment[];
 	canReadLatestResponse: boolean;
 	connectionStatus: string;
-	currentStreamingRunId: string | null;
 	desktopDeviceError: string | null;
 	desktopDevices: readonly DesktopDevicePresenceSnapshot[];
 	emptySuggestions?: ReactNode;
@@ -33,6 +34,7 @@ type ChatComposerSurfaceProps = Readonly<{
 	isUploadingAttachment: boolean;
 	isVoiceSupported: boolean;
 	lastError: string | null;
+	store: ChatStore;
 	onAttachmentUploadStateChange: (input: {
 		readonly error: string | null;
 		readonly isUploading: boolean;
@@ -89,7 +91,6 @@ export function ChatComposerSurface({
 	attachments,
 	canReadLatestResponse,
 	connectionStatus,
-	currentStreamingRunId,
 	desktopDeviceError,
 	desktopDevices,
 	emptySuggestions = null,
@@ -103,6 +104,7 @@ export function ChatComposerSurface({
 	isUploadingAttachment,
 	isVoiceSupported,
 	lastError,
+	store,
 	onAttachmentUploadStateChange,
 	onAttachmentsChange,
 	onAbortRun,
@@ -124,6 +126,10 @@ export function ChatComposerSurface({
 }: ChatComposerSurfaceProps): ReactElement {
 	const promptTextareaId = useId();
 	const moreDetailsRef = useRef<HTMLDetailsElement | null>(null);
+	const currentStreamingRunId = useChatStoreSlice(
+		store,
+		(state) => state.presentation.currentStreamingRunId,
+	);
 	const contextCount = attachments.length;
 	const isRunning = isSubmitting || currentStreamingRunId !== null;
 	const isSubmitDisabled =

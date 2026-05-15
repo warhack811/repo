@@ -11,6 +11,12 @@ interface PresentationState {
 	readonly presentationRunSurfaces: readonly PresentationRunSurface[];
 }
 
+interface RuntimeStoreState {
+	readonly presentation: {
+		readonly currentStreamingRunId: string | null;
+	};
+}
+
 const mocks = vi.hoisted(() => ({
 	setPresentationState: vi.fn(),
 	useChatRuntime: vi.fn(),
@@ -83,13 +89,19 @@ describe('useConversationBackedChatRuntime', () => {
 			handleRunFinished: vi.fn(),
 			handleRunFinishing: vi.fn(),
 		});
+		const mockStore = {
+			getState: (): RuntimeStoreState => ({
+				presentation: {
+					currentStreamingRunId: null,
+				},
+			}),
+			setPresentationState: mocks.setPresentationState,
+			subscribe: () => () => undefined,
+		};
 		mocks.useChatRuntime.mockReturnValue({
-			currentStreamingRunId: null,
 			isSubmitting: false,
 			resetRunState: vi.fn(),
-			store: {
-				setPresentationState: mocks.setPresentationState,
-			},
+			store: mockStore,
 		});
 
 		render(<RuntimeHarness />);

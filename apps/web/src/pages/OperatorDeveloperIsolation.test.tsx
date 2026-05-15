@@ -1,10 +1,11 @@
-import type { AuthContext } from '@runa/types';
+﻿import type { AuthContext } from '@runa/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { AppNav } from '../components/app/AppNav.js';
 import { ChatComposerSurface } from '../components/chat/ChatComposerSurface.js';
+import type { ChatStore } from '../stores/chat-store.js';
 import { CapabilityPreviewPage } from './CapabilityPreviewPage.js';
 import { SettingsPage } from './SettingsPage.js';
 
@@ -36,6 +37,22 @@ const authContext: AuthContext = {
 	},
 };
 
+function createComposerStore(): ChatStore {
+	return {
+		getState: () => ({
+			presentation: {
+				currentStreamingRunId: null,
+				currentStreamingText: '',
+			},
+		}),
+		setConnectionState: () => undefined,
+		setPresentationState: () => undefined,
+		setRuntimeConfigState: () => undefined,
+		setTransportState: () => undefined,
+		subscribe: () => () => undefined,
+	} as unknown as ChatStore;
+}
+
 function renderNormalComposer(): string {
 	return renderToStaticMarkup(
 		<MemoryRouter>
@@ -46,7 +63,6 @@ function renderNormalComposer(): string {
 				attachments={[]}
 				canReadLatestResponse={false}
 				connectionStatus="open"
-				currentStreamingRunId={null}
 				desktopDeviceError={null}
 				desktopDevices={[]}
 				isDesktopDevicesLoading={false}
@@ -59,6 +75,7 @@ function renderNormalComposer(): string {
 				isUploadingAttachment={false}
 				isVoiceSupported={false}
 				lastError={null}
+				store={createComposerStore()}
 				onAttachmentUploadStateChange={() => undefined}
 				onAttachmentsChange={() => undefined}
 				onAbortRun={() => undefined}

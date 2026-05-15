@@ -1127,7 +1127,7 @@ pre {
 }
 
 .runa-chat-empty-state__tip {
-	color: hsl(var(--color-text-soft));
+	color: var(--ink-3);
 	font-size: 14px;
 	font-weight: 600;
 	margin: 0;
@@ -2145,13 +2145,6 @@ pre {
 }
 
 @media (max-width: 480px) {
-	:root {
-		--space-page-y: 12px;
-		--space-page-x: 10px;
-		--space-panel: 16px;
-		--space-subcard: 14px;
-	}
-
 	.runa-card {
 		border-radius: var(--radius-panel);
 	}
@@ -2818,6 +2811,7 @@ pre {
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: var(--ink-4);
+	font-weight: 600;
 }
 
 .runa-developer-operatorcontrolspanel-4 {
@@ -2915,6 +2909,7 @@ pre {
 	color: var(--ink-4);
 	font-size: 14px;
 	line-height: 1.6;
+	font-weight: 600;
 }
 
 .runa-developer-transportmessagespanel-1 {
@@ -2962,6 +2957,7 @@ pre {
 .runa-developer-transportmessagespanel-7 {
 	color: var(--ink-4);
 	font-size: 14px;
+	font-weight: 600;
 }
 
 .runa-developer-transportmessagespanel-8 {
@@ -3027,6 +3023,7 @@ pre {
 .runa-developer-transportmessagespanel-15 {
 	color: var(--ink-4);
 	font-size: 12px;
+	font-weight: 600;
 }
 
 .runa-developer-transportmessagespanel-16 {
@@ -4013,6 +4010,7 @@ pre {
 	color: var(--ink-4);
 	font-size: 14px;
 	line-height: 1.6;
+	font-weight: 600;
 }
 
 .runa-page-loginpage-48 {

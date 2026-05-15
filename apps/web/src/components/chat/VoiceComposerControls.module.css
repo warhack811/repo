@@ -44,6 +44,7 @@
 	font-size: 14px;
 	line-height: 1.5;
 	color: var(--ink-4);
+	font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {

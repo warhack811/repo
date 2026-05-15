@@ -29,9 +29,9 @@ export function AppSidebar({
 			{conversationSidebar ? (
 				<div className="runa-app-sidebar__conversations">{conversationSidebar}</div>
 			) : null}
-			<div className="runa-app-sidebar__nav">
+			<nav className="runa-app-sidebar__nav" aria-label="Ana gezinme">
 				<AppNav activePage={activePage} variant="sidebar" />
-			</div>
+			</nav>
 		</aside>
 	);
 }

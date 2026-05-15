@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+﻿import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -91,7 +91,7 @@ describe('SettingsPage approval mode preferences', () => {
 		const onBrandThemeChange = vi.fn();
 
 		renderSettings({ onBrandThemeChange });
-		fireEvent.click(screen.getByRole('tab', { name: /Appearance/i }));
+		fireEvent.click(screen.getByRole('tab', { name: /Görünüm/i }));
 		fireEvent.click(screen.getByRole('button', { name: /Indigo/i }));
 
 		expect(screen.getByRole('heading', { name: 'Tema' })).toBeTruthy();

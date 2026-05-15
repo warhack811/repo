@@ -64,52 +64,52 @@ function getDecisionCopy(block: ApprovalRenderBlock): DecisionCopy {
 	const toolName = getApprovalToolName(block);
 
 	if (isKnownToolName(toolName, 'file.write')) {
-		return { action: 'Dosyaya yazma iste?i' };
+		return { action: 'Dosyaya yazma isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'file.read')) {
-		return { action: 'Dosya okuma iste?i' };
+		return { action: 'Dosya okuma isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.clipboard.read')) {
-		return { action: 'Pano okuma iste?i' };
+		return { action: 'Pano okuma isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.clipboard.write')) {
-		return { action: 'Pano yazma iste?i' };
+		return { action: 'Pano yazma isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.click')) {
-		return { action: 'Masa?st?nde t?klama iste?i' };
+		return { action: 'Masaüstünde tıklama isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.type')) {
-		return { action: 'Masa?st?ne yazma iste?i' };
+		return { action: 'Masaüstüne yazma isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.keypress')) {
-		return { action: 'Klavye k?sayolu iste?i' };
+		return { action: 'Klavye kısayolu isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.launch')) {
-		return { action: 'Uygulama ba?latma iste?i' };
+		return { action: 'Uygulama başlatma isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.scroll')) {
-		return { action: 'Masa?st?nde kayd?rma iste?i' };
+		return { action: 'Masaüstünde kaydırma isteği' };
 	}
 
 	if (isKnownToolName(toolName, 'desktop.screenshot')) {
-		return { action: 'Ekran g?r?nt?s? alma iste?i' };
+		return { action: 'Ekran görüntüsü alma isteği' };
 	}
 
 	switch (block.payload.action_kind) {
 		case 'file_write':
-			return { action: 'Dosyaya yazma iste?i' };
+			return { action: 'Dosyaya yazma isteği' };
 		case 'shell_execution':
-			return { action: 'Komut ?al??t?rma iste?i' };
+			return { action: 'Komut çalıştırma isteği' };
 		case 'tool_execution':
-			return { action: 'Ara? ?al??t?rma iste?i' };
+			return { action: 'Araç çalıştırma isteği' };
 	}
 }
 
@@ -118,9 +118,9 @@ function formatActionKind(actionKind: ApprovalRenderBlock['payload']['action_kin
 		case 'file_write':
 			return 'Dosyaya yazma';
 		case 'shell_execution':
-			return 'Komut ?al??t?rma';
+			return 'Komut çalıştırma';
 		case 'tool_execution':
-			return 'Ara? ?al??t?rma';
+			return 'Araç çalıştırma';
 	}
 }
 
@@ -166,19 +166,19 @@ function getTargetHeading(targetKind: ApprovalRenderBlock['payload']['target_kin
 
 function shouldShowOriginalTitle(block: ApprovalRenderBlock, decisionCopy: DecisionCopy): boolean {
 	const title = normalizeText(block.payload.title);
-	return Boolean(title && title !== decisionCopy.action && title !== 'Runa ?unu yapmak istiyor');
+	return Boolean(title && title !== decisionCopy.action && title !== 'Runa şunu yapmak istiyor');
 }
 
 function getResolvedLabel(status: ApprovalStatus): string {
 	switch (status) {
 		case 'approved':
-			return '?zin verildi';
+			return 'İzin verildi';
 		case 'rejected':
 			return 'Reddedildi';
 		case 'cancelled':
-			return 'Vazge?ildi';
+			return 'Vazgeçildi';
 		case 'expired':
-			return 'S?resi doldu';
+			return 'Süresi doldu';
 		case 'pending':
 			return 'Onay bekliyor';
 	}
@@ -266,12 +266,12 @@ export function ApprovalBlock({
 							</div>
 						) : null}
 						<div className={styles['metaBox']}>
-							<span className={styles['metaLabel']}>Sonu?</span>
+							<span className={styles['metaLabel']}>Sonuç</span>
 							<span>{formatStatusLabel(block.payload.status)}</span>
 						</div>
 						{block.payload.summary ? (
 							<div className={styles['metaBox']}>
-								<span className={styles['metaLabel']}>?zet</span>
+								<span className={styles['metaLabel']}>Özet</span>
 								<p>{block.payload.summary}</p>
 							</div>
 						) : null}
