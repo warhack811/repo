@@ -1,8 +1,11 @@
 import { render, screen } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ChatStore } from '../../stores/chat-store.js';
 import { ChatComposerSurface } from './ChatComposerSurface.js';
+
+type ComposerProps = ComponentProps<typeof ChatComposerSurface>;
 
 function createMockStore(): ChatStore {
 	return {
@@ -20,8 +23,8 @@ function createMockStore(): ChatStore {
 	} as unknown as ChatStore;
 }
 
-function renderComposer(overrides: Record<string, unknown> = {}) {
-	const defaultProps = {
+function renderComposer(overrides: Partial<ComposerProps> = {}) {
+	const defaultProps: ComposerProps = {
 		accessToken: null,
 		apiKey: 'test-key',
 		attachmentUploadError: null,
@@ -62,10 +65,9 @@ function renderComposer(overrides: Record<string, unknown> = {}) {
 		statusLabel: 'Hazır',
 		submitButtonLabel: 'Gönder',
 		voiceStatusMessage: null,
-		...overrides,
 	};
 
-	return render(<ChatComposerSurface {...(defaultProps as any)} />);
+	return render(<ChatComposerSurface {...defaultProps} {...overrides} />);
 }
 
 describe('ChatComposerSurface focus and notice', () => {

@@ -21,16 +21,22 @@ function createMockRecognition() {
 type MockRecognition = ReturnType<typeof createMockRecognition>;
 
 function setMockSpeechRecognition(mock: MockRecognition): void {
-	class MockSpeechRecognitionCtor {
-		constructor() {
-			return mock;
-		}
+	function MockSpeechRecognitionCtor() {
+		return mock;
 	}
-	(window as any).SpeechRecognition = MockSpeechRecognitionCtor;
+	Object.defineProperty(window, 'SpeechRecognition', {
+		configurable: true,
+		value: MockSpeechRecognitionCtor,
+		writable: true,
+	});
 }
 
 function clearMockSpeechRecognition(): void {
-	(window as any).SpeechRecognition = undefined;
+	Object.defineProperty(window, 'SpeechRecognition', {
+		configurable: true,
+		value: undefined,
+		writable: true,
+	});
 }
 
 describe('getVoiceInputErrorMessage', () => {
@@ -44,9 +50,7 @@ describe('getVoiceInputErrorMessage', () => {
 
 	it('returns fallback for unknown error code', () => {
 		const result = getVoiceInputErrorMessage('unknown');
-		expect(result).toBe(
-			'Ses girişi başlatılamadı. Tarayıcının ses desteğini kontrol et.',
-		);
+		expect(result).toBe('Ses girişi başlatılamadı. Tarayıcının ses desteğini kontrol et.');
 	});
 });
 
@@ -96,9 +100,7 @@ describe('useVoiceInput', () => {
 		});
 
 		expect(result.current.status).toBe('unsupported');
-		expect(result.current.errorMessage).toBe(
-			'Bu tarayıcı ses girişini desteklemiyor.',
-		);
+		expect(result.current.errorMessage).toBe('Bu tarayıcı ses girişini desteklemiyor.');
 		expect(result.current.errorMessage).not.toContain('SpeechRecognition');
 	});
 
@@ -130,9 +132,7 @@ describe('useVoiceInput', () => {
 		});
 
 		expect(result.current.status).toBe('error');
-		expect(result.current.errorMessage).toBe(
-			'Ses algılanmadı. Tekrar deneyebilirsin.',
-		);
+		expect(result.current.errorMessage).toBe('Ses algılanmadı. Tekrar deneyebilirsin.');
 	});
 
 	it('onresult with final transcript calls onFinalTranscript with trimmed text', () => {
