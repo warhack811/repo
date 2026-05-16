@@ -1048,3 +1048,23 @@
   - Toast redesign, global observability/logging, backend/server degisikligi, useAuth/useConversations/useChatRuntime contract degisikligi, route IA degisikligi, settings/history/upload/voice/message-action degisikligi, composer/chat runtime logic degisikligi, tokens.css/VisualDiscipline degisikligi.
 - Kalan risk:
   - Bu PR route/app render crash durumlari icin kullanici-dilli recovery yuzeyini guclendirir; global observability, backend error policy ve toast redesign ayri PR kapsamindadir.
+
+### PR-25: AppShell command palette copy coherence (16 Mayis 2026)
+
+- Hedef: AppShell command palette komut metinlerini, aciklamalarini, keyword'lerini ve erisilebilirlik etiketlerini dogru Turkce/UTF-8 urun diline cekmek; PR-22'de Settings/Menu tarafinda temizlenen secondary surface standardini command palette yuzeyine tasimak.
+- **appshell-command-copy-only** PR.
+- Kapsam disi: CommandPalette redesign, AppShell layout degisikligi, navigation/route behavior, settings/history/error-boundary/upload/voice/message-actions/backend/packages/types degisikligi, tokens.css/VisualDiscipline degisikligi.
+- Uygulama:
+  - `apps/web/src/components/app/AppShell.tsx` — `createAppCommands()` icindeki tum command label/description/keywords ve trigger aria-label Turkce/UTF-8 dogru hale getirildi.
+  - `working files` keyword'u command copy'den kaldirildi (yerine `dosyalar`).
+  - `Komut paletini ac` aria-label `Komut paletini aç` olarak duzeltildi.
+  - Command behavior (navigate, sheet events, theme preset, advanced mode toggle) degistirilmedi.
+- Test:
+  - `apps/web/src/components/app/AppShell.test.tsx` — createAppCommands copy assertions (positive + negative), behavior tests (navigate, callback invocation, fallback davranisi).
+  - `apps/web/src/test/design-language-lock.test.ts` — PR-25 guardlari: BOM/mojibake/yoklugu, AppShell icinde eski ASCII Turkish copy yoklugu, `working files` keyword kalmamasi.
+  - Visual smoke:
+    - `apps/web/tests/visual/ui-overhaul-25-command-palette-copy-fixture.tsx` — gercek AppShell + MemoryRouter ile fixture
+    - `apps/web/tests/visual/ui-overhaul-25-command-palette-copy-smoke.html`
+    - `apps/web/tests/visual/ui-overhaul-25-command-palette-copy-smoke.spec.ts` — 390/320 viewport: trigger label, palette acilisi, beklenen komutlar, eski copy yoklugu, mojibake yoklugu, page-level horizontal overflow
+- Kalan risk:
+  - Bu PR AppShell command palette copy coherence yuzeyini guclendirir; command palette search/ranking UX, shortcut sistemi ve AppShell layout degisiklikleri ayri PR kapsamindadir.
