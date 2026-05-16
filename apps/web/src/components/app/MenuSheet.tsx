@@ -43,7 +43,7 @@ export function MenuSheet({
 
 		pushToast({
 			message: messageByAction.help,
-			title: 'Yakinda',
+			title: 'Yakında',
 			tone: 'info',
 		});
 	}
@@ -61,7 +61,7 @@ export function MenuSheet({
 		{
 			icon: <History aria-hidden="true" size={17} />,
 			id: 'history',
-			label: 'Gecmis',
+			label: 'Geçmiş',
 			onSelect: () => {
 				closeSheet();
 				onOpenHistorySheet();
@@ -81,19 +81,19 @@ export function MenuSheet({
 			id: 'settings',
 			label: 'Ayarlar',
 			onSelect: () => {
-				navigate('/account?tab=preferences');
+				navigate('/account');
 				closeSheet();
 			},
 		},
 		{
 			icon: <SlidersHorizontal aria-hidden="true" size={17} />,
 			id: 'advanced',
-			label: 'Gelismis gorunum',
+			label: 'Gelişmiş görünüm',
 			onSelect: () => {
 				onToggleDeveloperMode();
 				closeSheet();
 			},
-			suffix: isDeveloperMode ? 'Acik' : 'Kapali',
+			suffix: isDeveloperMode ? 'Açık' : 'Kapalı',
 		},
 		{
 			icon: <Bell aria-hidden="true" size={17} />,
@@ -107,12 +107,12 @@ export function MenuSheet({
 		{
 			icon: <HelpCircle aria-hidden="true" size={17} />,
 			id: 'help',
-			label: 'Yardim ve geri bildirim',
+			label: 'Yardım ve geri bildirim',
 			onSelect: () => {
 				showComingSoon();
 				closeSheet();
 			},
-			suffix: 'Yakinda',
+			suffix: 'Yakında',
 		},
 	];
 
@@ -122,18 +122,18 @@ export function MenuSheet({
 			isOpen={open}
 			onClose={closeSheet}
 			side="bottom"
-			title="Hizli menu"
+			title="Hızlı menü"
 		>
 			<section aria-labelledby="menu-sheet-title" className={styles['content']} id="menu-sheet">
 				<header className={styles['header']}>
 					<h2 id="menu-sheet-title" className={styles['title']}>
-						Menu
+						Menü
 					</h2>
 					<button
 						type="button"
 						className="runa-chat-icon-button"
 						onClick={closeSheet}
-						aria-label="Menuyu kapat"
+						aria-label="Menüyü kapat"
 					>
 						×
 					</button>

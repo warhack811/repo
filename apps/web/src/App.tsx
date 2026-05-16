@@ -39,7 +39,7 @@ export type AuthenticatedAppProps = Readonly<{
 function AuthenticatedFallback(): ReactElement {
 	return (
 		<div className="runa-route-fallback" aria-busy="true">
-			<span className="runa-sr-only">Sayfa y?kleniyor</span>
+			<span className="runa-sr-only">Sayfa yükleniyor</span>
 			<div className="runa-route-fallback__skeleton">
 				<RunaSkeleton variant="text" />
 				<RunaSkeleton variant="rect" />

@@ -951,3 +951,42 @@
     - `ui-overhaul-21-upload-attachment-smoke.spec.ts`
 - Kalan risk:
   - Bu PR upload/attachment yuzeyini guclendirir; coklu dosya queue, drag/drop ve backend upload contract degisiklikleri ayri tasarim gerektirir.
+
+### PR-22: Settings menu navigation and copy coherence (16 Mayis 2026)
+
+- Hedef: Secondary surface kalitesini settings/menu/copy-only kapsaminda guvenli sekilde guclendirmek.
+- Kapsam siniri:
+  - Yalnizca `MenuSheet`, `SettingsPage`, `App` fallback copy, ilgili testler, focused visual smoke ve `design-language-lock` guardlari.
+  - History parity kapsam disi.
+  - App-level ErrorBoundary kapsam disi.
+  - Backend/schema/protocol/types/voice/upload/message-action kapsam disi.
+- Uygulama:
+  - `MenuSheet` Ayarlar deep-link'i `/account?tab=preferences` yerine `/account` olarak duzeltildi.
+  - `SettingsPage` tab parsing helper'i `settingsTabs.ts` ile ayrildi:
+    - Gecerli tablar: `appearance`, `conversation`, `notifications`, `privacy`, `advanced`
+    - Legacy alias: `preferences -> appearance`
+    - Bilinmeyen tab: `appearance` fallback
+    - URL normalization: legacy/invalid/default query degerleri `replace` ile normalize edilir, default tab icin query temizlenir.
+  - `MenuSheet`, `SettingsPage` ve `App` fallback yuzeylerinde Turkce copy/encoding tutarsizliklari temizlendi.
+- Test ve guard:
+  - Yeni unit: `apps/web/src/pages/settingsTabs.test.ts`
+  - Yeni component test: `apps/web/src/components/app/MenuSheet.test.tsx`
+  - Guncellenen sayfa testi: `apps/web/src/pages/SettingsPage.test.tsx` (tab normalization + URL davranisi + copy assertions)
+  - `apps/web/src/test/design-language-lock.test.ts` PR-22 guardlari:
+    - BOM/mojibake/old ASCII copy yok
+    - `MenuSheet` source icinde `/account?tab=preferences` yok
+    - `preferences` alias yalnizca parsing helper seviyesinde
+  - Yeni focused visual smoke:
+    - `apps/web/tests/visual/ui-overhaul-22-settings-menu-copy-fixture.tsx`
+    - `apps/web/tests/visual/ui-overhaul-22-settings-menu-copy-smoke.html`
+    - `apps/web/tests/visual/ui-overhaul-22-settings-menu-copy-smoke.spec.ts`
+- Validation:
+  - `pnpm.cmd --filter @runa/web lint` PASS
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web test -- --run` PASS (`58` dosya, `423` PASS, `1` skipped)
+  - `pnpm.cmd --filter @runa/web build` PASS
+  - `node scripts/audit-tokens.mjs` PASS
+  - Hedefli test seti PASS (`75` test)
+  - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-22-settings-menu-copy-smoke.spec.ts --config playwright.config.ts --workers=1` PASS (`2` test)
+- Kalan risk:
+  - Bu PR settings/menu navigation ve copy coherence yuzeyini guclendirir; History parity ve App-level ErrorBoundary ayri PR kapsamindadir.
