@@ -31,8 +31,9 @@ function createConversation(input: {
 	};
 }
 
-function createConversations(): readonly ConversationSummary[] {
-	const now = new Date('2026-05-16T10:00:00.000Z');
+function createConversations(baseDate: Date = new Date()): readonly ConversationSummary[] {
+	const now = new Date(baseDate);
+	now.setHours(12, 0, 0, 0);
 	return [
 		createConversation({
 			id: 'conversation-today',

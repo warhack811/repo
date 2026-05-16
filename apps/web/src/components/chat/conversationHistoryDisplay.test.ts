@@ -215,6 +215,58 @@ describe('conversationHistoryDisplay', () => {
 		}
 	});
 
+	it('groups conversations by recency using relative isoDaysAgo dates (0/1/3/12 days)', () => {
+		const baseDate = new Date('2026-05-16T12:00:00.000Z');
+
+		function isoDaysAgo(base: Date, days: number): string {
+			const date = new Date(base);
+			date.setDate(base.getDate() - days);
+			return date.toISOString();
+		}
+
+		const groups = groupConversationsByRecency(
+			[
+				createConversation({
+					id: 'today',
+					preview: 'Bugün notu',
+					title: 'Bugün',
+					updatedAt: isoDaysAgo(baseDate, 0),
+				}),
+				createConversation({
+					id: 'yesterday',
+					preview: 'Dün notu',
+					title: 'Dün',
+					updatedAt: isoDaysAgo(baseDate, 1),
+				}),
+				createConversation({
+					id: 'three-days',
+					preview: 'Üç gün önce',
+					title: 'Son 7 gün',
+					updatedAt: isoDaysAgo(baseDate, 3),
+				}),
+				createConversation({
+					id: 'twelve-days',
+					preview: 'On iki gün önce',
+					title: 'Daha eski',
+					updatedAt: isoDaysAgo(baseDate, 12),
+				}),
+			],
+			baseDate,
+		);
+
+		expect(groups.map((group) => group.label)).toEqual(['Bugün', 'Dün', 'Son 7 gün', 'Daha eski']);
+		expect(groups[0]?.items.map((conversation) => conversation.conversation_id)).toEqual(['today']);
+		expect(groups[1]?.items.map((conversation) => conversation.conversation_id)).toEqual([
+			'yesterday',
+		]);
+		expect(groups[2]?.items.map((conversation) => conversation.conversation_id)).toEqual([
+			'three-days',
+		]);
+		expect(groups[3]?.items.map((conversation) => conversation.conversation_id)).toEqual([
+			'twelve-days',
+		]);
+	});
+
 	it('calculates calendar-day differences deterministically', () => {
 		const now = new Date(2026, 4, 16, 20, 0, 0, 0);
 		const todayLocal = new Date(2026, 4, 16, 1, 0, 0, 0);
