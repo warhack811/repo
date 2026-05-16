@@ -1303,3 +1303,84 @@ describe('PR-24 app error boundary recovery lock', () => {
 		expect(visualDisciplineDiff.stdout.trim()).toBe('');
 	});
 });
+
+describe('PR-25 appshell command palette copy coherence lock', () => {
+	const pr25Files = [appShellPath];
+
+	it('PR-25 files are UTF-8 without BOM', () => {
+		const violations: string[] = [];
+
+		for (const filePath of pr25Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(filePath);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-25 source files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of pr25Files) {
+			if (!existsSync(filePath)) {
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-25 AppShell command palette copy does not keep old ASCII Turkish copy variants', () => {
+		const source = readFileSync(appShellPath, 'utf8');
+
+		const forbidden = [
+			'alanina',
+			'calisma',
+			'taslagi',
+			'baslat',
+			'gecmisi',
+			'kaldigim',
+			'arsiv',
+			'Gecmisi',
+			'Baglami',
+			'secimini',
+			'Gelismis',
+			'gorunum',
+			'gelistirici',
+			'Bildirimleri goster',
+			'Kayitli',
+			'sayfa gorunumunde',
+			'Komut paletini ac',
+		];
+
+		for (const term of forbidden) {
+			expect(source, `AppShell.tsx contains forbidden term: "${term}"`).not.toContain(term);
+		}
+	});
+
+	it('working files keyword is removed from AppShell command copy', () => {
+		const source = readFileSync(appShellPath, 'utf8');
+		const openContextSheetIndex = source.indexOf("id: 'open-context-sheet'");
+		const openContextSheetBlock = source.slice(
+			openContextSheetIndex,
+			source.indexOf('},', openContextSheetIndex) + 2,
+		);
+
+		expect(openContextSheetBlock).not.toContain('working files');
+	});
+});

@@ -63,13 +63,13 @@ type AppShellProps = Readonly<{
 type CreateAppCommandOptions = Readonly<{
 	activePage?: AuthenticatedPageId;
 	isAdvancedMode?: boolean;
-	navigateToChat: () => void;
-	navigateToHistoryRoute: () => void;
-	onOpenContextSheet: () => void;
-	onOpenHistorySheet: () => void;
-	onSetAdvancedMode: (nextValue: boolean) => void;
-	onSetThemePreset: (preset: 'ember-dark' | 'ember-light' | 'rose-dark' | 'system') => void;
-	onShowNotifications: () => void;
+	navigateToChat?: () => void;
+	navigateToHistoryRoute?: () => void;
+	onOpenContextSheet?: () => void;
+	onOpenHistorySheet?: () => void;
+	onSetAdvancedMode?: (nextValue: boolean) => void;
+	onSetThemePreset?: (preset: 'ember-dark' | 'ember-light' | 'rose-dark' | 'system') => void;
+	onShowNotifications?: () => void;
 }>;
 
 export function createAppCommands(
@@ -97,33 +97,33 @@ export function createAppCommands(
 
 	return [
 		{
-			description: 'Ana sohbet alanina don.',
+			description: 'Ana sohbete dön.',
 			id: 'go-chat',
-			keywords: ['ana ekran', 'mesaj', 'calisma alani'],
+			keywords: ['ana ekran', 'mesaj', 'çalışma alanı'],
 			label: 'Sohbete git',
 			run: () => navigate('/chat'),
 			shortcut: 'Ctrl+K',
 		},
 		{
-			description: 'Yeni bir sohbet taslagi ac.',
+			description: 'Yeni bir sohbet taslağı aç.',
 			id: 'start-new-chat',
-			keywords: ['baslat', 'yeni mesaj', 'temiz sohbet'],
-			label: 'Yeni sohbet baslat',
+			keywords: ['başlat', 'yeni mesaj', 'temiz sohbet'],
+			label: 'Yeni sohbet başlat',
 			run: () => navigate('/chat?new=1'),
 			shortcut: 'Ctrl+N',
 		},
 		{
-			description: 'Sohbet gecmisi sheetini ac.',
+			description: 'Sohbet geçmişini aç.',
 			id: 'open-history-sheet',
-			keywords: ['sohbet gecmisi', 'kaldigim is', 'arsiv'],
-			label: 'Gecmisi ac',
+			keywords: ['sohbet geçmişi', 'kaldığım iş', 'arşiv'],
+			label: 'Geçmişi aç',
 			run: () => runChatSurfaceAction(openHistory),
 		},
 		{
-			description: 'Baglam panelini ac.',
+			description: 'Bağlam panelini aç.',
 			id: 'open-context-sheet',
-			keywords: ['baglam', 'ekler', 'working files'],
-			label: 'Baglami ac',
+			keywords: ['bağlam', 'ekler', 'dosyalar'],
+			label: 'Bağlamı aç',
 			run: () => runChatSurfaceAction(openContext),
 		},
 		{
@@ -136,7 +136,7 @@ export function createAppCommands(
 		{
 			description: 'Tema presetini Light olarak ayarla.',
 			id: 'theme-light',
-			keywords: ['tema', 'acik', 'light'],
+			keywords: ['tema', 'açık', 'light'],
 			label: 'Tema: Light',
 			run: () => setThemePreset('ember-light'),
 		},
@@ -148,31 +148,31 @@ export function createAppCommands(
 			run: () => setThemePreset('rose-dark'),
 		},
 		{
-			description: 'Tema secimini Sistem moduna geri getir.',
+			description: 'Tema seçimini Sistem moduna geri getir.',
 			id: 'theme-system',
 			keywords: ['tema', 'sistem', 'default'],
 			label: 'Tema: Sistem',
 			run: () => setThemePreset('system'),
 		},
 		{
-			description: 'Gelismis gorunumu ac veya kapat.',
+			description: 'Gelişmiş görünümü aç veya kapat.',
 			id: 'toggle-advanced-view',
-			keywords: ['gelismis', 'gelistirici', 'gorunum'],
-			label: isAdvancedMode ? 'Gelismis gorunumu kapat' : 'Gelismis gorunumu ac',
+			keywords: ['gelişmiş', 'geliştirici', 'görünüm'],
+			label: isAdvancedMode ? 'Gelişmiş görünümü kapat' : 'Gelişmiş görünümü aç',
 			run: () => setAdvancedMode(!isAdvancedMode),
 		},
 		{
-			description: 'Bildirim panelini ac.',
+			description: 'Bildirim panelini aç.',
 			id: 'show-notifications',
-			keywords: ['bildirim', 'uyari', 'hatirlatma'],
-			label: 'Bildirimleri goster',
+			keywords: ['bildirim', 'uyarı', 'hatırlatma'],
+			label: 'Bildirimleri göster',
 			run: showNotifications,
 		},
 		{
-			description: 'Kayitli sohbetleri sayfa gorunumunde ac.',
+			description: 'Kayıtlı sohbetleri sayfa görünümünde aç.',
 			id: 'go-history-route',
-			keywords: ['history sayfasi', 'kayitli sohbetler'],
-			label: 'Gecmis sayfasina git',
+			keywords: ['geçmiş sayfası', 'kayıtlı sohbetler'],
+			label: 'Geçmiş sayfasına git',
 			run: navigateToHistoryRoute,
 		},
 	] as const;
@@ -288,7 +288,7 @@ export function AppShell({ activePage, children }: AppShellProps): ReactElement 
 							type="button"
 							className="runa-command-palette-trigger"
 							onClick={openPalette}
-							aria-label="Komut paletini ac"
+							aria-label="Komut paletini aç"
 						>
 							<span>Komut ara</span>
 							<kbd>{commandShortcutLabel}</kbd>
