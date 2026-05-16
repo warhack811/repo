@@ -990,3 +990,36 @@
   - `pnpm.cmd exec playwright test apps/web/tests/visual/ui-overhaul-22-settings-menu-copy-smoke.spec.ts --config playwright.config.ts --workers=1` PASS (`2` test)
 - Kalan risk:
   - Bu PR settings/menu navigation ve copy coherence yuzeyini guclendirir; History parity ve App-level ErrorBoundary ayri PR kapsamindadir.
+
+### PR-23: History sidebar/page parity and recovery (16 Mayis 2026)
+
+- Hedef: History sidebar ve `/history` page yuzeylerini ayni tarih gruplama, ayni search davranisi, ayni empty/error recovery copy ve mobile-safe liste davranisi etrafinda hizalamak.
+- Kapsam siniri:
+  - History-only: display helper/model, `ConversationSidebar`, `HistoryPage`, ilgili testler, focused visual smoke, `design-language-lock` guncellemesi, `docs/PROGRESS.md`.
+  - Kapsam disi: settings/menu, App-level ErrorBoundary, backend/server endpointleri, `useConversations` fetch contract'i, voice/upload/message actions, `packages/types`, `tokens.css`, `VisualDiscipline.test.tsx`.
+- Uygulama:
+  - Yeni shared helper eklendi: `apps/web/src/components/chat/conversationHistoryDisplay.ts`.
+    - `groupConversationsByRecency`: `Bugün`, `Dün`, `Son 7 gün`, `Daha eski` gruplari tek kaynak oldu.
+    - `matchesConversationSearch`: title+preview, case-insensitive ve whitespace normalize arama.
+    - `formatConversationUpdatedAt`: gecerli tarih formatlama, invalid tarih icin raw deger koruma.
+    - `getConversationHistoryErrorMessage`: raw/internal/backend metinleri normal yuzeyde fallback mesaja sanitize eder.
+    - `getConversationEmptyStateCopy`: no-conversation ve search-no-result copy parity.
+  - `ConversationSidebar.tsx` local group/search/date/error helper tekrarlarini kaldirip shared helper'a tasindi.
+  - `HistoryPage.tsx` local helper tekrarlarini kaldirip shared helper'a tasindi; `Dün` grubu eklendi ve empty/search/error copy parity saglandi.
+  - Member/share panel redesign yapilmadi; mevcut owner/editor/viewer davranisi korunup yalniz history-level sanitizer entegrasyonu uygulandi.
+- Test:
+  - Yeni helper unit test: `apps/web/src/components/chat/conversationHistoryDisplay.test.ts`
+  - Yeni sidebar test: `apps/web/src/components/chat/ConversationSidebar.test.tsx`
+  - Yeni history page test: `apps/web/src/pages/HistoryPage.test.tsx`
+  - `apps/web/src/test/design-language-lock.test.ts` PR-23 guardlari:
+    - `conversationHistoryDisplay.ts`, `ConversationSidebar.tsx`, `HistoryPage.tsx` icin BOM/mojibake guard
+    - Forbidden raw/internal history string guard
+    - Sidebar/Page icinde duplicate local helper isimlerinin kalmamasi
+    - Shared helper import dogrulamasi
+- Focused visual smoke:
+  - `apps/web/tests/visual/ui-overhaul-23-history-parity-fixture.tsx`
+  - `apps/web/tests/visual/ui-overhaul-23-history-parity-smoke.html`
+  - `apps/web/tests/visual/ui-overhaul-23-history-parity-smoke.spec.ts`
+  - 390/320 viewport: grouping parity, search no-result copy, error recovery fallback, forbidden raw/internal string yoklugu, mojibake yoklugu ve page-level horizontal overflow guard.
+- Kalan risk:
+  - Bu PR History sidebar/page parity ve history recovery copy yuzeyini guclendirir; conversation delete/rename/archive ve App-level ErrorBoundary ayri PR kapsamindadir.

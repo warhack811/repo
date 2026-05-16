@@ -73,6 +73,14 @@ const visualDisciplineTestPath = join(webSrcRoot, 'pages', 'VisualDiscipline.tes
 const settingsPagePath = join(webSrcRoot, 'pages', 'SettingsPage.tsx');
 const settingsTabsPath = join(webSrcRoot, 'pages', 'settingsTabs.ts');
 const menuSheetPath = join(webSrcRoot, 'components', 'app', 'MenuSheet.tsx');
+const conversationHistoryDisplayPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'conversationHistoryDisplay.ts',
+);
+const conversationSidebarPath = join(webSrcRoot, 'components', 'chat', 'ConversationSidebar.tsx');
+const historyPagePath = join(webSrcRoot, 'pages', 'HistoryPage.tsx');
 const themePickerPath = join(webSrcRoot, 'components', 'settings', 'ThemePicker.tsx');
 const routeStylesPath = join(webSrcRoot, 'styles', 'routes');
 const activityTerminalDetailsPath = join(
@@ -571,6 +579,95 @@ describe('PR-22 settings/menu copy coherence lock', () => {
 
 		expect(menuSheetSource).not.toContain('preferences');
 		expect(settingsTabsSource).toContain('preferences');
+	});
+});
+
+describe('PR-23 history parity lock', () => {
+	const pr23Files = [conversationHistoryDisplayPath, conversationSidebarPath, historyPagePath];
+
+	it('PR-23 files are UTF-8 without BOM', () => {
+		const violations: string[] = [];
+
+		for (const filePath of pr23Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(filePath);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-23 files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of pr23Files) {
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-23 normal history source copy has no forbidden raw/internal strings', () => {
+		const forbidden = [
+			'Internal Server Error',
+			'{"error"',
+			'{"detail"',
+			'Conversation request failed',
+			'Desteklenmeyen conversation',
+			'backend',
+			'protocol',
+			'metadata',
+			'trace',
+			'stack',
+		];
+		const violations: string[] = [];
+
+		for (const filePath of pr23Files) {
+			const source = readFileSync(filePath, 'utf8');
+			for (const term of forbidden) {
+				if (source.includes(term)) {
+					violations.push(`${filePath} includes ${term}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('ConversationSidebar and HistoryPage do not keep duplicate local helper names', () => {
+		const sidebarSource = readFileSync(conversationSidebarPath, 'utf8');
+		const historySource = readFileSync(historyPagePath, 'utf8');
+		const duplicateHelperPatterns = [
+			/function daysBetween/u,
+			/function groupConversations/u,
+			/function matchesSearch/u,
+			/function getFriendlyErrorMessage/u,
+		];
+
+		for (const pattern of duplicateHelperPatterns) {
+			expect(sidebarSource).not.toMatch(pattern);
+			expect(historySource).not.toMatch(pattern);
+		}
+	});
+
+	it('ConversationSidebar and HistoryPage import shared conversationHistoryDisplay helper', () => {
+		const sidebarSource = readFileSync(conversationSidebarPath, 'utf8');
+		const historySource = readFileSync(historyPagePath, 'utf8');
+
+		expect(sidebarSource).toContain('conversationHistoryDisplay');
+		expect(historySource).toContain('conversationHistoryDisplay');
 	});
 });
 
