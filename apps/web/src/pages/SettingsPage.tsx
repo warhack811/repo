@@ -12,8 +12,12 @@ import { useVoiceInput } from '../hooks/useVoiceInput.js';
 import { BRAND_THEME_OPTIONS, type BrandTheme, type Theme } from '../lib/theme.js';
 import { fetchWorkspaceDirectories } from '../lib/workspace-directories.js';
 import { uiCopy } from '../localization/copy.js';
-
-type SettingsTab = 'advanced' | 'appearance' | 'conversation' | 'notifications' | 'privacy';
+import {
+	type SettingsTab,
+	parseSettingsTab,
+	settingsTabToSearchParams,
+	shouldNormalizeSettingsTab,
+} from './settingsTabs.js';
 
 type SettingsPageProps = Readonly<{
 	accessToken: string | null;
@@ -51,19 +55,19 @@ const approvalModeOptions: readonly {
 	readonly value: ApprovalMode;
 }[] = [
 	{
-		description: 'Her tool/capability kullanimi icin acik onay ister.',
-		label: 'Her islemde sor',
+		description: 'Her tool/capability kullanımı için açık onay ister.',
+		label: 'Her işlemde sor',
 		value: 'ask-every-time',
 	},
 	{
-		description: 'Dusuk riskli okumalar akici kalir; yazma ve riskli islemler onay ister.',
+		description: 'Düşük riskli okumalar akıcı kalır; yazma ve riskli işlemler onay ister.',
 		label: 'Standart',
 		value: 'standard',
 	},
 	{
 		description:
-			'Oturumla sinirlidir; komut, masaustu kontrolu ve yuksek riskli islemler yine onay ister.',
-		label: 'Guvenilir oturum',
+			'Oturumla sınırlıdır; komut, masaüstü kontrolü ve yüksek riskli işlemler yine onay ister.',
+		label: 'Güvenilir oturum',
 		value: 'trusted-session',
 	},
 ];
@@ -75,26 +79,6 @@ const tabs: readonly { id: SettingsTab; label: string }[] = [
 	{ id: 'privacy', label: 'Gizlilik' },
 	{ id: 'advanced', label: 'Gelişmiş' },
 ];
-
-function parseSettingsTab(value: string | null): SettingsTab {
-	if (value === 'conversation') {
-		return 'conversation';
-	}
-
-	if (value === 'notifications') {
-		return 'notifications';
-	}
-
-	if (value === 'privacy') {
-		return 'privacy';
-	}
-
-	if (value === 'advanced') {
-		return 'advanced';
-	}
-
-	return 'appearance';
-}
 
 function isApprovalMode(value: unknown): value is ApprovalMode {
 	return typeof value === 'string' && approvalModeValues.includes(value as ApprovalMode);
@@ -243,9 +227,9 @@ export function SettingsPage({
 	theme,
 }: SettingsPageProps): ReactElement {
 	const [searchParams, setSearchParams] = useSearchParams();
-	const [activeTab, setActiveTab] = useState<SettingsTab>(() =>
-		parseSettingsTab(searchParams.get('tab')),
-	);
+	const tabParam = searchParams.get('tab');
+	const parsedTab = parseSettingsTab(tabParam);
+	const [activeTab, setActiveTab] = useState<SettingsTab>(() => parsedTab);
 	const [approvalMode, setApprovalMode] = useState<ApprovalMode>(() => readStoredApprovalMode());
 	const [workspaceDirectories, setWorkspaceDirectories] = useState<
 		readonly { readonly depth: number; readonly name: string; readonly relative_path: string }[]
@@ -274,8 +258,16 @@ export function SettingsPage({
 	const voiceInput = useVoiceInput();
 
 	useEffect(() => {
-		setActiveTab(parseSettingsTab(searchParams.get('tab')));
-	}, [searchParams]);
+		setActiveTab(parsedTab);
+	}, [parsedTab]);
+
+	useEffect(() => {
+		if (!shouldNormalizeSettingsTab(tabParam)) {
+			return;
+		}
+
+		setSearchParams(settingsTabToSearchParams(parsedTab), { replace: true });
+	}, [parsedTab, setSearchParams, tabParam]);
 
 	useEffect(() => {
 		const normalizedAccessToken = accessToken?.trim() ?? '';
@@ -371,7 +363,7 @@ export function SettingsPage({
 
 	function selectTab(nextTab: SettingsTab): void {
 		setActiveTab(nextTab);
-		setSearchParams(nextTab === 'appearance' ? {} : { tab: nextTab }, { replace: true });
+		setSearchParams(settingsTabToSearchParams(nextTab), { replace: true });
 	}
 
 	function selectTypographyPreference(nextValue: 'comfortable' | 'compact'): void {
@@ -421,7 +413,7 @@ export function SettingsPage({
 				</section>
 			</section>
 
-			<section className="runa-settings-tabs" aria-label="Hesap ayarlari">
+			<section className="runa-settings-tabs" aria-label="Hesap ayarları">
 				<div className="runa-settings-tabs__list" role="tablist">
 					{tabs.map((tab) => (
 						<button
@@ -475,7 +467,7 @@ export function SettingsPage({
 							>
 								<h2 id="typography-heading">Tipografi</h2>
 								<label className="runa-settings-row">
-									<span>Metin yogunlugu</span>
+									<span>Metin yoğunluğu</span>
 									<select
 										value={typographyPreference}
 										onChange={(event) =>
@@ -485,7 +477,7 @@ export function SettingsPage({
 										}
 									>
 										<option value="comfortable">Rahat</option>
-										<option value="compact">Siki</option>
+										<option value="compact">Sıkı</option>
 									</select>
 								</label>
 							</section>
@@ -531,7 +523,7 @@ export function SettingsPage({
 							<section className="runa-settings-preference-section" aria-labelledby="voice-heading">
 								<h2 id="voice-heading">Ses tercihleri</h2>
 								<label className="runa-settings-row">
-									<span>Yeni yanitlari otomatik oku</span>
+									<span>Yeni yanıtları otomatik oku</span>
 									<input
 										type="checkbox"
 										checked={autoReadEnabled}
@@ -555,7 +547,7 @@ export function SettingsPage({
 											onClick={cancelTextToSpeech}
 											className="runa-button runa-button--secondary"
 										>
-											Okumayi durdur
+											Okumayı durdur
 										</button>
 									) : null}
 									{(voiceInput.errorMessage ?? textToSpeechErrorMessage) ? (
@@ -585,7 +577,7 @@ export function SettingsPage({
 											})
 										}
 									>
-										<option value="tr">Turkce</option>
+										<option value="tr">Türkçe</option>
 										<option value="en">English</option>
 									</select>
 								</label>
@@ -600,7 +592,7 @@ export function SettingsPage({
 									/>
 								</label>
 								<label className="runa-settings-row">
-									<span>Veri saklama suresi</span>
+									<span>Veri saklama süresi</span>
 									<select
 										value={notificationSettings.dataRetention}
 										onChange={(event) =>
@@ -612,9 +604,9 @@ export function SettingsPage({
 											})
 										}
 									>
-										<option value="30">30 gun</option>
-										<option value="90">90 gun</option>
-										<option value="forever">Suresiz</option>
+										<option value="30">30 gün</option>
+										<option value="90">90 gün</option>
+										<option value="forever">Süresiz</option>
 									</select>
 								</label>
 							</section>
@@ -634,13 +626,13 @@ export function SettingsPage({
 										<output>{workspaceRootName}</output>
 									</label>
 									<label className="runa-settings-row">
-										<span>Run klasoru</span>
+										<span>Run klasörü</span>
 										<select
 											value={workingDirectory}
 											onChange={(event) => selectWorkingDirectory(event.target.value)}
 											disabled={workspaceDirectoryLoading || workspaceDirectories.length === 0}
 										>
-											<option value="">Workspace koku (varsayilan)</option>
+											<option value="">Workspace kökü (varsayılan)</option>
 											{workspaceDirectories.map((directory) => (
 												<option key={directory.relative_path} value={directory.relative_path}>
 													{`${'  '.repeat(directory.depth)}${directory.relative_path}`}
@@ -676,7 +668,7 @@ export function SettingsPage({
 								className="runa-settings-preference-section"
 								aria-labelledby="advanced-view-heading"
 							>
-								<h2 id="advanced-view-heading">Gelismis gorunum</h2>
+								<h2 id="advanced-view-heading">Gelişmiş görünüm</h2>
 								<label className="runa-settings-row">
 									<span>{uiCopy.advancedView.heading}</span>
 									<input

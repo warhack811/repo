@@ -71,6 +71,8 @@ const fileUploadButtonCssPath = join(
 );
 const visualDisciplineTestPath = join(webSrcRoot, 'pages', 'VisualDiscipline.test.tsx');
 const settingsPagePath = join(webSrcRoot, 'pages', 'SettingsPage.tsx');
+const settingsTabsPath = join(webSrcRoot, 'pages', 'settingsTabs.ts');
+const menuSheetPath = join(webSrcRoot, 'components', 'app', 'MenuSheet.tsx');
 const themePickerPath = join(webSrcRoot, 'components', 'settings', 'ThemePicker.tsx');
 const routeStylesPath = join(webSrcRoot, 'styles', 'routes');
 const activityTerminalDetailsPath = join(
@@ -481,6 +483,94 @@ describe('Settings IA lock', () => {
 		for (const tab of ['appearance', 'conversation', 'notifications', 'privacy', 'advanced']) {
 			expect(src).toContain(`'${tab}'`);
 		}
+	});
+});
+
+describe('PR-22 settings/menu copy coherence lock', () => {
+	const pr22Files = [menuSheetPath, settingsPagePath, settingsTabsPath, appPath];
+
+	it('PR-22 files are UTF-8 without BOM', () => {
+		const violations: string[] = [];
+
+		for (const filePath of pr22Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(filePath);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-22 source files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of pr22Files) {
+			if (!existsSync(filePath)) {
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-22 source files do not keep old ASCII Turkish copy variants', () => {
+		const forbidden = [
+			'Gecmis',
+			'Gelismis',
+			'Acik',
+			'Kapali',
+			'Yardim',
+			'Yakinda',
+			'Hizli menu',
+			'Menuyu kapat',
+			'Sayfa y?kleniyor',
+			'Turkce',
+			'Siki',
+			'Suresiz',
+			'30 gun',
+			'Run klasoru',
+			'Workspace koku',
+		];
+		const violations: string[] = [];
+
+		for (const filePath of [menuSheetPath, settingsPagePath, appPath]) {
+			const source = readFileSync(filePath, 'utf8');
+			for (const term of forbidden) {
+				if (source.includes(term)) {
+					violations.push(`${filePath} includes ${term}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('MenuSheet navigation never uses preferences query', () => {
+		const source = readFileSync(menuSheetPath, 'utf8');
+		expect(source).not.toContain('/account?tab=preferences');
+		expect(source).not.toContain("navigate('/account?tab=preferences')");
+	});
+
+	it('preferences alias remains only in settings tab parsing helper', () => {
+		const menuSheetSource = readFileSync(menuSheetPath, 'utf8');
+		const settingsTabsSource = readFileSync(settingsTabsPath, 'utf8');
+
+		expect(menuSheetSource).not.toContain('preferences');
+		expect(settingsTabsSource).toContain('preferences');
 	});
 });
 
