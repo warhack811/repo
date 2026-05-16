@@ -22,6 +22,7 @@ const chatLayoutPath = join(webSrcRoot, 'components', 'chat', 'ChatLayout.tsx');
 const appShellPath = join(webSrcRoot, 'components', 'app', 'AppShell.tsx');
 const componentsCssPath = join(stylesRoot, 'components.css');
 const appPath = join(webSrcRoot, 'App.tsx');
+const authenticatedAppPath = join(webSrcRoot, 'AuthenticatedApp.tsx');
 const useChatRuntimePath = join(webSrcRoot, 'hooks', 'useChatRuntime.ts');
 const uiIndexPath = join(webSrcRoot, 'components', 'ui', 'index.ts');
 const skipToContentPath = join(webSrcRoot, 'components', 'ui', 'SkipToContent.tsx');
@@ -1170,5 +1171,135 @@ describe('streamdown text encoding guard', () => {
 		}
 
 		expect(violations).toEqual([]);
+	});
+});
+
+describe('PR-24 app error boundary recovery lock', () => {
+	const pr24SourceFiles = [
+		join(webSrcRoot, 'components', 'app', 'AppErrorBoundary.tsx'),
+		join(webSrcRoot, 'components', 'app', 'AppErrorBoundary.module.css'),
+		join(webSrcRoot, 'components', 'app', 'appErrorBoundaryCopy.ts'),
+		appPath,
+		authenticatedAppPath,
+	];
+	const pr24VisualFiles = [
+		join(webRoot, 'tests', 'visual', 'ui-overhaul-24-error-boundary-fixture.tsx'),
+		join(webRoot, 'tests', 'visual', 'ui-overhaul-24-error-boundary-smoke.html'),
+	];
+	const appErrorBoundaryPath = join(webSrcRoot, 'components', 'app', 'AppErrorBoundary.tsx');
+	const copyPath = join(webSrcRoot, 'components', 'app', 'appErrorBoundaryCopy.ts');
+
+	it('PR-24 files exist and are UTF-8 without BOM', () => {
+		const violations: string[] = [];
+
+		for (const filePath of [...pr24SourceFiles, ...pr24VisualFiles]) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(`${filePath}`);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-24 files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of [...pr24SourceFiles, ...pr24VisualFiles]) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('user-facing fallback copy has no forbidden raw/internal strings', async () => {
+		const { getAppErrorRecoveryCopy } = await import('../components/app/appErrorBoundaryCopy');
+		const copy = getAppErrorRecoveryCopy();
+		const copyOutput = Object.values(copy).join(' ');
+
+		const componentSource = readFileSync(appErrorBoundaryPath, 'utf8');
+
+		const forbidden = [
+			'TypeError',
+			'ReferenceError',
+			'Cannot read properties',
+			'Stack trace',
+			'Internal Server Error',
+			'backend',
+			'protocol',
+			'payload',
+			'metadata',
+			'trace',
+			'stack',
+			'undefined',
+			'null',
+		];
+
+		for (const term of forbidden) {
+			expect(copyOutput, `copy output contains forbidden: "${term}"`).not.toContain(term);
+		}
+
+		const fallbackRenderSection = componentSource.slice(
+			Math.max(0, componentSource.indexOf('function AppErrorFallback')),
+		);
+		for (const term of forbidden) {
+			expect(fallbackRenderSection, `fallback render contains forbidden: "${term}"`).not.toContain(
+				term,
+			);
+		}
+	});
+
+	it('AppErrorBoundary.module.css uses design tokens, no hardcoded hex', () => {
+		const cssPath = join(webSrcRoot, 'components', 'app', 'AppErrorBoundary.module.css');
+
+		if (!existsSync(cssPath)) {
+			return;
+		}
+
+		const source = readFileSync(cssPath, 'utf8');
+		const hexPattern = /#[0-9A-Fa-f]{3,8}/g;
+		const hexMatches = source.match(hexPattern) ?? [];
+		expect(hexMatches).toEqual([]);
+	});
+
+	it('tokens.css and VisualDiscipline.test.tsx are unchanged in PR-24', () => {
+		const tokensDiff = spawnSync(
+			'git',
+			['diff', '--name-only', '--', 'apps/web/src/styles/tokens.css'],
+			{
+				cwd: repoRoot,
+				encoding: 'utf8',
+			},
+		);
+		const visualDisciplineDiff = spawnSync(
+			'git',
+			['diff', '--name-only', '--', 'apps/web/src/pages/VisualDiscipline.test.tsx'],
+			{
+				cwd: repoRoot,
+				encoding: 'utf8',
+			},
+		);
+
+		expect(tokensDiff.status, tokensDiff.stderr || tokensDiff.stdout).toBe(0);
+		expect(
+			visualDisciplineDiff.status,
+			visualDisciplineDiff.stderr || visualDisciplineDiff.stdout,
+		).toBe(0);
+		expect(tokensDiff.stdout.trim()).toBe('');
+		expect(visualDisciplineDiff.stdout.trim()).toBe('');
 	});
 });

@@ -7,11 +7,11 @@
 
 ## Mevcut Durum Ozeti
 
-- **Tarih:** 14 Mayis 2026
-- **Faz:** Core Hardening (Phase 2) + UI Restructure tamamlandi (PR-1..PR-12).
+- **Tarih:** 16 Mayis 2026
+- **Faz:** Core Hardening (Phase 2) + UI Restructure tamamlandi (PR-1..PR-12). Error boundary recovery yuzeyi eklendi (PR-24).
 - **Vizyon:** Basit kullanicidan teknik uzmana kadar herkesin kullanabilecegi, otonom ve uzaktan kontrol yeteneklerine sahip, cloud-first bir AI calisma ortagi.
-- **Odak:** UI restructure kapandi; sirada provider/runtime baseline genisletmesi ve plan-disi UI bosluklari (empty state personalization, markdown rendering).
-- **Son Onemli Olay:** 2026-05-14 tarihinde "UI Restructure PR-1..PR-12" sureci kapatildi; tasarim dili `docs/RUNA-DESIGN-LANGUAGE.md` icinde tek otoriteye kilitlendi, design-language lock test PR-1..9 + Settings IA + PR-11 memo discipline kurallarini kapsayacak sekilde genisletildi, Lighthouse + screen reader + dead-css kanitlari arsivlendi.
+- **Odak:** UI restructure kapandi; error boundary recovery yuzeyi eklendi; sirada provider/runtime baseline genisletmesi.
+- **Son Onemli Olay:** 2026-05-16 tarihinde PR-24 app error boundary recovery eklendi: route/app render crash durumunda kullaniciya teknik detay gostermeyen, sade Turkce recovery yuzeyi.
 
 ### TASK-UI-RESTRUCTURE-PR-18-FRESH-COMPETITOR-QUALITY-AUDIT - 15 Mayis 2026
 
@@ -1023,3 +1023,28 @@
   - 390/320 viewport: grouping parity, search no-result copy, error recovery fallback, forbidden raw/internal string yoklugu, mojibake yoklugu ve page-level horizontal overflow guard.
 - Kalan risk:
   - Bu PR History sidebar/page parity ve history recovery copy yuzeyini guclendirir; conversation delete/rename/archive ve App-level ErrorBoundary ayri PR kapsamindadir.
+
+### TASK-UI-RESTRUCTURE-PR-24-APP-ERROR-BOUNDARY-AND-RECOVERY-SURFACE - 16 Mayis 2026
+
+- Base: `203970fab9cb518988243466c8993efdd9e2e06f`
+- Hedef: Route/app render crash durumunda kullaniciya teknik stack/raw error gostermeden guvenli, sade, mobil uyumlu bir recovery yuzeyi sunmak.
+- **error-boundary-only PR**. Global observability, backend error policy, toast redesign ayri PR kapsamindadir.
+- Uygulama:
+  - `apps/web/src/components/app/AppErrorBoundary.tsx` — class component, `getDerivedStateFromError` + `componentDidCatch`, `resetKey` ile reset, `onRecoverToChat` callback.
+  - `apps/web/src/components/app/appErrorBoundaryCopy.ts` — user-facing copy helper ve `containsUnsafeErrorCopy` guard.
+  - `apps/web/src/components/app/AppErrorBoundary.module.css` — design token tabanli, mobil 320/390 overflow korumali.
+  - `apps/web/src/App.tsx` — root seviyesinde `AppErrorBoundary` ile authenticated + login surface crash korumasi.
+  - `apps/web/src/AuthenticatedApp.tsx` — `AuthenticatedLayout` icinde route-level `AppErrorBoundary` ile `Outlet` kapsamasi; `resetKey={location.key}` ile route degisiminde reset.
+  - `apps/web/src/test/design-language-lock.test.ts` — PR-24 guardlari: BOM/mojibake, forbidden raw/internal strings, hardcoded hex yoklugu, tokens.css/VisualDiscipline degismemesi.
+  - `apps/web/tests/visual/ui-overhaul-24-error-boundary-fixture.tsx`
+  - `apps/web/tests/visual/ui-overhaul-24-error-boundary-smoke.html`
+  - `apps/web/tests/visual/ui-overhaul-24-error-boundary-smoke.spec.ts`
+- Test:
+  - Yeni unit: `apps/web/src/components/app/AppErrorBoundary.test.tsx` (11 test)
+  - Yeni unit: `apps/web/src/components/app/appErrorBoundaryCopy.test.ts` (10 test)
+  - Design lock: PR-24 guardlari
+  - Visual smoke: 390/320 viewport, route/root fallback, retry success, forbidden raw/internal strings yoklugu, mojibake yoklugu, horizontal overflow guard.
+- Kapsam disi:
+  - Toast redesign, global observability/logging, backend/server degisikligi, useAuth/useConversations/useChatRuntime contract degisikligi, route IA degisikligi, settings/history/upload/voice/message-action degisikligi, composer/chat runtime logic degisikligi, tokens.css/VisualDiscipline degisikligi.
+- Kalan risk:
+  - Bu PR route/app render crash durumlari icin kullanici-dilli recovery yuzeyini guclendirir; global observability, backend error policy ve toast redesign ayri PR kapsamindadir.

@@ -1,6 +1,7 @@
 import type { AuthContext } from '@runa/types';
 import { type ReactElement, Suspense, lazy, useCallback, useEffect, useState } from 'react';
 
+import { AppErrorBoundary } from './components/app/AppErrorBoundary.js';
 import { RunaSkeleton } from './components/ui/RunaSkeleton.js';
 import { RunaToastProvider } from './components/ui/RunaToast.js';
 import { useAuth } from './hooks/useAuth.js';
@@ -98,41 +99,48 @@ export function App(): ReactElement {
 
 	return (
 		<RunaToastProvider>
-			{isAuthenticatedSurface ? (
-				<Suspense fallback={<AuthenticatedFallback />}>
-					<AuthenticatedApp
+			<AppErrorBoundary
+				tone="root"
+				onRecoverToChat={() => {
+					window.location.assign('/chat');
+				}}
+			>
+				{isAuthenticatedSurface ? (
+					<Suspense fallback={<AuthenticatedFallback />}>
+						<AuthenticatedApp
+							authContext={authContext}
+							authError={authError}
+							authStatus={authStatus === 'service' ? 'service' : 'authenticated'}
+							bearerToken={bearerToken}
+							brandTheme={brandTheme}
+							hasStoredBearerToken={hasStoredBearerToken}
+							isAuthPending={isAuthPending}
+							onBrandThemeChange={selectBrandTheme}
+							onClearAuthToken={clearAuthToken}
+							onLogout={logout}
+							onRefreshAuthContext={refreshAuthContext}
+							onThemeChange={selectTheme}
+							theme={theme}
+						/>
+					</Suspense>
+				) : (
+					<LoginPage
 						authContext={authContext}
 						authError={authError}
-						authStatus={authStatus === 'service' ? 'service' : 'authenticated'}
-						bearerToken={bearerToken}
-						brandTheme={brandTheme}
+						authNotice={authNotice}
+						authStatus={authStatus === 'bootstrapping' ? 'bootstrapping' : 'anonymous'}
 						hasStoredBearerToken={hasStoredBearerToken}
 						isAuthPending={isAuthPending}
-						onBrandThemeChange={selectBrandTheme}
+						onAuthenticateWithToken={authenticateWithToken}
 						onClearAuthToken={clearAuthToken}
-						onLogout={logout}
+						onLoginWithPassword={loginWithPassword}
+						onStartLocalDevSession={startLocalDevSession}
 						onRefreshAuthContext={refreshAuthContext}
-						onThemeChange={selectTheme}
-						theme={theme}
+						onSignupWithPassword={signupWithPassword}
+						onStartOAuth={startOAuthSignIn}
 					/>
-				</Suspense>
-			) : (
-				<LoginPage
-					authContext={authContext}
-					authError={authError}
-					authNotice={authNotice}
-					authStatus={authStatus === 'bootstrapping' ? 'bootstrapping' : 'anonymous'}
-					hasStoredBearerToken={hasStoredBearerToken}
-					isAuthPending={isAuthPending}
-					onAuthenticateWithToken={authenticateWithToken}
-					onClearAuthToken={clearAuthToken}
-					onLoginWithPassword={loginWithPassword}
-					onStartLocalDevSession={startLocalDevSession}
-					onRefreshAuthContext={refreshAuthContext}
-					onSignupWithPassword={signupWithPassword}
-					onStartOAuth={startOAuthSignIn}
-				/>
-			)}
+				)}
+			</AppErrorBoundary>
 		</RunaToastProvider>
 	);
 }
