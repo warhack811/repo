@@ -208,4 +208,22 @@ describe('useVoiceInput', () => {
 		expect(mockRecognition.stop).toHaveBeenCalled();
 		expect(result.current.isListening).toBe(false);
 	});
+
+	it('does not expose raw start errors to the user', () => {
+		mockRecognition.start.mockImplementation(() => {
+			throw new Error('SpeechRecognition internal failure');
+		});
+
+		const { result } = renderHook(() => useVoiceInput());
+
+		act(() => {
+			result.current.startListening();
+		});
+
+		expect(result.current.status).toBe('error');
+		expect(result.current.isListening).toBe(false);
+		expect(result.current.errorMessage).toBe('Sesle yazma başlatılamadı. Tekrar deneyebilirsin.');
+		expect(result.current.errorMessage).not.toContain('SpeechRecognition');
+		expect(result.current.errorMessage).not.toContain('internal failure');
+	});
 });
