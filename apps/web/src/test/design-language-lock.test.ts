@@ -49,6 +49,27 @@ const runActivityAdapterPath = join(
 const chatHeaderPath = join(webSrcRoot, 'components', 'chat', 'ChatHeader.tsx');
 const chatPagePath = join(webSrcRoot, 'pages', 'ChatPage.tsx');
 const chatComposerSurfacePath = join(webSrcRoot, 'components', 'chat', 'ChatComposerSurface.tsx');
+const attachmentDisplayPath = join(webSrcRoot, 'components', 'chat', 'attachmentDisplay.ts');
+const attachmentPreviewListPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'AttachmentPreviewList.tsx',
+);
+const attachmentPreviewListCssPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'AttachmentPreviewList.module.css',
+);
+const fileUploadButtonPath = join(webSrcRoot, 'components', 'chat', 'FileUploadButton.tsx');
+const fileUploadButtonCssPath = join(
+	webSrcRoot,
+	'components',
+	'chat',
+	'FileUploadButton.module.css',
+);
+const visualDisciplineTestPath = join(webSrcRoot, 'pages', 'VisualDiscipline.test.tsx');
 const settingsPagePath = join(webSrcRoot, 'pages', 'SettingsPage.tsx');
 const themePickerPath = join(webSrcRoot, 'components', 'settings', 'ThemePicker.tsx');
 const routeStylesPath = join(webSrcRoot, 'styles', 'routes');
@@ -701,6 +722,146 @@ describe('PR-20 voice composer state lock', () => {
 		for (const term of forbiddenInCode) {
 			expect(source, `voiceComposerState.ts contains "${term}"`).not.toContain(term);
 		}
+	});
+});
+
+describe('PR-21 upload attachment lock', () => {
+	const pr21Files = [
+		fileUploadButtonPath,
+		fileUploadButtonCssPath,
+		attachmentPreviewListPath,
+		attachmentPreviewListCssPath,
+		attachmentDisplayPath,
+		chatComposerSurfacePath,
+	];
+
+	it('PR-21 files are UTF-8 without BOM', () => {
+		const violations: string[] = [];
+
+		for (const filePath of pr21Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(`${filePath}`);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-21 files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of pr21Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-21 user-facing files avoid forbidden technical strings', () => {
+		const forbidden = [
+			'blob_id',
+			'media_type',
+			'size_bytes',
+			'payload',
+			'backend',
+			'protocol',
+			'metadata',
+		];
+		const sourceFiles = [attachmentDisplayPath, attachmentPreviewListPath, chatComposerSurfacePath];
+		const violations: string[] = [];
+
+		for (const filePath of sourceFiles) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			const literalMatches = source.matchAll(/(['"`])((?:\\.|(?!\1).)*)\1/gms);
+			const literals = [...literalMatches]
+				.map((match) => match[2] ?? '')
+				.filter((value) => /\s|[çğıöşüÇĞİÖŞÜ]/u.test(value));
+			for (const literal of literals) {
+				for (const term of forbidden) {
+					if (literal.includes(term)) {
+						violations.push(`${filePath} contains "${term}" in user-facing copy`);
+					}
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-21 CSS files do not contain hardcoded hex colors', () => {
+		const cssFiles = [
+			fileUploadButtonCssPath,
+			attachmentPreviewListCssPath,
+			join(webSrcRoot, 'components', 'chat', 'ChatComposerSurface.module.css'),
+		];
+		const violations: string[] = [];
+		const hexPattern = /#[0-9A-Fa-f]{3,8}/g;
+
+		for (const cssFile of cssFiles) {
+			if (!existsSync(cssFile)) {
+				violations.push(`${cssFile} (not found)`);
+				continue;
+			}
+
+			const source = readFileSync(cssFile, 'utf8');
+			const matches = source.match(hexPattern) ?? [];
+			if (matches.length > 0) {
+				violations.push(`${cssFile} has ${matches.join(', ')}`);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('tokens.css and VisualDiscipline.test.tsx are unchanged in PR-21', () => {
+		const tokensDiff = spawnSync(
+			'git',
+			['diff', '--name-only', '--', 'apps/web/src/styles/tokens.css'],
+			{
+				cwd: repoRoot,
+				encoding: 'utf8',
+			},
+		);
+		const visualDisciplineDiff = spawnSync(
+			'git',
+			['diff', '--name-only', '--', 'apps/web/src/pages/VisualDiscipline.test.tsx'],
+			{
+				cwd: repoRoot,
+				encoding: 'utf8',
+			},
+		);
+
+		expect(tokensDiff.status, tokensDiff.stderr || tokensDiff.stdout).toBe(0);
+		expect(
+			visualDisciplineDiff.status,
+			visualDisciplineDiff.stderr || visualDisciplineDiff.stdout,
+		).toBe(0);
+		expect(tokensDiff.stdout.trim()).toBe('');
+		expect(visualDisciplineDiff.stdout.trim()).toBe('');
+		expect(existsSync(tokensPath)).toBe(true);
+		expect(existsSync(visualDisciplineTestPath)).toBe(true);
 	});
 });
 

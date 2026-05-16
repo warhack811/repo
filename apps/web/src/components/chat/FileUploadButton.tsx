@@ -132,10 +132,45 @@ function toBase64(buffer: ArrayBuffer): string {
 	return window.btoa(binary);
 }
 
+type UploadFailureReason = 'network' | 'server' | 'unsupported-response' | 'unknown';
+
+class UploadFailure extends Error {
+	readonly reason: UploadFailureReason;
+
+	constructor(reason: UploadFailureReason) {
+		super(reason);
+		this.reason = reason;
+	}
+}
+
+export function getUploadFailureMessage(input: {
+	readonly reason: UploadFailureReason;
+}): string {
+	if (input.reason === 'server') {
+		return 'Dosya yükleme tamamlanamadı. Yeniden deneyebilirsin.';
+	}
+
+	return 'Dosya yüklenemedi. Yeniden seçip tekrar deneyebilirsin.';
+}
+
+function resolveUploadFailureReason(error: unknown): UploadFailureReason {
+	if (error instanceof UploadFailure) {
+		return error.reason;
+	}
+
+	if (error instanceof TypeError) {
+		return 'network';
+	}
+
+	return 'unknown';
+}
+
 type FileUploadButtonProps = Readonly<{
 	accessToken?: string | null;
 	disabled?: boolean;
 	icon?: ReactNode;
+	label?: string;
+	showLabel?: boolean;
 	onAttachmentUploaded: (attachment: ModelAttachment) => void;
 	onUploadStateChange?: (input: {
 		readonly error: string | null;
@@ -147,6 +182,8 @@ export function FileUploadButton({
 	accessToken,
 	disabled = false,
 	icon = null,
+	label = 'Dosya ekle',
+	showLabel = false,
 	onAttachmentUploaded,
 	onUploadStateChange,
 }: FileUploadButtonProps): ReactElement {
@@ -191,21 +228,19 @@ export function FileUploadButton({
 				method: 'POST',
 			});
 
-			const payload = (await response.json()) as unknown;
-
 			if (!response.ok) {
-				throw new Error(
-					typeof payload === 'object' &&
-						payload !== null &&
-						'message' in payload &&
-						typeof payload.message === 'string'
-						? payload.message
-						: 'Dosya yüklenemedi.',
-				);
+				throw new UploadFailure('server');
+			}
+
+			let payload: unknown;
+			try {
+				payload = (await response.json()) as unknown;
+			} catch {
+				throw new UploadFailure('unsupported-response');
 			}
 
 			if (!isAttachmentResponse(payload)) {
-				throw new Error('Dosya yükleme yanıtı desteklenmiyor.');
+				throw new UploadFailure('unsupported-response');
 			}
 
 			onAttachmentUploaded(payload.attachment);
@@ -214,9 +249,9 @@ export function FileUploadButton({
 				isUploading: false,
 			});
 		} catch (error: unknown) {
+			const reason = resolveUploadFailureReason(error);
 			onUploadStateChange?.({
-				error:
-					error instanceof Error ? error.message : 'Dosya yüklenirken beklenmeyen bir hata oluştu.',
+				error: getUploadFailureMessage({ reason }),
 				isUploading: false,
 			});
 		} finally {
@@ -227,6 +262,12 @@ export function FileUploadButton({
 			}
 		}
 	}
+
+	const busyLabel = 'Dosya yükleniyor...';
+	const buttonLabel = isUploading ? busyLabel : label;
+	const buttonClassName = showLabel
+		? `${styles['label']} ${styles['labelWithText']}`
+		: styles['label'];
 
 	return (
 		<>
@@ -241,19 +282,22 @@ export function FileUploadButton({
 				type="file"
 			/>
 			<button
-				aria-label={isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
-				className={styles['label']}
+				aria-busy={isUploading}
+				aria-label={buttonLabel}
+				className={buttonClassName}
 				disabled={isDisabled}
 				onClick={() => {
 					inputRef.current?.click();
 				}}
 				type="button"
-				title={isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
+				title={buttonLabel}
 			>
 				{icon}
-				<span className="runa-chat-visually-hidden">
-					{isUploading ? 'Yükleniyor...' : 'Dosya ekle'}
-				</span>
+				{showLabel ? (
+					<span className={styles['text']}>{buttonLabel}</span>
+				) : (
+					<span className="runa-chat-visually-hidden">{buttonLabel}</span>
+				)}
 			</button>
 		</>
 	);

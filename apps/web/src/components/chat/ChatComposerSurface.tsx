@@ -7,8 +7,8 @@ import { uiCopy } from '../../localization/copy.js';
 import type { ChatStore } from '../../stores/chat-store.js';
 import type { ModelAttachment } from '../../ws-types.js';
 import { RunaButton } from '../ui/RunaButton.js';
-import { RunaCard } from '../ui/RunaCard.js';
 import { RunaTextarea } from '../ui/RunaTextarea.js';
+import { AttachmentPreviewList } from './AttachmentPreviewList.js';
 import styles from './ChatComposerSurface.module.css';
 import { DesktopTargetSelector } from './DesktopTargetSelector.js';
 import { FileUploadButton } from './FileUploadButton.js';
@@ -264,10 +264,10 @@ export function ChatComposerSurface({
 								onClick={onOpenContextSheet}
 								aria-controls="context-sheet"
 								aria-expanded={isContextSheetOpen}
-								aria-label={`${contextCount} calisma ogesi. Baglami ac`}
+								aria-label={`${contextCount} ek. Bağlamı aç`}
 							>
 								<Paperclip size={14} aria-hidden="true" />
-								<span>{contextCount} working files</span>
+								<span>{contextCount} ek</span>
 								<ChevronRight size={14} aria-hidden="true" />
 							</button>
 						) : null}
@@ -331,58 +331,32 @@ export function ChatComposerSurface({
 				</div>
 
 				<div className="runa-chat-composer-attachments">
-					{attachments.length > 0 ? (
-						<div className={styles['attachmentsList']}>
-							{attachments.map((attachment) => (
-								<RunaCard
-									key={attachment.blob_id}
-									className={styles['attachmentCard']}
-									tone="subtle"
-								>
-									<div className={styles['attachmentInfo']}>
-										<div className={styles['attachmentInfoInner']}>
-											<strong className={styles['attachmentName']}>
-												{attachment.filename ?? attachment.blob_id}
-											</strong>
-											<div className="runa-subtle-copy">
-												{attachment.kind} - {attachment.size_bytes} bytes
-											</div>
-										</div>
-										<RunaButton
-											className={`runa-button runa-button--secondary ${styles['removeButton']}`}
-											onClick={() =>
-												onAttachmentsChange(
-													attachments.filter(
-														(candidate) => candidate.blob_id !== attachment.blob_id,
-													),
-												)
-											}
-											variant="secondary"
-										>
-											Kaldır
-										</RunaButton>
-									</div>
-									{attachment.kind === 'image' ? (
-										<img
-											alt={attachment.filename ?? 'Ek dosya önizlemesi'}
-											src={attachment.data_url}
-											className={styles['imagePreview']}
-										/>
-									) : attachment.kind === 'text' ? (
-										<div className={styles['textPreview']}>{attachment.text_content}</div>
-									) : (
-										<div className={styles['documentPreview']}>
-											{attachment.text_preview ?? 'Doküman eklendi'}
-										</div>
-									)}
-								</RunaCard>
-							))}
-						</div>
-					) : null}
+					<AttachmentPreviewList
+						attachments={attachments}
+						onRemoveAttachment={(blobId) =>
+							onAttachmentsChange(attachments.filter((candidate) => candidate.blob_id !== blobId))
+						}
+					/>
 					{attachmentUploadError ? (
-						<div className="runa-alert runa-alert--warning">{attachmentUploadError}</div>
+						<div className={`runa-alert runa-alert--warning ${styles['uploadAlert']}`} role="alert">
+							<div className={styles['uploadAlertCopy']}>
+								<div className={styles['uploadAlertTitle']}>{attachmentUploadError}</div>
+								<div className="runa-subtle-copy">Dosyayı yeniden seçip tekrar deneyebilirsin.</div>
+							</div>
+							<FileUploadButton
+								accessToken={accessToken}
+								disabled={!isRuntimeConfigReady || isSubmitting}
+								label="Tekrar seç"
+								showLabel={true}
+								onAttachmentUploaded={(attachment) => {
+									onAttachmentsChange([...attachments, attachment]);
+									onAttachmentUploadStateChange({ error: null, isUploading: false });
+								}}
+								onUploadStateChange={onAttachmentUploadStateChange}
+							/>
+						</div>
 					) : isUploadingAttachment ? (
-						<div className="runa-subtle-copy">Seçilen dosya yükleniyor...</div>
+						<div className="runa-subtle-copy">Dosya yükleniyor...</div>
 					) : null}
 				</div>
 
