@@ -1,8 +1,11 @@
 import { render, screen } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ChatStore } from '../../stores/chat-store.js';
 import { ChatComposerSurface } from './ChatComposerSurface.js';
+
+type ComposerProps = ComponentProps<typeof ChatComposerSurface>;
 
 function createMockStore(): ChatStore {
 	return {
@@ -20,8 +23,8 @@ function createMockStore(): ChatStore {
 	} as unknown as ChatStore;
 }
 
-function renderComposer(overrides: Record<string, unknown> = {}) {
-	const defaultProps = {
+function renderComposer(overrides: Partial<ComposerProps> = {}) {
+	const defaultProps: ComposerProps = {
 		accessToken: null,
 		apiKey: 'test-key',
 		attachmentUploadError: null,
@@ -40,6 +43,8 @@ function renderComposer(overrides: Record<string, unknown> = {}) {
 		isContextSheetOpen: false,
 		isUploadingAttachment: false,
 		isVoiceSupported: false,
+		voiceInputStatus: 'idle',
+		voicePermissionDenied: false,
 		lastError: null,
 		store: createMockStore(),
 		onAttachmentUploadStateChange: vi.fn(),
@@ -60,10 +65,9 @@ function renderComposer(overrides: Record<string, unknown> = {}) {
 		statusLabel: 'Hazır',
 		submitButtonLabel: 'Gönder',
 		voiceStatusMessage: null,
-		...overrides,
 	};
 
-	return render(<ChatComposerSurface {...defaultProps} />);
+	return render(<ChatComposerSurface {...defaultProps} {...overrides} />);
 }
 
 describe('ChatComposerSurface focus and notice', () => {
@@ -97,5 +101,22 @@ describe('ChatComposerSurface focus and notice', () => {
 		for (const term of forbidden) {
 			expect(body.textContent).not.toContain(term);
 		}
+	});
+
+	it('passes denied voice status to VoiceComposerControls', () => {
+		const { container } = renderComposer({
+			isVoiceSupported: true,
+			voiceInputStatus: 'denied',
+			voicePermissionDenied: true,
+		});
+		expect(container.textContent).toContain('Mikrofon izni kapalı');
+	});
+
+	it('passes unsupported voice status to VoiceComposerControls', () => {
+		const { container } = renderComposer({
+			isVoiceSupported: false,
+			voiceInputStatus: 'unsupported',
+		});
+		expect(container.textContent).toContain('Bu tarayıcı sesle yazmayı desteklemiyor');
 	});
 });

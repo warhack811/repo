@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 
 import styles from './VoiceComposerControls.module.css';
+import { type VoiceInputStatus, deriveVoiceComposerState } from './voiceComposerState.js';
 
 type VoiceComposerControlsProps = Readonly<{
 	canReadLatestResponse: boolean;
@@ -11,6 +12,8 @@ type VoiceComposerControlsProps = Readonly<{
 	onReadLatestResponse: () => void;
 	onStopSpeaking: () => void;
 	onToggleListening: () => void;
+	permissionDenied?: boolean;
+	voiceInputStatus?: VoiceInputStatus;
 	voiceStatusMessage: string | null;
 }>;
 
@@ -23,17 +26,30 @@ export function VoiceComposerControls({
 	onReadLatestResponse,
 	onStopSpeaking,
 	onToggleListening,
+	permissionDenied = false,
+	voiceInputStatus,
 	voiceStatusMessage,
 }: VoiceComposerControlsProps): ReactElement {
+	const state = deriveVoiceComposerState({
+		canReadLatestResponse,
+		isListening,
+		isSpeechPlaybackSupported,
+		isSpeaking,
+		isVoiceSupported,
+		permissionDenied,
+		voiceInputStatus,
+		voiceStatusMessage,
+	});
+
 	return (
 		<div className={styles['root']}>
 			<div className={styles['buttons']}>
 				<button
 					type="button"
 					onClick={onToggleListening}
-					disabled={!isVoiceSupported}
-					aria-label={isListening ? 'Dinlemeyi durdur' : 'Sesle yaz'}
-					title={isListening ? 'Dinlemeyi durdur' : 'Sesle yaz'}
+					disabled={state.inputButtonDisabled}
+					aria-label={state.inputButtonAriaLabel}
+					title={state.inputButtonLabel}
 					className={[
 						`runa-button runa-button--secondary${
 							isListening ? ' runa-voice-button--listening' : ''
@@ -44,26 +60,26 @@ export function VoiceComposerControls({
 						.join(' ')}
 					aria-pressed={isListening}
 				>
-					{isListening ? 'Dinlemeyi durdur' : 'Sesle yaz'}
+					{state.inputButtonLabel}
 				</button>
 
 				<button
 					type="button"
 					onClick={isSpeaking ? onStopSpeaking : onReadLatestResponse}
-					disabled={!canReadLatestResponse || !isSpeechPlaybackSupported}
-					aria-label={isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
-					title={isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
+					disabled={state.readButtonDisabled}
+					aria-label={state.readButtonAriaLabel}
+					title={state.readButtonLabel}
 					className={`runa-button runa-button--secondary ${styles['speakButton']}`}
 				>
-					{isSpeaking ? 'Okumayı durdur' : 'Son yanıtı oku'}
+					{state.readButtonLabel}
 				</button>
 			</div>
 
 			<div className={styles['status']} aria-live="polite">
-				{voiceStatusMessage ??
-					(isVoiceSupported
-						? 'Mikrofonu açıp kısa bir not söyleyebilir veya son yanıtı sesli okutabilirsin.'
-						: 'Bu tarayıcı sesli girişi desteklemiyor. Sohbet yazılı olarak devam eder.')}
+				<span className={styles['statusText']}>{state.inputStatusText}</span>
+				{state.readStatusText ? (
+					<span className={styles['readStatusLine']}>{state.readStatusText}</span>
+				) : null}
 			</div>
 		</div>
 	);

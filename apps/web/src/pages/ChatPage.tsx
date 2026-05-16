@@ -377,6 +377,8 @@ export function ChatPage({
 							isContextSheetOpen={isContextSheetOpen}
 							isUploadingAttachment={isUploadingAttachment}
 							isVoiceSupported={voiceInput.isSupported}
+							voiceInputStatus={voiceInput.status}
+							voicePermissionDenied={voiceInput.permissionDenied}
 							lastError={lastError}
 							store={runtime.store}
 							onAttachmentUploadStateChange={({ error, isUploading }) => {

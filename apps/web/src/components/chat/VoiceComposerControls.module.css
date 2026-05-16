@@ -1,4 +1,4 @@
-﻿.root {
+.root {
 	display: grid;
 	gap: 10px;
 }
@@ -44,6 +44,19 @@
 	font-size: 14px;
 	line-height: 1.5;
 	color: var(--ink-4);
+	font-weight: 600;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.statusText {
+	display: block;
+}
+
+.readStatusLine {
+	display: block;
+	color: var(--ink-3);
 	font-weight: 600;
 }
 

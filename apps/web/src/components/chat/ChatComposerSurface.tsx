@@ -35,6 +35,8 @@ type ChatComposerSurfaceProps = Readonly<{
 	isContextSheetOpen: boolean;
 	isUploadingAttachment: boolean;
 	isVoiceSupported: boolean;
+	voiceInputStatus?: 'denied' | 'error' | 'idle' | 'listening' | 'unsupported';
+	voicePermissionDenied?: boolean;
 	lastError: string | null;
 	store: ChatStore;
 	onAttachmentUploadStateChange: (input: {
@@ -107,6 +109,8 @@ export function ChatComposerSurface({
 	isContextSheetOpen,
 	isUploadingAttachment,
 	isVoiceSupported,
+	voiceInputStatus,
+	voicePermissionDenied,
 	lastError,
 	store,
 	onAttachmentUploadStateChange,
@@ -301,6 +305,8 @@ export function ChatComposerSurface({
 									onReadLatestResponse={onReadLatestResponse}
 									onStopSpeaking={onStopSpeaking}
 									onToggleListening={onToggleListening}
+									permissionDenied={voicePermissionDenied}
+									voiceInputStatus={voiceInputStatus}
 									voiceStatusMessage={voiceStatusMessage}
 								/>
 							</div>
