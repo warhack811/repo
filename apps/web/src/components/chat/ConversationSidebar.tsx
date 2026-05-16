@@ -1,4 +1,4 @@
-﻿import type { ChangeEvent, ReactElement } from 'react';
+import type { ChangeEvent, ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -9,6 +9,13 @@ import type {
 } from '../../hooks/useConversations.js';
 import { RunaSkeleton } from '../ui/RunaSkeleton.js';
 import styles from './ConversationSidebar.module.css';
+import {
+	formatConversationUpdatedAt,
+	getConversationEmptyStateCopy,
+	getConversationHistoryErrorMessage,
+	groupConversationsByRecency,
+	matchesConversationSearch,
+} from './conversationHistoryDisplay.js';
 
 type ConversationSidebarProps = Readonly<{
 	activeConversationId: string | null;
@@ -31,11 +38,6 @@ type ConversationSidebarProps = Readonly<{
 	presentation?: 'drawer' | 'embedded';
 }>;
 
-type ConversationGroup = Readonly<{
-	items: readonly ConversationSummary[];
-	label: string;
-}>;
-
 function roleLabel(role: ConversationAccessRole): string {
 	switch (role) {
 		case 'owner':
@@ -45,94 +47,6 @@ function roleLabel(role: ConversationAccessRole): string {
 		case 'viewer':
 			return 'İzleyici';
 	}
-}
-
-function formatUpdatedAt(value: string): string {
-	const parsed = new Date(value);
-
-	if (Number.isNaN(parsed.getTime())) {
-		return value;
-	}
-
-	return new Intl.DateTimeFormat(undefined, {
-		dateStyle: 'medium',
-		timeStyle: 'short',
-	}).format(parsed);
-}
-
-function daysBetween(now: Date, value: string): number {
-	const parsed = new Date(value);
-
-	if (Number.isNaN(parsed.getTime())) {
-		return Number.POSITIVE_INFINITY;
-	}
-
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-	const target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()).getTime();
-
-	return Math.floor((today - target) / 86_400_000);
-}
-
-function groupConversations(
-	conversations: readonly ConversationSummary[],
-): readonly ConversationGroup[] {
-	const now = new Date();
-	const today: ConversationSummary[] = [];
-	const yesterday: ConversationSummary[] = [];
-	const previousSevenDays: ConversationSummary[] = [];
-	const older: ConversationSummary[] = [];
-
-	for (const conversation of conversations) {
-		const ageInDays = daysBetween(now, conversation.last_message_at);
-
-		if (ageInDays <= 0) {
-			today.push(conversation);
-			continue;
-		}
-
-		if (ageInDays === 1) {
-			yesterday.push(conversation);
-			continue;
-		}
-
-		if (ageInDays <= 7) {
-			previousSevenDays.push(conversation);
-			continue;
-		}
-
-		older.push(conversation);
-	}
-
-	const groups: ConversationGroup[] = [
-		{ items: today, label: 'Bugün' },
-		{ items: yesterday, label: 'Dün' },
-		{ items: previousSevenDays, label: 'Son 7 gün' },
-		{ items: older, label: 'Daha eski' },
-	];
-
-	return groups.filter((group) => group.items.length > 0);
-}
-
-function matchesSearch(conversation: ConversationSummary, searchQuery: string): boolean {
-	const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-
-	if (normalizedSearchQuery.length === 0) {
-		return true;
-	}
-
-	return `${conversation.title} ${conversation.last_message_preview}`
-		.toLowerCase()
-		.includes(normalizedSearchQuery);
-}
-
-function getFriendlyErrorMessage(message: string): string {
-	const trimmedMessage = message.trim();
-
-	if (trimmedMessage.startsWith('{') || trimmedMessage.includes('Internal Server Error')) {
-		return 'Sohbet geçmişi şu anda yüklenemedi. Biraz sonra yeniden deneyebilirsin.';
-	}
-
-	return trimmedMessage;
 }
 
 function SkeletonRows(): ReactElement {
@@ -178,13 +92,27 @@ export function ConversationSidebar({
 	const [searchQuery, setSearchQuery] = useState('');
 	const canManageMembers = activeConversationSummary?.access_role === 'owner';
 	const filteredConversations = useMemo(
-		() => conversations.filter((conversation) => matchesSearch(conversation, searchQuery)),
+		() =>
+			conversations.filter((conversation) => matchesConversationSearch(conversation, searchQuery)),
 		[conversations, searchQuery],
 	);
 	const groupedConversations = useMemo(
-		() => groupConversations(filteredConversations),
+		() => groupConversationsByRecency(filteredConversations),
 		[filteredConversations],
 	);
+	const conversationErrorMessage = getConversationHistoryErrorMessage(conversationError);
+	const memberErrorMessage = getConversationHistoryErrorMessage(memberError);
+	const memberActionErrorMessage = getConversationHistoryErrorMessage(memberActionError);
+	const emptyConversationCopy = getConversationEmptyStateCopy({
+		hasConversations: conversations.length > 0,
+		isSearchActive: false,
+		surface: 'sidebar',
+	});
+	const emptySearchCopy = getConversationEmptyStateCopy({
+		hasConversations: conversations.length > 0,
+		isSearchActive: true,
+		surface: 'sidebar',
+	});
 	const isEmbedded = presentation === 'embedded';
 	const shouldShowBackdrop = !isEmbedded && isOpen;
 	const navClassName = [
@@ -297,9 +225,9 @@ export function ConversationSidebar({
 					/>
 				</label>
 
-				{conversationError ? (
+				{conversationErrorMessage ? (
 					<div className="runa-alert runa-alert--danger" role="alert">
-						{getFriendlyErrorMessage(conversationError)}
+						{conversationErrorMessage}
 					</div>
 				) : null}
 
@@ -308,10 +236,10 @@ export function ConversationSidebar({
 
 					{!isLoading && conversations.length === 0 ? (
 						<div className="runa-empty-state">
-							<strong>Henüz sohbet yok.</strong>
-							<div className={styles['emptyHint']}>
-								İlk mesajından sonra sohbetlerin listelenir.
-							</div>
+							<strong>{emptyConversationCopy.title}</strong>
+							{emptyConversationCopy.description ? (
+								<div className={styles['emptyHint']}>{emptyConversationCopy.description}</div>
+							) : null}
 							<button
 								type="button"
 								onClick={startNewConversation}
@@ -323,7 +251,12 @@ export function ConversationSidebar({
 					) : null}
 
 					{!isLoading && conversations.length > 0 && filteredConversations.length === 0 ? (
-						<div className="runa-empty-state">Bu aramayla eşleşen sohbet yok.</div>
+						<div className="runa-empty-state">
+							<strong>{emptySearchCopy.title}</strong>
+							{emptySearchCopy.description ? (
+								<div className={styles['emptyHint']}>{emptySearchCopy.description}</div>
+							) : null}
+						</div>
 					) : null}
 
 					{groupedConversations.map((group) => (
@@ -352,7 +285,7 @@ export function ConversationSidebar({
 												{conversation.last_message_preview}
 											</div>
 											<div className="runa-conversation-time">
-												{formatUpdatedAt(conversation.last_message_at)}
+												{formatConversationUpdatedAt(conversation.last_message_at)}
 											</div>
 										</button>
 									);
@@ -367,15 +300,15 @@ export function ConversationSidebar({
 						<summary>Üyeler - {roleLabel(activeConversationSummary.access_role)}</summary>
 
 						<div className={styles['membersList']}>
-							{memberError ? (
+							{memberErrorMessage ? (
 								<div className="runa-alert runa-alert--danger" role="alert">
-									{getFriendlyErrorMessage(memberError)}
+									{memberErrorMessage}
 								</div>
 							) : null}
 
-							{memberActionError ? (
+							{memberActionErrorMessage ? (
 								<div className="runa-alert runa-alert--danger" role="alert">
-									{getFriendlyErrorMessage(memberActionError)}
+									{memberActionErrorMessage}
 								</div>
 							) : null}
 

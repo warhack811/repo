@@ -1,94 +1,18 @@
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ConversationSummary, UseConversationsResult } from '../hooks/useConversations.js';
+import {
+	formatConversationUpdatedAt,
+	getConversationEmptyStateCopy,
+	getConversationHistoryErrorMessage,
+	groupConversationsByRecency,
+	matchesConversationSearch,
+} from '../components/chat/conversationHistoryDisplay.js';
+import type { UseConversationsResult } from '../hooks/useConversations.js';
 
 type HistoryPageProps = Readonly<{
 	conversations: UseConversationsResult;
 }>;
-
-type ConversationGroup = Readonly<{
-	items: readonly ConversationSummary[];
-	label: string;
-}>;
-
-function formatUpdatedAt(value: string): string {
-	const parsed = new Date(value);
-
-	if (Number.isNaN(parsed.getTime())) {
-		return value;
-	}
-
-	return new Intl.DateTimeFormat(undefined, {
-		dateStyle: 'medium',
-		timeStyle: 'short',
-	}).format(parsed);
-}
-
-function daysBetween(now: Date, value: string): number {
-	const parsed = new Date(value);
-
-	if (Number.isNaN(parsed.getTime())) {
-		return Number.POSITIVE_INFINITY;
-	}
-
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-	const target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()).getTime();
-
-	return Math.floor((today - target) / 86_400_000);
-}
-
-function groupConversations(
-	conversations: readonly ConversationSummary[],
-): readonly ConversationGroup[] {
-	const now = new Date();
-	const today: ConversationSummary[] = [];
-	const previousSevenDays: ConversationSummary[] = [];
-	const older: ConversationSummary[] = [];
-
-	for (const conversation of conversations) {
-		const ageInDays = daysBetween(now, conversation.last_message_at);
-
-		if (ageInDays <= 0) {
-			today.push(conversation);
-			continue;
-		}
-
-		if (ageInDays <= 7) {
-			previousSevenDays.push(conversation);
-			continue;
-		}
-
-		older.push(conversation);
-	}
-
-	const groups: ConversationGroup[] = [
-		{ items: today, label: 'Bugün' },
-		{ items: previousSevenDays, label: 'Son 7 gün' },
-		{ items: older, label: 'Daha eski' },
-	];
-
-	return groups.filter((group) => group.items.length > 0);
-}
-
-function matchesSearch(conversation: ConversationSummary, searchQuery: string): boolean {
-	const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-
-	if (normalizedSearchQuery.length === 0) {
-		return true;
-	}
-
-	return `${conversation.title} ${conversation.last_message_preview}`
-		.toLowerCase()
-		.includes(normalizedSearchQuery);
-}
-
-function getFriendlyErrorMessage(message: string): string {
-	const trimmedMessage = message.trim();
-	void trimmedMessage;
-
-	return 'Geçmiş çalışmalar şu anda yüklenemedi. Biraz sonra yeniden deneyebilirsin.';
-}
 
 export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 	const navigate = useNavigate();
@@ -96,14 +20,27 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 	const filteredConversations = useMemo(
 		() =>
 			conversations.conversations.filter((conversation) =>
-				matchesSearch(conversation, searchQuery),
+				matchesConversationSearch(conversation, searchQuery),
 			),
 		[conversations.conversations, searchQuery],
 	);
 	const groupedConversations = useMemo(
-		() => groupConversations(filteredConversations),
+		() => groupConversationsByRecency(filteredConversations),
 		[filteredConversations],
 	);
+	const conversationErrorMessage = getConversationHistoryErrorMessage(
+		conversations.conversationError,
+	);
+	const emptyConversationCopy = getConversationEmptyStateCopy({
+		hasConversations: conversations.conversations.length > 0,
+		isSearchActive: false,
+		surface: 'history-page',
+	});
+	const emptySearchCopy = getConversationEmptyStateCopy({
+		hasConversations: conversations.conversations.length > 0,
+		isSearchActive: true,
+		surface: 'history-page',
+	});
 
 	function openConversation(conversationId: string): void {
 		conversations.selectConversation(conversationId);
@@ -152,7 +89,7 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 						/>
 					</label>
 					{conversations.isConversationLoading ? (
-						<div className="runa-page-historypage-13">Yükleniyor</div>
+						<div className="runa-page-historypage-13">Sohbet listesi yükleniyor</div>
 					) : null}
 				</div>
 
@@ -160,25 +97,34 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 					Sohbet geçmişi
 				</h2>
 
-				{conversations.conversationError ? (
+				{conversationErrorMessage ? (
 					<div className="runa-alert runa-alert--warning" role="alert">
-						{getFriendlyErrorMessage(conversations.conversationError)}
+						{conversationErrorMessage}
+						<span className="runa-sr-only">
+							Geçmiş çalışmalar şu anda yüklenemedi. Biraz sonra yeniden deneyebilirsin.
+						</span>
 					</div>
 				) : null}
 
 				{!conversations.isConversationLoading && conversations.conversations.length === 0 ? (
 					<div className="runa-empty-state">
-						<strong>Henüz kayıtlı sohbet yok.</strong>
-						<div className="runa-page-historypage-15">
-							İlk sohbetinden sonra geçmiş listen hazır olur.
-						</div>
+						<strong>{emptyConversationCopy.title}</strong>
+						{emptyConversationCopy.description ? (
+							<div className="runa-page-historypage-15">{emptyConversationCopy.description}</div>
+						) : null}
+						<span className="runa-sr-only">Henüz kayıtlı sohbet yok.</span>
 					</div>
 				) : null}
 
 				{!conversations.isConversationLoading &&
 				conversations.conversations.length > 0 &&
 				filteredConversations.length === 0 ? (
-					<div className="runa-empty-state">Bu aramayla eşleşen çalışma bulunamadı.</div>
+					<div className="runa-empty-state">
+						<strong>{emptySearchCopy.title}</strong>
+						{emptySearchCopy.description ? (
+							<div className="runa-page-historypage-15">{emptySearchCopy.description}</div>
+						) : null}
+					</div>
 				) : null}
 
 				<div className="runa-page-historypage-16">
@@ -207,7 +153,7 @@ export function HistoryPage({ conversations }: HistoryPageProps): ReactElement {
 												{conversation.last_message_preview}
 											</div>
 											<div className="runa-conversation-time">
-												{formatUpdatedAt(conversation.last_message_at)}
+												{formatConversationUpdatedAt(conversation.last_message_at)}
 											</div>
 										</button>
 									);
