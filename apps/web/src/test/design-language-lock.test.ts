@@ -585,6 +585,125 @@ describe('PR-19 message actions lock', () => {
 	});
 });
 
+describe('PR-20 voice composer state lock', () => {
+	const pr20Files = [
+		join(webSrcRoot, 'components', 'chat', 'voiceComposerState.ts'),
+		join(webSrcRoot, 'components', 'chat', 'voiceComposerState.test.ts'),
+		join(webSrcRoot, 'components', 'chat', 'VoiceComposerControls.tsx'),
+		join(webSrcRoot, 'components', 'chat', 'VoiceComposerControls.module.css'),
+		join(webSrcRoot, 'components', 'chat', 'VoiceComposerControls.test.tsx'),
+		join(webSrcRoot, 'components', 'chat', 'ChatComposerSurface.tsx'),
+		join(webSrcRoot, 'components', 'chat', 'ChatComposerSurface.test.tsx'),
+		join(webSrcRoot, 'hooks', 'useVoiceInput.ts'),
+		join(webSrcRoot, 'hooks', 'useVoiceInput.test.ts'),
+		join(webSrcRoot, 'pages', 'ChatPage.tsx'),
+		join(webRoot, 'tests', 'visual', 'ui-overhaul-20-voice-state-fixture.tsx'),
+		join(webRoot, 'tests', 'visual', 'ui-overhaul-20-voice-state-smoke.html'),
+		join(webRoot, 'tests', 'visual', 'ui-overhaul-20-voice-state-smoke.spec.ts'),
+	];
+
+	it('PR-20 files are UTF-8 without BOM', () => {
+		const violations: string[] = [];
+
+		for (const filePath of pr20Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const buffer = readFileSync(filePath);
+			if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+				violations.push(`${filePath}`);
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-20 files do not contain mojibake text', () => {
+		const mojibakePatterns = ['Ã', 'Ä', 'Å', 'â€¢', '�'];
+		const violations: string[] = [];
+
+		for (const filePath of pr20Files) {
+			if (!existsSync(filePath)) {
+				violations.push(`${filePath} (not found)`);
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			for (const pattern of mojibakePatterns) {
+				if (source.includes(pattern)) {
+					violations.push(`${filePath} includes ${pattern}`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('PR-20 files do not contain forbidden normal-surface technical strings in voice copy', () => {
+		const forbidden = ['Web Speech API', 'SpeechRecognition', 'webkitSpeechRecognition'];
+		const violations: string[] = [];
+
+		// Implementation and test files that must reference browser API identifiers
+		// are excluded; they are not user-facing copy.
+		const skipFiles = new Set([
+			join(webSrcRoot, 'hooks', 'useVoiceInput.ts'),
+			join(webSrcRoot, 'hooks', 'useVoiceInput.test.ts'),
+			join(webSrcRoot, 'components', 'chat', 'VoiceComposerControls.test.tsx'),
+			join(webSrcRoot, 'components', 'chat', 'voiceComposerState.test.ts'),
+			join(webRoot, 'tests', 'visual', 'ui-overhaul-20-voice-state-smoke.spec.ts'),
+		]);
+
+		for (const filePath of pr20Files) {
+			if (!existsSync(filePath)) {
+				continue;
+			}
+
+			if (skipFiles.has(filePath)) {
+				continue;
+			}
+
+			const source = readFileSync(filePath, 'utf8');
+			for (const term of forbidden) {
+				const regex = new RegExp(`(?<!['"\`])(?:${term})(?!\\w)`, 'g');
+				if (regex.test(source)) {
+					violations.push(`${filePath} contains "${term}"`);
+				}
+			}
+		}
+
+		expect(violations).toEqual([]);
+	});
+
+	it('VoiceComposerControls.module.css uses design tokens, no hardcoded hex', () => {
+		const cssPath = join(webSrcRoot, 'components', 'chat', 'VoiceComposerControls.module.css');
+
+		if (!existsSync(cssPath)) {
+			return;
+		}
+
+		const source = readFileSync(cssPath, 'utf8');
+		const hexPattern = /#[0-9A-Fa-f]{3,8}/g;
+		const hexMatches = source.match(hexPattern) ?? [];
+		expect(hexMatches).toEqual([]);
+	});
+
+	it('voiceComposerState.ts does not export forbidden technical strings', () => {
+		const filePath = join(webSrcRoot, 'components', 'chat', 'voiceComposerState.ts');
+
+		if (!existsSync(filePath)) {
+			return;
+		}
+
+		const source = readFileSync(filePath, 'utf8');
+		const forbiddenInCode = ['Web Speech API', 'SpeechRecognition', 'webkitSpeechRecognition'];
+		for (const term of forbiddenInCode) {
+			expect(source, `voiceComposerState.ts contains "${term}"`).not.toContain(term);
+		}
+	});
+});
+
 describe('streamdown text encoding guard', () => {
 	const streamdownFiles = [
 		streamdownMessagePath,

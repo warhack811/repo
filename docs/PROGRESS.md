@@ -874,4 +874,39 @@
   - Bu PR otomatik regenerate yapmaz; onceki prompt'u composer'a tasir ve kullanici gonderimi bilincli tamamlar. Otomatik retry icin frontend runtime submit API'si ayrica tasarlanmalidir.
   - Unsent prompt conflict confirmation bu PR'da yok; kullanici mevcut prompt'u kaybetmeden yeni prompt tasinir. Kullanici farkindaligi composerPrepareNotice ile saglanir.
 
+### PR-20: Voice state and permission recovery (16 Mayis 2026)
 
+- Hedef: Voice composer yuzeyini rakip-kalite seviyesinde daha guvenilir hale getirmek: voice input state'lerini netlestirmek, permission denied / unsupported / listening / error durumlarini kullanici dilinde gostermek, TTS read/stop ile voice input durumlarini karistirmadan sunmak ve mobile ergonomiyi kilitlemek.
+- Voice-only PR. Upload recovery bu PR'a dahil edilmedi (ayri PR kapsami).
+- Degisiklikler:
+  - `voiceComposerState.ts` — pure helper/model: `deriveVoiceComposerState()` ile input button label/aria/disabled, input status text/tone ve read button label/aria/disabled/statusText tek kaynaktan turetiliyor.
+  - `useVoiceInput.ts` — `getVoiceInputErrorMessage()` export edildi; `startListening()` catch'te raw `error.message` sizintisi kapatildi, kullanici dostu mesaj kullaniliyor.
+  - `VoiceComposerControls.tsx` — yeni `permissionDenied` ve `voiceInputStatus` prop'lari eklendi; helper ile state tek kaynaktan render ediliyor; read status metni ayri satir olarak gosteriliyor.
+  - `VoiceComposerControls.module.css` — `.readStatusLine` eklendi (ink-3, 600 weight ile secondary gorunum).
+  - `ChatComposerSurface.tsx` — yeni `voiceInputStatus` ve `voicePermissionDenied` prop'lari eklendi ve VoiceComposerControls'a gecirildi.
+  - `ChatPage.tsx` — `voiceInput.status` ve `voiceInput.permissionDenied` ChatComposerSurface'a gecirildi.
+- State davranisi:
+  - Unsupported: input disabled, status `Bu tarayici sesle yazmayi desteklemiyor. Yaziyla devam edebilirsin.`
+  - Denied: input disabled, status `Mikrofon izni kapali. Tarayici izinlerinden acip yeniden deneyebilirsin.`
+  - Listening: label `Dinlemeyi durdur`, status `Dinliyorum. Bitirdiginde durdurabilirsin.`
+  - Error: button enabled, fallback mesaj `Sesle yazma baslatilamadi. Tekrar deneyebilirsin.`
+  - Idle: label `Sesle yaz`, status `Mikrofonu acip kisa bir not soyleyebilirsin.`
+  - TTS: `Okumayi durdur` / `Son yaniti oku` ayrimi; no-response/unsupported durumlarinda read disabled + helper text.
+- Forbidden technical strings output'ta yok: `Web Speech API`, `SpeechRecognition`, `webkitSpeechRecognition`, `runtime`, `metadata`, `protocol`, `backend`.
+- Test:
+  - Yeni unit: `voiceComposerState.test.ts` (12 test — idle, listening, unsupported, denied, error, TTS states, forbidden strings)
+  - Yeni hook: `useVoiceInput.test.ts` (10 test — SpeechRecognition mock, start/stop/error/cleanup/transcript)
+  - Yeni component: `VoiceComposerControls.test.tsx` (11 test — idle, listening, denied, unsupported, TTS, click callbacks)
+  - Guncellenen: `ChatComposerSurface.test.tsx` (new prop defaults + denied/unsupported propagation tests)
+  - Guncellenen: `design-language-lock.test.ts` (PR-20 BOM/mojibake/forbidden-tech/CSS hex/export guard'lari)
+- Visual smoke:
+  - Gercek `VoiceComposerControls` fixture ile 6 state varyanti (idle, listening, denied, unsupported, speaking, no-response)
+  - 390/320 viewport: tum state kopisi, disabled assertion, forbidden technical strings, mojibake, horizontal overflow
+  - PASS durumunda screenshot/manifest artefakti commit edilmedi.
+- Validation:
+  - `pnpm.cmd --filter @runa/web typecheck` PASS
+  - `pnpm.cmd --filter @runa/web lint` PASS (5 test-file warnings: mock constructor return, `as any` for browser API mocking, formatting)
+  - `pnpm.cmd --filter @runa/web test -- src/components/chat/voiceComposerState.test.ts src/components/chat/VoiceComposerControls.test.tsx src/hooks/useVoiceInput.test.ts src/components/chat/ChatComposerSurface.test.tsx src/test/design-language-lock.test.ts src/pages/OperatorDeveloperIsolation.test.tsx --run` PASS (6 files, 90 tests)
+- Kalan risk:
+  - Bu PR voice input state ve permission recovery yuzeyini guclendirir; dil secimi/persistence ve upload recovery ayri PR kapsamindadir.
+  - TTS runtime error mesajlari (speak basarisizligi) henuz read status hattinda ayri gosterilmiyor; mevcut voiceStatusMessage uzerinden error state'te gorunur.

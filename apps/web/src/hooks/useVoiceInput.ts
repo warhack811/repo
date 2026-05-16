@@ -47,7 +47,7 @@ function getSpeechRecognitionConstructor(): BrowserSpeechRecognitionConstructor 
 	return (SpeechRecognitionConstructor as BrowserSpeechRecognitionConstructor | undefined) ?? null;
 }
 
-function getVoiceInputErrorMessage(error: VoiceInputErrorCode): string {
+export function getVoiceInputErrorMessage(error: VoiceInputErrorCode): string {
 	switch (error) {
 		case 'audio-capture':
 			return 'Mikrofon kullanılabilir değil. Cihaz bağlantısını ve tarayıcı izinlerini kontrol et.';
@@ -153,14 +153,10 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 			setStatus('listening');
 			recognitionRef.current.start();
 			setIsListening(true);
-		} catch (error: unknown) {
+		} catch {
 			setIsListening(false);
 			setStatus(permissionDenied ? 'denied' : 'error');
-			setErrorMessage(
-				error instanceof Error
-					? error.message
-					: 'Ses girişi başlatılırken beklenmeyen bir hata oluştu.',
-			);
+			setErrorMessage('Sesle yazma başlatılamadı. Tekrar deneyebilirsin.');
 		}
 	}
 
