@@ -1,4 +1,4 @@
-﻿.input {
+.input {
 	display: none;
 }
 
@@ -19,6 +19,17 @@
 	transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
+.labelWithText {
+	min-width: 104px;
+	padding: 0 14px;
+}
+
+.text {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
 .label:hover {
 	background: var(--surface-4);
 	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
@@ -34,6 +45,12 @@
 .label:disabled:hover {
 	background: var(--surface-3);
 	border-color: color-mix(in srgb, var(--ink-1) 14%, transparent);
+}
+
+@media (max-width: 560px) {
+	.labelWithText {
+		min-width: 112px;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

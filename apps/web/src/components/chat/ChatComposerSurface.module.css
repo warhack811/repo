@@ -1,4 +1,4 @@
-﻿.root {
+.root {
 	box-shadow: none;
 	display: grid;
 	gap: 16px;
@@ -124,48 +124,21 @@
 	display: none;
 }
 
-.attachmentsList {
-	border-radius: var(--radius-panel);
-	background: var(--surface-3);
-	display: grid;
-	padding: 12px 14px;
-}
-
-.attachmentCard {
+.uploadAlert {
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
+	gap: 10px;
 	justify-content: space-between;
 }
 
-.attachmentInfo {
+.uploadAlertCopy {
 	display: grid;
+	gap: 4px;
 }
 
-.attachmentName {
+.uploadAlertTitle {
 	font-weight: 600;
-}
-
-.removeButton {
-	padding: 8px 12px;
-}
-
-.imagePreview {
-	max-width: min(220px, 100%);
-}
-
-.textPreview {
-	color: var(--ink-2);
-	font-size: 14px;
-	line-height: 1.5;
-	white-space: pre-wrap;
-}
-
-.documentPreview {
-	color: var(--ink-2);
-	font-size: 14px;
-	line-height: 1.5;
-	white-space: pre-wrap;
 }
 
 .errorAlert {
@@ -213,6 +186,10 @@
 		top: auto;
 		width: auto;
 		max-width: none;
+	}
+
+	.uploadAlert {
+		align-items: stretch;
 	}
 }
 

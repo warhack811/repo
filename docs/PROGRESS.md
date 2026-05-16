@@ -1,4 +1,4 @@
-﻿# Runa - Operasyonel Durum Kaydi
+# Runa - Operasyonel Durum Kaydi
 
 > Bu belge, Runa projesinin kronolojik ilerleyisini ve yonunu kaydeder.
 > Detaylar, kararlar ve teknik debt buraya listelenir.
@@ -910,3 +910,44 @@
 - Kalan risk:
   - Bu PR voice input state ve permission recovery yuzeyini guclendirir; dil secimi/persistence ve upload recovery ayri PR kapsamindadir.
   - TTS runtime error mesajlari (speak basarisizligi) henuz read status hattinda ayri gosterilmiyor; mevcut voiceStatusMessage uzerinden error state'te gorunur.
+
+### PR-21: Upload recovery and attachment ergonomics (16 Mayis 2026)
+
+- Hedef: Composer upload/attachment yuzeyini upload-only scope icinde daha guvenilir, kullanici-dilli ve mobile-safe hale getirmek.
+- Kapsam siniri:
+  - Upload-only. Voice kapsam disi (PR-20'de kapandi).
+  - History/settings kapsam disi.
+  - Backend/server/protocol/packages/types kapsam disi.
+- Uygulama:
+  - `attachmentDisplay.ts` eklendi: displayName, kind label, size label, summary, remove aria-label ve preview fallback kararlarini tek helper modelde topladi.
+  - `FileUploadButton.tsx` hardening:
+    - Upload failure sanitization helper eklendi (`getUploadFailureMessage`).
+    - Raw server error / thrown error mesaji normal kullanici yuzeyine sizdirilmiyor.
+    - `label` + `showLabel` ile retry/reselect ergonomisi desteklendi.
+    - Loading state copy/aria/title `Dosya yukleniyor...` ve `aria-busy` ile netlestirildi.
+  - `AttachmentPreviewList.tsx` + module CSS eklendi:
+    - Attachment kartlari `Adsiz ek`, `Gorsel/Metin/Dokuman/Ek dosya`, formatli boyut ve guvenli preview ile render ediliyor.
+    - Remove action `Eki kaldir` + aria-label ile acik ve erisilebilir.
+  - `ChatComposerSurface.tsx` entegrasyonu:
+    - Attachment render logic `AttachmentPreviewList`'e tasindi.
+    - Upload error alani recovery odakli hale geldi: hata metni + yardimci copy + gorunur `Tekrar sec` aksiyonu.
+    - Uploading copy `Dosya yukleniyor...` olarak guncellendi.
+    - Context chip dili `N ek` formatina cevrildi.
+- Leakage guard:
+  - Normal yuzeyde raw `blob_id` / `kind` / `size_bytes` / `bytes` metinleri kaldirildi.
+  - `working files` ve `bytes` gibi Ingilizce/teknik copy normal composer yuzeyinden temizlendi.
+- Testler:
+  - Yeni unit/component testleri:
+    - `attachmentDisplay.test.ts`
+    - `FileUploadButton.test.tsx`
+    - `AttachmentPreviewList.test.tsx`
+  - Entegrasyon guncellemesi:
+    - `ChatComposerSurface.test.tsx`
+  - Lock/genel guard guncellemesi:
+    - `design-language-lock.test.ts` PR-21 dosyalari icin BOM/mojibake/forbidden-copy/css-hex/tokens-VisualDiscipline degismedi guard'lariyla genisletildi.
+  - Visual smoke eklendi:
+    - `ui-overhaul-21-upload-attachment-fixture.tsx`
+    - `ui-overhaul-21-upload-attachment-smoke.html`
+    - `ui-overhaul-21-upload-attachment-smoke.spec.ts`
+- Kalan risk:
+  - Bu PR upload/attachment yuzeyini guclendirir; coklu dosya queue, drag/drop ve backend upload contract degisiklikleri ayri tasarim gerektirir.
