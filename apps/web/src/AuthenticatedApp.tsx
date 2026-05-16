@@ -1,8 +1,17 @@
 import type { AuthContext } from '@runa/types';
 import { type ReactElement, Suspense, lazy } from 'react';
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import {
+	BrowserRouter,
+	Navigate,
+	Outlet,
+	Route,
+	Routes,
+	useLocation,
+	useNavigate,
+} from 'react-router-dom';
 
 import type { AuthenticatedAppProps } from './App.js';
+import { AppErrorBoundary } from './components/app/AppErrorBoundary.js';
 import type { AuthenticatedPageId } from './components/app/AppNav.js';
 import { AppShell } from './components/app/AppShell.js';
 import { RunaSkeleton } from './components/ui/RunaSkeleton.js';
@@ -69,11 +78,18 @@ function resolveActivePage(pathname: string): AuthenticatedPageId {
 
 function AuthenticatedLayout(): ReactElement {
 	const location = useLocation();
+	const navigate = useNavigate();
 	const activePage = resolveActivePage(location.pathname);
 
 	return (
 		<AppShell activePage={activePage}>
-			<Outlet />
+			<AppErrorBoundary
+				tone="route"
+				resetKey={location.key}
+				onRecoverToChat={() => navigate('/chat')}
+			>
+				<Outlet />
+			</AppErrorBoundary>
 		</AppShell>
 	);
 }
