@@ -121,6 +121,8 @@ export function ChatPage({
 	const [isMenuSheetOpen, setIsMenuSheetOpen] = useState(false);
 	const [isContextSheetOpen, setIsContextSheetOpen] = useState(false);
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+	const [composerFocusRequestId, setComposerFocusRequestId] = useState(0);
+	const [composerPrepareNotice, setComposerPrepareNotice] = useState<string | null>(null);
 	const visibleCurrentPresentationSurface = useMemo(
 		() => normalizePresentationSurface(currentPresentationSurface, activeConversationMessages),
 		[currentPresentationSurface, activeConversationMessages],
@@ -233,6 +235,20 @@ export function ChatPage({
 
 	const isRunCompleted = currentRunProgress?.status_tone === 'success';
 	const isRunInProgress = currentRunProgress !== null && !isRunCompleted;
+
+	function handlePreparePrompt(input: {
+		readonly prompt: string;
+		readonly reason: 'edit' | 'retry';
+		readonly sourceMessageId: string;
+	}): void {
+		setPrompt(input.prompt);
+		setComposerFocusRequestId((value) => value + 1);
+		setComposerPrepareNotice(
+			input.reason === 'edit'
+				? "Mesaj düzenlemek için composer'a taşındı."
+				: "Önceki istek tekrar denemek için composer'a taşındı.",
+		);
+	}
 	const currentRunProgressPanel =
 		isDeveloperMode && currentRunProgress && !isRunCompleted ? (
 			<RunProgressPanel
@@ -346,6 +362,8 @@ export function ChatPage({
 							attachmentUploadError={attachmentUploadError}
 							attachments={attachments}
 							canReadLatestResponse={latestReadableResponse.length > 0}
+							composerFocusRequestId={composerFocusRequestId}
+							composerPrepareNotice={composerPrepareNotice}
 							connectionStatus={connectionStatus}
 							desktopDeviceError={desktopDeviceError}
 							desktopDevices={desktopDevices}
@@ -398,6 +416,8 @@ export function ChatPage({
 						currentRunId={currentRunId}
 						emptyStateContent={null}
 						isHistoryLoading={isConversationLoading}
+						isRunning={isRunInProgress || isSubmitting}
+						onPreparePrompt={handlePreparePrompt}
 						store={runtime.store}
 					/>
 				}

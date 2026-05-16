@@ -5,17 +5,27 @@ import type { ConversationMessage } from '../../hooks/useConversations.js';
 import { StreamdownMessage } from '../../lib/streamdown/StreamdownMessage.js';
 import { HafizaMark } from '../ui/HafizaMark.js';
 import { DayDivider } from './DayDivider.js';
+import { MessageActionBar } from './MessageActionBar.js';
 import styles from './PersistedTranscript.module.css';
+import { deriveMessageActionModel } from './messageActions.js';
 import { groupMessagesByDay } from './transcriptGroup.js';
 
 type PersistedTranscriptProps = Readonly<{
 	activeConversationId: string | null;
 	activeConversationMessages: readonly ConversationMessage[];
+	isRunning?: boolean;
+	onPreparePrompt?: (input: {
+		readonly prompt: string;
+		readonly reason: 'edit' | 'retry';
+		readonly sourceMessageId: string;
+	}) => void;
 }>;
 
 export function PersistedTranscript({
 	activeConversationId,
 	activeConversationMessages,
+	isRunning = false,
+	onPreparePrompt,
 }: PersistedTranscriptProps): ReactElement {
 	if (activeConversationMessages.length === 0) {
 		return activeConversationId ? (
@@ -34,6 +44,12 @@ export function PersistedTranscript({
 						const previousMessage = group.messages[messageIndex - 1] ?? null;
 						const shouldShowAssistantMark =
 							message.role === 'assistant' && previousMessage?.role !== 'assistant';
+
+						const actionModel = deriveMessageActionModel({
+							message,
+							messages: activeConversationMessages,
+							isRunning,
+						});
 
 						return (
 							<div
@@ -55,6 +71,13 @@ export function PersistedTranscript({
 									<div className={styles['bubble']}>
 										<StreamdownMessage>{message.content}</StreamdownMessage>
 									</div>
+									{onPreparePrompt ? (
+										<MessageActionBar
+											actionModel={actionModel}
+											message={message}
+											onPreparePrompt={onPreparePrompt}
+										/>
+									) : null}
 								</div>
 							</div>
 						);
